@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { RoleSelector } from './components/RoleSelector';
-import { WorkflowForm } from './components/WorkflowForm';
-import { RequestList } from './components/RequestList';
-import { AdminDashboard } from './components/AdminDashboard';
-import { mockApi } from './services/mockApi';
-import type { UserRole, WorkflowRequest, WorkflowStatus } from './types/workflow';
+import { RoleSelector } from './booking_workflow/components/RoleSelector';
+import { WorkflowForm } from './booking_workflow/components/WorkflowForm';
+import { RequestList } from './booking_workflow/components/RequestList';
+import { AdminDashboard } from './booking_workflow/components/AdminDashboard';
+import { mockApi } from './booking_workflow/services/mockApi';
+import type { UserRole, WorkflowRequest, WorkflowStatus } from './booking_workflow/types/workflow';
 import { Tv } from 'lucide-react';
 
 function App() {
