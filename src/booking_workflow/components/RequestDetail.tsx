@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Clock, User, Calendar, Tag, FileText, Package, History } from 'lucide-react';
+import { ArrowLeft, Clock, User, Radio } from 'lucide-react';
 import type { WorkflowRequest, WorkflowTransition, ResourceAssignment, UserRole } from '../types/workflow';
 import { mockApi } from '../services/mockApi';
 
@@ -16,7 +16,6 @@ interface RequestDetailProps {
 export const RequestDetail: React.FC<RequestDetailProps> = ({ request, onClose, userRole, onUpdate }) => {
   const [transitions, setTransitions] = useState<WorkflowTransition[]>([]);
   const [resources, setResources] = useState<ResourceAssignment[]>([]);
-  const [activeTab, setActiveTab] = useState<'details' | 'history' | 'resources' | 'actions'>('details');
 
   useEffect(() => {
     loadData();
@@ -43,208 +42,218 @@ export const RequestDetail: React.FC<RequestDetailProps> = ({ request, onClose, 
     (userRole === 'NOC' && (request.status === 'Submitted' || request.status === 'With NOC' || request.status === 'Clarification Requested')) ||
     (userRole === 'Ingest' && request.status === 'With Ingest');
 
-  const renderFieldValue = (label: string, value: string | undefined) => {
+  const renderField = (label: string, value: string | undefined) => {
     if (!value) return null;
     return (
-      <div className="flex flex-col">
-        <span className="text-xs text-slate-500 mb-1">{label}</span>
-        <span className="text-sm font-medium text-slate-800">{value}</span>
+      <div className="mb-4">
+        <div className="text-xs text-slate-500 mb-1">{label}</div>
+        <div className="text-sm text-slate-900">{value}</div>
       </div>
     );
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
-        <div className="bg-gradient-to-r from-slate-800 to-slate-900 px-6 py-5 flex items-center justify-between">
-          <div>
-            <h2 className="text-xl font-bold text-white">{request.title}</h2>
-            <p className="text-slate-300 text-sm mt-1">{request.id}</p>
-          </div>
-          <button
-            onClick={onClose}
-            className="text-white hover:bg-white hover:bg-opacity-20 p-2 rounded-lg transition-colors"
-          >
-            <X size={24} />
-          </button>
-        </div>
-
-        <div className="border-b border-slate-200">
-          <div className="flex">
-            {[
-              { id: 'details', label: 'Details', icon: FileText },
-              { id: 'history', label: 'History', icon: History },
-              { id: 'resources', label: 'Resources', icon: Package },
-              ...(showActions ? [{ id: 'actions', label: 'Actions', icon: Tag }] : [])
-            ].map(tab => {
-              const Icon = tab.icon;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id as any)}
-                  className={`flex items-center gap-2 px-6 py-4 font-medium transition-colors ${
-                    activeTab === tab.id
-                      ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-                  }`}
-                >
-                  <Icon size={18} />
-                  {tab.label}
-                </button>
-              );
-            })}
+    <div className="fixed inset-0 bg-slate-100 z-50 overflow-y-auto">
+      <div className="min-h-screen">
+        <div className="bg-white border-b border-slate-200 px-6 py-4">
+          <div className="max-w-7xl mx-auto flex items-center gap-4">
+            <button
+              onClick={onClose}
+              className="text-slate-600 hover:text-slate-900 transition-colors"
+            >
+              <ArrowLeft size={20} />
+            </button>
+            <div className="flex-1">
+              <div className="flex items-center gap-3">
+                <h1 className="text-xl font-bold text-slate-900">{request.title}</h1>
+                <span className="px-3 py-1 text-xs font-medium bg-blue-100 text-blue-700 rounded-full">
+                  {request.status}
+                </span>
+              </div>
+              <div className="flex items-center gap-4 mt-1 text-sm text-slate-600">
+                <span>{request.id}</span>
+                <span>•</span>
+                <span>{request.bookingType}</span>
+                <span>•</span>
+                <span className="px-2 py-0.5 bg-red-100 text-red-700 rounded text-xs font-medium">
+                  {request.priority}
+                </span>
+              </div>
+            </div>
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6">
-          {activeTab === 'details' && (
+        <div className="max-w-7xl mx-auto px-6 py-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 space-y-6">
+              <div className="bg-white rounded-lg border border-slate-200 p-6">
+                <h2 className="text-lg font-semibold text-slate-900 mb-4">Request Details</h2>
+                <div className="grid grid-cols-2 gap-x-8 gap-y-4">
+                  {renderField('Program / Segment', request.program)}
+                  {renderField('Language', request.language)}
+                  {renderField('Air Date / Time', new Date(request.airDateTime).toLocaleString())}
+                  {renderField('NOC Required', request.nocRequired)}
+                </div>
+
+                <div className="mt-6 pt-6 border-t border-slate-200">
+                  <h3 className="text-sm font-semibold text-slate-700 mb-3">Feed Configuration</h3>
+                  <div className="grid grid-cols-2 gap-x-8 gap-y-4">
+                    {request.bookingType === 'Incoming Feed' && 'sourceType' in request && (
+                      <>
+                        {renderField('Source Type', request.sourceType)}
+                        {renderField('vMix Input', request.vmixInputNumber)}
+                        {renderField('Return Path', request.returnPath)}
+                        {renderField('Key/Fill', request.keyFill)}
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                <div className="mt-6 pt-6 border-t border-slate-200">
+                  <h3 className="text-sm font-semibold text-slate-700 mb-3">Resources Needed</h3>
+                  <div className="text-sm text-slate-900">{request.resourcesNeeded || 'None specified'}</div>
+                </div>
+
+                {request.complianceTags && (
+                  <div className="mt-6 pt-6 border-t border-slate-200">
+                    <h3 className="text-sm font-semibold text-slate-700 mb-3">Compliance Tags</h3>
+                    <div className="flex flex-wrap gap-2">
+                      <span className="px-3 py-1 bg-slate-100 text-slate-700 rounded-full text-xs font-medium">
+                        {request.complianceTags}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {request.notes && (
+                  <div className="mt-6 pt-6 border-t border-slate-200">
+                    <h3 className="text-sm font-semibold text-slate-700 mb-3">Notes</h3>
+                    <div className="bg-slate-50 rounded p-3 text-sm text-slate-700">{request.notes}</div>
+                  </div>
+                )}
+
+                {request.newsroomTicket && (
+                  <div className="mt-6 pt-6 border-t border-slate-200">
+                    <h3 className="text-sm font-semibold text-slate-700 mb-3">Newsroom Ticket</h3>
+                    <div className="text-sm text-slate-900">{request.newsroomTicket}</div>
+                  </div>
+                )}
+              </div>
+
+              {resources.length > 0 && (
+                <div className="bg-white rounded-lg border border-slate-200 p-6">
+                  <h2 className="text-lg font-semibold text-slate-900 mb-4">Allocated Resources</h2>
+                  <div className="space-y-3">
+                    {resources.map(res => (
+                      <div key={res.id} className="bg-blue-50 rounded-lg p-4 border border-blue-100">
+                        <div className="flex items-start gap-3">
+                          <div className="mt-1">
+                            <Radio size={16} className="text-blue-600" />
+                          </div>
+                          <div className="flex-1">
+                            <div className="font-semibold text-slate-900 text-sm">{res.resourceName}</div>
+                            <div className="text-xs text-slate-600 mt-1">
+                              {res.resourceType} assigned, audio levels tested
+                            </div>
+                            <div className="text-xs text-blue-600 mt-2">
+                              Allocated by {res.assignedBy} • {new Date(res.assignedAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div className="space-y-6">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-slate-50 rounded-lg">
-                <div className="flex flex-col">
-                  <span className="text-xs text-slate-500 mb-1">Status</span>
-                  <span className="text-sm font-semibold text-blue-600">{request.status}</span>
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-xs text-slate-500 mb-1">Priority</span>
-                  <span className="text-sm font-semibold text-orange-600">{request.priority}</span>
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-xs text-slate-500 mb-1">Language</span>
-                  <span className="text-sm font-medium text-slate-800">{request.language}</span>
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-xs text-slate-500 mb-1">NOC Required</span>
-                  <span className="text-sm font-medium text-slate-800">{request.nocRequired}</span>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {renderFieldValue('Program / Segment', request.program)}
-                {renderFieldValue('Air Date/Time', new Date(request.airDateTime).toLocaleString())}
-                {renderFieldValue('Booking Type', request.bookingType)}
-                {renderFieldValue('Newsroom Ticket', request.newsroomTicket)}
-              </div>
-
-              {request.bookingType === 'Incoming Feed' && 'sourceType' in request && (
-                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                  <h3 className="text-sm font-semibold text-slate-800 mb-3 flex items-center gap-2">
-                    <Tag size={16} />
-                    Incoming Feed Details
-                  </h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    {renderFieldValue('Source Type', request.sourceType)}
-                    {renderFieldValue('vMix Input', request.vmixInputNumber)}
-                    {renderFieldValue('Return Path', request.returnPath)}
-                    {renderFieldValue('Key/Fill', request.keyFill)}
+              <div className="bg-white rounded-lg border border-slate-200 p-6">
+                <h2 className="text-lg font-semibold text-slate-900 mb-4">Metadata</h2>
+                <div className="space-y-4">
+                  <div>
+                    <div className="flex items-center gap-2 text-xs text-slate-500 mb-2">
+                      <User size={14} />
+                      <span>Created by</span>
+                    </div>
+                    <div className="text-sm font-medium text-slate-900">{request.createdBy}</div>
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 text-xs text-slate-500 mb-2">
+                      <Clock size={14} />
+                      <span>Created at</span>
+                    </div>
+                    <div className="text-sm text-slate-900">
+                      {new Date(request.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} {new Date(request.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 text-xs text-slate-500 mb-2">
+                      <Clock size={14} />
+                      <span>Last updated</span>
+                    </div>
+                    <div className="text-sm text-slate-900">
+                      {new Date(request.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} {new Date(request.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                    </div>
                   </div>
                 </div>
-              )}
-
-              {request.bookingType === 'Guest for iNEWS Rundown' && 'guestName' in request && (
-                <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                  <h3 className="text-sm font-semibold text-slate-800 mb-3 flex items-center gap-2">
-                    <User size={16} />
-                    Guest & Rundown Details
-                  </h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    {renderFieldValue('Guest Name', request.guestName)}
-                    {renderFieldValue('Guest Contact', request.guestContact)}
-                    {renderFieldValue('iNEWS Rundown ID', request.inewsRundownId)}
-                    {renderFieldValue('Story Slug', request.storySlug)}
-                    {renderFieldValue('Rundown Position', request.rundownPosition)}
-                  </div>
-                </div>
-              )}
-
-              <div className="space-y-3">
-                {renderFieldValue('Resources Needed', request.resourcesNeeded)}
-                {renderFieldValue('Compliance Tags', request.complianceTags)}
               </div>
 
-              {request.notes && (
-                <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
-                  <h3 className="text-sm font-semibold text-slate-800 mb-2">Notes</h3>
-                  <p className="text-sm text-slate-700">{request.notes}</p>
-                </div>
-              )}
-
-              <div className="flex items-center gap-6 text-xs text-slate-500 pt-4 border-t border-slate-200">
-                <div className="flex items-center gap-2">
-                  <User size={14} />
-                  <span>Created by: {request.createdBy}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Clock size={14} />
-                  <span>{new Date(request.createdAt).toLocaleString()}</span>
+              <div className="bg-white rounded-lg border border-slate-200 p-6">
+                <h2 className="text-lg font-semibold text-slate-900 mb-4">Workflow History</h2>
+                <div className="space-y-4">
+                  {transitions.length === 0 ? (
+                    <div className="text-sm text-slate-500">No transitions yet</div>
+                  ) : (
+                    transitions.map((trans, idx) => (
+                      <div key={trans.id} className="relative pl-6">
+                        <div className="absolute left-0 top-1.5 w-2 h-2 rounded-full bg-blue-500"></div>
+                        {idx < transitions.length - 1 && (
+                          <div className="absolute left-[3px] top-3 w-0.5 h-full bg-slate-200"></div>
+                        )}
+                        <div>
+                          <div className="text-sm font-semibold text-slate-900">{trans.toStatus}</div>
+                          <div className="text-xs text-slate-600 mt-1">
+                            by {trans.changedBy} • {new Date(trans.changedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}, {new Date(trans.changedAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                          </div>
+                          {trans.comment && (
+                            <div className="text-xs text-slate-600 mt-1">{trans.comment}</div>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
-            </div>
-          )}
 
-          {activeTab === 'history' && (
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-slate-800">Workflow History</h3>
-              {transitions.length === 0 ? (
-                <div className="text-center py-8 text-slate-500">
-                  No workflow transitions yet
-                </div>
-              ) : (
+              <div className="bg-white rounded-lg border border-slate-200 p-6">
+                <h2 className="text-lg font-semibold text-slate-900 mb-4">Notifications</h2>
                 <div className="space-y-3">
-                  {transitions.map(trans => (
-                    <div key={trans.id} className="p-4 bg-slate-50 rounded-lg border border-slate-200">
-                      <div className="flex items-center gap-3 mb-2">
-                        <span className="text-sm font-medium text-slate-600">{trans.fromStatus}</span>
-                        <span className="text-slate-400">→</span>
-                        <span className="text-sm font-semibold text-blue-600">{trans.toStatus}</span>
-                      </div>
-                      <p className="text-sm text-slate-700 mb-2">{trans.comment}</p>
-                      <div className="flex items-center gap-4 text-xs text-slate-500">
-                        <span>By: {trans.changedBy}</span>
-                        <span>{new Date(trans.changedAt).toLocaleString()}</span>
-                      </div>
+                  {transitions.slice(0, 2).map(trans => (
+                    <div key={trans.id} className="bg-blue-50 rounded p-3 border border-blue-100">
+                      <div className="text-xs font-medium text-slate-600 mb-1">To: {userRole}</div>
+                      <div className="text-sm text-slate-900">{trans.comment || `Status changed to ${trans.toStatus}`}</div>
                     </div>
                   ))}
+                  {transitions.length === 0 && (
+                    <div className="text-sm text-slate-500">No notifications</div>
+                  )}
                 </div>
-              )}
-            </div>
-          )}
+              </div>
 
-          {activeTab === 'resources' && (
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-slate-800">Assigned Resources</h3>
-              {resources.length === 0 ? (
-                <div className="text-center py-8 text-slate-500">
-                  No resources assigned yet
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {resources.map(res => (
-                    <div key={res.id} className="p-4 bg-slate-50 rounded-lg border border-slate-200">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-semibold text-slate-800">{res.resourceName}</span>
-                        <span className="text-xs text-slate-500 bg-slate-200 px-2 py-1 rounded">{res.resourceType}</span>
-                      </div>
-                      <div className="flex items-center gap-4 text-xs text-slate-500">
-                        <span>Assigned by: {res.assignedBy}</span>
-                        <span>{new Date(res.assignedAt).toLocaleString()}</span>
-                      </div>
-                    </div>
-                  ))}
+              {showActions && (
+                <div className="bg-white rounded-lg border border-slate-200 p-6">
+                  <h2 className="text-lg font-semibold text-slate-900 mb-4">Actions</h2>
+                  {userRole === 'NOC' && (
+                    <NOCActions request={request} onAction={handleNOCAction} />
+                  )}
+                  {userRole === 'Ingest' && (
+                    <IngestActions request={request} onAction={handleIngestAction} />
+                  )}
                 </div>
               )}
             </div>
-          )}
-
-          {activeTab === 'actions' && (
-            <div>
-              {userRole === 'NOC' && (
-                <NOCActions request={request} onAction={handleNOCAction} />
-              )}
-              {userRole === 'Ingest' && (
-                <IngestActions request={request} onAction={handleIngestAction} />
-              )}
-            </div>
-          )}
+          </div>
         </div>
       </div>
     </div>
