@@ -4,7 +4,7 @@ import { RequestList } from '../../booking_workflow/components/RequestList';
 import { AdminDashboard } from '../../booking_workflow/components/AdminDashboard';
 import { mockApi } from '../../booking_workflow/services/mockApi';
 import type { UserRole, WorkflowRequest, WorkflowStatus } from '../../booking_workflow/types/workflow';
-import { Tv, User, Radio, Package, Shield, Menu, X } from 'lucide-react';
+import { User, Radio, Package, Shield, Menu, X } from 'lucide-react';
 
 export const BookingDashboard: React.FC = () => {
   const [currentRole, setCurrentRole] = useState<UserRole>('Booking');
@@ -59,12 +59,13 @@ export const BookingDashboard: React.FC = () => {
               <div className="p-6 border-b border-slate-200">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="p-2 bg-blue-600 rounded-lg">
-                      <Tv size={24} className="text-white" />
-                    </div>
+                    <img
+                      src="https://q37.qa/q37/images/logo_1.svg"
+                      alt="Q37 Logo"
+                      className="h-10 w-10 object-contain"
+                    />
                     <div>
-                      <h1 className="text-lg font-bold text-slate-900">Live Business</h1>
-                      <p className="text-xs text-slate-600">Channel</p>
+                      <h1 className="text-lg font-bold text-slate-900">Workflow Hub</h1>
                     </div>
                   </div>
                   <button
