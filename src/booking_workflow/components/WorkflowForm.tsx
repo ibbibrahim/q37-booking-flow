@@ -110,198 +110,200 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({ onSubmit, onCancel }
   );
 
   return (
-    <div className="max-w-5xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden">
-      <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-8 py-6">
-        <h2 className="text-2xl font-bold text-white">Create New Workflow Request</h2>
-        <p className="text-blue-100 mt-1">Booking → NOC → Ingest</p>
-      </div>
+    <div className="fixed inset-0 bg-slate-50 z-50 overflow-y-auto">
+      <div className="min-h-screen">
+        <div className="bg-white border-b border-slate-200 px-6 py-6">
+          <div className="max-w-6xl mx-auto">
+            <h1 className="text-2xl font-bold text-slate-900">New Workflow Request</h1>
+            <p className="text-slate-600 text-sm mt-1">Create a new booking request for NOC and Ingest teams</p>
+          </div>
+        </div>
 
-      <div className="border-b border-slate-200">
-        <div className="flex overflow-x-auto">
-          {tabs.map(tab => {
-            const Icon = tab.icon;
-            return (
+        <div className="bg-slate-100 border-b border-slate-300">
+          <div className="max-w-6xl mx-auto flex">
+            {tabs.map(tab => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
-                className={`flex items-center gap-2 px-6 py-4 font-medium transition-colors whitespace-nowrap ${
+                className={`px-6 py-3 font-medium text-sm transition-colors ${
                   activeTab === tab.id
-                    ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                    ? 'bg-white text-slate-900 border-b-2 border-blue-600'
+                    : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                <Icon size={18} />
                 {tab.label}
               </button>
-            );
-          })}
+            ))}
+          </div>
         </div>
-      </div>
 
-      <div className="p-8">
-        {activeTab === 'form' && (
-          <form onSubmit={(e) => e.preventDefault()} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <FormField
-                label="Booking Type"
-                name="bookingType"
-                value={formData.bookingType}
-                onChange={handleChange}
-                options={['Incoming Feed', 'Guest for iNEWS Rundown']}
-                required
-              />
-              <FormField
-                label="Priority"
-                name="priority"
-                value={formData.priority}
-                onChange={handleChange}
-                options={['Normal', 'High', 'Urgent']}
-                required
-              />
-            </div>
+        <div className="max-w-6xl mx-auto py-6 px-6">
+          {activeTab === 'form' && (
+            <form onSubmit={(e) => e.preventDefault()} className="space-y-6">
+              <div className="bg-white rounded-lg border border-slate-200 p-6">
+                <h2 className="text-lg font-semibold text-slate-900 mb-6">Booking Information</h2>
 
-            <FormField
-              label="Title"
-              name="title"
-              value={formData.title}
-              onChange={handleChange}
-              required
-            />
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <FormField
-                label="Program / Segment"
-                name="program"
-                value={formData.program}
-                onChange={handleChange}
-                required
-              />
-              <FormField
-                label="Air Date / Time (Local)"
-                name="airDateTime"
-                type="datetime-local"
-                value={formData.airDateTime}
-                onChange={handleChange}
-                required
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <FormField
-                label="Language"
-                name="language"
-                value={formData.language}
-                onChange={handleChange}
-                options={['English', 'Arabic']}
-                required
-              />
-              <FormField
-                label="NOC Required"
-                name="nocRequired"
-                value={formData.nocRequired}
-                onChange={handleChange}
-                options={['Yes', 'No']}
-                required
-              />
-            </div>
-
-            {formData.bookingType === 'Incoming Feed' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 bg-slate-50 rounded-lg border border-slate-200">
-                <div className="col-span-2">
-                  <h3 className="text-lg font-semibold text-slate-800 mb-4">Incoming Feed Details</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <FormField
+                    label="Booking Type"
+                    name="bookingType"
+                    value={formData.bookingType}
+                    onChange={handleChange}
+                    options={['Incoming Feed', 'Guest for iNEWS Rundown']}
+                    required
+                  />
+                  <FormField
+                    label="Title"
+                    name="title"
+                    value={formData.title}
+                    onChange={handleChange}
+                    required
+                  />
                 </div>
-                {renderIncomingFeedFields()}
-              </div>
-            )}
 
-            {formData.bookingType === 'Guest for iNEWS Rundown' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 bg-slate-50 rounded-lg border border-slate-200">
-                <div className="col-span-2">
-                  <h3 className="text-lg font-semibold text-slate-800 mb-4">Guest & Rundown Details</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                  <FormField
+                    label="Program / Segment"
+                    name="program"
+                    value={formData.program}
+                    onChange={handleChange}
+                    required
+                  />
+                  <FormField
+                    label="Air Date / Time (Local)"
+                    name="airDateTime"
+                    type="datetime-local"
+                    value={formData.airDateTime}
+                    onChange={handleChange}
+                    required
+                  />
                 </div>
-                {renderGuestRundownFields()}
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                  <FormField
+                    label="Language"
+                    name="language"
+                    value={formData.language}
+                    onChange={handleChange}
+                    options={['English', 'Arabic']}
+                    required
+                  />
+                  <FormField
+                    label="Priority"
+                    name="priority"
+                    value={formData.priority}
+                    onChange={handleChange}
+                    options={['Normal', 'High', 'Urgent']}
+                    required
+                  />
+                </div>
               </div>
-            )}
 
-            <FormField
-              label="Resources Needed (Booking)"
-              name="resourcesNeeded"
-              value={formData.resourcesNeeded}
-              onChange={handleChange}
-            />
+              {formData.bookingType === 'Incoming Feed' && (
+                <div className="bg-white rounded-lg border border-slate-200 p-6">
+                  <h2 className="text-lg font-semibold text-slate-900 mb-6">Feed Configuration</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {renderIncomingFeedFields()}
+                  </div>
+                </div>
+              )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <FormField
-                label="Newsroom Ticket / Ref"
-                name="newsroomTicket"
-                value={formData.newsroomTicket}
-                onChange={handleChange}
-              />
-              <FormField
-                label="Compliance Tags"
-                name="complianceTags"
-                value={formData.complianceTags}
-                onChange={handleChange}
-              />
-            </div>
+              {formData.bookingType === 'Guest for iNEWS Rundown' && (
+                <div className="bg-white rounded-lg border border-slate-200 p-6">
+                  <h2 className="text-lg font-semibold text-slate-900 mb-6">Guest & Rundown Details</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {renderGuestRundownFields()}
+                  </div>
+                </div>
+              )}
 
-            <FormField
-              label="Notes"
-              name="notes"
-              type="textarea"
-              value={formData.notes}
-              onChange={handleChange}
-            />
+              <div className="bg-white rounded-lg border border-slate-200 p-6">
+                <h2 className="text-lg font-semibold text-slate-900 mb-6">Additional Information</h2>
 
-            <div className="flex gap-4 pt-4">
-              <button
-                type="button"
-                onClick={() => handleSubmit('Submitted')}
-                className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
-              >
-                <Send size={18} />
-                Submit Request
-              </button>
-              <button
-                type="button"
-                onClick={() => handleSubmit('Draft')}
-                className="flex items-center gap-2 px-6 py-3 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition-colors font-medium"
-              >
-                <Save size={18} />
-                Save as Draft
-              </button>
-              <button
-                type="button"
-                onClick={onCancel}
-                className="px-6 py-3 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 transition-colors font-medium"
-              >
-                Cancel
-              </button>
-            </div>
-          </form>
-        )}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <FormField
+                    label="NOC Required"
+                    name="nocRequired"
+                    value={formData.nocRequired}
+                    onChange={handleChange}
+                    options={['Yes', 'No']}
+                    required
+                  />
+                  <FormField
+                    label="Newsroom Ticket / Ref"
+                    name="newsroomTicket"
+                    value={formData.newsroomTicket}
+                    onChange={handleChange}
+                  />
+                </div>
 
-        {activeTab === 'resources' && (
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-slate-800">Resource Summary</h3>
-            <div className="bg-slate-50 p-6 rounded-lg border border-slate-200">
+                <div className="mt-6">
+                  <FormField
+                    label="Resources Needed (Booking)"
+                    name="resourcesNeeded"
+                    value={formData.resourcesNeeded}
+                    onChange={handleChange}
+                  />
+                </div>
+
+                <div className="mt-6">
+                  <FormField
+                    label="Compliance Tags"
+                    name="complianceTags"
+                    value={formData.complianceTags}
+                    onChange={handleChange}
+                  />
+                </div>
+
+                <div className="mt-6">
+                  <FormField
+                    label="Notes"
+                    name="notes"
+                    type="textarea"
+                    value={formData.notes}
+                    onChange={handleChange}
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-4">
+                <button
+                  type="button"
+                  onClick={onCancel}
+                  className="px-6 py-2.5 text-slate-700 rounded-lg hover:bg-slate-100 transition-colors font-medium border border-slate-300"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSubmit('Submitted')}
+                  className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                >
+                  <Send size={18} />
+                  Submit Request
+                </button>
+              </div>
+            </form>
+          )}
+
+          {activeTab === 'resources' && (
+            <div className="bg-white rounded-lg border border-slate-200 p-6">
+              <h3 className="text-lg font-semibold text-slate-900 mb-4">Resource Summary</h3>
               <p className="text-slate-600">Resources will be displayed here once assigned by NOC team.</p>
               {formData.resourcesNeeded && (
-                <div className="mt-4">
+                <div className="mt-4 p-4 bg-slate-50 rounded-lg">
                   <h4 className="font-medium text-slate-700 mb-2">Requested Resources:</h4>
                   <p className="text-slate-600">{formData.resourcesNeeded}</p>
                 </div>
               )}
             </div>
-          </div>
-        )}
+          )}
 
-        {activeTab === 'notifications' && (
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-slate-800">Notifications</h3>
-            <div className="bg-slate-50 p-6 rounded-lg border border-slate-200">
-              <p className="text-slate-600">Notification settings and history will appear here.</p>
-              <ul className="mt-4 space-y-2">
+          {activeTab === 'notifications' && (
+            <div className="bg-white rounded-lg border border-slate-200 p-6">
+              <h3 className="text-lg font-semibold text-slate-900 mb-4">Notifications</h3>
+              <p className="text-slate-600 mb-4">Notification settings and history will appear here.</p>
+              <ul className="space-y-2">
                 <li className="flex items-center gap-2 text-slate-600">
                   <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                   <span>Booking team will be notified on submission</span>
@@ -316,17 +318,17 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({ onSubmit, onCancel }
                 </li>
               </ul>
             </div>
-          </div>
-        )}
+          )}
 
-        {activeTab === 'json' && (
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-slate-800">Data Payload Preview</h3>
-            <pre className="bg-slate-900 text-slate-100 p-6 rounded-lg overflow-x-auto text-sm">
-              {JSON.stringify(formData, null, 2)}
-            </pre>
-          </div>
-        )}
+          {activeTab === 'json' && (
+            <div className="bg-white rounded-lg border border-slate-200 p-6">
+              <h3 className="text-lg font-semibold text-slate-900 mb-4">Data Payload Preview</h3>
+              <pre className="bg-slate-900 text-slate-100 p-6 rounded-lg overflow-x-auto text-sm">
+                {JSON.stringify(formData, null, 2)}
+              </pre>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
