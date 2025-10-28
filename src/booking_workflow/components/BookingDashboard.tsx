@@ -6,6 +6,7 @@ import { mockApi } from '../../booking_workflow/services/mockApi';
 import type { UserRole, WorkflowRequest, WorkflowStatus } from '../../booking_workflow/types/workflow';
 import { User, Radio, Package, Shield, Menu, X, Sun, Moon } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
+import q37Logo from '../../assets/q37.png';
 
 export const BookingDashboard: React.FC = () => {
   const { theme, toggleTheme } = useTheme();
@@ -62,7 +63,7 @@ export const BookingDashboard: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <img
-                      src="https://q37.qa/q37/images/logo_1.svg"
+                      src={q37Logo}
                       alt="Q37 Logo"
                       className="h-10 w-10 object-contain"
                     />
