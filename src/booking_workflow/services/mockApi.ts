@@ -26,7 +26,7 @@ export const mockRequests: WorkflowRequest[] = [
   },
   {
     id: 'req-002',
-    bookingType: 'Guest for iNEWS Rundown',
+    bookingType: 'Invite Guest for Program',
     title: 'CEO Interview - Tech Innovations',
     program: 'Tech Talk',
     airDateTime: '2025-10-23T16:30:00',
@@ -71,7 +71,7 @@ export const mockRequests: WorkflowRequest[] = [
   },
   {
     id: 'req-004',
-    bookingType: 'Guest for iNEWS Rundown',
+    bookingType: 'Invite Guest for Program',
     title: 'Economic Analyst Panel',
     program: 'Business Insights',
     airDateTime: '2025-10-24T11:00:00',
@@ -116,7 +116,7 @@ export const mockRequests: WorkflowRequest[] = [
   },
   {
     id: 'req-006',
-    bookingType: 'Guest for iNEWS Rundown',
+    bookingType: 'Invite Guest for Program',
     title: 'Startup Founder Feature',
     program: 'Innovation Hub',
     airDateTime: '2025-10-25T14:00:00',
@@ -315,7 +315,7 @@ export const mockRequests: WorkflowRequest[] = [
   },
   {
     id: 'req-002',
-    bookingType: 'Guest for iNEWS Rundown',
+    bookingType: 'Invite Guest for Program',
     title: 'CEO Interview - Tech Innovations',
     program: 'Tech Talk',
     airDateTime: '2025-10-23T16:30:00',
@@ -360,7 +360,7 @@ export const mockRequests: WorkflowRequest[] = [
   },
   {
     id: 'req-004',
-    bookingType: 'Guest for iNEWS Rundown',
+    bookingType: 'Invite Guest for Program',
     title: 'Economic Analyst Panel',
     program: 'Business Insights',
     airDateTime: '2025-10-24T11:00:00',
@@ -405,7 +405,7 @@ export const mockRequests: WorkflowRequest[] = [
   },
   {
     id: 'req-006',
-    bookingType: 'Guest for iNEWS Rundown',
+    bookingType: 'Invite Guest for Program',
     title: 'Startup Founder Feature',
     program: 'Innovation Hub',
     airDateTime: '2025-10-25T14:00:00',

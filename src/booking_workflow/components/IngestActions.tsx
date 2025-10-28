@@ -31,18 +31,18 @@ export const IngestActions: React.FC<IngestActionsProps> = ({ request, onAction 
   };
 
   return (
-    <div className="space-y-6 bg-slate-800 p-6 rounded-lg">
-      <h3 className="text-xl font-bold text-white mb-4">Ingest Actions</h3>
+    <div className="bg-card border border-border rounded-lg p-6">
+      <h3 className="text-xl font-bold text-card-foreground mb-6">Ingest Actions</h3>
 
-      <div className="space-y-4">
+      <div className="space-y-5">
         <div>
-          <label className="block text-sm font-medium text-slate-200 mb-2">
+          <label className="block text-sm font-medium text-card-foreground mb-2">
             Ingest Status
           </label>
           <select
             value={ingestData.ingestStatus}
             onChange={(e) => setIngestData({ ...ingestData, ingestStatus: e.target.value })}
-            className="w-full px-4 py-2.5 bg-slate-700 border border-slate-600 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+            className="w-full px-4 py-2.5 bg-muted border border-border text-card-foreground rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
           >
             <option value="">—</option>
             <option value="Completed">Completed</option>
@@ -52,7 +52,7 @@ export const IngestActions: React.FC<IngestActionsProps> = ({ request, onAction 
 
         {ingestData.ingestStatus === 'Not Done' && (
           <div>
-            <label className="block text-sm font-medium text-slate-200 mb-2">
+            <label className="block text-sm font-medium text-card-foreground mb-2">
               If Not Done, Reason
             </label>
             <input
@@ -60,17 +60,17 @@ export const IngestActions: React.FC<IngestActionsProps> = ({ request, onAction 
               value={ingestData.notDoneReason}
               onChange={(e) => setIngestData({ ...ingestData, notDoneReason: e.target.value })}
               placeholder="e.g., Source failure, file missing, guest no-show"
-              className="w-full px-4 py-2.5 bg-slate-700 border border-slate-600 text-white placeholder-slate-400 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+              className="w-full px-4 py-2.5 bg-muted border border-border text-card-foreground placeholder-muted-foreground rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
             />
           </div>
         )}
       </div>
 
-      <div className="flex gap-3 pt-4">
+      <div className="flex flex-wrap gap-3 mt-6 pt-6 border-t border-border">
         {ingestData.ingestStatus === 'Completed' && (
           <button
             onClick={handleStatusChange}
-            className="flex items-center gap-2 px-5 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
+            className="flex items-center gap-2 px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors font-medium"
           >
             <CheckCircle2 size={18} />
             Mark as Completed
@@ -79,7 +79,7 @@ export const IngestActions: React.FC<IngestActionsProps> = ({ request, onAction 
         {ingestData.ingestStatus === 'Not Done' && (
           <button
             onClick={handleStatusChange}
-            className="flex items-center gap-2 px-5 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
+            className="flex items-center gap-2 px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors font-medium"
           >
             <XCircle size={18} />
             Mark as Not Done

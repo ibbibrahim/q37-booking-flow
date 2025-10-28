@@ -109,6 +109,26 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({ onSubmit, onCancel }
     </>
   );
 
+  const renderDownloadAndIngestFields = () => (
+    <>
+      <FormField
+        label="Download Source"
+        name="downloadSource"
+        value={formData.downloadSource || ""}
+        onChange={handleChange}
+        options={["YouTube", "WeTransfer", "FTP", "Other"]}
+        required
+      />
+      <FormField
+        label="Download Link / URL"
+        name="downloadLink"
+        value={formData.downloadLink || ""}
+        onChange={handleChange}
+        required
+      />
+    </>
+  );
+
   return (
     <div className="fixed inset-0 bg-background z-50 overflow-y-auto">
       <div className="min-h-screen">
@@ -149,7 +169,7 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({ onSubmit, onCancel }
                     name="bookingType"
                     value={formData.bookingType}
                     onChange={handleChange}
-                    options={['Incoming Feed', 'Guest for iNEWS Rundown']}
+                    options={['Incoming Feed', 'Invite Guest for News', 'Invite Guest for Program', 'Download and Ingest']}
                     required
                   />
                   <FormField
@@ -209,11 +229,20 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({ onSubmit, onCancel }
                 </div>
               )}
 
-              {formData.bookingType === 'Guest for iNEWS Rundown' && (
+              {(formData.bookingType === 'Invite Guest for News' || formData.bookingType === 'Invite Guest for Program') && (
                 <div className="bg-card rounded-lg border border-border p-6 shadow-sm">
                   <h2 className="text-lg font-semibold text-card-foreground mb-6">Guest & Rundown Details</h2>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {renderGuestRundownFields()}
+                  </div>
+                </div>
+              )}
+
+              {formData.bookingType === 'Download and Ingest' && (
+                <div className="bg-card rounded-lg border border-border p-6 shadow-sm">
+                  <h2 className="text-lg font-semibold text-card-foreground mb-6">Download Details</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {renderDownloadAndIngestFields()}
                   </div>
                 </div>
               )}

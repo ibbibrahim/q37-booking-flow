@@ -1,4 +1,4 @@
-export type BookingType = 'Incoming Feed' | 'Guest for iNEWS Rundown';
+export type BookingType = 'Incoming Feed' | 'Invite Guest for News' | 'Invite Guest for Program' | 'Download and Ingest';
 
 export type WorkflowStatus =
   | 'Draft'
@@ -46,8 +46,8 @@ export interface IncomingFeedRequest extends BaseWorkflowRequest {
   keyFill: KeyFill;
 }
 
-export interface GuestRundownRequest extends BaseWorkflowRequest {
-  bookingType: 'Guest for iNEWS Rundown';
+export interface InviteGuestNewsRequest extends BaseWorkflowRequest {
+  bookingType: 'Invite Guest for News';
   guestName: string;
   guestContact: string;
   inewsRundownId: string;
@@ -55,7 +55,22 @@ export interface GuestRundownRequest extends BaseWorkflowRequest {
   rundownPosition: string;
 }
 
-export type WorkflowRequest = IncomingFeedRequest | GuestRundownRequest;
+export interface InviteGuestProgramRequest extends BaseWorkflowRequest {
+  bookingType: 'Invite Guest for Program';
+  guestName: string;
+  guestContact: string;
+  inewsRundownId: string;
+  storySlug: string;
+  rundownPosition: string;
+}
+
+export interface DownloadIngestRequest extends BaseWorkflowRequest {
+  bookingType: 'Download and Ingest';
+  downloadSource: 'YouTube' | 'WeTransfer' | 'FTP' | 'Other';
+  downloadLink: string;
+}
+
+export type WorkflowRequest = IncomingFeedRequest | InviteGuestNewsRequest | InviteGuestProgramRequest | DownloadIngestRequest;
 
 export interface WorkflowTransition {
   id: string;
