@@ -4,9 +4,11 @@ import { RequestList } from '../../booking_workflow/components/RequestList';
 import { AdminDashboard } from '../../booking_workflow/components/AdminDashboard';
 import { mockApi } from '../../booking_workflow/services/mockApi';
 import type { UserRole, WorkflowRequest, WorkflowStatus } from '../../booking_workflow/types/workflow';
-import { User, Radio, Package, Shield, Menu, X } from 'lucide-react';
+import { User, Radio, Package, Shield, Menu, X, Sun, Moon } from 'lucide-react';
+import { useTheme } from '../../contexts/ThemeContext';
 
 export const BookingDashboard: React.FC = () => {
+  const { theme, toggleTheme } = useTheme();
   const [currentRole, setCurrentRole] = useState<UserRole>('Booking');
   const [requests, setRequests] = useState<WorkflowRequest[]>([]);
   const [showForm, setShowForm] = useState(false);
@@ -51,12 +53,12 @@ export const BookingDashboard: React.FC = () => {
   return (
     <>
       {!showForm && (
-        <div className="min-h-screen bg-slate-50 flex">
-          <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-slate-200 transform transition-transform duration-200 lg:translate-x-0 lg:static lg:inset-auto ${
+        <div className="min-h-screen bg-background flex">
+          <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-sidebar-background border-r border-sidebar-border transform transition-transform duration-200 lg:translate-x-0 lg:static lg:inset-auto ${
             sidebarOpen ? 'translate-x-0' : '-translate-x-full'
           }`}>
             <div className="h-full flex flex-col">
-              <div className="p-6 border-b border-slate-200">
+              <div className="p-6 border-b border-sidebar-border">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <img
@@ -65,12 +67,12 @@ export const BookingDashboard: React.FC = () => {
                       className="h-10 w-10 object-contain"
                     />
                     <div>
-                      <h1 className="text-lg font-bold text-slate-900">Workflow Hub</h1>
+                      <h1 className="text-lg font-bold text-sidebar-foreground">Workflow Hub</h1>
                     </div>
                   </div>
                   <button
                     onClick={() => setSidebarOpen(false)}
-                    className="lg:hidden text-slate-600 hover:text-slate-900"
+                    className="lg:hidden text-sidebar-foreground hover:text-sidebar-primary"
                   >
                     <X size={20} />
                   </button>
@@ -91,8 +93,8 @@ export const BookingDashboard: React.FC = () => {
                         }}
                         className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
                           isActive
-                            ? 'bg-slate-900 text-white'
-                            : 'text-slate-700 hover:bg-slate-100'
+                            ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+                            : 'text-sidebar-foreground hover:bg-sidebar-accent'
                         }`}
                       >
                         <Icon size={20} />
@@ -103,8 +105,15 @@ export const BookingDashboard: React.FC = () => {
                 </div>
               </nav>
 
-              <div className="p-4 border-t border-slate-200">
-                <p className="text-xs text-slate-500">HR Workflow: Booking → NOC → Ingest</p>
+              <div className="p-4 border-t border-sidebar-border">
+                <button
+                  onClick={toggleTheme}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors text-sidebar-foreground hover:bg-sidebar-accent mb-3"
+                >
+                  {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
+                  <span className="font-medium text-sm">{theme === 'light' ? 'Dark Mode' : 'Light Mode'}</span>
+                </button>
+                <p className="text-xs text-sidebar-foreground opacity-60">HR Workflow: Booking → NOC → Ingest</p>
               </div>
             </div>
           </aside>
@@ -117,21 +126,21 @@ export const BookingDashboard: React.FC = () => {
           )}
 
           <div className="flex-1 flex flex-col min-w-0">
-            <header className="bg-white border-b border-slate-200 sticky top-0 z-30">
+            <header className="bg-card border-b border-border sticky top-0 z-30">
               <div className="px-4 sm:px-6 lg:px-8 py-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
                     <button
                       onClick={() => setSidebarOpen(true)}
-                      className="lg:hidden text-slate-600 hover:text-slate-900"
+                      className="lg:hidden text-card-foreground hover:text-primary"
                     >
                       <Menu size={24} />
                     </button>
                     <div>
-                      <h2 className="text-xl font-bold text-slate-900">
+                      <h2 className="text-xl font-bold text-card-foreground">
                         {currentRole}
                       </h2>
-                      <p className="text-sm text-slate-600 mt-0.5">
+                      <p className="text-sm text-muted-foreground mt-0.5">
                         {currentRole === 'Booking' && 'Create and manage workflow requests'}
                         {currentRole === 'NOC' && 'Review requests and assign resources'}
                         {currentRole === 'Ingest' && 'Process final stage workflow requests'}
@@ -146,7 +155,7 @@ export const BookingDashboard: React.FC = () => {
             <main className="flex-1 px-4 sm:px-6 lg:px-8 py-6">
               {loading ? (
                 <div className="flex items-center justify-center py-16">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
                 </div>
               ) : (
                 <>

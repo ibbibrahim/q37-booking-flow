@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import { ChevronDown, Check } from 'lucide-react';
 
 interface FormFieldProps {
   label: string;
@@ -8,6 +9,7 @@ interface FormFieldProps {
   onChange: (name: string, value: string) => void;
   options?: string[];
   required?: boolean;
+  placeholder?: string;
 }
 
 export const FormField: React.FC<FormFieldProps> = ({
@@ -17,35 +19,89 @@ export const FormField: React.FC<FormFieldProps> = ({
   value,
   onChange,
   options,
-  required = false
+  required = false,
+  placeholder
 }) => {
-  const baseInputClass = "w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all";
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const baseInputClass = "w-full px-3 py-2.5 bg-card border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all text-card-foreground";
+
+  if (options) {
+    return (
+      <div className="space-y-2">
+        <label className="block text-sm font-medium text-card-foreground">
+          {label}
+          {required && <span className="text-destructive ml-1">*</span>}
+        </label>
+
+        <div className="relative" ref={dropdownRef}>
+          <button
+            type="button"
+            onClick={() => setIsOpen(!isOpen)}
+            className={`${baseInputClass} flex items-center justify-between cursor-pointer hover:border-primary/50`}
+          >
+            <span className={value ? 'text-card-foreground' : 'text-muted-foreground'}>
+              {value || `Select ${label}`}
+            </span>
+            <ChevronDown
+              size={18}
+              className={`text-muted-foreground transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+            />
+          </button>
+
+          {isOpen && (
+            <div className="absolute z-50 w-full mt-2 bg-popover border border-border rounded-lg shadow-lg max-h-60 overflow-y-auto">
+              {options.map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  onClick={() => {
+                    onChange(name, option);
+                    setIsOpen(false);
+                  }}
+                  className={`w-full px-3 py-2.5 text-left hover:bg-accent hover:text-accent-foreground transition-colors flex items-center justify-between ${
+                    value === option ? 'bg-accent/10 text-primary font-medium' : 'text-popover-foreground'
+                  }`}
+                >
+                  <span>{option}</span>
+                  {value === option && (
+                    <Check size={16} className="text-primary" />
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-2">
-      <label className="block text-sm font-medium text-slate-700">
+      <label className="block text-sm font-medium text-card-foreground">
         {label}
-        {required && <span className="text-red-500 ml-1">*</span>}
+        {required && <span className="text-destructive ml-1">*</span>}
       </label>
 
-      {options ? (
-        <select
-          value={value}
-          onChange={(e) => onChange(name, e.target.value)}
-          className={baseInputClass}
-        >
-          <option value="">Select {label}</option>
-          {options.map(opt => (
-            <option key={opt} value={opt}>{opt}</option>
-          ))}
-        </select>
-      ) : type === 'textarea' ? (
+      {type === 'textarea' ? (
         <textarea
           value={value}
           onChange={(e) => onChange(name, e.target.value)}
           rows={4}
           className={baseInputClass}
-          placeholder={`Enter ${label.toLowerCase()}`}
+          placeholder={placeholder || `Enter ${label.toLowerCase()}`}
         />
       ) : (
         <input
@@ -53,7 +109,7 @@ export const FormField: React.FC<FormFieldProps> = ({
           value={value}
           onChange={(e) => onChange(name, e.target.value)}
           className={baseInputClass}
-          placeholder={`Enter ${label.toLowerCase()}`}
+          placeholder={placeholder || `Enter ${label.toLowerCase()}`}
         />
       )}
     </div>

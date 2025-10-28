@@ -110,16 +110,16 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({ onSubmit, onCancel }
   );
 
   return (
-    <div className="fixed inset-0 bg-slate-50 z-50 overflow-y-auto">
+    <div className="fixed inset-0 bg-background z-50 overflow-y-auto">
       <div className="min-h-screen">
-        <div className="bg-white border-b border-slate-200 px-6 py-6">
+        <div className="bg-card border-b border-border px-6 py-6">
           <div className="max-w-6xl mx-auto">
-            <h1 className="text-2xl font-bold text-slate-900">New Workflow Request</h1>
-            <p className="text-slate-600 text-sm mt-1">Create a new booking request for NOC and Ingest teams</p>
+            <h1 className="text-2xl font-bold text-card-foreground">New Workflow Request</h1>
+            <p className="text-muted-foreground text-sm mt-1">Create a new booking request for NOC and Ingest teams</p>
           </div>
         </div>
 
-        <div className="bg-slate-100 border-b border-slate-300">
+        <div className="bg-muted border-b border-border">
           <div className="max-w-6xl mx-auto flex">
             {tabs.map(tab => (
               <button
@@ -127,8 +127,8 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({ onSubmit, onCancel }
                 onClick={() => setActiveTab(tab.id as any)}
                 className={`px-6 py-3 font-medium text-sm transition-colors ${
                   activeTab === tab.id
-                    ? 'bg-white text-slate-900 border-b-2 border-blue-600'
-                    : 'text-slate-600 hover:text-slate-900'
+                    ? 'bg-card text-card-foreground border-b-2 border-primary'
+                    : 'text-muted-foreground hover:text-card-foreground'
                 }`}
               >
                 {tab.label}
@@ -140,8 +140,8 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({ onSubmit, onCancel }
         <div className="max-w-6xl mx-auto py-6 px-6">
           {activeTab === 'form' && (
             <form onSubmit={(e) => e.preventDefault()} className="space-y-6">
-              <div className="bg-white rounded-lg border border-slate-200 p-6">
-                <h2 className="text-lg font-semibold text-slate-900 mb-6">Booking Information</h2>
+              <div className="bg-card rounded-lg border border-border p-6 shadow-sm">
+                <h2 className="text-lg font-semibold text-card-foreground mb-6">Booking Information</h2>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <FormField
@@ -167,6 +167,7 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({ onSubmit, onCancel }
                     name="program"
                     value={formData.program}
                     onChange={handleChange}
+                    placeholder="e.g., Evening News"
                     required
                   />
                   <FormField
@@ -200,8 +201,8 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({ onSubmit, onCancel }
               </div>
 
               {formData.bookingType === 'Incoming Feed' && (
-                <div className="bg-white rounded-lg border border-slate-200 p-6">
-                  <h2 className="text-lg font-semibold text-slate-900 mb-6">Feed Configuration</h2>
+                <div className="bg-card rounded-lg border border-border p-6 shadow-sm">
+                  <h2 className="text-lg font-semibold text-card-foreground mb-6">Feed Configuration</h2>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {renderIncomingFeedFields()}
                   </div>
@@ -209,16 +210,16 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({ onSubmit, onCancel }
               )}
 
               {formData.bookingType === 'Guest for iNEWS Rundown' && (
-                <div className="bg-white rounded-lg border border-slate-200 p-6">
-                  <h2 className="text-lg font-semibold text-slate-900 mb-6">Guest & Rundown Details</h2>
+                <div className="bg-card rounded-lg border border-border p-6 shadow-sm">
+                  <h2 className="text-lg font-semibold text-card-foreground mb-6">Guest & Rundown Details</h2>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {renderGuestRundownFields()}
                   </div>
                 </div>
               )}
 
-              <div className="bg-white rounded-lg border border-slate-200 p-6">
-                <h2 className="text-lg font-semibold text-slate-900 mb-6">Additional Information</h2>
+              <div className="bg-card rounded-lg border border-border p-6 shadow-sm">
+                <h2 className="text-lg font-semibold text-card-foreground mb-6">Additional Information</h2>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <FormField
@@ -270,14 +271,14 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({ onSubmit, onCancel }
                 <button
                   type="button"
                   onClick={onCancel}
-                  className="px-6 py-2.5 text-slate-700 rounded-lg hover:bg-slate-100 transition-colors font-medium border border-slate-300"
+                  className="px-6 py-2.5 text-card-foreground rounded-lg hover:bg-muted transition-colors font-medium border border-border"
                 >
                   Cancel
                 </button>
                 <button
                   type="button"
                   onClick={() => handleSubmit('Submitted')}
-                  className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                  className="flex items-center gap-2 px-6 py-2.5 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
                 >
                   <Send size={18} />
                   Submit Request
@@ -287,33 +288,33 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({ onSubmit, onCancel }
           )}
 
           {activeTab === 'resources' && (
-            <div className="bg-white rounded-lg border border-slate-200 p-6">
-              <h3 className="text-lg font-semibold text-slate-900 mb-4">Resource Summary</h3>
-              <p className="text-slate-600">Resources will be displayed here once assigned by NOC team.</p>
+            <div className="bg-card rounded-lg border border-border p-6 shadow-sm">
+              <h3 className="text-lg font-semibold text-card-foreground mb-4">Resource Summary</h3>
+              <p className="text-muted-foreground">Resources will be displayed here once assigned by NOC team.</p>
               {formData.resourcesNeeded && (
-                <div className="mt-4 p-4 bg-slate-50 rounded-lg">
-                  <h4 className="font-medium text-slate-700 mb-2">Requested Resources:</h4>
-                  <p className="text-slate-600">{formData.resourcesNeeded}</p>
+                <div className="mt-4 p-4 bg-muted rounded-lg">
+                  <h4 className="font-medium text-card-foreground mb-2">Requested Resources:</h4>
+                  <p className="text-muted-foreground">{formData.resourcesNeeded}</p>
                 </div>
               )}
             </div>
           )}
 
           {activeTab === 'notifications' && (
-            <div className="bg-white rounded-lg border border-slate-200 p-6">
-              <h3 className="text-lg font-semibold text-slate-900 mb-4">Notifications</h3>
-              <p className="text-slate-600 mb-4">Notification settings and history will appear here.</p>
+            <div className="bg-card rounded-lg border border-border p-6 shadow-sm">
+              <h3 className="text-lg font-semibold text-card-foreground mb-4">Notifications</h3>
+              <p className="text-muted-foreground mb-4">Notification settings and history will appear here.</p>
               <ul className="space-y-2">
-                <li className="flex items-center gap-2 text-slate-600">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                <li className="flex items-center gap-2 text-muted-foreground">
+                  <div className="w-2 h-2 bg-primary rounded-full"></div>
                   <span>Booking team will be notified on submission</span>
                 </li>
-                <li className="flex items-center gap-2 text-slate-600">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                <li className="flex items-center gap-2 text-muted-foreground">
+                  <div className="w-2 h-2 bg-primary rounded-full"></div>
                   <span>NOC team will be notified when request reaches them</span>
                 </li>
-                <li className="flex items-center gap-2 text-slate-600">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                <li className="flex items-center gap-2 text-muted-foreground">
+                  <div className="w-2 h-2 bg-primary rounded-full"></div>
                   <span>Ingest team will be notified at final stage</span>
                 </li>
               </ul>
@@ -321,9 +322,9 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({ onSubmit, onCancel }
           )}
 
           {activeTab === 'json' && (
-            <div className="bg-white rounded-lg border border-slate-200 p-6">
-              <h3 className="text-lg font-semibold text-slate-900 mb-4">Data Payload Preview</h3>
-              <pre className="bg-slate-900 text-slate-100 p-6 rounded-lg overflow-x-auto text-sm">
+            <div className="bg-card rounded-lg border border-border p-6 shadow-sm">
+              <h3 className="text-lg font-semibold text-card-foreground mb-4">Data Payload Preview</h3>
+              <pre className="bg-slate-900 dark:bg-slate-950 text-slate-100 p-6 rounded-lg overflow-x-auto text-sm">
                 {JSON.stringify(formData, null, 2)}
               </pre>
             </div>
