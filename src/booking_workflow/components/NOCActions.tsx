@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { CheckCircle2, AlertCircle, Send, Plus, Trash2 } from 'lucide-react';
 import type { WorkflowRequest } from '../types/workflow';
 
@@ -18,8 +18,6 @@ export const NOCActions: React.FC<NOCActionsProps> = ({ request, onAction }) => 
     action: '',
     sourceType: '',
     qmcSource: '',
-    vmixInputNumber: '',
-    resourceAssignmentType: '',
     resolution: '',
     clarificationMessage: '',
     forwardToIngest: 'Yes'
@@ -28,6 +26,54 @@ export const NOCActions: React.FC<NOCActionsProps> = ({ request, onAction }) => 
   const [assignedResources, setAssignedResources] = useState<AssignedResource[]>([]);
   const [newResourceName, setNewResourceName] = useState('');
   const [newResourceType, setNewResourceType] = useState<'Main' | 'Backup'>('Main');
+
+  useEffect(() => {
+    if (nocData.sourceType && nocData.qmcSource) {
+      const feedResourceName = `${nocData.sourceType} - ${nocData.qmcSource}${nocData.resolution ? ` (${nocData.resolution})` : ''}`;
+      const existingIndex = assignedResources.findIndex(r =>
+        r.resourceName.startsWith(`${nocData.sourceType} - ${nocData.qmcSource}`)
+      );
+
+      if (existingIndex >= 0) {
+        const updated = [...assignedResources];
+        updated[existingIndex] = {
+          ...updated[existingIndex],
+          resourceName: feedResourceName
+        };
+        setAssignedResources(updated);
+      }
+    }
+  }, [nocData.sourceType, nocData.qmcSource, nocData.resolution]);
+
+  const handleAddFeedResource = () => {
+    if (!nocData.sourceType || !nocData.qmcSource) {
+      alert('Please select both Source Type and Source');
+      return;
+    }
+
+    const feedResourceName = `${nocData.sourceType} - ${nocData.qmcSource}${nocData.resolution ? ` (${nocData.resolution})` : ''}`;
+
+    const existingIndex = assignedResources.findIndex(r =>
+      r.resourceName.startsWith(`${nocData.sourceType} - ${nocData.qmcSource}`)
+    );
+
+    if (existingIndex >= 0) {
+      const updated = [...assignedResources];
+      updated[existingIndex] = {
+        ...updated[existingIndex],
+        resourceName: feedResourceName,
+        type: 'Main'
+      };
+      setAssignedResources(updated);
+    } else {
+      const newResource: AssignedResource = {
+        id: Date.now().toString(),
+        resourceName: feedResourceName,
+        type: 'Main'
+      };
+      setAssignedResources([...assignedResources, newResource]);
+    }
+  };
 
   const handleAddResource = () => {
     if (!newResourceName.trim()) {
@@ -130,7 +176,7 @@ export const NOCActions: React.FC<NOCActionsProps> = ({ request, onAction }) => 
                 </label>
                 <select
                   value={nocData.sourceType}
-                  onChange={(e) => setNocData({ ...nocData, sourceType: e.target.value, qmcSource: '', vmixInputNumber: '' })}
+                  onChange={(e) => setNocData({ ...nocData, sourceType: e.target.value, qmcSource: '' })}
                   className="w-full px-4 py-3 bg-white border border-slate-300 text-slate-900 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
                 >
                   <option value="">Select Source Type</option>
@@ -161,21 +207,6 @@ export const NOCActions: React.FC<NOCActionsProps> = ({ request, onAction }) => 
 
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-3">
-                  Assigned Resources
-                </label>
-                <select
-                  value={nocData.resourceAssignmentType}
-                  onChange={(e) => setNocData({ ...nocData, resourceAssignmentType: e.target.value })}
-                  className="w-full px-4 py-3 bg-white border border-slate-300 text-slate-900 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-                >
-                  <option value="">Select Assignment Type</option>
-                  <option value="Main">Main</option>
-                  <option value="Backup">Backup</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-3">
                   Resolution
                 </label>
                 <select
@@ -187,6 +218,16 @@ export const NOCActions: React.FC<NOCActionsProps> = ({ request, onAction }) => 
                   <option value="HD">HD</option>
                   <option value="UHD">UHD</option>
                 </select>
+              </div>
+
+              <div className="flex items-end">
+                <button
+                  onClick={handleAddFeedResource}
+                  className="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium shadow-sm flex items-center justify-center gap-2"
+                >
+                  <Plus size={18} />
+                  Add to Resources
+                </button>
               </div>
             </div>
           </div>
