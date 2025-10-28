@@ -39,38 +39,6 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({ onSubmit, onCancel }
     { id: 'json', label: 'Data Payload', icon: FileJson }
   ];
 
-  const renderIncomingFeedFields = () => (
-    <>
-      <FormField
-        label="Source Type"
-        name="sourceType"
-        value={formData.sourceType || ''}
-        onChange={handleChange}
-        options={['vMix', 'SRT', 'Satellite']}
-        required
-      />
-      <FormField
-        label="vMix Input Number"
-        name="vmixInputNumber"
-        value={formData.vmixInputNumber || ''}
-        onChange={handleChange}
-      />
-      <FormField
-        label="Return Path"
-        name="returnPath"
-        value={formData.returnPath || ''}
-        onChange={handleChange}
-        options={['Enabled', 'Disabled']}
-      />
-      <FormField
-        label="Key/Fill"
-        name="keyFill"
-        value={formData.keyFill || ''}
-        onChange={handleChange}
-        options={['None', 'Key', 'Fill']}
-      />
-    </>
-  );
 
   const renderGuestRundownFields = () => (
     <>
@@ -200,6 +168,27 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({ onSubmit, onCancel }
                   />
                 </div>
 
+                {formData.bookingType === 'Incoming Feed' && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                    <FormField
+                      label="Feed Start Time"
+                      name="feedStartTime"
+                      type="datetime-local"
+                      value={formData.feedStartTime || ''}
+                      onChange={handleChange}
+                      required
+                    />
+                    <FormField
+                      label="Feed End Time"
+                      name="feedEndTime"
+                      type="datetime-local"
+                      value={formData.feedEndTime || ''}
+                      onChange={handleChange}
+                      required
+                    />
+                  </div>
+                )}
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
                   <FormField
                     label="Language"
@@ -219,15 +208,6 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({ onSubmit, onCancel }
                   />
                 </div>
               </div>
-
-              {formData.bookingType === 'Incoming Feed' && (
-                <div className="bg-card rounded-lg border border-border p-6 shadow-sm">
-                  <h2 className="text-lg font-semibold text-card-foreground mb-6">Feed Configuration</h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {renderIncomingFeedFields()}
-                  </div>
-                </div>
-              )}
 
               {(formData.bookingType === 'Invite Guest for News' || formData.bookingType === 'Invite Guest for Program') && (
                 <div className="bg-card rounded-lg border border-border p-6 shadow-sm">

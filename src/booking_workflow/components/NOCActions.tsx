@@ -10,6 +10,13 @@ interface NOCActionsProps {
 export const NOCActions: React.FC<NOCActionsProps> = ({ request, onAction }) => {
   const [nocData, setNocData] = useState({
     action: '',
+    sourceType: '',
+    qmcSource: '',
+    vmixInputNumber: '',
+    resourceAssignmentType: '',
+    resolution: '',
+    returnPath: '',
+    keyFill: '',
     assignedResources: '',
     clarificationMessage: '',
     forwardToIngest: 'Yes'
@@ -44,6 +51,8 @@ export const NOCActions: React.FC<NOCActionsProps> = ({ request, onAction }) => 
     });
   };
 
+  const isIncomingFeed = request.bookingType === 'Incoming Feed';
+
   return (
     <div className="bg-card border border-border rounded-lg p-6">
       <h3 className="text-xl font-bold text-card-foreground mb-6">NOC Actions</h3>
@@ -64,7 +73,128 @@ export const NOCActions: React.FC<NOCActionsProps> = ({ request, onAction }) => 
           </select>
         </div>
 
-        <div>
+        {isIncomingFeed && (
+          <>
+            <div className="pt-4 border-t border-border">
+              <h4 className="text-base font-semibold text-card-foreground mb-4">Feed Configuration</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div>
+                  <label className="block text-sm font-medium text-card-foreground mb-2">
+                    Source Type <span className="text-destructive">*</span>
+                  </label>
+                  <select
+                    value={nocData.sourceType}
+                    onChange={(e) => setNocData({ ...nocData, sourceType: e.target.value, qmcSource: '' })}
+                    className="w-full px-4 py-2.5 bg-muted border border-border text-card-foreground rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
+                  >
+                    <option value="">Select Source Type</option>
+                    <option value="QMC Earth Station">QMC Earth Station</option>
+                    <option value="vMix">vMix</option>
+                    <option value="SRT">SRT</option>
+                  </select>
+                </div>
+
+                {nocData.sourceType === 'QMC Earth Station' && (
+                  <div>
+                    <label className="block text-sm font-medium text-card-foreground mb-2">
+                      Source <span className="text-destructive">*</span>
+                    </label>
+                    <select
+                      value={nocData.qmcSource}
+                      onChange={(e) => setNocData({ ...nocData, qmcSource: e.target.value })}
+                      className="w-full px-4 py-2.5 bg-muted border border-border text-card-foreground rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
+                    >
+                      <option value="">Select Source</option>
+                      {Array.from({ length: 10 }, (_, i) => (
+                        <option key={i + 1} value={`Ext-${i + 1}`}>
+                          Ext-{i + 1}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {nocData.sourceType === 'vMix' && (
+                  <div>
+                    <label className="block text-sm font-medium text-card-foreground mb-2">
+                      vMix Input Number
+                    </label>
+                    <input
+                      type="text"
+                      value={nocData.vmixInputNumber}
+                      onChange={(e) => setNocData({ ...nocData, vmixInputNumber: e.target.value })}
+                      placeholder="Enter vMix input number"
+                      className="w-full px-4 py-2.5 bg-muted border border-border text-card-foreground placeholder-muted-foreground rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
+                    />
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-sm font-medium text-card-foreground mb-2">
+                    Assigned Resources
+                  </label>
+                  <select
+                    value={nocData.resourceAssignmentType}
+                    onChange={(e) => setNocData({ ...nocData, resourceAssignmentType: e.target.value })}
+                    className="w-full px-4 py-2.5 bg-muted border border-border text-card-foreground rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
+                  >
+                    <option value="">Select Assignment Type</option>
+                    <option value="Main">Main</option>
+                    <option value="Backup">Backup</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-card-foreground mb-2">
+                    Resolution
+                  </label>
+                  <select
+                    value={nocData.resolution}
+                    onChange={(e) => setNocData({ ...nocData, resolution: e.target.value })}
+                    className="w-full px-4 py-2.5 bg-muted border border-border text-card-foreground rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
+                  >
+                    <option value="">Select Resolution</option>
+                    <option value="HD">HD</option>
+                    <option value="UHD">UHD</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-card-foreground mb-2">
+                    Return Path
+                  </label>
+                  <select
+                    value={nocData.returnPath}
+                    onChange={(e) => setNocData({ ...nocData, returnPath: e.target.value })}
+                    className="w-full px-4 py-2.5 bg-muted border border-border text-card-foreground rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
+                  >
+                    <option value="">Select Return Path</option>
+                    <option value="Enabled">Enabled</option>
+                    <option value="Disabled">Disabled</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-card-foreground mb-2">
+                    Key/Fill
+                  </label>
+                  <select
+                    value={nocData.keyFill}
+                    onChange={(e) => setNocData({ ...nocData, keyFill: e.target.value })}
+                    className="w-full px-4 py-2.5 bg-muted border border-border text-card-foreground rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
+                  >
+                    <option value="">Select Key/Fill</option>
+                    <option value="None">None</option>
+                    <option value="Key">Key</option>
+                    <option value="Fill">Fill</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+
+        <div className={isIncomingFeed ? 'pt-4 border-t border-border' : ''}>
           <label className="block text-sm font-medium text-card-foreground mb-2">
             Assigned Resources (NOC)
           </label>

@@ -14,7 +14,10 @@ export type UserRole = 'Booking' | 'NOC' | 'Ingest' | 'Admin';
 
 export type Priority = 'Normal' | 'High' | 'Urgent';
 export type Language = 'English' | 'Arabic';
-export type SourceType = 'vMix' | 'SRT' | 'Satellite';
+export type SourceType = 'QMC Earth Station' | 'vMix' | 'SRT';
+export type QMCSource = 'Ext-1' | 'Ext-2' | 'Ext-3' | 'Ext-4' | 'Ext-5' | 'Ext-6' | 'Ext-7' | 'Ext-8' | 'Ext-9' | 'Ext-10';
+export type ResourceAssignmentType = 'Main' | 'Backup';
+export type Resolution = 'HD' | 'UHD';
 export type ReturnPath = 'Enabled' | 'Disabled';
 export type KeyFill = 'None' | 'Key' | 'Fill';
 export type YesNo = 'Yes' | 'No';
@@ -25,6 +28,8 @@ export interface BaseWorkflowRequest {
   title: string;
   program: string;
   airDateTime: string;
+  feedStartTime?: string;
+  feedEndTime?: string;
   language: Language;
   priority: Priority;
   nocRequired: YesNo;
@@ -40,10 +45,13 @@ export interface BaseWorkflowRequest {
 
 export interface IncomingFeedRequest extends BaseWorkflowRequest {
   bookingType: 'Incoming Feed';
-  sourceType: SourceType;
-  vmixInputNumber: string;
-  returnPath: ReturnPath;
-  keyFill: KeyFill;
+  sourceType?: SourceType;
+  qmcSource?: QMCSource;
+  vmixInputNumber?: string;
+  resourceAssignmentType?: ResourceAssignmentType;
+  resolution?: Resolution;
+  returnPath?: ReturnPath;
+  keyFill?: KeyFill;
 }
 
 export interface InviteGuestNewsRequest extends BaseWorkflowRequest {
