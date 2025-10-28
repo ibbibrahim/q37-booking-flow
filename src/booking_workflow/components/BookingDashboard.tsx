@@ -65,7 +65,7 @@ export const BookingDashboard: React.FC = () => {
                     <img
                       src={q37Logo}
                       alt="Q37 Logo"
-                      className="h-10 w-10 object-contain"
+                      className="h-16 w-16 object-contain"
                     />
                     <div>
                       <h1 className="text-lg font-bold text-sidebar-foreground">Workflow Hub</h1>
