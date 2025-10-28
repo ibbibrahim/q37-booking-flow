@@ -31,7 +31,7 @@ export const RequestCard: React.FC<RequestCardProps> = ({ request, onClick }) =>
   return (
     <div
       onClick={onClick}
-      className="bg-white border border-slate-200 rounded-lg p-5 hover:shadow-lg transition-all cursor-pointer hover:border-blue-300"
+      className="bg-card border border-border rounded-lg p-5 hover:shadow-lg transition-all cursor-pointer hover:border-primary/50"
     >
       <div className="flex items-start justify-between mb-3">
         <div className="flex-1">
@@ -43,35 +43,35 @@ export const RequestCard: React.FC<RequestCardProps> = ({ request, onClick }) =>
               {request.priority}
             </span>
           </div>
-          <h3 className="text-lg font-semibold text-slate-900 mb-1">{request.title}</h3>
-          <p className="text-sm text-slate-600">{request.program}</p>
+          <h3 className="text-lg font-semibold text-card-foreground mb-1">{request.title}</h3>
+          <p className="text-sm text-muted-foreground">{request.program}</p>
         </div>
-        <div className="flex items-center gap-2 text-slate-500">
+        <div className="flex items-center gap-2 text-muted-foreground">
           {request.bookingType === 'Incoming Feed' ? <Radio size={20} /> : <User size={20} />}
         </div>
       </div>
 
       <div className="space-y-2 text-sm">
-        <div className="flex items-center gap-2 text-slate-600">
+        <div className="flex items-center gap-2 text-muted-foreground">
           <Calendar size={16} />
           <span>{new Date(request.airDateTime).toLocaleString()}</span>
         </div>
-        <div className="flex items-center gap-2 text-slate-600">
+        <div className="flex items-center gap-2 text-muted-foreground">
           <Clock size={16} />
           <span>Updated {new Date(request.updatedAt).toLocaleDateString()}</span>
         </div>
       </div>
 
-      <div className="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between">
+      <div className="mt-4 pt-4 border-t border-border flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <span className="text-xs text-slate-500">Type:</span>
-          <span className="text-xs font-medium text-slate-700 bg-slate-100 px-2 py-1 rounded">
+          <span className="text-xs text-muted-foreground">Type:</span>
+          <span className="text-xs font-medium text-card-foreground bg-muted px-2 py-1 rounded">
             {request.bookingType}
           </span>
         </div>
         <div className="flex items-center gap-2">
           {request.nocRequired === 'Yes' && (
-            <div className="flex items-center gap-1 text-xs text-blue-600">
+            <div className="flex items-center gap-1 text-xs text-primary">
               <AlertCircle size={14} />
               <span>NOC Required</span>
             </div>

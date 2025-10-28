@@ -54,25 +54,25 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ requests }) => {
   }, [requests]);
 
   const StatCard = ({ title, value, subtitle, icon: Icon, color }: any) => (
-    <div className="bg-white rounded-lg border border-slate-200 p-6 hover:shadow-lg transition-shadow">
+    <div className="bg-card rounded-lg border border-border p-6 hover:shadow-lg transition-shadow">
       <div className="flex items-center justify-between mb-3">
         <div className={`p-3 rounded-lg ${color}`}>
           <Icon size={24} className="text-white" />
         </div>
       </div>
       <div className="space-y-1">
-        <p className="text-3xl font-bold text-slate-900">{value}</p>
-        <p className="text-sm font-medium text-slate-600">{title}</p>
-        {subtitle && <p className="text-xs text-slate-500">{subtitle}</p>}
+        <p className="text-3xl font-bold text-card-foreground">{value}</p>
+        <p className="text-sm font-medium text-muted-foreground">{title}</p>
+        {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
       </div>
     </div>
   );
 
   return (
     <div className="space-y-6">
-      <div className="bg-gradient-to-r from-slate-800 to-slate-900 rounded-xl p-8 text-white">
+      <div className="bg-gradient-to-r from-primary to-primary/80 rounded-xl p-8 text-primary-foreground">
         <h1 className="text-3xl font-bold mb-2">Admin Dashboard</h1>
-        <p className="text-slate-300">Live Business Channel · HR Workflow Analytics</p>
+        <p className="opacity-90">Live Business Channel · HR Workflow Analytics</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -107,8 +107,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ requests }) => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-lg border border-slate-200 p-6">
-          <h3 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
+        <div className="bg-card rounded-lg border border-border p-6">
+          <h3 className="text-lg font-semibold text-card-foreground mb-4 flex items-center gap-2">
             <Clock size={20} />
             Workflow Status Distribution
           </h3>
@@ -118,12 +118,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ requests }) => {
               return (
                 <div key={status}>
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm font-medium text-slate-700">{status}</span>
-                    <span className="text-sm text-slate-600">{count}</span>
+                    <span className="text-sm font-medium text-card-foreground">{status}</span>
+                    <span className="text-sm text-muted-foreground">{count}</span>
                   </div>
-                  <div className="w-full bg-slate-200 rounded-full h-2">
+                  <div className="w-full bg-muted rounded-full h-2">
                     <div
-                      className="bg-blue-600 h-2 rounded-full transition-all"
+                      className="bg-primary h-2 rounded-full transition-all"
                       style={{ width: `${percentage}%` }}
                     />
                   </div>
@@ -133,56 +133,56 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ requests }) => {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg border border-slate-200 p-6">
-          <h3 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
+        <div className="bg-card rounded-lg border border-border p-6">
+          <h3 className="text-lg font-semibold text-card-foreground mb-4 flex items-center gap-2">
             <Users size={20} />
             Request Analytics
           </h3>
           <div className="space-y-4">
-            <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+            <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-blue-100 rounded">
-                  <Radio size={18} className="text-blue-600" />
+                <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded">
+                  <Radio size={18} className="text-blue-600 dark:text-blue-400" />
                 </div>
-                <span className="text-sm font-medium text-slate-700">Incoming Feed</span>
+                <span className="text-sm font-medium text-card-foreground">Incoming Feed</span>
               </div>
-              <span className="text-lg font-bold text-slate-900">{stats.typeCounts['Incoming Feed']}</span>
+              <span className="text-lg font-bold text-card-foreground">{stats.typeCounts['Incoming Feed']}</span>
             </div>
 
-            <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+            <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-green-100 rounded">
-                  <UserCircle size={18} className="text-green-600" />
+                <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded">
+                  <UserCircle size={18} className="text-green-600 dark:text-green-400" />
                 </div>
-                <span className="text-sm font-medium text-slate-700">Guest Rundown</span>
+                <span className="text-sm font-medium text-card-foreground">Guest Rundown</span>
               </div>
-              <span className="text-lg font-bold text-slate-900">{stats.typeCounts['Guest for iNEWS Rundown']}</span>
+              <span className="text-lg font-bold text-card-foreground">{stats.typeCounts['Guest for iNEWS Rundown']}</span>
             </div>
 
-            <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+            <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-orange-100 rounded">
-                  <AlertTriangle size={18} className="text-orange-600" />
+                <div className="p-2 bg-orange-100 dark:bg-orange-900/30 rounded">
+                  <AlertTriangle size={18} className="text-orange-600 dark:text-orange-400" />
                 </div>
-                <span className="text-sm font-medium text-slate-700">NOC Required</span>
+                <span className="text-sm font-medium text-card-foreground">NOC Required</span>
               </div>
-              <span className="text-lg font-bold text-slate-900">{stats.nocRequiredCount}</span>
+              <span className="text-lg font-bold text-card-foreground">{stats.nocRequiredCount}</span>
             </div>
 
-            <div className="pt-3 border-t border-slate-200">
-              <h4 className="text-xs font-semibold text-slate-500 mb-2 uppercase">Priority Breakdown</h4>
+            <div className="pt-3 border-t border-border">
+              <h4 className="text-xs font-semibold text-muted-foreground mb-2 uppercase">Priority Breakdown</h4>
               <div className="grid grid-cols-3 gap-2">
-                <div className="text-center p-2 bg-slate-100 rounded">
-                  <p className="text-lg font-bold text-slate-700">{stats.priorityCounts.Normal}</p>
-                  <p className="text-xs text-slate-500">Normal</p>
+                <div className="text-center p-2 bg-muted rounded">
+                  <p className="text-lg font-bold text-card-foreground">{stats.priorityCounts.Normal}</p>
+                  <p className="text-xs text-muted-foreground">Normal</p>
                 </div>
-                <div className="text-center p-2 bg-orange-100 rounded">
-                  <p className="text-lg font-bold text-orange-700">{stats.priorityCounts.High}</p>
-                  <p className="text-xs text-orange-600">High</p>
+                <div className="text-center p-2 bg-orange-100 dark:bg-orange-900/30 rounded">
+                  <p className="text-lg font-bold text-orange-700 dark:text-orange-400">{stats.priorityCounts.High}</p>
+                  <p className="text-xs text-orange-600 dark:text-orange-500">High</p>
                 </div>
-                <div className="text-center p-2 bg-red-100 rounded">
-                  <p className="text-lg font-bold text-red-700">{stats.priorityCounts.Urgent}</p>
-                  <p className="text-xs text-red-600">Urgent</p>
+                <div className="text-center p-2 bg-red-100 dark:bg-red-900/30 rounded">
+                  <p className="text-lg font-bold text-red-700 dark:text-red-400">{stats.priorityCounts.Urgent}</p>
+                  <p className="text-xs text-red-600 dark:text-red-500">Urgent</p>
                 </div>
               </div>
             </div>
@@ -190,45 +190,45 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ requests }) => {
         </div>
       </div>
 
-      <div className="bg-white rounded-lg border border-slate-200 p-6">
-        <h3 className="text-lg font-semibold text-slate-800 mb-4">Recent Requests</h3>
+      <div className="bg-card rounded-lg border border-border p-6">
+        <h3 className="text-lg font-semibold text-card-foreground mb-4">Recent Requests</h3>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-slate-200">
-                <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">ID</th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Title</th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Type</th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Status</th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Priority</th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Created</th>
+              <tr className="border-b border-border">
+                <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground">ID</th>
+                <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground">Title</th>
+                <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground">Type</th>
+                <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground">Status</th>
+                <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground">Priority</th>
+                <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground">Created</th>
               </tr>
             </thead>
             <tbody>
               {recentRequests.map(req => (
-                <tr key={req.id} className="border-b border-slate-100 hover:bg-slate-50">
-                  <td className="py-3 px-4 text-sm text-slate-600 font-mono">{req.id}</td>
-                  <td className="py-3 px-4 text-sm font-medium text-slate-800">{req.title}</td>
-                  <td className="py-3 px-4 text-sm text-slate-600">
-                    <span className="bg-slate-100 px-2 py-1 rounded text-xs">
+                <tr key={req.id} className="border-b border-border hover:bg-muted">
+                  <td className="py-3 px-4 text-sm text-muted-foreground font-mono">{req.id}</td>
+                  <td className="py-3 px-4 text-sm font-medium text-card-foreground">{req.title}</td>
+                  <td className="py-3 px-4 text-sm text-muted-foreground">
+                    <span className="bg-muted px-2 py-1 rounded text-xs">
                       {req.bookingType}
                     </span>
                   </td>
                   <td className="py-3 px-4 text-sm">
-                    <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-medium">
+                    <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 px-2 py-1 rounded text-xs font-medium">
                       {req.status}
                     </span>
                   </td>
                   <td className="py-3 px-4 text-sm">
                     <span className={`px-2 py-1 rounded text-xs font-medium ${
-                      req.priority === 'Urgent' ? 'bg-red-100 text-red-700' :
-                      req.priority === 'High' ? 'bg-orange-100 text-orange-700' :
-                      'bg-slate-100 text-slate-700'
+                      req.priority === 'Urgent' ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400' :
+                      req.priority === 'High' ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400' :
+                      'bg-muted text-card-foreground'
                     }`}>
                       {req.priority}
                     </span>
                   </td>
-                  <td className="py-3 px-4 text-sm text-slate-600">
+                  <td className="py-3 px-4 text-sm text-muted-foreground">
                     {new Date(req.createdAt).toLocaleDateString()}
                   </td>
                 </tr>

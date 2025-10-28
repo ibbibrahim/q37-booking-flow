@@ -61,13 +61,13 @@ export const RequestList: React.FC<RequestListProps> = ({ requests, userRole, on
       <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
         <div className="flex-1 w-full md:w-auto">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={20} />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={20} />
             <input
               type="text"
               placeholder="Search by title, program, or ID..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+              className="w-full pl-10 pr-4 py-3 bg-card text-card-foreground border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
             />
           </div>
         </div>
@@ -75,7 +75,7 @@ export const RequestList: React.FC<RequestListProps> = ({ requests, userRole, on
         {userRole === 'Booking' && (
           <button
             onClick={onCreateNew}
-            className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium whitespace-nowrap"
+            className="flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium whitespace-nowrap"
           >
             <Plus size={20} />
             New Request
@@ -84,15 +84,15 @@ export const RequestList: React.FC<RequestListProps> = ({ requests, userRole, on
       </div>
 
       <div className="flex items-center gap-2 overflow-x-auto pb-2">
-        <Filter size={18} className="text-slate-500 flex-shrink-0" />
+        <Filter size={18} className="text-muted-foreground flex-shrink-0" />
         {statuses.map(status => (
           <button
             key={status}
             onClick={() => setStatusFilter(status)}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
               statusFilter === status
-                ? 'bg-blue-600 text-white'
-                : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-muted text-card-foreground hover:bg-muted/80'
             }`}
           >
             {status}
@@ -102,11 +102,11 @@ export const RequestList: React.FC<RequestListProps> = ({ requests, userRole, on
 
       {filteredRequests.length === 0 ? (
         <div className="text-center py-16">
-          <p className="text-slate-500 text-lg">No requests found</p>
+          <p className="text-muted-foreground text-lg">No requests found</p>
           {userRole === 'Booking' && (
             <button
               onClick={onCreateNew}
-              className="mt-4 text-blue-600 hover:text-blue-700 font-medium"
+              className="mt-4 text-primary hover:text-primary/80 font-medium"
             >
               Create your first request
             </button>
