@@ -52,19 +52,19 @@ export const NOCActions: React.FC<NOCActionsProps> = ({ request, onAction }) => 
   const isIncomingFeed = request.bookingType === 'Incoming Feed';
 
   return (
-    <div className="bg-card border border-border rounded-lg p-6">
-      <h3 className="text-xl font-bold text-card-foreground mb-6">NOC Actions</h3>
+    <div className="bg-card border border-border rounded-lg p-8 shadow-sm">
+      <h3 className="text-xl font-bold text-card-foreground mb-8">NOC Actions</h3>
 
-      <div className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+      <div className="space-y-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div>
-            <label className="block text-sm font-medium text-card-foreground mb-2">
+            <label className="block text-sm font-medium text-card-foreground mb-3">
               Acknowledge
             </label>
             <select
               value={nocData.action}
               onChange={(e) => setNocData({ ...nocData, action: e.target.value })}
-              className="w-full px-4 py-2.5 bg-muted border border-border text-card-foreground rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
+              className="w-full px-4 py-3 bg-muted border border-border text-card-foreground rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
             >
               <option value="">—</option>
               <option value="acknowledged">Acknowledged</option>
@@ -73,13 +73,13 @@ export const NOCActions: React.FC<NOCActionsProps> = ({ request, onAction }) => 
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-card-foreground mb-2">
+            <label className="block text-sm font-medium text-card-foreground mb-3">
               Forward to Ingest?
             </label>
             <select
               value={nocData.forwardToIngest}
               onChange={(e) => setNocData({ ...nocData, forwardToIngest: e.target.value })}
-              className="w-full px-4 py-2.5 bg-muted border border-border text-card-foreground rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
+              className="w-full px-4 py-3 bg-muted border border-border text-card-foreground rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
             >
               <option value="Yes">Yes</option>
               <option value="No">No</option>
@@ -88,17 +88,17 @@ export const NOCActions: React.FC<NOCActionsProps> = ({ request, onAction }) => 
         </div>
 
         {isIncomingFeed && (
-          <div className="pt-5 border-t border-border">
-            <h4 className="text-base font-semibold text-card-foreground mb-4">Feed Configuration</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div className="pt-6 border-t border-border">
+            <h4 className="text-base font-semibold text-card-foreground mb-6">Feed Configuration</h4>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-card-foreground mb-2">
+                <label className="block text-sm font-medium text-card-foreground mb-3">
                   Source Type <span className="text-destructive">*</span>
                 </label>
                 <select
                   value={nocData.sourceType}
                   onChange={(e) => setNocData({ ...nocData, sourceType: e.target.value, qmcSource: '', vmixInputNumber: '' })}
-                  className="w-full px-4 py-2.5 bg-muted border border-border text-card-foreground rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
+                  className="w-full px-4 py-3 bg-muted border border-border text-card-foreground rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
                 >
                   <option value="">Select Source Type</option>
                   <option value="QMC Earth Station">QMC Earth Station</option>
@@ -108,13 +108,13 @@ export const NOCActions: React.FC<NOCActionsProps> = ({ request, onAction }) => 
 
               {nocData.sourceType === 'QMC Earth Station' && (
                 <div>
-                  <label className="block text-sm font-medium text-card-foreground mb-2">
+                  <label className="block text-sm font-medium text-card-foreground mb-3">
                     Source <span className="text-destructive">*</span>
                   </label>
                   <select
                     value={nocData.qmcSource}
                     onChange={(e) => setNocData({ ...nocData, qmcSource: e.target.value })}
-                    className="w-full px-4 py-2.5 bg-muted border border-border text-card-foreground rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
+                    className="w-full px-4 py-3 bg-muted border border-border text-card-foreground rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
                   >
                     <option value="">Select Source</option>
                     {Array.from({ length: 10 }, (_, i) => (
@@ -127,13 +127,13 @@ export const NOCActions: React.FC<NOCActionsProps> = ({ request, onAction }) => 
               )}
 
               <div>
-                <label className="block text-sm font-medium text-card-foreground mb-2">
+                <label className="block text-sm font-medium text-card-foreground mb-3">
                   Assigned Resources
                 </label>
                 <select
                   value={nocData.resourceAssignmentType}
                   onChange={(e) => setNocData({ ...nocData, resourceAssignmentType: e.target.value })}
-                  className="w-full px-4 py-2.5 bg-muted border border-border text-card-foreground rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
+                  className="w-full px-4 py-3 bg-muted border border-border text-card-foreground rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
                 >
                   <option value="">Select Assignment Type</option>
                   <option value="Main">Main</option>
@@ -142,13 +142,13 @@ export const NOCActions: React.FC<NOCActionsProps> = ({ request, onAction }) => 
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-card-foreground mb-2">
+                <label className="block text-sm font-medium text-card-foreground mb-3">
                   Resolution
                 </label>
                 <select
                   value={nocData.resolution}
                   onChange={(e) => setNocData({ ...nocData, resolution: e.target.value })}
-                  className="w-full px-4 py-2.5 bg-muted border border-border text-card-foreground rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
+                  className="w-full px-4 py-3 bg-muted border border-border text-card-foreground rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
                 >
                   <option value="">Select Resolution</option>
                   <option value="HD">HD</option>
@@ -159,10 +159,10 @@ export const NOCActions: React.FC<NOCActionsProps> = ({ request, onAction }) => 
           </div>
         )}
 
-        <div className={isIncomingFeed ? 'pt-5 border-t border-border' : ''}>
-          <div className="grid grid-cols-1 gap-5">
+        <div className={isIncomingFeed ? 'pt-6 border-t border-border' : ''}>
+          <div className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-card-foreground mb-2">
+              <label className="block text-sm font-medium text-card-foreground mb-3">
                 Assigned Resources (NOC)
               </label>
               <input
@@ -170,44 +170,44 @@ export const NOCActions: React.FC<NOCActionsProps> = ({ request, onAction }) => 
                 value={nocData.assignedResources}
                 onChange={(e) => setNocData({ ...nocData, assignedResources: e.target.value })}
                 placeholder="e.g., Encoder-01, SRT-TX-A, SDI Patch 3"
-                className="w-full px-4 py-2.5 bg-muted border border-border text-card-foreground placeholder-muted-foreground rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
+                className="w-full px-4 py-3 bg-muted border border-border text-card-foreground placeholder-muted-foreground rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-card-foreground mb-2">
+              <label className="block text-sm font-medium text-card-foreground mb-3">
                 Clarification for Booking (if needed)
               </label>
               <textarea
                 value={nocData.clarificationMessage}
                 onChange={(e) => setNocData({ ...nocData, clarificationMessage: e.target.value })}
                 placeholder="e.g., Need guest confirmed number and SRT pub key"
-                rows={3}
-                className="w-full px-4 py-2.5 bg-muted border border-border text-card-foreground placeholder-muted-foreground rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none resize-none"
+                rows={4}
+                className="w-full px-4 py-3 bg-muted border border-border text-card-foreground placeholder-muted-foreground rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none resize-none transition-all"
               />
             </div>
           </div>
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-3 mt-6 pt-6 border-t border-border">
+      <div className="flex flex-wrap gap-3 mt-8 pt-6 border-t border-border">
         <button
           onClick={handleSaveUpdates}
-          className="flex items-center gap-2 px-5 py-2.5 bg-muted hover:bg-muted/80 text-card-foreground rounded-lg transition-colors font-medium border border-border"
+          className="flex items-center gap-2 px-6 py-3 bg-muted hover:bg-muted/80 text-card-foreground rounded-lg transition-colors font-medium border border-border shadow-sm"
         >
           <CheckCircle2 size={18} />
           Save NOC Updates
         </button>
         <button
           onClick={handleRequestClarification}
-          className="flex items-center gap-2 px-5 py-2.5 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg transition-colors font-medium"
+          className="flex items-center gap-2 px-6 py-3 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg transition-colors font-medium shadow-sm"
         >
           <AlertCircle size={18} />
           Request Clarification
         </button>
         <button
           onClick={handleSendToIngest}
-          className="flex items-center gap-2 px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors font-medium"
+          className="flex items-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors font-medium shadow-sm"
         >
           <Send size={18} />
           Send to Ingest

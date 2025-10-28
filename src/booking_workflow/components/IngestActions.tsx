@@ -37,19 +37,19 @@ export const IngestActions: React.FC<IngestActionsProps> = ({ request, onAction 
   };
 
   return (
-    <div className="bg-card border border-border rounded-lg p-6">
-      <h3 className="text-xl font-bold text-card-foreground mb-6">Ingest Actions</h3>
+    <div className="bg-card border border-border rounded-lg p-8 shadow-sm">
+      <h3 className="text-xl font-bold text-card-foreground mb-8">Ingest Actions</h3>
 
-      <div className="space-y-5">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div>
-            <label className="block text-sm font-medium text-card-foreground mb-2">
+            <label className="block text-sm font-medium text-card-foreground mb-3">
               Ingest Status
             </label>
             <select
               value={ingestData.ingestStatus}
               onChange={(e) => setIngestData({ ...ingestData, ingestStatus: e.target.value })}
-              className="w-full px-4 py-2.5 bg-muted border border-border text-card-foreground rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
+              className="w-full px-4 py-3 bg-muted border border-border text-card-foreground rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
             >
               <option value="">—</option>
               <option value="Completed">Completed</option>
@@ -59,7 +59,7 @@ export const IngestActions: React.FC<IngestActionsProps> = ({ request, onAction 
 
           {ingestData.ingestStatus === 'Completed' && (
             <div>
-              <label className="block text-sm font-medium text-card-foreground mb-2">
+              <label className="block text-sm font-medium text-card-foreground mb-3">
                 Folder Path <span className="text-destructive">*</span>
               </label>
               <input
@@ -67,7 +67,7 @@ export const IngestActions: React.FC<IngestActionsProps> = ({ request, onAction 
                 value={ingestData.folderPath}
                 onChange={(e) => setIngestData({ ...ingestData, folderPath: e.target.value })}
                 placeholder="e.g., /storage/ingest/2025-10-28/content-001"
-                className="w-full px-4 py-2.5 bg-muted border border-border text-card-foreground placeholder-muted-foreground rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
+                className="w-full px-4 py-3 bg-muted border border-border text-card-foreground placeholder-muted-foreground rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
               />
             </div>
           )}
@@ -75,7 +75,7 @@ export const IngestActions: React.FC<IngestActionsProps> = ({ request, onAction 
 
         {ingestData.ingestStatus === 'Not Done' && (
           <div>
-            <label className="block text-sm font-medium text-card-foreground mb-2">
+            <label className="block text-sm font-medium text-card-foreground mb-3">
               If Not Done, Reason <span className="text-destructive">*</span>
             </label>
             <input
@@ -83,17 +83,17 @@ export const IngestActions: React.FC<IngestActionsProps> = ({ request, onAction 
               value={ingestData.notDoneReason}
               onChange={(e) => setIngestData({ ...ingestData, notDoneReason: e.target.value })}
               placeholder="e.g., Source failure, file missing, guest no-show"
-              className="w-full px-4 py-2.5 bg-muted border border-border text-card-foreground placeholder-muted-foreground rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
+              className="w-full px-4 py-3 bg-muted border border-border text-card-foreground placeholder-muted-foreground rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
             />
           </div>
         )}
       </div>
 
-      <div className="flex flex-wrap gap-3 mt-6 pt-6 border-t border-border">
+      <div className="flex flex-wrap gap-3 mt-8 pt-6 border-t border-border">
         {ingestData.ingestStatus === 'Completed' && (
           <button
             onClick={handleStatusChange}
-            className="flex items-center gap-2 px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors font-medium"
+            className="flex items-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors font-medium shadow-sm"
           >
             <CheckCircle2 size={18} />
             Mark as Completed
@@ -102,7 +102,7 @@ export const IngestActions: React.FC<IngestActionsProps> = ({ request, onAction 
         {ingestData.ingestStatus === 'Not Done' && (
           <button
             onClick={handleStatusChange}
-            className="flex items-center gap-2 px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors font-medium"
+            className="flex items-center gap-2 px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors font-medium shadow-sm"
           >
             <XCircle size={18} />
             Mark as Not Done
