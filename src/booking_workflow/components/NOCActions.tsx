@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { CheckCircle2, AlertCircle, Send, Plus, Trash2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { CheckCircle2, AlertCircle, Send, Trash2, Plus } from 'lucide-react';
 import type { WorkflowRequest } from '../types/workflow';
 
 interface NOCActionsProps {
@@ -19,77 +19,32 @@ export const NOCActions: React.FC<NOCActionsProps> = ({ request, onAction }) => 
     sourceType: '',
     qmcSource: '',
     resolution: '',
+    resourceType: 'Main' as 'Main' | 'Backup',
     clarificationMessage: '',
     forwardToIngest: 'Yes'
   });
 
   const [assignedResources, setAssignedResources] = useState<AssignedResource[]>([]);
-  const [newResourceName, setNewResourceName] = useState('');
-  const [newResourceType, setNewResourceType] = useState<'Main' | 'Backup'>('Main');
-
-  useEffect(() => {
-    if (nocData.sourceType && nocData.qmcSource) {
-      const feedResourceName = `${nocData.sourceType} - ${nocData.qmcSource}${nocData.resolution ? ` (${nocData.resolution})` : ''}`;
-      const existingIndex = assignedResources.findIndex(r =>
-        r.resourceName.startsWith(`${nocData.sourceType} - ${nocData.qmcSource}`)
-      );
-
-      if (existingIndex >= 0) {
-        const updated = [...assignedResources];
-        updated[existingIndex] = {
-          ...updated[existingIndex],
-          resourceName: feedResourceName
-        };
-        setAssignedResources(updated);
-      }
-    }
-  }, [nocData.sourceType, nocData.qmcSource, nocData.resolution]);
 
   const handleAddFeedResource = () => {
-    if (!nocData.sourceType || !nocData.qmcSource) {
-      alert('Please select both Source Type and Source');
+    if (!nocData.sourceType) {
+      alert('Please select Source Type');
+      return;
+    }
+    if (!nocData.qmcSource) {
+      alert('Please select Source');
       return;
     }
 
     const feedResourceName = `${nocData.sourceType} - ${nocData.qmcSource}${nocData.resolution ? ` (${nocData.resolution})` : ''}`;
 
-    const existingIndex = assignedResources.findIndex(r =>
-      r.resourceName.startsWith(`${nocData.sourceType} - ${nocData.qmcSource}`)
-    );
-
-    if (existingIndex >= 0) {
-      const updated = [...assignedResources];
-      updated[existingIndex] = {
-        ...updated[existingIndex],
-        resourceName: feedResourceName,
-        type: 'Main'
-      };
-      setAssignedResources(updated);
-    } else {
-      const newResource: AssignedResource = {
-        id: Date.now().toString(),
-        resourceName: feedResourceName,
-        type: 'Main'
-      };
-      setAssignedResources([...assignedResources, newResource]);
-    }
-  };
-
-  const handleAddResource = () => {
-    if (!newResourceName.trim()) {
-      alert('Please enter a resource name');
-      return;
-    }
-
     const newResource: AssignedResource = {
       id: Date.now().toString(),
-      resourceName: newResourceName.trim(),
-      type: newResourceType
+      resourceName: feedResourceName,
+      type: nocData.resourceType
     };
 
     setAssignedResources([...assignedResources, newResource]);
-    setNewResourceName('');
-    setNewResourceType('Main');
   };
 
   const handleRemoveResource = (id: string) => {
@@ -220,15 +175,29 @@ export const NOCActions: React.FC<NOCActionsProps> = ({ request, onAction }) => 
                 </select>
               </div>
 
-              <div className="flex items-end">
-                <button
-                  onClick={handleAddFeedResource}
-                  className="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium shadow-sm flex items-center justify-center gap-2"
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-3">
+                  Type
+                </label>
+                <select
+                  value={nocData.resourceType}
+                  onChange={(e) => setNocData({ ...nocData, resourceType: e.target.value as 'Main' | 'Backup' })}
+                  className="w-full px-4 py-3 bg-white border border-slate-300 text-slate-900 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
                 >
-                  <Plus size={18} />
-                  Add to Resources
-                </button>
+                  <option value="Main">Main</option>
+                  <option value="Backup">Backup</option>
+                </select>
               </div>
+            </div>
+
+            <div className="mt-6">
+              <button
+                onClick={handleAddFeedResource}
+                className="w-full md:w-auto px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium shadow-sm flex items-center justify-center gap-2"
+              >
+                <Plus size={18} />
+                Add to Resources
+              </button>
             </div>
           </div>
         )}
@@ -236,49 +205,7 @@ export const NOCActions: React.FC<NOCActionsProps> = ({ request, onAction }) => 
         <div className={isIncomingFeed ? 'pt-6 border-t border-slate-200' : ''}>
           <h4 className="text-base font-semibold text-slate-900 mb-6">Assigned Resources (NOC)</h4>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-slate-700 mb-3">
-                Resource Name
-              </label>
-              <input
-                type="text"
-                value={newResourceName}
-                onChange={(e) => setNewResourceName(e.target.value)}
-                placeholder="e.g., Encoder-01, SRT-TX-A, SDI Patch 3"
-                className="w-full px-4 py-3 bg-white border border-slate-300 text-slate-900 placeholder-slate-400 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-                onKeyPress={(e) => {
-                  if (e.key === 'Enter') {
-                    handleAddResource();
-                  }
-                }}
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-3">
-                Type
-              </label>
-              <div className="flex gap-2">
-                <select
-                  value={newResourceType}
-                  onChange={(e) => setNewResourceType(e.target.value as 'Main' | 'Backup')}
-                  className="flex-1 px-4 py-3 bg-white border border-slate-300 text-slate-900 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-                >
-                  <option value="Main">Main</option>
-                  <option value="Backup">Backup</option>
-                </select>
-                <button
-                  onClick={handleAddResource}
-                  className="px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium shadow-sm flex items-center gap-2"
-                >
-                  <Plus size={18} />
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {assignedResources.length > 0 && (
+          {assignedResources.length > 0 ? (
             <div className="border border-slate-200 rounded-lg overflow-hidden mb-6">
               <table className="w-full">
                 <thead className="bg-slate-50 border-b border-slate-200">
@@ -321,6 +248,10 @@ export const NOCActions: React.FC<NOCActionsProps> = ({ request, onAction }) => 
                   ))}
                 </tbody>
               </table>
+            </div>
+          ) : (
+            <div className="text-sm text-slate-500 mb-6 p-4 bg-slate-50 rounded-lg border border-slate-200">
+              No resources assigned yet. Use the Feed Configuration above to add resources.
             </div>
           )}
 
