@@ -151,6 +151,18 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({ onSubmit, onCancel }
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
                   <FormField
+                    label="Studio"
+                    name="studio"
+                    value={formData.studio || ''}
+                    onChange={handleChange}
+                    options={['Studio 1', 'Studio 2']}
+                    required
+                  />
+                  <div></div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                  <FormField
                     label="Program / Segment"
                     name="program"
                     value={formData.program}
@@ -240,27 +252,9 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({ onSubmit, onCancel }
                     required
                   />
                   <FormField
-                    label="Newsroom Ticket / Ref"
-                    name="newsroomTicket"
-                    value={formData.newsroomTicket}
-                    onChange={handleChange}
-                  />
-                </div>
-
-                <div className="mt-6">
-                  <FormField
                     label="Resources Needed (Booking)"
                     name="resourcesNeeded"
                     value={formData.resourcesNeeded}
-                    onChange={handleChange}
-                  />
-                </div>
-
-                <div className="mt-6">
-                  <FormField
-                    label="Compliance Tags"
-                    name="complianceTags"
-                    value={formData.complianceTags}
                     onChange={handleChange}
                   />
                 </div>
@@ -286,11 +280,17 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({ onSubmit, onCancel }
                 </button>
                 <button
                   type="button"
-                  onClick={() => handleSubmit('Submitted')}
+                  onClick={() => {
+                    if (formData.bookingType === 'Download and Ingest' || formData.nocRequired === 'No') {
+                      handleSubmit('With Ingest');
+                    } else {
+                      handleSubmit('Submitted');
+                    }
+                  }}
                   className="flex items-center gap-2 px-6 py-2.5 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
                 >
                   <Send size={18} />
-                  Submit Request
+                  {formData.bookingType === 'Download and Ingest' || formData.nocRequired === 'No' ? 'Send to Ingest' : 'Submit Request'}
                 </button>
               </div>
             </form>

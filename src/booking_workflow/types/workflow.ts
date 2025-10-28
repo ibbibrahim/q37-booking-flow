@@ -14,7 +14,7 @@ export type UserRole = 'Booking' | 'NOC' | 'Ingest' | 'Admin';
 
 export type Priority = 'Normal' | 'High' | 'Urgent';
 export type Language = 'English' | 'Arabic';
-export type SourceType = 'QMC Earth Station' | 'vMix' | 'SRT';
+export type SourceType = 'QMC Earth Station' | 'Streaming';
 export type QMCSource = 'Ext-1' | 'Ext-2' | 'Ext-3' | 'Ext-4' | 'Ext-5' | 'Ext-6' | 'Ext-7' | 'Ext-8' | 'Ext-9' | 'Ext-10';
 export type ResourceAssignmentType = 'Main' | 'Backup';
 export type Resolution = 'HD' | 'UHD';
@@ -27,6 +27,7 @@ export interface BaseWorkflowRequest {
   bookingType: BookingType;
   title: string;
   program: string;
+  studio?: string;
   airDateTime: string;
   feedStartTime?: string;
   feedEndTime?: string;
@@ -34,8 +35,6 @@ export interface BaseWorkflowRequest {
   priority: Priority;
   nocRequired: YesNo;
   resourcesNeeded: string;
-  newsroomTicket: string;
-  complianceTags: string;
   notes: string;
   status: WorkflowStatus;
   createdBy: string;

@@ -10,13 +10,19 @@ interface IngestActionsProps {
 export const IngestActions: React.FC<IngestActionsProps> = ({ request, onAction }) => {
   const [ingestData, setIngestData] = useState({
     ingestStatus: '',
-    notDoneReason: ''
+    notDoneReason: '',
+    folderPath: ''
   });
 
   const handleStatusChange = () => {
     if (ingestData.ingestStatus === 'Completed') {
+      if (!ingestData.folderPath.trim()) {
+        alert('Please provide the folder path where content is stored');
+        return;
+      }
       onAction('mark_completed', {
-        newStatus: 'Completed'
+        newStatus: 'Completed',
+        folderPath: ingestData.folderPath
       });
     } else if (ingestData.ingestStatus === 'Not Done') {
       if (!ingestData.notDoneReason.trim()) {
@@ -35,25 +41,42 @@ export const IngestActions: React.FC<IngestActionsProps> = ({ request, onAction 
       <h3 className="text-xl font-bold text-card-foreground mb-6">Ingest Actions</h3>
 
       <div className="space-y-5">
-        <div>
-          <label className="block text-sm font-medium text-card-foreground mb-2">
-            Ingest Status
-          </label>
-          <select
-            value={ingestData.ingestStatus}
-            onChange={(e) => setIngestData({ ...ingestData, ingestStatus: e.target.value })}
-            className="w-full px-4 py-2.5 bg-muted border border-border text-card-foreground rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
-          >
-            <option value="">—</option>
-            <option value="Completed">Completed</option>
-            <option value="Not Done">Not Done</option>
-          </select>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div>
+            <label className="block text-sm font-medium text-card-foreground mb-2">
+              Ingest Status
+            </label>
+            <select
+              value={ingestData.ingestStatus}
+              onChange={(e) => setIngestData({ ...ingestData, ingestStatus: e.target.value })}
+              className="w-full px-4 py-2.5 bg-muted border border-border text-card-foreground rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
+            >
+              <option value="">—</option>
+              <option value="Completed">Completed</option>
+              <option value="Not Done">Not Done</option>
+            </select>
+          </div>
+
+          {ingestData.ingestStatus === 'Completed' && (
+            <div>
+              <label className="block text-sm font-medium text-card-foreground mb-2">
+                Folder Path <span className="text-destructive">*</span>
+              </label>
+              <input
+                type="text"
+                value={ingestData.folderPath}
+                onChange={(e) => setIngestData({ ...ingestData, folderPath: e.target.value })}
+                placeholder="e.g., /storage/ingest/2025-10-28/content-001"
+                className="w-full px-4 py-2.5 bg-muted border border-border text-card-foreground placeholder-muted-foreground rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
+              />
+            </div>
+          )}
         </div>
 
         {ingestData.ingestStatus === 'Not Done' && (
           <div>
             <label className="block text-sm font-medium text-card-foreground mb-2">
-              If Not Done, Reason
+              If Not Done, Reason <span className="text-destructive">*</span>
             </label>
             <input
               type="text"
