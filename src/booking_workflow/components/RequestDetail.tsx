@@ -85,7 +85,12 @@ export const RequestDetail: React.FC<RequestDetailProps> = ({ request, onClose, 
 
         <div className="max-w-7xl mx-auto px-6 py-6">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 space-y-6">
+            {showActions && userRole === 'NOC' && (
+              <div className="lg:col-span-2">
+                <NOCActions request={request} onAction={handleNOCAction} />
+              </div>
+            )}
+            <div className={showActions && userRole === 'NOC' ? 'space-y-6' : 'lg:col-span-2 space-y-6'}>
               <div className="bg-white rounded-lg border border-slate-200 p-6">
                 <h2 className="text-lg font-semibold text-slate-900 mb-4">Request Details</h2>
                 <div className="grid grid-cols-2 gap-x-8 gap-y-4">
@@ -241,15 +246,10 @@ export const RequestDetail: React.FC<RequestDetailProps> = ({ request, onClose, 
                 </div>
               </div>
 
-              {showActions && (
+              {showActions && userRole === 'Ingest' && (
                 <div className="bg-white rounded-lg border border-slate-200 p-6">
                   <h2 className="text-lg font-semibold text-slate-900 mb-4">Actions</h2>
-                  {userRole === 'NOC' && (
-                    <NOCActions request={request} onAction={handleNOCAction} />
-                  )}
-                  {userRole === 'Ingest' && (
-                    <IngestActions request={request} onAction={handleIngestAction} />
-                  )}
+                  <IngestActions request={request} onAction={handleIngestAction} />
                 </div>
               )}
             </div>
