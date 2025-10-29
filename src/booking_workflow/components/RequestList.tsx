@@ -218,7 +218,7 @@ export const RequestList: React.FC<RequestListProps> = ({ requests, userRole, on
                         className="border-b border-border hover:bg-muted/50 cursor-pointer transition-colors"
                         onClick={() => setSelectedRequest(request)}
                       >
-                        <td className="py-3 px-4 text-sm text-muted-foreground font-mono">{request.id.substring(0, 8)}</td>
+                        <td className="py-3 px-4 text-sm text-muted-foreground font-mono">{request.id}</td>
                         <td className="py-3 px-4 text-sm font-medium text-card-foreground">{request.title}</td>
                         <td className="py-3 px-4 text-sm text-muted-foreground">{request.program}</td>
                         <td className="py-3 px-4 text-sm text-muted-foreground">
