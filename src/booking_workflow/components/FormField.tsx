@@ -10,6 +10,7 @@ interface FormFieldProps {
   options?: string[];
   required?: boolean;
   placeholder?: string;
+  error?: string;
 }
 
 export const FormField: React.FC<FormFieldProps> = ({
@@ -20,7 +21,8 @@ export const FormField: React.FC<FormFieldProps> = ({
   onChange,
   options,
   required = false,
-  placeholder
+  placeholder,
+  error
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -36,7 +38,11 @@ export const FormField: React.FC<FormFieldProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const baseInputClass = "w-full px-3 py-2.5 bg-card border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all text-card-foreground";
+  const baseInputClass = `w-full px-3 py-2.5 bg-card border rounded-lg focus:ring-2 outline-none transition-all text-card-foreground ${
+    error
+      ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
+      : 'border-border focus:ring-primary focus:border-transparent'
+  }`;
 
   if (options) {
     return (
@@ -84,6 +90,9 @@ export const FormField: React.FC<FormFieldProps> = ({
             </div>
           )}
         </div>
+        {error && (
+          <p className="text-sm text-red-600 dark:text-red-400 mt-1">{error}</p>
+        )}
       </div>
     );
   }
@@ -111,6 +120,9 @@ export const FormField: React.FC<FormFieldProps> = ({
           className={baseInputClass}
           placeholder={placeholder || `Enter ${label.toLowerCase()}`}
         />
+      )}
+      {error && (
+        <p className="text-sm text-red-600 dark:text-red-400 mt-1">{error}</p>
       )}
     </div>
   );

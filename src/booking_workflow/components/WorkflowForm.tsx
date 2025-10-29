@@ -23,13 +23,82 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({ onSubmit, onCancel }
     complianceTags: '',
     notes: ''
   });
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const handleChange = (name: string, value: string) => {
     setFormData(prev => ({ ...prev, [name]: value }));
+    if (errors[name]) {
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
+    }
+  };
+
+  const validateForm = (): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    if (!formData.bookingType) {
+      newErrors.bookingType = 'Please select a booking type';
+    }
+    if (!formData.title) {
+      newErrors.title = 'Title is required';
+    }
+    if (!formData.studio) {
+      newErrors.studio = 'Please select a studio';
+    }
+    if (!formData.program) {
+      newErrors.program = 'Program/Segment is required';
+    }
+    if (!formData.airDateTime) {
+      newErrors.airDateTime = 'Air date and time is required';
+    }
+    if (!formData.language) {
+      newErrors.language = 'Please select a language';
+    }
+    if (!formData.priority) {
+      newErrors.priority = 'Please select a priority';
+    }
+    if (!formData.nocRequired) {
+      newErrors.nocRequired = 'Please specify if NOC is required';
+    }
+
+    if (formData.bookingType === 'Incoming Feed') {
+      if (!formData.feedStartTime) {
+        newErrors.feedStartTime = 'Feed start time is required';
+      }
+      if (!formData.feedEndTime) {
+        newErrors.feedEndTime = 'Feed end time is required';
+      }
+    }
+
+    if (formData.bookingType === 'Invite Guest for News' || formData.bookingType === 'Invite Guest for Program') {
+      if (!formData.guestName) {
+        newErrors.guestName = 'Guest name is required';
+      }
+      if (!formData.inewsRundownId) {
+        newErrors.inewsRundownId = 'iNEWS Rundown ID is required';
+      }
+    }
+
+    if (formData.bookingType === 'Download and Ingest') {
+      if (!formData.downloadSource) {
+        newErrors.downloadSource = 'Please select a download source';
+      }
+      if (!formData.downloadLink) {
+        newErrors.downloadLink = 'Download link/URL is required';
+      }
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = (status: WorkflowStatus) => {
-    onSubmit(formData as any, status);
+    if (validateForm()) {
+      onSubmit(formData as any, status);
+    }
   };
 
   const tabs = [
@@ -48,6 +117,7 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({ onSubmit, onCancel }
         value={formData.guestName || ''}
         onChange={handleChange}
         required
+        error={errors.guestName}
       />
       <FormField
         label="Guest Contact"
@@ -61,6 +131,7 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({ onSubmit, onCancel }
         value={formData.inewsRundownId || ''}
         onChange={handleChange}
         required
+        error={errors.inewsRundownId}
       />
       <FormField
         label="Story Slug"
@@ -86,6 +157,7 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({ onSubmit, onCancel }
         onChange={handleChange}
         options={["YouTube", "WeTransfer", "FTP", "Other"]}
         required
+        error={errors.downloadSource}
       />
       <FormField
         label="Download Link / URL"
@@ -93,6 +165,7 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({ onSubmit, onCancel }
         value={formData.downloadLink || ""}
         onChange={handleChange}
         required
+        error={errors.downloadLink}
       />
     </>
   );
@@ -139,6 +212,7 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({ onSubmit, onCancel }
                     onChange={handleChange}
                     options={['Incoming Feed', 'Invite Guest for News', 'Invite Guest for Program', 'Download and Ingest']}
                     required
+                    error={errors.bookingType}
                   />
                   <FormField
                     label="Title"
@@ -146,6 +220,7 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({ onSubmit, onCancel }
                     value={formData.title}
                     onChange={handleChange}
                     required
+                    error={errors.title}
                   />
                 </div>
 
@@ -157,6 +232,7 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({ onSubmit, onCancel }
                     onChange={handleChange}
                     options={['Studio 1', 'Studio 2']}
                     required
+                    error={errors.studio}
                   />
                   <div></div>
                 </div>
@@ -169,6 +245,7 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({ onSubmit, onCancel }
                     onChange={handleChange}
                     placeholder="e.g., Evening News"
                     required
+                    error={errors.program}
                   />
                   <FormField
                     label="Air Date / Time (Local)"
@@ -177,6 +254,7 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({ onSubmit, onCancel }
                     value={formData.airDateTime}
                     onChange={handleChange}
                     required
+                    error={errors.airDateTime}
                   />
                 </div>
 
@@ -189,6 +267,7 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({ onSubmit, onCancel }
                       value={formData.feedStartTime || ''}
                       onChange={handleChange}
                       required
+                      error={errors.feedStartTime}
                     />
                     <FormField
                       label="Feed End Time"
@@ -197,6 +276,7 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({ onSubmit, onCancel }
                       value={formData.feedEndTime || ''}
                       onChange={handleChange}
                       required
+                      error={errors.feedEndTime}
                     />
                   </div>
                 )}
@@ -209,6 +289,7 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({ onSubmit, onCancel }
                     onChange={handleChange}
                     options={['English', 'Arabic']}
                     required
+                    error={errors.language}
                   />
                   <FormField
                     label="Priority"
@@ -217,6 +298,7 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({ onSubmit, onCancel }
                     onChange={handleChange}
                     options={['Normal', 'High', 'Urgent']}
                     required
+                    error={errors.priority}
                   />
                 </div>
               </div>
@@ -250,6 +332,7 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({ onSubmit, onCancel }
                     onChange={handleChange}
                     options={['Yes', 'No']}
                     required
+                    error={errors.nocRequired}
                   />
                   <FormField
                     label="Resources Needed (Booking)"
