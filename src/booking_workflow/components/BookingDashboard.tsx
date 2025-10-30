@@ -135,42 +135,32 @@ export const BookingDashboard: React.FC = () => {
                     >
                       <Menu size={24} />
                     </button>
-                    {!showForm ? (
-                      <div>
-                        <h2 className="text-xl font-bold text-card-foreground">
-                          {currentRole}
-                        </h2>
-                        <p className="text-sm text-muted-foreground mt-0.5">
-                          {currentRole === 'Booking' && 'Create and manage workflow requests'}
-                          {currentRole === 'NOC' && 'Review requests and assign resources'}
-                          {currentRole === 'Ingest' && 'Process final stage workflow requests'}
-                          {currentRole === 'Admin' && 'Full system access and analytics'}
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <span>Suites 1-10 + Outdoor</span>
-                        <span>·</span>
-                        <span>Graphics Request Branch</span>
-                      </div>
-                    )}
-                  </div>
-                  {showForm && (
-                    <div className="flex items-center gap-3">
-                      <button className="p-2 hover:bg-muted rounded-lg transition-colors text-muted-foreground hover:text-card-foreground">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
-                          <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
-                        </svg>
-                      </button>
-                      <button
-                        onClick={toggleTheme}
-                        className="p-2 hover:bg-muted rounded-lg transition-colors text-muted-foreground hover:text-card-foreground"
-                      >
-                        {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
-                      </button>
+                    <div>
+                      <h2 className="text-xl font-bold text-card-foreground">
+                        {currentRole}
+                      </h2>
+                      <p className="text-sm text-muted-foreground mt-0.5">
+                        {currentRole === 'Booking' && 'Create and manage workflow requests'}
+                        {currentRole === 'NOC' && 'Review requests and assign resources'}
+                        {currentRole === 'Ingest' && 'Process final stage workflow requests'}
+                        {currentRole === 'Admin' && 'Full system access and analytics'}
+                      </p>
                     </div>
-                  )}
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <button className="p-2 hover:bg-muted rounded-lg transition-colors text-muted-foreground hover:text-card-foreground">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
+                        <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
+                      </svg>
+                    </button>
+                    <button
+                      onClick={toggleTheme}
+                      className="p-2 hover:bg-muted rounded-lg transition-colors text-muted-foreground hover:text-card-foreground"
+                    >
+                      {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
+                    </button>
+                  </div>
                 </div>
               </div>
             </header>
