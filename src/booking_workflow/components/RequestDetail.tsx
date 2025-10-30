@@ -53,8 +53,7 @@ export const RequestDetail: React.FC<RequestDetailProps> = ({ request, onClose, 
   };
 
   return (
-    <div className="fixed inset-0 bg-slate-100 z-50 overflow-y-auto">
-      <div className="min-h-screen">
+    <div className="max-w-7xl mx-auto">
         <div className="bg-white border-b border-slate-200 px-6 py-4">
           <div className="max-w-7xl mx-auto flex items-center gap-4">
             <button
@@ -256,6 +255,5 @@ export const RequestDetail: React.FC<RequestDetailProps> = ({ request, onClose, 
           </div>
         </div>
       </div>
-    </div>
   );
 };
