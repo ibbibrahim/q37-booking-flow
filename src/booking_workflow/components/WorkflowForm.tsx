@@ -1,33 +1,40 @@
-import React, { useState } from 'react';
-import { FormField } from './FormField';
-import { Send, ArrowLeft } from 'lucide-react';
-import type { BookingType, WorkflowRequest, WorkflowStatus } from '../types/workflow';
+import React, { useState } from "react";
+import { FormField } from "./FormField";
+import { Send, FileJson, Bell, Package, Save, ArrowLeft } from "lucide-react";
+import type {
+  BookingType,
+  WorkflowRequest,
+  WorkflowStatus,
+} from "../types/workflow";
 
 interface WorkflowFormProps {
   onSubmit: (data: Partial<WorkflowRequest>, status: WorkflowStatus) => void;
   onCancel: () => void;
 }
 
-export const WorkflowForm: React.FC<WorkflowFormProps> = ({ onSubmit, onCancel }) => {
+export const WorkflowForm: React.FC<WorkflowFormProps> = ({
+  onSubmit,
+  onCancel,
+}) => {
   const [formData, setFormData] = useState<Record<string, string>>({
-    bookingType: '',
-    title: '',
-    program: '',
-    airDateTime: '',
-    language: '',
-    priority: '',
-    nocRequired: '',
-    resourcesNeeded: '',
-    newsroomTicket: '',
-    complianceTags: '',
-    notes: ''
+    bookingType: "",
+    title: "",
+    program: "",
+    airDateTime: "",
+    language: "",
+    priority: "",
+    nocRequired: "",
+    resourcesNeeded: "",
+    newsroomTicket: "",
+    complianceTags: "",
+    notes: "",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const handleChange = (name: string, value: string) => {
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
     if (errors[name]) {
-      setErrors(prev => {
+      setErrors((prev) => {
         const newErrors = { ...prev };
         delete newErrors[name];
         return newErrors;
@@ -39,54 +46,54 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({ onSubmit, onCancel }
     const newErrors: Record<string, string> = {};
 
     if (!formData.bookingType) {
-      newErrors.bookingType = 'Please select a booking type';
+      newErrors.bookingType = "Please select a booking type";
     }
     if (!formData.title) {
-      newErrors.title = 'Title is required';
+      newErrors.title = "Title is required";
     }
     if (!formData.studio) {
-      newErrors.studio = 'Please select a studio';
+      newErrors.studio = "Please select a studio";
     }
     if (!formData.program) {
-      newErrors.program = 'Program/Segment is required';
+      newErrors.program = "Program/Segment is required";
     }
     if (!formData.airDateTime) {
-      newErrors.airDateTime = 'Air date and time is required';
+      newErrors.airDateTime = "Air date and time is required";
     }
     if (!formData.language) {
-      newErrors.language = 'Please select a language';
+      newErrors.language = "Please select a language";
     }
     if (!formData.priority) {
-      newErrors.priority = 'Please select a priority';
-    }
-    if (!formData.nocRequired) {
-      newErrors.nocRequired = 'Please specify if NOC is required';
+      newErrors.priority = "Please select a priority";
     }
 
-    if (formData.bookingType === 'Incoming Feed') {
+    if (formData.bookingType === "Incoming Feed") {
       if (!formData.feedStartTime) {
-        newErrors.feedStartTime = 'Feed start time is required';
+        newErrors.feedStartTime = "Feed start time is required";
       }
       if (!formData.feedEndTime) {
-        newErrors.feedEndTime = 'Feed end time is required';
+        newErrors.feedEndTime = "Feed end time is required";
       }
     }
 
-    if (formData.bookingType === 'Invite Guest for News' || formData.bookingType === 'Invite Guest for Program') {
+    if (
+      formData.bookingType === "Invite Guest for News" ||
+      formData.bookingType === "Invite Guest for Program"
+    ) {
       if (!formData.guestName) {
-        newErrors.guestName = 'Guest name is required';
+        newErrors.guestName = "Guest name is required";
       }
       if (!formData.inewsRundownId) {
-        newErrors.inewsRundownId = 'iNEWS Rundown ID is required';
+        newErrors.inewsRundownId = "iNEWS Rundown ID is required";
       }
     }
 
-    if (formData.bookingType === 'Download and Ingest') {
+    if (formData.bookingType === "Download and Ingest") {
       if (!formData.downloadSource) {
-        newErrors.downloadSource = 'Please select a download source';
+        newErrors.downloadSource = "Please select a download source";
       }
       if (!formData.downloadLink) {
-        newErrors.downloadLink = 'Download link/URL is required';
+        newErrors.downloadLink = "Download link/URL is required";
       }
     }
 
@@ -94,8 +101,8 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({ onSubmit, onCancel }
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (status: WorkflowStatus) => {
-    if (validateForm()) {
+  const handleSubmit = (status: WorkflowStatus, skipValidation = false) => {
+    if (skipValidation || validateForm()) {
       onSubmit(formData as any, status);
     }
   };
@@ -105,7 +112,7 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({ onSubmit, onCancel }
       <FormField
         label="Guest Name"
         name="guestName"
-        value={formData.guestName || ''}
+        value={formData.guestName || ""}
         onChange={handleChange}
         required
         error={errors.guestName}
@@ -113,13 +120,13 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({ onSubmit, onCancel }
       <FormField
         label="Guest Contact"
         name="guestContact"
-        value={formData.guestContact || ''}
+        value={formData.guestContact || ""}
         onChange={handleChange}
       />
       <FormField
         label="iNEWS Rundown ID"
         name="inewsRundownId"
-        value={formData.inewsRundownId || ''}
+        value={formData.inewsRundownId || ""}
         onChange={handleChange}
         required
         error={errors.inewsRundownId}
@@ -127,13 +134,13 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({ onSubmit, onCancel }
       <FormField
         label="Story Slug"
         name="storySlug"
-        value={formData.storySlug || ''}
+        value={formData.storySlug || ""}
         onChange={handleChange}
       />
       <FormField
         label="Rundown Position"
         name="rundownPosition"
-        value={formData.rundownPosition || ''}
+        value={formData.rundownPosition || ""}
         onChange={handleChange}
       />
     </>
@@ -169,17 +176,23 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({ onSubmit, onCancel }
           className="p-2 hover:bg-muted rounded-lg transition-colors text-muted-foreground hover:text-card-foreground"
           aria-label="Go back"
         >
-          <ArrowLeft size={20} />
+          <ArrowLeft size={20} />{" "}
         </button>
         <div>
-          <h1 className="text-2xl font-bold text-card-foreground">New Workflow Request</h1>
-          <p className="text-muted-foreground text-sm mt-0.5">Create a new booking request for NOC and Ingest teams</p>
+          <h1 className="text-2xl font-bold text-card-foreground">
+            New Workflow Request
+          </h1>
+          <p className="text-muted-foreground text-sm mt-0.5">
+            Create a new booking request for NOC and Ingest teams
+          </p>
         </div>
       </div>
 
       <form onSubmit={(e) => e.preventDefault()} className="space-y-6">
         <div className="bg-card rounded-lg border border-border p-8">
-          <h2 className="text-lg font-semibold text-card-foreground mb-6">Booking Information</h2>
+          <h2 className="text-lg font-semibold text-card-foreground mb-6">
+            Booking Information
+          </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <FormField
@@ -187,7 +200,12 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({ onSubmit, onCancel }
               name="bookingType"
               value={formData.bookingType}
               onChange={handleChange}
-              options={['Incoming Feed', 'Invite Guest for News', 'Invite Guest for Program', 'Download and Ingest']}
+              options={[
+                "Incoming Feed",
+                "Invite Guest for News",
+                "Invite Guest for Program",
+                "Download and Ingest",
+              ]}
               required
               error={errors.bookingType}
             />
@@ -200,6 +218,23 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({ onSubmit, onCancel }
               error={errors.title}
             />
           </div>
+
+          {(formData.bookingType === "Incoming Feed" ||
+            formData.bookingType === "Invite Guest for News" ||
+            formData.bookingType === "Invite Guest for Program") && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+              <FormField
+                label="Studio"
+                name="studio"
+                value={formData.studio || ""}
+                onChange={handleChange}
+                options={["Studio 1", "Studio 2"]}
+                required
+                error={errors.studio}
+              />
+              <div></div>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
             <FormField
@@ -222,37 +257,15 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({ onSubmit, onCancel }
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-            <FormField
-              label="Language"
-              name="language"
-              value={formData.language}
-              onChange={handleChange}
-              options={['English', 'Arabic']}
-              required
-              error={errors.language}
-            />
-            <FormField
-              label="Priority"
-              name="priority"
-              value={formData.priority}
-              onChange={handleChange}
-              options={['Normal', 'High', 'Urgent']}
-              required
-              error={errors.priority}
-            />
-          </div>
-        </div>
-
-        {formData.bookingType === 'Incoming Feed' && (
-          <div className="bg-card rounded-lg border border-border p-8">
-            <h2 className="text-lg font-semibold text-card-foreground mb-6">Feed Configuration</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {(formData.bookingType === "Incoming Feed" ||
+            formData.bookingType === "Invite Guest for News" ||
+            formData.bookingType === "Invite Guest for Program") && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
               <FormField
                 label="Feed Start Time"
                 name="feedStartTime"
                 type="datetime-local"
-                value={formData.feedStartTime || ''}
+                value={formData.feedStartTime || ""}
                 onChange={handleChange}
                 required
                 error={errors.feedStartTime}
@@ -261,73 +274,74 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({ onSubmit, onCancel }
                 label="Feed End Time"
                 name="feedEndTime"
                 type="datetime-local"
-                value={formData.feedEndTime || ''}
+                value={formData.feedEndTime || ""}
                 onChange={handleChange}
                 required
                 error={errors.feedEndTime}
               />
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-              <FormField
-                label="Studio"
-                name="studio"
-                value={formData.studio || ''}
-                onChange={handleChange}
-                options={['Studio 1', 'Studio 2']}
-                required
-                error={errors.studio}
-              />
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+            <FormField
+              label="Language"
+              name="language"
+              value={formData.language}
+              onChange={handleChange}
+              options={["English", "Arabic"]}
+              required
+              error={errors.language}
+            />
+            <FormField
+              label="Priority"
+              name="priority"
+              value={formData.priority}
+              onChange={handleChange}
+              options={["Normal", "High", "Urgent"]}
+              required
+              error={errors.priority}
+            />
+          </div>
+        </div>
+
+        {(formData.bookingType === "Invite Guest for News" ||
+          formData.bookingType === "Invite Guest for Program") && (
+          <div className="bg-card rounded-lg border border-border p-6 shadow-sm">
+            <h2 className="text-lg font-semibold text-card-foreground mb-6">
+              Guest & Rundown Details
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {renderGuestRundownFields()}
             </div>
           </div>
         )}
 
-        {(formData.bookingType === 'Invite Guest for News' || formData.bookingType === 'Invite Guest for Program') && (
-          <>
-            <div className="bg-card rounded-lg border border-border p-8">
-              <h2 className="text-lg font-semibold text-card-foreground mb-6">Guest & Rundown Details</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {renderGuestRundownFields()}
-              </div>
-            </div>
-            <div className="bg-card rounded-lg border border-border p-8">
-              <h2 className="text-lg font-semibold text-card-foreground mb-6">Studio Configuration</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <FormField
-                  label="Studio"
-                  name="studio"
-                  value={formData.studio || ''}
-                  onChange={handleChange}
-                  options={['Studio 1', 'Studio 2']}
-                  required
-                  error={errors.studio}
-                />
-              </div>
-            </div>
-          </>
-        )}
-
-        {formData.bookingType === 'Download and Ingest' && (
-          <div className="bg-card rounded-lg border border-border p-8">
-            <h2 className="text-lg font-semibold text-card-foreground mb-6">Download Details</h2>
+        {formData.bookingType === "Download and Ingest" && (
+          <div className="bg-card rounded-lg border border-border p-6 shadow-sm">
+            <h2 className="text-lg font-semibold text-card-foreground mb-6">
+              Download Details
+            </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {renderDownloadAndIngestFields()}
             </div>
           </div>
         )}
 
-        <div className="bg-card rounded-lg border border-border p-8">
-          <h2 className="text-lg font-semibold text-card-foreground mb-6">Additional Information</h2>
+        <div className="bg-card rounded-lg border border-border p-6 shadow-sm">
+          <h2 className="text-lg font-semibold text-card-foreground mb-6">
+            Additional Information
+          </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <FormField
-              label="NOC Required"
-              name="nocRequired"
-              value={formData.nocRequired}
-              onChange={handleChange}
-              options={['Yes', 'No']}
-              required
-              error={errors.nocRequired}
-            />
+            {/* <FormField
+                  label="NOC Required"
+                  name="nocRequired"
+                  value={formData.nocRequired}
+                  onChange={handleChange}
+                  options={['Yes', 'No']}
+                  required
+                  error={errors.nocRequired}
+                /> */}
             <FormField
               label="Resources Needed (Booking)"
               name="resourcesNeeded"
@@ -355,19 +369,30 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({ onSubmit, onCancel }
           >
             Cancel
           </button>
+
+          {/* <button
+                type="button"
+                onClick={() => handleSubmit('Draft')}
+                className="flex items-center gap-2 px-6 py-2.5 bg-muted text-card-foreground rounded-lg hover:bg-muted/80 transition-colors font-medium border border-border"
+              >
+                <Save size={18} />
+                Save as Draft
+              </button> */}
           <button
             type="button"
             onClick={() => {
-              if (formData.bookingType === 'Download and Ingest' || formData.nocRequired === 'No') {
-                handleSubmit('With Ingest');
+              if (formData.bookingType === "Download and Ingest") {
+                handleSubmit("With Ingest");
               } else {
-                handleSubmit('Submitted');
+                handleSubmit("With NOC");
               }
             }}
             className="flex items-center gap-2 px-6 py-2.5 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
           >
             <Send size={18} />
-            {formData.bookingType === 'Download and Ingest' || formData.nocRequired === 'No' ? 'Send to Ingest' : 'Submit Request'}
+            {formData.bookingType === "Download and Ingest"
+              ? "Submit Request to Ingest"
+              : "Submit Request to NOC"}
           </button>
         </div>
       </form>
