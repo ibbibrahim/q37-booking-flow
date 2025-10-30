@@ -9,7 +9,6 @@ interface WorkflowFormProps {
 }
 
 export const WorkflowForm: React.FC<WorkflowFormProps> = ({ onSubmit, onCancel }) => {
-  const [activeTab, setActiveTab] = useState<'form' | 'resources' | 'preview'>('form');
   const [formData, setFormData] = useState<Record<string, string>>({
     bookingType: '',
     title: '',
@@ -101,12 +100,6 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({ onSubmit, onCancel }
     }
   };
 
-  const tabs = [
-    { id: 'form', label: 'Request & Metadata' },
-    { id: 'resources', label: 'Resource Summary' },
-    { id: 'preview', label: 'Data Preview' }
-  ];
-
   const renderGuestRundownFields = () => (
     <>
       <FormField
@@ -169,268 +162,215 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({ onSubmit, onCancel }
   );
 
   return (
-    <div className="fixed inset-0 bg-background/95 backdrop-blur-sm z-40 overflow-y-auto">
-      <div className="min-h-screen ml-0 lg:ml-64">
-        <div className="bg-background border-b border-border px-6 py-5">
-          <div className="max-w-6xl mx-auto">
-            <div className="flex items-center gap-3">
-              <button
-                onClick={onCancel}
-                className="p-2 hover:bg-muted rounded-lg transition-colors text-muted-foreground hover:text-card-foreground"
-                aria-label="Go back"
-              >
-                <ArrowLeft size={20} />
-              </button>
-              <div>
-                <h1 className="text-2xl font-bold text-card-foreground">New Workflow Request</h1>
-                <p className="text-muted-foreground text-sm mt-0.5">Create a new booking request for NOC and Ingest teams</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-background border-b border-border">
-          <div className="max-w-6xl mx-auto flex px-6">
-            {tabs.map(tab => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
-                className={`px-5 py-3.5 font-medium text-sm transition-colors relative ${
-                  activeTab === tab.id
-                    ? 'text-card-foreground'
-                    : 'text-muted-foreground hover:text-card-foreground'
-                }`}
-              >
-                {tab.label}
-                {activeTab === tab.id && (
-                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary"></div>
-                )}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="max-w-6xl mx-auto py-8 px-6">
-          {activeTab === 'form' && (
-            <form onSubmit={(e) => e.preventDefault()} className="space-y-6">
-              <div className="bg-card rounded-lg border border-border p-8">
-                <h2 className="text-lg font-semibold text-card-foreground mb-6">Booking Information</h2>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <FormField
-                    label="Booking Type"
-                    name="bookingType"
-                    value={formData.bookingType}
-                    onChange={handleChange}
-                    options={['Incoming Feed', 'Invite Guest for News', 'Invite Guest for Program', 'Download and Ingest']}
-                    required
-                    error={errors.bookingType}
-                  />
-                  <FormField
-                    label="Title"
-                    name="title"
-                    value={formData.title}
-                    onChange={handleChange}
-                    required
-                    error={errors.title}
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-                  <FormField
-                    label="Program / Segment"
-                    name="program"
-                    value={formData.program}
-                    onChange={handleChange}
-                    placeholder="e.g., Evening News"
-                    required
-                    error={errors.program}
-                  />
-                  <FormField
-                    label="Air Date / Time (Local)"
-                    name="airDateTime"
-                    type="datetime-local"
-                    value={formData.airDateTime}
-                    onChange={handleChange}
-                    required
-                    error={errors.airDateTime}
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-                  <FormField
-                    label="Language"
-                    name="language"
-                    value={formData.language}
-                    onChange={handleChange}
-                    options={['English', 'Arabic']}
-                    required
-                    error={errors.language}
-                  />
-                  <FormField
-                    label="Priority"
-                    name="priority"
-                    value={formData.priority}
-                    onChange={handleChange}
-                    options={['Normal', 'High', 'Urgent']}
-                    required
-                    error={errors.priority}
-                  />
-                </div>
-              </div>
-
-              {formData.bookingType === 'Incoming Feed' && (
-                <div className="bg-card rounded-lg border border-border p-8">
-                  <h2 className="text-lg font-semibold text-card-foreground mb-6">Feed Configuration</h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <FormField
-                      label="Feed Start Time"
-                      name="feedStartTime"
-                      type="datetime-local"
-                      value={formData.feedStartTime || ''}
-                      onChange={handleChange}
-                      required
-                      error={errors.feedStartTime}
-                    />
-                    <FormField
-                      label="Feed End Time"
-                      name="feedEndTime"
-                      type="datetime-local"
-                      value={formData.feedEndTime || ''}
-                      onChange={handleChange}
-                      required
-                      error={errors.feedEndTime}
-                    />
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-                    <FormField
-                      label="Studio"
-                      name="studio"
-                      value={formData.studio || ''}
-                      onChange={handleChange}
-                      options={['Studio 1', 'Studio 2']}
-                      required
-                      error={errors.studio}
-                    />
-                  </div>
-                </div>
-              )}
-
-              {(formData.bookingType === 'Invite Guest for News' || formData.bookingType === 'Invite Guest for Program') && (
-                <>
-                  <div className="bg-card rounded-lg border border-border p-8">
-                    <h2 className="text-lg font-semibold text-card-foreground mb-6">Guest & Rundown Details</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {renderGuestRundownFields()}
-                    </div>
-                  </div>
-                  <div className="bg-card rounded-lg border border-border p-8">
-                    <h2 className="text-lg font-semibold text-card-foreground mb-6">Studio Configuration</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <FormField
-                        label="Studio"
-                        name="studio"
-                        value={formData.studio || ''}
-                        onChange={handleChange}
-                        options={['Studio 1', 'Studio 2']}
-                        required
-                        error={errors.studio}
-                      />
-                    </div>
-                  </div>
-                </>
-              )}
-
-              {formData.bookingType === 'Download and Ingest' && (
-                <div className="bg-card rounded-lg border border-border p-8">
-                  <h2 className="text-lg font-semibold text-card-foreground mb-6">Download Details</h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {renderDownloadAndIngestFields()}
-                  </div>
-                </div>
-              )}
-
-              <div className="bg-card rounded-lg border border-border p-8">
-                <h2 className="text-lg font-semibold text-card-foreground mb-6">Additional Information</h2>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <FormField
-                    label="NOC Required"
-                    name="nocRequired"
-                    value={formData.nocRequired}
-                    onChange={handleChange}
-                    options={['Yes', 'No']}
-                    required
-                    error={errors.nocRequired}
-                  />
-                  <FormField
-                    label="Resources Needed (Booking)"
-                    name="resourcesNeeded"
-                    value={formData.resourcesNeeded}
-                    onChange={handleChange}
-                  />
-                </div>
-
-                <div className="mt-6">
-                  <FormField
-                    label="Notes"
-                    name="notes"
-                    type="textarea"
-                    value={formData.notes}
-                    onChange={handleChange}
-                  />
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-3 pt-4">
-                <button
-                  type="button"
-                  onClick={onCancel}
-                  className="px-6 py-2.5 text-card-foreground rounded-lg hover:bg-muted transition-colors font-medium border border-border"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (formData.bookingType === 'Download and Ingest' || formData.nocRequired === 'No') {
-                      handleSubmit('With Ingest');
-                    } else {
-                      handleSubmit('Submitted');
-                    }
-                  }}
-                  className="flex items-center gap-2 px-6 py-2.5 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
-                >
-                  <Send size={18} />
-                  {formData.bookingType === 'Download and Ingest' || formData.nocRequired === 'No' ? 'Send to Ingest' : 'Submit Request'}
-                </button>
-              </div>
-            </form>
-          )}
-
-          {activeTab === 'resources' && (
-            <div className="bg-card rounded-lg border border-border p-8">
-              <h3 className="text-lg font-semibold text-card-foreground mb-4">Resource Summary</h3>
-              <p className="text-muted-foreground">Resources will be displayed here once assigned by NOC team.</p>
-              {formData.resourcesNeeded && (
-                <div className="mt-4 p-4 bg-muted rounded-lg">
-                  <h4 className="font-medium text-card-foreground mb-2">Requested Resources:</h4>
-                  <p className="text-muted-foreground">{formData.resourcesNeeded}</p>
-                </div>
-              )}
-            </div>
-          )}
-
-          {activeTab === 'preview' && (
-            <div className="bg-card rounded-lg border border-border p-8">
-              <h3 className="text-lg font-semibold text-card-foreground mb-4">Data Preview</h3>
-              <pre className="bg-slate-900 dark:bg-slate-950 text-slate-100 p-6 rounded-lg overflow-x-auto text-sm">
-                {JSON.stringify(formData, null, 2)}
-              </pre>
-            </div>
-          )}
+    <div className="max-w-7xl mx-auto">
+      <div className="mb-6 flex items-center gap-3">
+        <button
+          onClick={onCancel}
+          className="p-2 hover:bg-muted rounded-lg transition-colors text-muted-foreground hover:text-card-foreground"
+          aria-label="Go back"
+        >
+          <ArrowLeft size={20} />
+        </button>
+        <div>
+          <h1 className="text-2xl font-bold text-card-foreground">New Workflow Request</h1>
+          <p className="text-muted-foreground text-sm mt-0.5">Create a new booking request for NOC and Ingest teams</p>
         </div>
       </div>
+
+      <form onSubmit={(e) => e.preventDefault()} className="space-y-6">
+        <div className="bg-card rounded-lg border border-border p-8">
+          <h2 className="text-lg font-semibold text-card-foreground mb-6">Booking Information</h2>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <FormField
+              label="Booking Type"
+              name="bookingType"
+              value={formData.bookingType}
+              onChange={handleChange}
+              options={['Incoming Feed', 'Invite Guest for News', 'Invite Guest for Program', 'Download and Ingest']}
+              required
+              error={errors.bookingType}
+            />
+            <FormField
+              label="Title"
+              name="title"
+              value={formData.title}
+              onChange={handleChange}
+              required
+              error={errors.title}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+            <FormField
+              label="Program / Segment"
+              name="program"
+              value={formData.program}
+              onChange={handleChange}
+              placeholder="e.g., Evening News"
+              required
+              error={errors.program}
+            />
+            <FormField
+              label="Air Date / Time (Local)"
+              name="airDateTime"
+              type="datetime-local"
+              value={formData.airDateTime}
+              onChange={handleChange}
+              required
+              error={errors.airDateTime}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+            <FormField
+              label="Language"
+              name="language"
+              value={formData.language}
+              onChange={handleChange}
+              options={['English', 'Arabic']}
+              required
+              error={errors.language}
+            />
+            <FormField
+              label="Priority"
+              name="priority"
+              value={formData.priority}
+              onChange={handleChange}
+              options={['Normal', 'High', 'Urgent']}
+              required
+              error={errors.priority}
+            />
+          </div>
+        </div>
+
+        {formData.bookingType === 'Incoming Feed' && (
+          <div className="bg-card rounded-lg border border-border p-8">
+            <h2 className="text-lg font-semibold text-card-foreground mb-6">Feed Configuration</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <FormField
+                label="Feed Start Time"
+                name="feedStartTime"
+                type="datetime-local"
+                value={formData.feedStartTime || ''}
+                onChange={handleChange}
+                required
+                error={errors.feedStartTime}
+              />
+              <FormField
+                label="Feed End Time"
+                name="feedEndTime"
+                type="datetime-local"
+                value={formData.feedEndTime || ''}
+                onChange={handleChange}
+                required
+                error={errors.feedEndTime}
+              />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+              <FormField
+                label="Studio"
+                name="studio"
+                value={formData.studio || ''}
+                onChange={handleChange}
+                options={['Studio 1', 'Studio 2']}
+                required
+                error={errors.studio}
+              />
+            </div>
+          </div>
+        )}
+
+        {(formData.bookingType === 'Invite Guest for News' || formData.bookingType === 'Invite Guest for Program') && (
+          <>
+            <div className="bg-card rounded-lg border border-border p-8">
+              <h2 className="text-lg font-semibold text-card-foreground mb-6">Guest & Rundown Details</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {renderGuestRundownFields()}
+              </div>
+            </div>
+            <div className="bg-card rounded-lg border border-border p-8">
+              <h2 className="text-lg font-semibold text-card-foreground mb-6">Studio Configuration</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <FormField
+                  label="Studio"
+                  name="studio"
+                  value={formData.studio || ''}
+                  onChange={handleChange}
+                  options={['Studio 1', 'Studio 2']}
+                  required
+                  error={errors.studio}
+                />
+              </div>
+            </div>
+          </>
+        )}
+
+        {formData.bookingType === 'Download and Ingest' && (
+          <div className="bg-card rounded-lg border border-border p-8">
+            <h2 className="text-lg font-semibold text-card-foreground mb-6">Download Details</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {renderDownloadAndIngestFields()}
+            </div>
+          </div>
+        )}
+
+        <div className="bg-card rounded-lg border border-border p-8">
+          <h2 className="text-lg font-semibold text-card-foreground mb-6">Additional Information</h2>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <FormField
+              label="NOC Required"
+              name="nocRequired"
+              value={formData.nocRequired}
+              onChange={handleChange}
+              options={['Yes', 'No']}
+              required
+              error={errors.nocRequired}
+            />
+            <FormField
+              label="Resources Needed (Booking)"
+              name="resourcesNeeded"
+              value={formData.resourcesNeeded}
+              onChange={handleChange}
+            />
+          </div>
+
+          <div className="mt-6">
+            <FormField
+              label="Notes"
+              name="notes"
+              type="textarea"
+              value={formData.notes}
+              onChange={handleChange}
+            />
+          </div>
+        </div>
+
+        <div className="flex justify-end gap-3 pt-4 pb-8">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="px-6 py-2.5 text-card-foreground rounded-lg hover:bg-muted transition-colors font-medium border border-border"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              if (formData.bookingType === 'Download and Ingest' || formData.nocRequired === 'No') {
+                handleSubmit('With Ingest');
+              } else {
+                handleSubmit('Submitted');
+              }
+            }}
+            className="flex items-center gap-2 px-6 py-2.5 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
+          >
+            <Send size={18} />
+            {formData.bookingType === 'Download and Ingest' || formData.nocRequired === 'No' ? 'Send to Ingest' : 'Submit Request'}
+          </button>
+        </div>
+      </form>
     </div>
   );
 };
