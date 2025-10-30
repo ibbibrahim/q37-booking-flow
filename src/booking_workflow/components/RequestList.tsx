@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Filter, Plus, Grid3x3, List, Download, Calendar, ChevronLeft, ChevronRight, Edit, Trash2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { RequestCard } from './RequestCard';
 import { RequestDetail } from './RequestDetail';
 import type { WorkflowRequest, WorkflowStatus, UserRole } from '../types/workflow';
@@ -38,6 +39,8 @@ export const RequestList: React.FC<RequestListProps> = ({ requests, userRole, on
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const navigate = useNavigate();
+
 
   useEffect(() => {
     let filtered = requests;
@@ -191,7 +194,7 @@ export const RequestList: React.FC<RequestListProps> = ({ requests, userRole, on
                     <RequestCard
                       key={request.id}
                       request={request}
-                      onClick={() => setSelectedRequest(request)}
+                      onClick={() => navigate(`/${userRole.toLowerCase()}/request/${request.id}`)}
                     />
                   ))}
                 </div>
@@ -218,7 +221,7 @@ export const RequestList: React.FC<RequestListProps> = ({ requests, userRole, on
                           <tr
                             key={request.id}
                             className="border-b border-border hover:bg-muted/50 cursor-pointer transition-colors"
-                            onClick={() => setSelectedRequest(request)}
+                            onClick={() => navigate(`/${userRole.toLowerCase()}/request/${request.id}`)}
                           >
                             <td className="py-3 px-4 text-sm text-muted-foreground font-mono">{request.id}</td>
                             <td className="py-3 px-4 text-sm font-medium text-card-foreground">{request.title}</td>
@@ -241,7 +244,7 @@ export const RequestList: React.FC<RequestListProps> = ({ requests, userRole, on
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    setSelectedRequest(request);
+                                    navigate(`/${userRole.toLowerCase()}/request/${request.id}`)
                                   }}
                                   className="p-1.5 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-card-foreground"
                                   title="Edit"

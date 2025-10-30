@@ -183,7 +183,7 @@ export const mockApi = {
   getRequests: async (): Promise<WorkflowRequest[]> => {
     try {
       const response = await apiClient.get("/api/booking/requests");
-      return response.data; // ✅ returns list of workflow requests from backend
+      return response.data; // returns list of workflow requests from backend
     } catch (error) {
       console.warn("API unavailable, using mock data:", error);
       // Optional fallback (you can remove if you want strict backend)
@@ -193,11 +193,18 @@ export const mockApi = {
   },
 
   getRequestById: async (id: string): Promise<WorkflowRequest | undefined> => {
-    await new Promise(resolve => setTimeout(resolve, 200));
-    return mockRequests.find(req => req.id === id);
+    try {
+      const response = await apiClient.get(`/api/booking/requests/${id}`);
+      return response.data;
+    } catch (error) {
+      console.warn(`API unavailable, using mock data for request ${id}:`, error);
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      // Return from local mock data
+      return mockRequests.find((req) => req.id.toString() === id);
+    }
   },
   
-
+  
   createRequest: async (
     request: Partial<WorkflowRequest>,
     status: WorkflowStatus
