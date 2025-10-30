@@ -34,8 +34,8 @@ export interface BaseWorkflowRequest {
   language: Language;
   priority: Priority;
   nocRequired: YesNo;
-  resourcesNeeded: string;
-  notes: string;
+  resourcesNeeded?: string;
+  notes?: string;
   status: WorkflowStatus;
   createdBy: string;
   createdAt: string;
