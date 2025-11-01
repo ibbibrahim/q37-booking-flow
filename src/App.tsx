@@ -22,7 +22,6 @@ function App() {
         <Route path="ingest/request/:id" element={<RequestDetail />} />
 
         <Route path="ingest" element={<RoleView role="Ingest" />} />
-        <Route path="ingest/new" element={<RoleView role="Ingest" />} />
 
         <Route path="admin" element={<RoleView role="Admin" />} />
         <Route path="*" element={<Navigate to="/booking" replace />} />
