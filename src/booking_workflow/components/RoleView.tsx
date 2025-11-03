@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { WorkflowForm } from './WorkflowForm';
 import { RequestList } from './RequestList';
 import { AdminDashboard } from './AdminDashboard';
 import { mockApi } from '../services/mockApi';
+import { useSignalR } from '../../contexts/SignalRContext';
 import type { UserRole, WorkflowRequest, WorkflowStatus } from '../types/workflow';
 
 interface RoleViewProps {
@@ -13,15 +14,12 @@ interface RoleViewProps {
 export const RoleView: React.FC<RoleViewProps> = ({ role }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { listen, invoke } = useSignalR();
   const [requests, setRequests] = useState<WorkflowRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const showForm = location.pathname.includes('/new');
 
-  useEffect(() => {
-    loadRequests();
-  }, []);
-
-  const loadRequests = async () => {
+  const loadRequests = useCallback(async () => {
     setLoading(true);
     try {
       const data = await mockApi.getRequests();
@@ -31,11 +29,44 @@ export const RoleView: React.FC<RoleViewProps> = ({ role }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadRequests();
+  }, [loadRequests]);
+
+  useEffect(() => {
+    const unsubscribeCreated = listen('RequestCreated', (newRequest: WorkflowRequest) => {
+      setRequests((prev) => {
+        const exists = prev.some((r) => r.id === newRequest.id);
+        if (exists) return prev;
+        return [newRequest, ...prev];
+      });
+    });
+
+    const unsubscribeUpdated = listen('RequestUpdated', (updatedRequest: WorkflowRequest) => {
+      setRequests((prev) =>
+        prev.map((r) => (r.id === updatedRequest.id ? updatedRequest : r))
+      );
+    });
+
+    const unsubscribeCompleted = listen('RequestCompleted', (completedRequest: WorkflowRequest) => {
+      setRequests((prev) =>
+        prev.map((r) => (r.id === completedRequest.id ? completedRequest : r))
+      );
+    });
+
+    return () => {
+      unsubscribeCreated();
+      unsubscribeUpdated();
+      unsubscribeCompleted();
+    };
+  }, [listen]);
 
   const handleCreateRequest = async (data: Partial<WorkflowRequest>, status: WorkflowStatus) => {
     try {
-      await mockApi.createRequest(data, status);
+      const newRequest = await mockApi.createRequest(data, status);
+      await invoke('RequestCreated', newRequest);
       await loadRequests();
       navigate(`/${role.toLowerCase()}`);
     } catch (error) {

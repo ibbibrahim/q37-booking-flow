@@ -3,6 +3,7 @@ import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import type { UserRole } from '../types/workflow';
 import { User, Radio, Package, Shield, Menu, X, Sun, Moon } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
+import { NotificationDropdown } from '../../components/NotificationDropdown';
 import q37Logo from '../../assets/q37.png';
 
 export const BookingDashboard: React.FC = () => {
@@ -145,12 +146,7 @@ export const BookingDashboard: React.FC = () => {
                 </div>
               </div>
               <div className="flex items-center gap-3">
-                <button className="p-2 hover:bg-muted rounded-lg transition-colors text-muted-foreground hover:text-card-foreground">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
-                    <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
-                  </svg>
-                </button>
+                <NotificationDropdown />
                 <button
                   onClick={toggleTheme}
                   className="p-2 hover:bg-muted rounded-lg transition-colors text-muted-foreground hover:text-card-foreground"
