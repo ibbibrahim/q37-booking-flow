@@ -17,16 +17,18 @@ export const RequestDetail: React.FC = () => {
   const location = useLocation();
 
   const [request, setRequest] = useState<WorkflowRequest | null>(null);
-  const [transitions, setTransitions] = useState<WorkflowTransition[]>([]);
-  const [resources, setResources] = useState<ResourceAssignment[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Detect current user role from the URL path (/booking, /noc, /ingest, /admin)
+  // Detect current user role from path
   const path = location.pathname.split('/')[1];
-  const userRole: UserRole =
-    (path?.charAt(0).toUpperCase() + path?.slice(1)) as UserRole || 'Booking';
+  const roleMap: Record<string, UserRole> = {
+    booking: 'Booking',
+    noc: 'NOC',
+    ingest: 'Ingest',
+    admin: 'Admin',
+  };
+  const userRole: UserRole = roleMap[path?.toLowerCase()] || 'Booking';
 
-  // Fetch request details and related data
   useEffect(() => {
     const loadRequest = async () => {
       if (!id) return;
@@ -35,12 +37,6 @@ export const RequestDetail: React.FC = () => {
         const data = await mockApi.getRequestById(id);
         if (data) {
           setRequest(data);
-          const [trans, res] = await Promise.all([
-            mockApi.getTransitions(data.id),
-            mockApi.getResources(data.id),
-          ]);
-          setTransitions(trans);
-          setResources(res);
         }
       } catch (error) {
         console.error('Failed to fetch request details', error);
@@ -52,25 +48,25 @@ export const RequestDetail: React.FC = () => {
   }, [id]);
 
   const handleNOCAction = async (action: string, data: any) => {
+    console.log('NOC Action:', action, data);
     if (!request) return;
-    await mockApi.updateRequestStatus(request.id, data.newStatus, data, userRole);
-    const [trans, res] = await Promise.all([
-      mockApi.getTransitions(request.id),
-      mockApi.getResources(request.id),
-    ]);
-    setTransitions(trans);
-    setResources(res);
+    // await mockApi.assignNOCResources(request.id, data.newStatus, data, userRole);  
+    debugger
+
+    await mockApi.assignNOCResources(request.id, data);
+    const updated = await mockApi.getRequestById(request.id);
+    if (updated) setRequest(updated);
   };
 
   const handleIngestAction = async (action: string, data: any) => {
     if (!request) return;
-    await mockApi.updateRequestStatus(request.id, data.newStatus, data, userRole);
-    const [trans, res] = await Promise.all([
-      mockApi.getTransitions(request.id),
-      mockApi.getResources(request.id),
-    ]);
-    setTransitions(trans);
-    setResources(res);
+  
+    console.log('Ingest Action:', action, data);
+  
+    await mockApi.updateIngestAction(request.id.toString(), data);
+  
+    const updated = await mockApi.getRequestById(request.id);
+    if (updated) setRequest(updated);
   };
 
   if (loading) {
@@ -111,6 +107,11 @@ export const RequestDetail: React.FC = () => {
       </div>
     );
   };
+
+  const transitions = request.transitions || [];
+  const parsedResources: ResourceAssignment[] = request.nocAssignedResources
+  ? JSON.parse(request.nocAssignedResources)
+  : [];
 
   return (
     <div className="max-w-7xl mx-auto">
@@ -163,10 +164,7 @@ export const RequestDetail: React.FC = () => {
               <div className="grid grid-cols-2 gap-x-8 gap-y-4">
                 {renderField('Program / Segment', request.program)}
                 {renderField('Language', request.language)}
-                {renderField(
-                  'Air Date / Time',
-                  new Date(request.airDateTime).toLocaleString()
-                )}
+                {renderField('Air Date / Time', new Date(request.airDateTime).toLocaleString())}
                 {renderField('NOC Required', request.nocRequired)}
               </div>
 
@@ -175,15 +173,14 @@ export const RequestDetail: React.FC = () => {
                   Feed Configuration
                 </h3>
                 <div className="grid grid-cols-2 gap-x-8 gap-y-4">
-                  {request.bookingType === 'Incoming Feed' &&
-                    'sourceType' in request && (
-                      <>
-                        {renderField('Source Type', request.sourceType)}
-                        {renderField('vMix Input', request.vmixInputNumber)}
-                        {renderField('Return Path', request.returnPath)}
-                        {renderField('Key/Fill', request.keyFill)}
-                      </>
-                    )}
+                  {request.bookingType === 'Incoming Feed' && 'sourceType' in request && (
+                    <>
+                      {renderField('Source Type', request.sourceType)}
+                      {renderField('vMix Input', request.vmixInputNumber)}
+                      {renderField('Return Path', request.returnPath)}
+                      {renderField('Key/Fill', request.keyFill)}
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -211,9 +208,7 @@ export const RequestDetail: React.FC = () => {
 
               {request.notes && (
                 <div className="mt-6 pt-6 border-t border-slate-200">
-                  <h3 className="text-sm font-semibold text-slate-700 mb-3">
-                    Notes
-                  </h3>
+                  <h3 className="text-sm font-semibold text-slate-700 mb-3">Notes</h3>
                   <div className="bg-slate-50 rounded p-3 text-sm text-slate-700">
                     {request.notes}
                   </div>
@@ -225,20 +220,18 @@ export const RequestDetail: React.FC = () => {
                   <h3 className="text-sm font-semibold text-slate-700 mb-3">
                     Newsroom Ticket
                   </h3>
-                  <div className="text-sm text-slate-900">
-                    {request.newsroomTicket}
-                  </div>
+                  <div className="text-sm text-slate-900">{request.newsroomTicket}</div>
                 </div>
               )}
             </div>
 
-            {resources.length > 0 && (
+            {parsedResources.length > 0 && (
               <div className="bg-white rounded-lg border border-slate-200 p-6">
                 <h2 className="text-lg font-semibold text-slate-900 mb-4">
-                  Allocated Resources
+                  Allocated Resources by NOC
                 </h2>
                 <div className="space-y-3">
-                  {resources.map((res) => (
+                  {parsedResources.map((res) => (
                     <div
                       key={res.id}
                       className="bg-blue-50 rounded-lg p-4 border border-blue-100"
@@ -252,7 +245,7 @@ export const RequestDetail: React.FC = () => {
                             {res.resourceName}
                           </div>
                           <div className="text-xs text-slate-600 mt-1">
-                            {res.resourceType} assigned, audio levels tested
+                            {res.type}
                           </div>
                           <div className="text-xs text-blue-600 mt-2">
                             Allocated by {res.assignedBy} •{' '}
@@ -273,7 +266,7 @@ export const RequestDetail: React.FC = () => {
           </div>
 
           <div className="space-y-6">
-            <div className="bg-white rounded-lg border border-slate-200 p-6">
+          <div className="bg-white rounded-lg border border-slate-200 p-6">
               <h2 className="text-lg font-semibold text-slate-900 mb-4">
                 Metadata
               </h2>
@@ -323,7 +316,6 @@ export const RequestDetail: React.FC = () => {
                 </div>
               </div>
             </div>
-
             <div className="bg-white rounded-lg border border-slate-200 p-6">
               <h2 className="text-lg font-semibold text-slate-900 mb-4">
                 Workflow History
@@ -343,21 +335,18 @@ export const RequestDetail: React.FC = () => {
                           {trans.toStatus}
                         </div>
                         <div className="text-xs text-slate-600 mt-1">
-                          by {trans.changedBy} •{' '}
+                          by {trans.changedBy || 'System'} •{' '}
                           {new Date(trans.changedAt).toLocaleDateString('en-US', {
                             month: 'short',
                             day: 'numeric',
-                          })}
-                          ,{' '}
+                          })},{' '}
                           {new Date(trans.changedAt).toLocaleTimeString('en-US', {
                             hour: '2-digit',
                             minute: '2-digit',
                           })}
                         </div>
                         {trans.comment && (
-                          <div className="text-xs text-slate-600 mt-1">
-                            {trans.comment}
-                          </div>
+                          <div className="text-xs text-slate-600 mt-1">{trans.comment}</div>
                         )}
                       </div>
                     </div>

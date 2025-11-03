@@ -75,13 +75,15 @@ export const NOCActions: React.FC<NOCActionsProps> = ({ request, onAction }) => 
       alert('Please assign at least one resource before sending to Ingest');
       return;
     }
+  
     onAction('send_to_ingest', {
-      assignedResources,
-      newStatus: 'With Ingest'
+      nocAssignedResources: JSON.stringify(assignedResources), // ✅ correct key
+      changedBy: 10017,
+      comment: "Resources assigned by NOC",
     });
   };
 
-  const isIncomingFeed = request.bookingType === 'Incoming Feed';
+  // const isIncomingFeed = request.bookingType === 'Incoming Feed';
 
   return (
     <div className="bg-white border border-slate-200 rounded-lg shadow-sm">
@@ -121,7 +123,7 @@ export const NOCActions: React.FC<NOCActionsProps> = ({ request, onAction }) => 
           </div>
         </div>
 
-        {isIncomingFeed && (
+        {true && (
           <div className="pt-6 border-t border-slate-200">
             <h4 className="text-base font-semibold text-slate-900 mb-6">Feed Configuration</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -202,7 +204,7 @@ export const NOCActions: React.FC<NOCActionsProps> = ({ request, onAction }) => 
           </div>
         )}
 
-        <div className={isIncomingFeed ? 'pt-6 border-t border-slate-200' : ''}>
+        <div className={true ? 'pt-6 border-t border-slate-200' : ''}>
           <h4 className="text-base font-semibold text-slate-900 mb-6">Assigned Resources (NOC)</h4>
 
           {assignedResources.length > 0 ? (

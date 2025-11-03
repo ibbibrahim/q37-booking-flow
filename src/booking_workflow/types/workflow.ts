@@ -91,9 +91,8 @@ export interface WorkflowTransition {
 
 export interface ResourceAssignment {
   id: string;
-  requestId: string;
-  resourceType: string;
   resourceName: string;
-  assignedBy: string;
-  assignedAt: string;
+  type: 'Main' | 'Backup';
+  assignedBy?: string;
+  assignedAt?: string;
 }

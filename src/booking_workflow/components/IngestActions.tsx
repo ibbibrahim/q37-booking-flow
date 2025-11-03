@@ -20,18 +20,23 @@ export const IngestActions: React.FC<IngestActionsProps> = ({ request, onAction 
         alert('Please provide the folder path where content is stored');
         return;
       }
+  
       onAction('mark_completed', {
-        newStatus: 'Completed',
-        folderPath: ingestData.folderPath
+        ingestStatus: 'Completed',
+        ingestFolderPath: ingestData.folderPath,
+        ingestNotes: '', // optional, can add textarea later
+        changedBy: 10017
       });
     } else if (ingestData.ingestStatus === 'Not Done') {
       if (!ingestData.notDoneReason.trim()) {
         alert('Please provide a reason for marking as Not Done');
         return;
       }
+  
       onAction('mark_not_done', {
-        newStatus: 'Not Done',
-        reason: ingestData.notDoneReason
+        ingestStatus: 'Not Done',
+        ingestNotDoneReason: ingestData.notDoneReason,
+        changedBy: 10017
       });
     }
   };
