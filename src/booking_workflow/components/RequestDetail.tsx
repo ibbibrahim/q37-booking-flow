@@ -47,16 +47,33 @@ export const RequestDetail: React.FC = () => {
     loadRequest();
   }, [id]);
 
-  const handleNOCAction = async (action: string, data: any) => {
-    console.log('NOC Action:', action, data);
-    if (!request) return;
-    // await mockApi.assignNOCResources(request.id, data.newStatus, data, userRole);  
-    debugger
+  // const handleNOCAction = async (action: string, data: any) => {
+  //   console.log('NOC Action:', action, data);
+  //   if (!request) return;
+  //   // await mockApi.assignNOCResources(request.id, data.newStatus, data, userRole);  
+  //   debugger
 
-    await mockApi.assignNOCResources(request.id, data);
+  //   await mockApi.assignNOCResources(request.id, data);
+  //   const updated = await mockApi.getRequestById(request.id);
+  //   if (updated) setRequest(updated);
+  // };
+
+  const handleNOCAction = async (action: string, data: any) => {
+    if (!request) return;
+    console.log('NOC Action:', action, data);
+  
+    if (action === "acknowledge") {
+      await mockApi.acknowledgeRequest(request.id, data);
+    } else if (action === "send_to_ingest") {
+      await mockApi.assignNOCResources(request.id, data);
+    } else if (action === "request_clarification") {
+      await mockApi.requestNOCClarification(request.id, data);
+    }
+  
     const updated = await mockApi.getRequestById(request.id);
     if (updated) setRequest(updated);
   };
+
 
   const handleIngestAction = async (action: string, data: any) => {
     if (!request) return;

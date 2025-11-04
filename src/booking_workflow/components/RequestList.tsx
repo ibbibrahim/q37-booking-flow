@@ -194,8 +194,10 @@ export const RequestList: React.FC<RequestListProps> = ({ requests, userRole, on
                     <RequestCard
                       key={request.id}
                       request={request}
+                      isNew={userRole === 'NOC' && request.__isNew}
                       onClick={() => navigate(`/${userRole.toLowerCase()}/request/${request.id}`)}
                     />
+                    
                   ))}
                 </div>
               ) : (
@@ -224,7 +226,12 @@ export const RequestList: React.FC<RequestListProps> = ({ requests, userRole, on
                             onClick={() => navigate(`/${userRole.toLowerCase()}/request/${request.id}`)}
                           >
                             <td className="py-3 px-4 text-sm text-muted-foreground font-mono">{request.id}</td>
-                            <td className="py-3 px-4 text-sm font-medium text-card-foreground">{request.title}</td>
+                            <td className="py-3 px-4 text-sm font-medium text-card-foreground">
+                              {request.title}
+                              {request.__isNew && (
+                                <span className="ml-2 text-xs font-semibold text-red-600 animate-pulse">● New</span>
+                              )}
+                            </td>
                             <td className="py-3 px-4 text-sm text-muted-foreground">{request.program}</td>
                             <td className="py-3 px-4 text-sm text-muted-foreground">
                               {new Date(request.airDateTime).toLocaleDateString()}

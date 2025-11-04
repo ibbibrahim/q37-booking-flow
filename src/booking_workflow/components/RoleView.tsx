@@ -37,6 +37,7 @@ export const RoleView: React.FC<RoleViewProps> = ({ role }) => {
 
   useEffect(() => {
     const unsubscribeCreated = listen('RequestCreated', (newRequest: WorkflowRequest) => {
+        newRequest.__isNew = true;
         setRequests((prev) => {
           const exists = prev.some((r) => r.id === newRequest.id);
           if (exists) return prev;
@@ -50,16 +51,52 @@ export const RoleView: React.FC<RoleViewProps> = ({ role }) => {
       );
     });
 
+    // When Ingest marks a request as completed
     const unsubscribeCompleted = listen('RequestCompleted', (completedRequest: WorkflowRequest) => {
-      setRequests((prev) =>
-        prev.map((r) => (r.id === completedRequest.id ? completedRequest : r))
-      );
+      completedRequest.__isNew = true;
+      setRequests((prev) => {
+        const exists = prev.some((r) => r.id === completedRequest.id);
+        if (exists) {
+          // Move to top and update
+          return [completedRequest, ...prev.filter((r) => r.id !== completedRequest.id)];
+        }
+        return [completedRequest, ...prev];
+      });
     });
+    
+    // When Ingest marks a request as NOT DONE
+    const unsubscribeNotDone = listen('RequestNotDone', (notDoneRequest: WorkflowRequest) => {
+      notDoneRequest.__isNew = true;
+      setRequests((prev) => {
+        const exists = prev.some((r) => r.id === notDoneRequest.id);
+        if (exists) {
+          return [notDoneRequest, ...prev.filter((r) => r.id !== notDoneRequest.id)];
+        }
+        return [notDoneRequest, ...prev];
+      });
+    });
+
+    const unsubscribeResourcesAssigned = listen('ResourcesAssigned', (assignedRequest: WorkflowRequest) => {
+      // Only Ingest should react to this event
+      assignedRequest.__isNew = true;
+      setRequests((prev) => {
+        const exists = prev.some((r) => r.id === assignedRequest.id);
+        if (exists) {
+          // Replace existing entry (maybe moved from NOC)
+          return prev.map((r) => (r.id === assignedRequest.id ? assignedRequest : r));
+        }
+        // Add new item at top
+        return [assignedRequest, ...prev];
+      });
+    });
+    
 
     return () => {
       unsubscribeCreated();
       unsubscribeUpdated();
       unsubscribeCompleted();
+      unsubscribeResourcesAssigned();
+      unsubscribeNotDone();
     };
   }, [listen]);
 

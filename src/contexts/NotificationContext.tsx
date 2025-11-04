@@ -48,8 +48,8 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     const unsubscribeUpdated = listen('RequestUpdated', (data: WorkflowRequest) => {
       const notification: Notification = {
         id: `notif-${Date.now()}-${Math.random()}`,
-        title: 'Request Updated',
-        message: `${data.bookingType}: ${data.title} - Status: ${data.status}`,
+        title: 'Request Acknowledged',
+        message: `${data.bookingType}: ${data.title} - Request Acknowledged`,
         timestamp: new Date(),
         type: 'request_updated',
         read: false,
@@ -57,9 +57,10 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       };
 
       setNotifications((prev) => [notification, ...prev]);
-      showToast(`🔄 Request updated: ${data.title}`, 'info');
+      showToast(`✅ Request updated: ${data.title}`, 'success');
     });
 
+    // Completed
     const unsubscribeCompleted = listen('RequestCompleted', (data: WorkflowRequest) => {
       const notification: Notification = {
         id: `notif-${Date.now()}-${Math.random()}`,
@@ -75,10 +76,43 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       showToast(`✅ Request marked as completed: ${data.title}`, 'success');
     });
 
+    // Not Done
+    const unsubscribeNotDone = listen('RequestNotDone', (data: WorkflowRequest) => {
+      const notification: Notification = {
+        id: `notif-${Date.now()}-${Math.random()}`,
+        title: 'Request Not Done',
+        message: `${data.bookingType}: ${data.title} - Reason: ${data.comment || 'No reason provided'}`,
+        timestamp: new Date(),
+        type: 'request_updated',
+        read: false,
+        requestId: data.id,
+      };
+
+      setNotifications((prev) => [notification, ...prev]);
+      showToast(`⚠️ Request marked as NOT DONE: ${data.title}`, 'error');
+    });
+
+    const unsubscribeResourcesAssigned = listen('ResourcesAssigned', (data: WorkflowRequest) => {
+      const notification: Notification = {
+        id: `notif-${Date.now()}-${Math.random()}`,
+        title: 'Resources Assigned',
+        message: `${data.bookingType}: ${data.title} is now ready for Ingest`,
+        timestamp: new Date(),
+        type: 'request_updated', // or add a new type like 'resources_assigned'
+        read: false,
+        requestId: data.id,
+      };
+    
+      setNotifications((prev) => [notification, ...prev]);
+      showToast(`🎬 Resources assigned: ${data.title}`, 'info');
+    });
+
     return () => {
       unsubscribeCreated();
       unsubscribeUpdated();
       unsubscribeCompleted();
+      unsubscribeResourcesAssigned();
+      unsubscribeNotDone();
     };
   }, [listen, showToast]);
 

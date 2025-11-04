@@ -5,6 +5,7 @@ import type { WorkflowRequest, WorkflowStatus } from '../types/workflow';
 interface RequestCardProps {
   request: WorkflowRequest;
   onClick: () => void;
+  isNew?: boolean;
 }
 
 const statusColors: Record<WorkflowStatus, { bg: string; text: string; border: string }> = {
@@ -24,7 +25,7 @@ const priorityColors = {
   'Urgent': 'text-red-600'
 };
 
-export const RequestCard: React.FC<RequestCardProps> = ({ request, onClick }) => {
+export const RequestCard: React.FC<RequestCardProps> = ({ request, isNew, onClick }) => {
   const statusStyle = statusColors[request.status];
   const priorityColor = priorityColors[request.priority];
 
@@ -70,12 +71,19 @@ export const RequestCard: React.FC<RequestCardProps> = ({ request, onClick }) =>
           </span>
         </div>
         <div className="flex items-center gap-2">
-          {request.nocRequired === 'Yes' && (
-            <div className="flex items-center gap-1 text-xs text-primary">
-              <AlertCircle size={14} />
-              <span>NOC Required</span>
-            </div>
-          )}
+        {isNew && (
+          <span className="bg-red-100 text-red-600 text-[11px] font-semibold px-2 py-0.5 rounded-full border border-red-300 animate-pulse">
+            NEW
+          </span>
+        )}
+
+        {request.nocAcknowledged === true && (
+          <div className="flex items-center gap-2 px-3 py-1 bg-green-100 text-green-700 text-xs font-semibold rounded-full w-fit">
+            <CheckCircle2 size={14} className="text-green-600" />
+            <span>Acknowledged</span>
+          </div>
+        )}
+ 
         </div>
       </div>
     </div>

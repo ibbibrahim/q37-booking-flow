@@ -230,6 +230,11 @@ export const mockApi = {
     const response = await apiClient.patch(`/api/booking/requests/${id}/ingest-action`, payload);
     return response.data;
   },
+
+  acknowledgeRequest: async (id: string, payload: any) => {
+    const response = await apiClient.patch(`/api/booking/requests/${id}/acknowledge`, payload);
+    return response.data;
+  },
   
   updateRequest: async (id: string, updates: Partial<WorkflowRequest>): Promise<WorkflowRequest> => {
     await new Promise(resolve => setTimeout(resolve, 400));

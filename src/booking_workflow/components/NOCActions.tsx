@@ -87,13 +87,21 @@ export const NOCActions: React.FC<NOCActionsProps> = ({ request, onAction }) => 
 
   return (
     <div className="bg-white border border-slate-200 rounded-lg shadow-sm">
-      <div className="p-8 border-b border-slate-200">
+      <div className="flex items-center justify-between p-8 border-b border-slate-200">
         <h3 className="text-xl font-bold text-slate-900">NOC Actions</h3>
+
+        <button
+          onClick={() => onAction("acknowledge", { changedBy: 10017 })}
+          className="flex items-center gap-2 px-6 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium shadow-sm transition-colors"
+        >
+          <CheckCircle2 size={18} />
+          Acknowledge
+        </button>
       </div>
 
       <div className="p-8 space-y-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
+        {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-6"> */}
+          {/* <div>
             <label className="block text-sm font-medium text-slate-700 mb-3">
               Acknowledge
             </label>
@@ -106,9 +114,9 @@ export const NOCActions: React.FC<NOCActionsProps> = ({ request, onAction }) => 
               <option value="acknowledged">Acknowledged</option>
               <option value="in_progress">In Progress</option>
             </select>
-          </div>
+          </div> */}
 
-          <div>
+          {/* <div>
             <label className="block text-sm font-medium text-slate-700 mb-3">
               Forward to Ingest?
             </label>
@@ -120,8 +128,8 @@ export const NOCActions: React.FC<NOCActionsProps> = ({ request, onAction }) => 
               <option value="Yes">Yes</option>
               <option value="No">No</option>
             </select>
-          </div>
-        </div>
+          </div> */}
+        {/* </div> */}
 
         {true && (
           <div className="pt-6 border-t border-slate-200">
@@ -273,13 +281,13 @@ export const NOCActions: React.FC<NOCActionsProps> = ({ request, onAction }) => 
       </div>
 
       <div className="flex flex-wrap gap-3 p-8 pt-6 border-t border-slate-200 bg-slate-50">
-        <button
+        {/* <button
           onClick={handleSaveUpdates}
           className="flex items-center gap-2 px-6 py-3 bg-white hover:bg-slate-50 text-slate-900 rounded-lg transition-colors font-medium border border-slate-300 shadow-sm"
         >
           <CheckCircle2 size={18} />
           Save NOC Updates
-        </button>
+        </button> */}
         <button
           onClick={handleRequestClarification}
           className="flex items-center gap-2 px-6 py-3 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg transition-colors font-medium shadow-sm"
