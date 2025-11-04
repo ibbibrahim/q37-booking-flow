@@ -37,11 +37,11 @@ export const RoleView: React.FC<RoleViewProps> = ({ role }) => {
 
   useEffect(() => {
     const unsubscribeCreated = listen('RequestCreated', (newRequest: WorkflowRequest) => {
-      setRequests((prev) => {
-        const exists = prev.some((r) => r.id === newRequest.id);
-        if (exists) return prev;
-        return [newRequest, ...prev];
-      });
+        setRequests((prev) => {
+          const exists = prev.some((r) => r.id === newRequest.id);
+          if (exists) return prev;
+          return [newRequest, ...prev];
+        });
     });
 
     const unsubscribeUpdated = listen('RequestUpdated', (updatedRequest: WorkflowRequest) => {
@@ -66,7 +66,7 @@ export const RoleView: React.FC<RoleViewProps> = ({ role }) => {
   const handleCreateRequest = async (data: Partial<WorkflowRequest>, status: WorkflowStatus) => {
     try {
       const newRequest = await mockApi.createRequest(data, status);
-      await invoke('RequestCreated', newRequest);
+      // await invoke('RequestCreated', newRequest);
       await loadRequests();
       navigate(`/${role.toLowerCase()}`);
     } catch (error) {

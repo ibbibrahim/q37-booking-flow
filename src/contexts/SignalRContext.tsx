@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import * as signalR from '@microsoft/signalr';
+import { UserRole } from '../booking_workflow/types/workflow';
 
 interface SignalRContextType {
   invoke: (eventName: string, payload?: any) => Promise<void>;
@@ -19,7 +20,25 @@ export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
 
   const setupConnection = useCallback(() => {
-    const hubUrl = import.meta.env.VITE_SIGNALR_HUB_URL || 'http://localhost:5000/workflowHub';
+    // 🟢 Detect role from URL path
+    const path = window.location.pathname.toLowerCase();
+    let role: UserRole = 'Booking';
+    if (path.includes('/noc')) role = 'NOC';
+    else if (path.includes('/ingest')) role = 'Ingest';
+    else if (path.includes('/admin')) role = 'Admin';
+    else role = 'Booking';
+
+    // 🟡 TODO: later, replace this detection with actual user role from auth/user context
+
+    // Determine hub URL with fallback to localhost for dev
+    const baseHubUrl =
+      import.meta.env.VITE_SIGNALR_HUB_URL?.trim() ||
+      'https://localhost:7151/workflowHub';
+
+    const hubUrl = `${baseHubUrl}?role=${role}`;
+
+    console.log(`Connecting to SignalR hub as role: ${role}`);
+    console.log(`Hub URL: ${hubUrl}`);
 
     const connection = new signalR.HubConnectionBuilder()
       .withUrl(hubUrl, {

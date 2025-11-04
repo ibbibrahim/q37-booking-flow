@@ -9,7 +9,7 @@ import { ToastProvider } from './contexts/ToastContext';
 import { NotificationProvider } from './contexts/NotificationContext';
 
 createRoot(document.getElementById('root')!).render(
-  <StrictMode>
+  // <StrictMode>
     <BrowserRouter>
       <ThemeProvider>
         <ToastProvider>
@@ -21,5 +21,5 @@ createRoot(document.getElementById('root')!).render(
         </ToastProvider>
       </ThemeProvider>
     </BrowserRouter>
-  </StrictMode>
+  // </StrictMode>
 );
