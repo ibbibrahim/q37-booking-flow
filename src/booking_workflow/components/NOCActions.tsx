@@ -38,6 +38,15 @@ export const NOCActions: React.FC<NOCActionsProps> = ({ request, onAction }) => 
 
     const feedResourceName = `${nocData.sourceType} - ${nocData.qmcSource}${nocData.resolution ? ` (${nocData.resolution})` : ''}`;
 
+    const isDuplicate = assignedResources.some(
+      (resource) => resource.resourceName === feedResourceName && resource.type === nocData.resourceType
+    );
+
+    if (isDuplicate) {
+      alert('This resource with the same type has already been assigned');
+      return;
+    }
+
     const newResource: AssignedResource = {
       id: Date.now().toString(),
       resourceName: feedResourceName,
