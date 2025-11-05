@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Search, Filter, Plus, Grid3x3, List, Download, Calendar, ChevronLeft, ChevronRight, Edit, Trash2 } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Search, Filter, Plus, Grid3x3, List, Download, Calendar, ChevronLeft, ChevronRight, Edit, Trash2, ChevronDown, Check } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { RequestCard } from './RequestCard';
 import { RequestDetail } from './RequestDetail';
@@ -39,7 +39,20 @@ export const RequestList: React.FC<RequestListProps> = ({ requests, userRole, on
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
+  const statusDropdownRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (statusDropdownRef.current && !statusDropdownRef.current.contains(event.target as Node)) {
+        setIsStatusDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
 
   useEffect(() => {
@@ -99,79 +112,92 @@ export const RequestList: React.FC<RequestListProps> = ({ requests, userRole, on
     <div className="space-y-6">
       {!selectedRequest ? (
         <>
-          <div className="flex flex-col gap-4">
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2 bg-muted p-1 rounded-lg">
-                <button
-                  onClick={() => setViewMode('grid')}
-                  className={`p-2 rounded transition-colors ${
-                    viewMode === 'grid'
-                      ? 'bg-primary text-primary-foreground'
-                      : 'text-muted-foreground hover:text-card-foreground'
-                  }`}
-                  title="Grid view"
-                >
-                  <Grid3x3 size={18} />
-                </button>
-                <button
-                  onClick={() => setViewMode('list')}
-                  className={`p-2 rounded transition-colors ${
-                    viewMode === 'list'
-                      ? 'bg-primary text-primary-foreground'
-                      : 'text-muted-foreground hover:text-card-foreground'
-                  }`}
-                  title="List view"
-                >
-                  <List size={18} />
-                </button>
-              </div>
-  
-              <button className="p-2 rounded-lg border border-border text-muted-foreground hover:text-card-foreground hover:bg-muted transition-colors">
-                <Calendar size={18} />
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 bg-muted p-1 rounded-lg">
+              <button
+                onClick={() => setViewMode('grid')}
+                className={`p-2 rounded transition-colors ${
+                  viewMode === 'grid'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-muted-foreground hover:text-card-foreground'
+                }`}
+                title="Grid view"
+              >
+                <Grid3x3 size={18} />
               </button>
-  
-              <button className="p-2 rounded-lg border border-border text-muted-foreground hover:text-card-foreground hover:bg-muted transition-colors">
-                <Download size={18} />
+              <button
+                onClick={() => setViewMode('list')}
+                className={`p-2 rounded transition-colors ${
+                  viewMode === 'list'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-muted-foreground hover:text-card-foreground'
+                }`}
+                title="List view"
+              >
+                <List size={18} />
               </button>
-  
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={18} />
-                <input
-                  type="text"
-                  placeholder="Search..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 bg-card text-card-foreground border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
-                />
-              </div>
-  
-              {userRole === 'Booking' && (
-                <button
-                  onClick={onCreateNew}
-                  className="flex items-center gap-2 px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium whitespace-nowrap"
-                >
-                  <Plus size={18} />
-                  Create
-                </button>
+            </div>
+
+            <button className="p-2 rounded-lg border border-border text-muted-foreground hover:text-card-foreground hover:bg-muted transition-colors">
+              <Filter size={18} />
+            </button>
+
+            <div className="relative" ref={statusDropdownRef}>
+              <button
+                onClick={() => setIsStatusDropdownOpen(!isStatusDropdownOpen)}
+                className="flex items-center gap-2 px-4 py-2 bg-card text-card-foreground border border-border rounded-lg hover:bg-muted transition-colors whitespace-nowrap"
+              >
+                <span className="text-sm font-medium">{statusFilter === 'All' ? 'All States' : statusFilter}</span>
+                <ChevronDown size={16} className={`transition-transform ${isStatusDropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {isStatusDropdownOpen && (
+                <div className="absolute z-50 top-full left-0 mt-2 w-56 bg-popover border border-border rounded-lg shadow-lg max-h-80 overflow-y-auto">
+                  {statuses.map((status) => (
+                    <button
+                      key={status}
+                      onClick={() => {
+                        setStatusFilter(status);
+                        setIsStatusDropdownOpen(false);
+                      }}
+                      className={`w-full flex items-center justify-between px-4 py-2.5 text-left text-sm hover:bg-accent transition-colors ${
+                        statusFilter === status
+                          ? 'bg-primary/10 text-primary font-medium'
+                          : 'text-popover-foreground'
+                      }`}
+                    >
+                      <span>{status === 'All' ? 'All States' : status}</span>
+                      {statusFilter === status && <Check size={16} className="text-primary" />}
+                    </button>
+                  ))}
+                </div>
               )}
             </div>
-  
-            <div className="flex items-center gap-2 overflow-x-auto pb-2">
-              <Filter size={18} className="text-muted-foreground flex-shrink-0" />
-              {statuses.map(status => (
-                <button
-                  key={status}
-                  onClick={() => setStatusFilter(status)}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
-                    statusFilter === status
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted text-card-foreground hover:bg-muted/80'
-                  }`}
-                >
-                  {status}
-                </button>
-              ))}
+
+            <button className="p-2 rounded-lg border border-border text-muted-foreground hover:text-card-foreground hover:bg-muted transition-colors">
+              <Download size={18} />
+            </button>
+
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={18} />
+              <input
+                type="text"
+                placeholder="Search..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 bg-card text-card-foreground border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
+              />
             </div>
+
+            {userRole === 'Booking' && (
+              <button
+                onClick={onCreateNew}
+                className="flex items-center gap-2 px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium whitespace-nowrap"
+              >
+                <Plus size={18} />
+                Create
+              </button>
+            )}
           </div>
   
           {filteredRequests.length === 0 ? (

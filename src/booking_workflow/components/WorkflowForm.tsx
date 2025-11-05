@@ -278,6 +278,7 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
                 onChange={handleChange}
                 required
                 error={errors.feedEndTime}
+                min={formData.feedStartTime || ""}
               />
             </div>
           )}

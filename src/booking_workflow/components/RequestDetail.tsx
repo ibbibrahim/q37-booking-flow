@@ -119,8 +119,8 @@ export const RequestDetail: React.FC = () => {
     if (!value) return null;
     return (
       <div className="mb-4">
-        <div className="text-xs text-slate-500 mb-1">{label}</div>
-        <div className="text-sm text-slate-900">{value}</div>
+        <div className="text-xs text-muted-foreground mb-1">{label}</div>
+        <div className="text-sm text-card-foreground">{value}</div>
       </div>
     );
   };
@@ -132,22 +132,22 @@ export const RequestDetail: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto">
-      <div className="bg-white border-b border-slate-200 px-6 py-4">
+      <div className="bg-card border-b border-border px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center gap-4">
           <button
             onClick={() => navigate(-1)}
-            className="text-slate-600 hover:text-slate-900 transition-colors"
+            className="text-muted-foreground hover:text-card-foreground transition-colors"
           >
             <ArrowLeft size={20} />
           </button>
           <div className="flex-1">
             <div className="flex items-center gap-3">
-              <h1 className="text-xl font-bold text-slate-900">{request.title}</h1>
+              <h1 className="text-xl font-bold text-card-foreground">{request.title}</h1>
               <span className="px-3 py-1 text-xs font-medium bg-blue-100 text-blue-700 rounded-full">
                 {request.status}
               </span>
             </div>
-            <div className="flex items-center gap-4 mt-1 text-sm text-slate-600">
+            <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
               <span>{request.id}</span>
               <span>•</span>
               <span>{request.bookingType}</span>
@@ -174,8 +174,8 @@ export const RequestDetail: React.FC = () => {
                 : 'lg:col-span-2 space-y-6'
             }
           >
-            <div className="bg-white rounded-lg border border-slate-200 p-6">
-              <h2 className="text-lg font-semibold text-slate-900 mb-4">
+            <div className="bg-card rounded-lg border border-border p-6">
+              <h2 className="text-lg font-semibold text-card-foreground mb-4">
                 Request Details
               </h2>
               <div className="grid grid-cols-2 gap-x-8 gap-y-4">
@@ -185,8 +185,8 @@ export const RequestDetail: React.FC = () => {
                 {renderField('NOC Required', request.nocRequired)}
               </div>
 
-              <div className="mt-6 pt-6 border-t border-slate-200">
-                <h3 className="text-sm font-semibold text-slate-700 mb-3">
+              <div className="mt-6 pt-6 border-t border-border">
+                <h3 className="text-sm font-semibold text-card-foreground mb-3">
                   Feed Configuration
                 </h3>
                 <div className="grid grid-cols-2 gap-x-8 gap-y-4">
@@ -201,22 +201,22 @@ export const RequestDetail: React.FC = () => {
                 </div>
               </div>
 
-              <div className="mt-6 pt-6 border-t border-slate-200">
-                <h3 className="text-sm font-semibold text-slate-700 mb-3">
+              <div className="mt-6 pt-6 border-t border-border">
+                <h3 className="text-sm font-semibold text-card-foreground mb-3">
                   Resources Needed
                 </h3>
-                <div className="text-sm text-slate-900">
+                <div className="text-sm text-card-foreground">
                   {request.resourcesNeeded || 'None specified'}
                 </div>
               </div>
 
               {request.complianceTags && (
-                <div className="mt-6 pt-6 border-t border-slate-200">
-                  <h3 className="text-sm font-semibold text-slate-700 mb-3">
+                <div className="mt-6 pt-6 border-t border-border">
+                  <h3 className="text-sm font-semibold text-card-foreground mb-3">
                     Compliance Tags
                   </h3>
                   <div className="flex flex-wrap gap-2">
-                    <span className="px-3 py-1 bg-slate-100 text-slate-700 rounded-full text-xs font-medium">
+                    <span className="px-3 py-1 bg-muted text-muted-foreground rounded-full text-xs font-medium">
                       {request.complianceTags}
                     </span>
                   </div>
@@ -224,27 +224,27 @@ export const RequestDetail: React.FC = () => {
               )}
 
               {request.notes && (
-                <div className="mt-6 pt-6 border-t border-slate-200">
-                  <h3 className="text-sm font-semibold text-slate-700 mb-3">Notes</h3>
-                  <div className="bg-slate-50 rounded p-3 text-sm text-slate-700">
+                <div className="mt-6 pt-6 border-t border-border">
+                  <h3 className="text-sm font-semibold text-card-foreground mb-3">Notes</h3>
+                  <div className="bg-muted rounded p-3 text-sm text-muted-foreground">
                     {request.notes}
                   </div>
                 </div>
               )}
 
               {request.newsroomTicket && (
-                <div className="mt-6 pt-6 border-t border-slate-200">
-                  <h3 className="text-sm font-semibold text-slate-700 mb-3">
+                <div className="mt-6 pt-6 border-t border-border">
+                  <h3 className="text-sm font-semibold text-card-foreground mb-3">
                     Newsroom Ticket
                   </h3>
-                  <div className="text-sm text-slate-900">{request.newsroomTicket}</div>
+                  <div className="text-sm text-card-foreground">{request.newsroomTicket}</div>
                 </div>
               )}
             </div>
 
             {parsedResources.length > 0 && (
-              <div className="bg-white rounded-lg border border-slate-200 p-6">
-                <h2 className="text-lg font-semibold text-slate-900 mb-4">
+              <div className="bg-card rounded-lg border border-border p-6">
+                <h2 className="text-lg font-semibold text-card-foreground mb-4">
                   Allocated Resources by NOC
                 </h2>
                 <div className="space-y-3">
@@ -258,10 +258,10 @@ export const RequestDetail: React.FC = () => {
                           <Radio size={16} className="text-blue-600" />
                         </div>
                         <div className="flex-1">
-                          <div className="font-semibold text-slate-900 text-sm">
+                          <div className="font-semibold text-card-foreground text-sm">
                             {res.resourceName}
                           </div>
-                          <div className="text-xs text-slate-600 mt-1">
+                          <div className="text-xs text-muted-foreground mt-1">
                             {res.type}
                           </div>
                           <div className="text-xs text-blue-600 mt-2">
@@ -283,26 +283,26 @@ export const RequestDetail: React.FC = () => {
           </div>
 
           <div className="space-y-6">
-          <div className="bg-white rounded-lg border border-slate-200 p-6">
-              <h2 className="text-lg font-semibold text-slate-900 mb-4">
+          <div className="bg-card rounded-lg border border-border p-6">
+              <h2 className="text-lg font-semibold text-card-foreground mb-4">
                 Metadata
               </h2>
               <div className="space-y-4">
                 <div>
-                  <div className="flex items-center gap-2 text-xs text-slate-500 mb-2">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
                     <User size={14} />
                     <span>Created by</span>
                   </div>
-                  <div className="text-sm font-medium text-slate-900">
+                  <div className="text-sm font-medium text-card-foreground">
                     {request.createdBy}
                   </div>
                 </div>
                 <div>
-                  <div className="flex items-center gap-2 text-xs text-slate-500 mb-2">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
                     <Clock size={14} />
                     <span>Created at</span>
                   </div>
-                  <div className="text-sm text-slate-900">
+                  <div className="text-sm text-card-foreground">
                     {new Date(request.createdAt).toLocaleDateString('en-US', {
                       month: 'short',
                       day: 'numeric',
@@ -315,11 +315,11 @@ export const RequestDetail: React.FC = () => {
                   </div>
                 </div>
                 <div>
-                  <div className="flex items-center gap-2 text-xs text-slate-500 mb-2">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
                     <Clock size={14} />
                     <span>Last updated</span>
                   </div>
-                  <div className="text-sm text-slate-900">
+                  <div className="text-sm text-card-foreground">
                     {new Date(request.updatedAt).toLocaleDateString('en-US', {
                       month: 'short',
                       day: 'numeric',
@@ -333,25 +333,25 @@ export const RequestDetail: React.FC = () => {
                 </div>
               </div>
             </div>
-            <div className="bg-white rounded-lg border border-slate-200 p-6">
-              <h2 className="text-lg font-semibold text-slate-900 mb-4">
+            <div className="bg-card rounded-lg border border-border p-6">
+              <h2 className="text-lg font-semibold text-card-foreground mb-4">
                 Workflow History
               </h2>
               <div className="space-y-4">
                 {transitions.length === 0 ? (
-                  <div className="text-sm text-slate-500">No transitions yet</div>
+                  <div className="text-sm text-muted-foreground">No transitions yet</div>
                 ) : (
                   transitions.map((trans, idx) => (
                     <div key={trans.id} className="relative pl-6">
                       <div className="absolute left-0 top-1.5 w-2 h-2 rounded-full bg-blue-500"></div>
                       {idx < transitions.length - 1 && (
-                        <div className="absolute left-[3px] top-3 w-0.5 h-full bg-slate-200"></div>
+                        <div className="absolute left-[3px] top-3 w-0.5 h-full bg-border"></div>
                       )}
                       <div>
-                        <div className="text-sm font-semibold text-slate-900">
+                        <div className="text-sm font-semibold text-card-foreground">
                           {trans.toStatus}
                         </div>
-                        <div className="text-xs text-slate-600 mt-1">
+                        <div className="text-xs text-muted-foreground mt-1">
                           by {trans.changedBy || 'System'} •{' '}
                           {new Date(trans.changedAt).toLocaleDateString('en-US', {
                             month: 'short',
@@ -363,7 +363,7 @@ export const RequestDetail: React.FC = () => {
                           })}
                         </div>
                         {trans.comment && (
-                          <div className="text-xs text-slate-600 mt-1">{trans.comment}</div>
+                          <div className="text-xs text-muted-foreground mt-1">{trans.comment}</div>
                         )}
                       </div>
                     </div>
@@ -372,33 +372,33 @@ export const RequestDetail: React.FC = () => {
               </div>
             </div>
 
-            <div className="bg-white rounded-lg border border-slate-200 p-6">
-              <h2 className="text-lg font-semibold text-slate-900 mb-4">
+            <div className="bg-card rounded-lg border border-border p-6">
+              <h2 className="text-lg font-semibold text-card-foreground mb-4">
                 Notifications
               </h2>
               <div className="space-y-3">
                 {transitions.slice(0, 2).map((trans) => (
                   <div
                     key={trans.id}
-                    className="bg-blue-50 rounded p-3 border border-blue-100"
+                    className="bg-muted rounded p-3 border border-border"
                   >
-                    <div className="text-xs font-medium text-slate-600 mb-1">
+                    <div className="text-xs font-medium text-muted-foreground mb-1">
                       To: {userRole}
                     </div>
-                    <div className="text-sm text-slate-900">
+                    <div className="text-sm text-card-foreground">
                       {trans.comment || `Status changed to ${trans.toStatus}`}
                     </div>
                   </div>
                 ))}
                 {transitions.length === 0 && (
-                  <div className="text-sm text-slate-500">No notifications</div>
+                  <div className="text-sm text-muted-foreground">No notifications</div>
                 )}
               </div>
             </div>
 
             {showActions && userRole === 'Ingest' && (
-              <div className="bg-white rounded-lg border border-slate-200 p-6">
-                <h2 className="text-lg font-semibold text-slate-900 mb-4">
+              <div className="bg-card rounded-lg border border-border p-6">
+                <h2 className="text-lg font-semibold text-card-foreground mb-4">
                   Actions
                 </h2>
                 <IngestActions request={request} onAction={handleIngestAction} />

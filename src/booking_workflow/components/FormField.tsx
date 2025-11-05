@@ -11,6 +11,7 @@ interface FormFieldProps {
   required?: boolean;
   placeholder?: string;
   error?: string;
+  min?: string;
 }
 
 export const FormField: React.FC<FormFieldProps> = ({
@@ -22,7 +23,8 @@ export const FormField: React.FC<FormFieldProps> = ({
   options,
   required = false,
   placeholder,
-  error
+  error,
+  min
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -119,6 +121,7 @@ export const FormField: React.FC<FormFieldProps> = ({
           onChange={(e) => onChange(name, e.target.value)}
           className={baseInputClass}
           placeholder={placeholder || `Enter ${label.toLowerCase()}`}
+          min={min}
         />
       )}
       {error && (
