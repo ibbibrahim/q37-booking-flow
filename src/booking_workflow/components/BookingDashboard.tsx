@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import type { UserRole } from '../types/workflow';
-import { User, Radio, Package, Shield, Menu, X, Sun, Moon } from 'lucide-react';
+import { User, Radio, Package, Shield, Menu, X, Sun, Moon, FileText } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { NotificationDropdown } from '../../components/NotificationDropdown';
 import q37Logo from '../../assets/q37.png';
@@ -11,6 +11,13 @@ export const BookingDashboard: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const getCurrentSection = (): string => {
+    const path = location.pathname.split('/')[1];
+    return path || 'booking';
+  };
+
+  const currentSection = getCurrentSection();
 
   const getCurrentRole = (): UserRole => {
     const path = location.pathname.split('/')[1];
@@ -83,7 +90,7 @@ export const BookingDashboard: React.FC = () => {
             <div className="space-y-1">
               {roles.map(role => {
                 const Icon = roleConfig[role].icon;
-                const isActive = currentRole === role;
+                const isActive = currentRole === role && currentSection !== 'callsheet';
                 return (
                   <button
                     key={role}
@@ -102,6 +109,23 @@ export const BookingDashboard: React.FC = () => {
                   </button>
                 );
               })}
+
+              <div className="my-3 border-t border-sidebar-border"></div>
+
+              <button
+                onClick={() => {
+                  navigate('/callsheet');
+                  setSidebarOpen(false);
+                }}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
+                  currentSection === 'callsheet'
+                    ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+                    : 'text-sidebar-foreground hover:bg-sidebar-accent'
+                }`}
+              >
+                <FileText size={20} />
+                <span className="font-medium text-sm">Call Sheet</span>
+              </button>
             </div>
           </nav>
 
@@ -138,10 +162,13 @@ export const BookingDashboard: React.FC = () => {
                 </button>
                 <div>
                   <h2 className="text-xl font-bold text-card-foreground">
-                    {currentRole}
+                    {currentSection === 'callsheet' ? 'Call Sheet Workflow' : currentRole}
                   </h2>
                   <p className="text-sm text-muted-foreground mt-0.5">
-                    {getRoleDescription(currentRole)}
+                    {currentSection === 'callsheet'
+                      ? 'Manage call sheets, equipment, and transportation requests'
+                      : getRoleDescription(currentRole)
+                    }
                   </p>
                 </div>
               </div>
