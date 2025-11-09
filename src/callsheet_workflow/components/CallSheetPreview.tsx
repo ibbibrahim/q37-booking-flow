@@ -176,18 +176,64 @@ export const CallSheetPreview: React.FC<CallSheetPreviewProps> = ({ callSheet })
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-card-foreground flex items-center gap-2">
-          <FileText size={20} />
-          {formTitle}
-        </h3>
-        <button
-          onClick={handlePrint}
-          className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
-        >
-          <Download size={18} />
-          Print / Save PDF
-        </button>
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-card-foreground flex items-center gap-2">
+            <FileText size={20} />
+            {formTitle}
+          </h3>
+          <button
+            onClick={handlePrint}
+            className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+          >
+            <Download size={18} />
+            Print / Save PDF
+          </button>
+        </div>
+
+        {/* Form Type Selector */}
+        <div className="flex gap-2 border-b border-border">
+          <button
+            onClick={() => setSelectedFormType('auto')}
+            className={`px-4 py-2 text-sm font-medium transition-colors ${
+              selectedFormType === 'auto'
+                ? 'text-primary border-b-2 border-primary'
+                : 'text-muted-foreground hover:text-card-foreground'
+            }`}
+          >
+            Auto Detect
+          </button>
+          <button
+            onClick={() => setSelectedFormType('call-sheet')}
+            className={`px-4 py-2 text-sm font-medium transition-colors ${
+              selectedFormType === 'call-sheet'
+                ? 'text-primary border-b-2 border-primary'
+                : 'text-muted-foreground hover:text-card-foreground'
+            }`}
+          >
+            Call Sheet
+          </button>
+          <button
+            onClick={() => setSelectedFormType('equipment')}
+            className={`px-4 py-2 text-sm font-medium transition-colors ${
+              selectedFormType === 'equipment'
+                ? 'text-primary border-b-2 border-primary'
+                : 'text-muted-foreground hover:text-card-foreground'
+            }`}
+          >
+            Equipment Request
+          </button>
+          <button
+            onClick={() => setSelectedFormType('transport')}
+            className={`px-4 py-2 text-sm font-medium transition-colors ${
+              selectedFormType === 'transport'
+                ? 'text-primary border-b-2 border-primary'
+                : 'text-muted-foreground hover:text-card-foreground'
+            }`}
+          >
+            Vehicle Requisition
+          </button>
+        </div>
       </div>
 
       <div ref={printRef} className="bg-white rounded-lg border border-border print:border-0 p-8 print:p-0 space-y-0 font-sans text-gray-900" style={{ fontSize: '14px' }}>
