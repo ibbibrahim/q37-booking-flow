@@ -97,6 +97,11 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
       }
       if (!formData.downloadLink) {
         newErrors.downloadLink = "Download link/URL is required";
+      } else {
+        const urlPattern = /^(https?:\/\/)([\w\-]+(\.[\w\-]+)+)([\w.,@?^=%&:/~+#-]*[\w@?^=%&/~+#-])?$/i;
+        if (!urlPattern.test(formData.downloadLink.trim())) {
+          newErrors.downloadLink = "Please enter a valid URL (must start with http or https)";
+        }
       }
     }
 
@@ -112,9 +117,49 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
 
   const handleSubmit = (status: WorkflowStatus, skipValidation = false) => {
     if (skipValidation || validateForm()) {
-      onSubmit(formData as any, status);
+      // Build type-specific JSON based on booking type
+      let typeSpecific: Record<string, any> = {};
+  
+      switch (formData.bookingType) {
+        case "Invite Guest for News":
+        case "Invite Guest for Program":
+          typeSpecific = {
+            guestName: formData.guestName,
+            guestContact: formData.guestContact,
+            inewsRundownId: formData.inewsRundownId,
+            storySlug: formData.storySlug,
+            rundownPosition: formData.rundownPosition,
+          };
+          break;
+  
+        case "Download and Ingest":
+          typeSpecific = {
+            downloadSource: formData.downloadSource,
+            downloadLink: formData.downloadLink,
+          };
+          break;
+  
+        case "Camera Card and Ingest":
+          typeSpecific = {
+            cameraCardNumber: formData.cameraCardNumber,
+          };
+          break;
+  
+        default:
+          typeSpecific = {};
+          break;
+      }
+  
+      // ✅ Attach JSON string
+      const payload = {
+        ...formData,
+        typeSpecificData: JSON.stringify(typeSpecific),
+      };
+  
+      onSubmit(payload as any, status);
     }
   };
+  
 
   const renderGuestRundownFields = () => (
     <>

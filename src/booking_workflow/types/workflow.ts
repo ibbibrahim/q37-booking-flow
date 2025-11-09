@@ -1,4 +1,4 @@
-export type BookingType = 'Incoming Feed' | 'Invite Guest for News' | 'Invite Guest for Program' | 'Download and Ingest';
+export type BookingType = 'Incoming Feed' | 'Invite Guest for News' | 'Invite Guest for Program' | 'Download and Ingest' | 'Camera Card and Ingest';
 
 export type WorkflowStatus =
   | 'Draft'

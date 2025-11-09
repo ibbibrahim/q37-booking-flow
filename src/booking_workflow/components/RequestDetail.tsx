@@ -117,10 +117,27 @@ export const RequestDetail: React.FC = () => {
 
   const renderField = (label: string, value: string | undefined) => {
     if (!value) return null;
+  
+    // If it's a valid URL, render as clickable link
+    const isUrl = /^https?:\/\//i.test(value);
+  
     return (
       <div className="mb-4">
         <div className="text-xs text-muted-foreground mb-1">{label}</div>
-        <div className="text-sm text-card-foreground">{value}</div>
+        <div className="text-sm text-card-foreground break-all">
+          {isUrl ? (
+            <a
+              href={value}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 hover:underline"
+            >
+              {value}
+            </a>
+          ) : (
+            value
+          )}
+        </div>
       </div>
     );
   };
@@ -129,6 +146,9 @@ export const RequestDetail: React.FC = () => {
   const parsedResources: ResourceAssignment[] = request.nocAssignedResources
   ? JSON.parse(request.nocAssignedResources)
   : [];
+  const parsedTypeSpecific =
+  request.typeSpecificData ? JSON.parse(request.typeSpecificData) : null;
+
 
   return (
     <div className="max-w-7xl mx-auto">
@@ -181,11 +201,14 @@ export const RequestDetail: React.FC = () => {
               <div className="grid grid-cols-2 gap-x-8 gap-y-4">
                 {renderField('Program / Segment', request.program)}
                 {renderField('Language', request.language)}
-                {renderField('Air Date / Time', new Date(request.airDateTime).toLocaleString())}
-                {renderField('NOC Required', request.nocRequired)}
+                {renderField(request.bookingType === "Download and Ingest" || request.bookingType === "Camera Card and Ingest" ? "Ingest Time" 
+                  : "Air Date / Time", new Date(request.airDateTime).toLocaleString())}
+                {request.feedStartTime && renderField("Feed Start Time", new Date(request.feedStartTime).toLocaleString())}
+                {request.feedEndTime && renderField("Feed End Time", new Date(request.feedEndTime).toLocaleString())}
+                {renderField('Studio', request.studio)}
               </div>
 
-              <div className="mt-6 pt-6 border-t border-border">
+              {/* <div className="mt-6 pt-6 border-t border-border">
                 <h3 className="text-sm font-semibold text-card-foreground mb-3">
                   Feed Configuration
                 </h3>
@@ -199,7 +222,43 @@ export const RequestDetail: React.FC = () => {
                     </>
                   )}
                 </div>
-              </div>
+              </div> */}
+
+              {parsedTypeSpecific && (
+                <div className="mt-6 pt-6 border-t border-border">
+                  <h3 className="text-sm font-semibold text-card-foreground mb-3">
+                  {request.bookingType === "Invite Guest for News" ||
+                    request.bookingType === "Invite Guest for Program"
+                      ? "Guest Information"
+                      : request.bookingType === "Download and Ingest"
+                      ? "Download Details"
+                      : request.bookingType === "Camera Card and Ingest"
+                      ? "Camera Card Details"
+                      : ""}
+                  </h3>
+                  <div className="grid grid-cols-2 gap-x-8 gap-y-4">
+                    {request.bookingType === "Invite Guest for News" ||
+                    request.bookingType === "Invite Guest for Program" ? (
+                      <>
+                        {renderField("Guest Name", parsedTypeSpecific.guestName)}
+                        {renderField("Guest Contact", parsedTypeSpecific.guestContact)}
+                        {renderField("iNEWS Rundown ID", parsedTypeSpecific.inewsRundownId)}
+                        {renderField("Story Slug", parsedTypeSpecific.storySlug)}
+                        {renderField("Rundown Position", parsedTypeSpecific.rundownPosition)}
+                      </>
+                    ) : request.bookingType === "Download and Ingest" ? (
+                      <>
+                        {renderField("Download Source", parsedTypeSpecific.downloadSource)}
+                        {renderField("Download Link", parsedTypeSpecific.downloadLink)}
+                      </>
+                    ) : request.bookingType === "Camera Card and Ingest" ? (
+                      <>
+                        {renderField("Camera Card Quantity", parsedTypeSpecific.cameraCardNumber)}
+                      </>
+                    ) : null}
+                  </div>
+                </div>
+              )}
 
               <div className="mt-6 pt-6 border-t border-border">
                 <h3 className="text-sm font-semibold text-card-foreground mb-3">
@@ -210,18 +269,18 @@ export const RequestDetail: React.FC = () => {
                 </div>
               </div>
 
-              {request.complianceTags && (
+              {/* {true && (
                 <div className="mt-6 pt-6 border-t border-border">
                   <h3 className="text-sm font-semibold text-card-foreground mb-3">
                     Compliance Tags
                   </h3>
                   <div className="flex flex-wrap gap-2">
                     <span className="px-3 py-1 bg-muted text-muted-foreground rounded-full text-xs font-medium">
-                      {request.complianceTags}
+                      {"request.complianceTags"}
                     </span>
                   </div>
                 </div>
-              )}
+              )} */}
 
               {request.notes && (
                 <div className="mt-6 pt-6 border-t border-border">
@@ -232,14 +291,25 @@ export const RequestDetail: React.FC = () => {
                 </div>
               )}
 
-              {request.newsroomTicket && (
+              {request.ingestFolderPath && (
+                <div className="mt-6 pt-6 border-t border-border">
+                  <h3 className="text-sm font-semibold text-card-foreground mb-3">
+                    Ingest Folder Path
+                  </h3>
+                  <div className="text-sm text-card-foreground">
+                    {request.ingestFolderPath}
+                  </div>
+                </div>
+              )}
+
+              {/* {true && (
                 <div className="mt-6 pt-6 border-t border-border">
                   <h3 className="text-sm font-semibold text-card-foreground mb-3">
                     Newsroom Ticket
                   </h3>
-                  <div className="text-sm text-card-foreground">{request.newsroomTicket}</div>
+                  <div className="text-sm text-card-foreground">{"request.newsroomTicket"}</div>
                 </div>
-              )}
+              )} */}
             </div>
 
             {parsedResources.length > 0 && (
