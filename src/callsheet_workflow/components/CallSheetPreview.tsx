@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { Download, FileText } from 'lucide-react';
 import type { CallSheetRequest } from '../types/callsheet';
 import qmcLogo from '../../assets/q37.png';
@@ -9,6 +9,7 @@ interface CallSheetPreviewProps {
 
 export const CallSheetPreview: React.FC<CallSheetPreviewProps> = ({ callSheet }) => {
   const printRef = useRef<HTMLDivElement>(null);
+  const [selectedFormType, setSelectedFormType] = useState<'auto' | 'call-sheet' | 'equipment' | 'transport'>('auto');
 
   const handlePrint = () => {
     const printContent = printRef.current;
