@@ -141,16 +141,27 @@ export const CallSheetPreview: React.FC<CallSheetPreviewProps> = ({ callSheet })
   const hasTransport = callSheet.transportRequest;
   const hasCrew = callSheet.crewAssignments && callSheet.crewAssignments.length > 0;
 
-  // Determine form type based on data
+  // Determine form type based on selection or data
   let formType: 'call-sheet' | 'equipment' | 'transport' = 'call-sheet';
   let formTitle = 'CALL SHEET';
-  
-  if (hasEquipment && !hasCrew) {
-    formType = 'equipment';
-    formTitle = 'EQUIPMENT BOOKING REQUEST FORM';
-  } else if (hasTransport && !hasCrew) {
-    formType = 'transport';
-    formTitle = 'VEHICLE REQUISITION FORM – 37TV';
+
+  if (selectedFormType === 'auto') {
+    // Auto-detect based on data
+    if (hasEquipment && !hasCrew) {
+      formType = 'equipment';
+      formTitle = 'EQUIPMENT BOOKING REQUEST FORM';
+    } else if (hasTransport && !hasCrew) {
+      formType = 'transport';
+      formTitle = 'VEHICLE REQUISITION FORM – 37TV';
+    }
+  } else {
+    // Use selected form type
+    formType = selectedFormType;
+    if (selectedFormType === 'equipment') {
+      formTitle = 'EQUIPMENT BOOKING REQUEST FORM';
+    } else if (selectedFormType === 'transport') {
+      formTitle = 'VEHICLE REQUISITION FORM – 37TV';
+    }
   }
 
   // Group equipment by category
