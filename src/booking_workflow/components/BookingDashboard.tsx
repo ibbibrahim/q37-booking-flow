@@ -60,7 +60,7 @@ export const BookingDashboard: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex">
+    <div className="h-screen bg-background flex overflow-hidden">
       <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-sidebar-background border-r border-sidebar-border transform transition-transform duration-200 lg:translate-x-0 lg:static lg:inset-auto ${
         sidebarOpen ? 'translate-x-0' : '-translate-x-full'
       }`}>
@@ -130,14 +130,14 @@ export const BookingDashboard: React.FC = () => {
           </nav>
 
           <div className="p-4 border-t border-sidebar-border">
-            <button
+            {/* <button
               onClick={toggleTheme}
               className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors text-sidebar-foreground hover:bg-sidebar-accent mb-3"
             >
               {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
               <span className="font-medium text-sm">{theme === 'light' ? 'Dark Mode' : 'Light Mode'}</span>
-            </button>
-            <p className="text-xs text-sidebar-foreground opacity-60">HR Workflow: Booking → NOC → Ingest</p>
+            </button> */}
+            <p className="text-xs text-sidebar-foreground opacity-60">Resource Management Workflow</p>
           </div>
         </div>
       </aside>
@@ -185,7 +185,7 @@ export const BookingDashboard: React.FC = () => {
           </div>
         </header>
 
-        <main className="flex-1 px-4 sm:px-6 lg:px-8 py-6">
+        <main className="flex-1 px-4 sm:px-6 lg:px-8 py-6 overflow-y-auto">
           <Outlet />
         </main>
       </div>

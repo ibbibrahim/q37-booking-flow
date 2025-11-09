@@ -1,6 +1,14 @@
 import React, { useState } from 'react';
 import { ArrowLeft, Plus, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { AcknowledgementPanel } from './AcknowledgementPanel';
 import { EquipmentForm } from './EquipmentForm';
 import { TransportForm } from './TransportForm';
@@ -12,11 +20,9 @@ interface CallSheetFormProps {
   onSubmit: (data: Partial<CallSheetRequest>) => void;
 }
 
-type TabType = 'request' | 'equipment' | 'preview';
-
 export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit }) => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<TabType>('request');
+  const [activeTab, setActiveTab] = useState('request');
 
   const [formData, setFormData] = useState({
     department: '',
@@ -117,21 +123,17 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit }) => {
     onSubmit(callSheetData);
   };
 
-  const tabs = [
-    { id: 'request' as TabType, label: 'Request & Metadata' },
-    { id: 'equipment' as TabType, label: 'Resource Summary' },
-    { id: 'preview' as TabType, label: 'Data Preview' }
-  ];
-
   return (
-    <div className="max-w-7xl mx-auto">
+    <div className="max-w-5xl mx-auto space-y-6">
       <div className="mb-6 flex items-center gap-3">
-        <button
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={() => navigate('/callsheet')}
-          className="p-2 hover:bg-muted rounded-lg transition-colors text-muted-foreground hover:text-card-foreground"
+          className="rounded-lg"
         >
           <ArrowLeft size={20} />
-        </button>
+        </Button>
         <div>
           <h1 className="text-2xl font-bold text-card-foreground">New Call Sheet</h1>
           <p className="text-muted-foreground text-sm mt-0.5">
@@ -140,303 +142,272 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit }) => {
         </div>
       </div>
 
-      <div className="bg-card rounded-lg border border-border mb-6">
-        <div className="flex border-b border-border">
-          {tabs.map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex-1 px-6 py-4 text-sm font-medium transition-colors ${
-                activeTab === tab.id
-                  ? 'text-primary border-b-2 border-primary bg-primary/5'
-                  : 'text-muted-foreground hover:text-card-foreground hover:bg-muted/50'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-      </div>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="w-full mb-6 flex flex-wrap gap-2 sm:gap-4 sm:grid sm:grid-cols-3">
+          <TabsTrigger value="request">Call Sheet</TabsTrigger>
+          <TabsTrigger value="equipment">Equipment Request</TabsTrigger>
+          <TabsTrigger value="preview">Transportation</TabsTrigger>
+        </TabsList>
 
-      <div className="bg-card rounded-lg border border-border p-8">
-        {activeTab === 'request' && (
-          <div className="space-y-8">
-            <div>
-              <h2 className="text-lg font-semibold text-card-foreground mb-6">Booking Information</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-card-foreground mb-2">
-                    Department <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    value={formData.department}
-                    onChange={(e) => handleChange('department', e.target.value)}
-                    className="w-full px-3 py-2.5 bg-card border border-border rounded-lg text-card-foreground focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
-                  >
-                    <option value="">Select Department</option>
-                    {DEPARTMENTS.map(dept => (
-                      <option key={dept} value={dept}>{dept}</option>
-                    ))}
-                  </select>
-                </div>
+        <TabsContent value="request" className="space-y-6">
+          <Card>
+            <CardContent className="pt-6 space-y-8">
+              <div>
+                <h2 className="text-lg font-semibold text-card-foreground mb-6">Booking Information</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="department">
+                      Department <span className="text-red-500">*</span>
+                    </Label>
+                    <Select value={formData.department} onValueChange={(value) => handleChange('department', value)}>
+                      <SelectTrigger id="department">
+                        <SelectValue placeholder="Select department" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {DEPARTMENTS.map(dept => (
+                          <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-card-foreground mb-2">
-                    Title <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.title}
-                    onChange={(e) => handleChange('title', e.target.value)}
-                    className="w-full px-3 py-2.5 bg-card border border-border rounded-lg text-card-foreground focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
-                    placeholder="Enter title"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-card-foreground mb-2">
-                    Filming Date <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="date"
-                    value={formData.filmingDate}
-                    onChange={(e) => handleChange('filmingDate', e.target.value)}
-                    className="w-full px-3 py-2.5 bg-card border border-border rounded-lg text-card-foreground focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-card-foreground mb-2">
-                    Location
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.location}
-                    onChange={(e) => handleChange('location', e.target.value)}
-                    className="w-full px-3 py-2.5 bg-card border border-border rounded-lg text-card-foreground focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
-                    placeholder="Enter location"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-card-foreground mb-2">
-                    Call Time
-                  </label>
-                  <input
-                    type="time"
-                    value={formData.callTime}
-                    onChange={(e) => handleChange('callTime', e.target.value)}
-                    className="w-full px-3 py-2.5 bg-card border border-border rounded-lg text-card-foreground focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-card-foreground mb-2">
-                    Wrap Time
-                  </label>
-                  <input
-                    type="time"
-                    value={formData.wrapTime}
-                    onChange={(e) => handleChange('wrapTime', e.target.value)}
-                    className="w-full px-3 py-2.5 bg-card border border-border rounded-lg text-card-foreground focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-card-foreground mb-2">
-                    Focal Point
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.focalPoint}
-                    onChange={(e) => handleChange('focalPoint', e.target.value)}
-                    className="w-full px-3 py-2.5 bg-card border border-border rounded-lg text-card-foreground focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
-                    placeholder="Enter focal point name"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-card-foreground mb-2">
-                    Focal Point Contact
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.focalPointContact}
-                    onChange={(e) => handleChange('focalPointContact', e.target.value)}
-                    className="w-full px-3 py-2.5 bg-card border border-border rounded-lg text-card-foreground focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
-                    placeholder="Enter contact number"
-                  />
-                </div>
-
-                <div className="md:col-span-2">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={formData.driverNeeded}
-                      onChange={(e) => handleChange('driverNeeded', e.target.checked)}
-                      className="w-4 h-4 text-primary border-border rounded focus:ring-2 focus:ring-primary"
+                  <div className="space-y-2">
+                    <Label htmlFor="title">
+                      Title <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      id="title"
+                      value={formData.title}
+                      onChange={(e) => handleChange('title', e.target.value)}
+                      placeholder="Enter call sheet title"
                     />
-                    <span className="text-sm text-card-foreground">Driver Needed</span>
-                  </label>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="filmingDate">
+                      Filming Date <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      id="filmingDate"
+                      type="date"
+                      value={formData.filmingDate}
+                      onChange={(e) => handleChange('filmingDate', e.target.value)}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="location">Location</Label>
+                    <Input
+                      id="location"
+                      value={formData.location}
+                      onChange={(e) => handleChange('location', e.target.value)}
+                      placeholder="Filming location"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="callTime">Call Time</Label>
+                    <Input
+                      id="callTime"
+                      type="time"
+                      value={formData.callTime}
+                      onChange={(e) => handleChange('callTime', e.target.value)}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="wrapTime">Wrap Time</Label>
+                    <Input
+                      id="wrapTime"
+                      type="time"
+                      value={formData.wrapTime}
+                      onChange={(e) => handleChange('wrapTime', e.target.value)}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="focalPoint">Focal Point</Label>
+                    <Input
+                      id="focalPoint"
+                      value={formData.focalPoint}
+                      onChange={(e) => handleChange('focalPoint', e.target.value)}
+                      placeholder="Name"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="focalPointContact">Focal Contact</Label>
+                    <Input
+                      id="focalPointContact"
+                      value={formData.focalPointContact}
+                      onChange={(e) => handleChange('focalPointContact', e.target.value)}
+                      placeholder="Phone number"
+                    />
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="driverNeeded"
+                        checked={formData.driverNeeded}
+                        onCheckedChange={(checked) => handleChange('driverNeeded', checked as boolean)}
+                      />
+                      <Label htmlFor="driverNeeded" className="text-sm font-normal cursor-pointer">
+                        Driver Needed
+                      </Label>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="border-t border-border pt-8">
-              <h2 className="text-lg font-semibold text-card-foreground mb-6">Crew Assignments</h2>
+              <div className="border-t pt-8">
+                <h2 className="text-lg font-semibold text-card-foreground mb-6">Crew Assignments</h2>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                <input
-                  type="text"
-                  value={newCrew.role}
-                  onChange={(e) => setNewCrew({ ...newCrew, role: e.target.value })}
-                  placeholder="Role"
-                  className="px-3 py-2.5 bg-card border border-border rounded-lg text-card-foreground focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
-                />
-                <input
-                  type="text"
-                  value={newCrew.name}
-                  onChange={(e) => setNewCrew({ ...newCrew, name: e.target.value })}
-                  placeholder="Name"
-                  className="px-3 py-2.5 bg-card border border-border rounded-lg text-card-foreground focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
-                />
-                <input
-                  type="text"
-                  value={newCrew.phone}
-                  onChange={(e) => setNewCrew({ ...newCrew, phone: e.target.value })}
-                  placeholder="Phone"
-                  className="px-3 py-2.5 bg-card border border-border rounded-lg text-card-foreground focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
-                />
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                  <Input
+                    value={newCrew.role}
+                    onChange={(e) => setNewCrew({ ...newCrew, role: e.target.value })}
+                    placeholder="Role"
+                  />
+                  <Input
+                    value={newCrew.name}
+                    onChange={(e) => setNewCrew({ ...newCrew, name: e.target.value })}
+                    placeholder="Name"
+                  />
+                  <Input
+                    value={newCrew.phone}
+                    onChange={(e) => setNewCrew({ ...newCrew, phone: e.target.value })}
+                    placeholder="Phone"
+                  />
+                </div>
+
+                <Button onClick={handleAddCrew} className="mb-4">
+                  <Plus size={18} className="mr-2" />
+                  Add Assignment
+                </Button>
+
+                {crewAssignments.length > 0 && (
+                  <Card>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Role</TableHead>
+                          <TableHead>Name</TableHead>
+                          <TableHead>Phone</TableHead>
+                          <TableHead className="text-right">Action</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {crewAssignments.map((crew) => (
+                          <TableRow key={crew.id}>
+                            <TableCell>{crew.role}</TableCell>
+                            <TableCell>{crew.name}</TableCell>
+                            <TableCell className="text-muted-foreground">{crew.phone}</TableCell>
+                            <TableCell className="text-right">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleRemoveCrew(crew.id)}
+                                className="text-red-600 hover:text-red-800 hover:bg-red-50"
+                              >
+                                <Trash2 size={16} />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </Card>
+                )}
               </div>
 
-              <button
-                onClick={handleAddCrew}
-                className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors mb-4"
-              >
-                <Plus size={18} />
-                Add Assignment
-              </button>
+              {/* <div className="border-t pt-8">
+                <AcknowledgementPanel
+                  acknowledgements={departmentAcknowledgements}
+                  onChange={handleAcknowledgementChange}
+                />
+              </div> */}
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-              {crewAssignments.length > 0 && (
-                <div className="bg-muted rounded-lg border border-border overflow-hidden">
-                  <table className="w-full">
-                    <thead className="bg-muted border-b border-border">
-                      <tr>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-card-foreground uppercase">Role</th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-card-foreground uppercase">Name</th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-card-foreground uppercase">Phone</th>
-                        <th className="px-4 py-3 text-right text-xs font-semibold text-card-foreground uppercase">Action</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border">
-                      {crewAssignments.map((crew) => (
-                        <tr key={crew.id} className="hover:bg-muted/50 transition-colors">
-                          <td className="px-4 py-3 text-sm text-card-foreground">{crew.role}</td>
-                          <td className="px-4 py-3 text-sm text-card-foreground">{crew.name}</td>
-                          <td className="px-4 py-3 text-sm text-muted-foreground">{crew.phone}</td>
-                          <td className="px-4 py-3 text-sm text-right">
-                            <button
-                              onClick={() => handleRemoveCrew(crew.id)}
-                              className="text-red-600 hover:text-red-800 transition-colors"
-                            >
-                              <Trash2 size={16} />
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-
-            <div className="border-t border-border pt-8">
-              <AcknowledgementPanel
-                acknowledgements={departmentAcknowledgements}
-                onChange={handleAcknowledgementChange}
+        <TabsContent value="equipment">
+          <Card>
+            <CardContent className="pt-6">
+              <EquipmentForm
+                equipment={equipment}
+                onAddEquipment={(eq) => setEquipment([...equipment, eq])}
+                onRemoveEquipment={(id) => setEquipment(equipment.filter(e => e.id !== id))}
+                departmentsToApprove={departmentsToApprove}
+                departmentsToNotify={departmentsToNotify}
+                onDepartmentsToApproveChange={setDepartmentsToApprove}
+                onDepartmentsToNotifyChange={setDepartmentsToNotify}
               />
-            </div>
-          </div>
-        )}
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-        {activeTab === 'equipment' && (
-          <EquipmentForm
-            equipment={equipment}
-            onAddEquipment={(eq) => setEquipment([...equipment, eq])}
-            onRemoveEquipment={(id) => setEquipment(equipment.filter(e => e.id !== id))}
-            departmentsToApprove={departmentsToApprove}
-            departmentsToNotify={departmentsToNotify}
-            onDepartmentsToApproveChange={setDepartmentsToApprove}
-            onDepartmentsToNotifyChange={setDepartmentsToNotify}
-          />
-        )}
+        <TabsContent value="preview" className="space-y-6">
+          <Card>
+            <CardContent className="pt-6">
+              <TransportForm
+                transportRequest={transportRequest}
+                onChange={handleTransportChange}
+                notifications={notifications}
+                onToggleNotification={handleToggleNotification}
+              />
+            </CardContent>
+          </Card>
 
-        {activeTab === 'preview' && (
-          <div className="space-y-8">
-            <TransportForm
-              transportRequest={transportRequest}
-              onChange={handleTransportChange}
-              notifications={notifications}
-              onToggleNotification={handleToggleNotification}
+          <div className="pt-4">
+            <CallSheetPreview
+              callSheet={{
+                ...formData,
+                crewAssignments,
+                departmentAcknowledgements,
+                equipment,
+                transportRequest,
+                departmentsToApprove,
+                departmentsToNotify
+              }}
             />
-
-            <div className="border-t border-border pt-8">
-              <CallSheetPreview
-                callSheet={{
-                  ...formData,
-                  crewAssignments,
-                  departmentAcknowledgements,
-                  equipment,
-                  transportRequest,
-                  departmentsToApprove,
-                  departmentsToNotify
-                }}
-              />
-            </div>
           </div>
-        )}
-      </div>
+        </TabsContent>
+      </Tabs>
 
       <div className="mt-6 flex items-center justify-between">
-        <button
-          onClick={() => navigate('/callsheet')}
-          className="px-6 py-2.5 border border-border text-card-foreground rounded-lg hover:bg-muted transition-colors"
-        >
+        <Button variant="outline" onClick={() => navigate('/callsheet')}>
           Cancel
-        </button>
+        </Button>
 
         <div className="flex items-center gap-3">
           {activeTab !== 'request' && (
-            <button
+            <Button
+              variant="outline"
               onClick={() => {
-                const tabs: TabType[] = ['request', 'equipment', 'preview'];
+                const tabs = ['request', 'equipment', 'preview'];
                 const currentIndex = tabs.indexOf(activeTab);
                 setActiveTab(tabs[currentIndex - 1]);
               }}
-              className="px-6 py-2.5 border border-border text-card-foreground rounded-lg hover:bg-muted transition-colors"
             >
               Previous
-            </button>
+            </Button>
           )}
 
           {activeTab !== 'preview' ? (
-            <button
+            <Button
               onClick={() => {
-                const tabs: TabType[] = ['request', 'equipment', 'preview'];
+                const tabs = ['request', 'equipment', 'preview'];
                 const currentIndex = tabs.indexOf(activeTab);
                 setActiveTab(tabs[currentIndex + 1]);
               }}
-              className="px-6 py-2.5 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
             >
               Next
-            </button>
+            </Button>
           ) : (
-            <button
-              onClick={handleSubmit}
-              className="px-6 py-2.5 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
-            >
+            <Button onClick={handleSubmit}>
               Submit Call Sheet
-            </button>
+            </Button>
           )}
         </div>
       </div>
