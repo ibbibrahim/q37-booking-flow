@@ -109,7 +109,7 @@ export const TransportForm: React.FC<TransportFormProps> = ({
         </CardContent>
       </Card>
 
-      <Card>
+      {/* <Card>
         <CardHeader>
           <CardTitle>Notifications</CardTitle>
         </CardHeader>
@@ -130,7 +130,7 @@ export const TransportForm: React.FC<TransportFormProps> = ({
             </div>
           ))}
         </CardContent>
-      </Card>
+      </Card> */}
     </div>
   );
 };

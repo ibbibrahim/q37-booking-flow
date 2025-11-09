@@ -237,7 +237,7 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
   );
 
   return (
-    <div className="max-w-6xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6">
+    <div className="max-w-5xl mx-auto space-y-6">
       <div className="mb-6 flex items-center gap-3">
         <button
           onClick={onCancel}

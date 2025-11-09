@@ -124,7 +124,7 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit }) => {
   };
 
   return (
-    <div className="max-w-6xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6">
+    <div className="max-w-5xl mx-auto space-y-6">
       <div className="mb-6 flex items-center gap-3">
         <Button
           variant="ghost"
@@ -321,12 +321,12 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit }) => {
                 )}
               </div>
 
-              <div className="border-t pt-8">
+              {/* <div className="border-t pt-8">
                 <AcknowledgementPanel
                   acknowledgements={departmentAcknowledgements}
                   onChange={handleAcknowledgementChange}
                 />
-              </div>
+              </div> */}
             </CardContent>
           </Card>
         </TabsContent>
