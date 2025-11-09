@@ -124,7 +124,7 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit }) => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-6">
+    <div className="max-w-6xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6">
       <div className="mb-6 flex items-center gap-3">
         <Button
           variant="ghost"
@@ -143,7 +143,7 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit }) => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="w-full grid grid-cols-3 mb-6">
+        <TabsList className="w-full mb-6 flex flex-wrap gap-2 sm:gap-4 sm:grid sm:grid-cols-3">
           <TabsTrigger value="request">Call Sheet</TabsTrigger>
           <TabsTrigger value="equipment">Equipment Request</TabsTrigger>
           <TabsTrigger value="preview">Transportation</TabsTrigger>
