@@ -1,4 +1,9 @@
 import React from 'react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import type { TransportRequest, Notification } from '../types/callsheet';
 import { TRANSPORT_REASONS } from '../types/callsheet';
 
@@ -19,116 +24,113 @@ export const TransportForm: React.FC<TransportFormProps> = ({
 
   return (
     <div className="space-y-6">
-      <div className="bg-card rounded-lg border border-border p-6">
-        <h3 className="text-lg font-semibold text-card-foreground mb-4">
-          Transportation Request
-        </h3>
+      <Card>
+        <CardHeader>
+          <CardTitle>Transportation Request</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <Label htmlFor="reason">
+                Reason <span className="text-red-500">*</span>
+              </Label>
+              <Select
+                value={transportRequest.reason}
+                onValueChange={(value) => onChange('reason', value)}
+              >
+                <SelectTrigger id="reason">
+                  <SelectValue placeholder="Select reason" />
+                </SelectTrigger>
+                <SelectContent>
+                  {TRANSPORT_REASONS.map((reason) => (
+                    <SelectItem key={reason} value={reason}>
+                      {reason}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label className="block text-sm font-medium text-card-foreground mb-2">
-              Reason <span className="text-red-500">*</span>
-            </label>
-            <select
-              value={transportRequest.reason}
-              onChange={(e) => onChange('reason', e.target.value)}
-              className="w-full px-3 py-2.5 bg-card border border-border rounded-lg text-card-foreground focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
-            >
-              <option value="">Select Reason</option>
-              {TRANSPORT_REASONS.map((reason) => (
-                <option key={reason} value={reason}>
-                  {reason}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-card-foreground mb-2">
-              Driver Name
-            </label>
-            <input
-              type="text"
-              value={transportRequest.driverName}
-              onChange={(e) => onChange('driverName', e.target.value)}
-              className="w-full px-3 py-2.5 bg-card border border-border rounded-lg text-card-foreground focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
-              placeholder="Enter driver name"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-card-foreground mb-2">
-              Start Date & Time <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="datetime-local"
-              value={transportRequest.startDateTime}
-              onChange={(e) => onChange('startDateTime', e.target.value)}
-              className="w-full px-3 py-2.5 bg-card border border-border rounded-lg text-card-foreground focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-card-foreground mb-2">
-              Return Date & Time <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="datetime-local"
-              value={transportRequest.returnDateTime}
-              onChange={(e) => onChange('returnDateTime', e.target.value)}
-              min={transportRequest.startDateTime}
-              className="w-full px-3 py-2.5 bg-card border border-border rounded-lg text-card-foreground focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-card-foreground mb-2">
-              Vehicle No
-            </label>
-            <input
-              type="text"
-              value={transportRequest.vehicleNo}
-              onChange={(e) => onChange('vehicleNo', e.target.value)}
-              className="w-full px-3 py-2.5 bg-card border border-border rounded-lg text-card-foreground focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
-              placeholder="Enter vehicle number"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-card-foreground mb-2">
-              Requested By
-            </label>
-            <input
-              type="text"
-              value={transportRequest.requestedBy}
-              disabled
-              className="w-full px-3 py-2.5 bg-muted border border-border rounded-lg text-muted-foreground cursor-not-allowed"
-            />
-          </div>
-        </div>
-      </div>
-
-      <div className="bg-card rounded-lg border border-border p-6">
-        <h3 className="text-lg font-semibold text-card-foreground mb-4">
-          Notifications
-        </h3>
-        <div className="space-y-3">
-          {notifications.map((notification) => (
-            <label
-              key={notification.id}
-              className="flex items-start gap-3 cursor-pointer p-3 rounded-lg hover:bg-muted/50 transition-colors"
-            >
-              <input
-                type="checkbox"
-                checked={notification.enabled}
-                onChange={() => onToggleNotification(notification.id)}
-                className="mt-0.5 w-4 h-4 text-primary border-border rounded focus:ring-2 focus:ring-primary"
+            <div className="space-y-2">
+              <Label htmlFor="driverName">Driver Name</Label>
+              <Input
+                id="driverName"
+                value={transportRequest.driverName}
+                onChange={(e) => onChange('driverName', e.target.value)}
+                placeholder="Enter driver name"
               />
-              <span className="text-sm text-card-foreground">{notification.label}</span>
-            </label>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="startDateTime">
+                Start Date & Time <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="startDateTime"
+                type="datetime-local"
+                value={transportRequest.startDateTime}
+                onChange={(e) => onChange('startDateTime', e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="returnDateTime">
+                Return Date & Time <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="returnDateTime"
+                type="datetime-local"
+                value={transportRequest.returnDateTime}
+                onChange={(e) => onChange('returnDateTime', e.target.value)}
+                min={transportRequest.startDateTime}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="vehicleNo">Vehicle No</Label>
+              <Input
+                id="vehicleNo"
+                value={transportRequest.vehicleNo}
+                onChange={(e) => onChange('vehicleNo', e.target.value)}
+                placeholder="Enter vehicle number"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="requestedBy">Requested By</Label>
+              <Input
+                id="requestedBy"
+                value={transportRequest.requestedBy}
+                disabled
+                className="bg-muted"
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Notifications</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {notifications.map((notification) => (
+            <div key={notification.id} className="flex items-center space-x-2">
+              <Checkbox
+                id={`notification-${notification.id}`}
+                checked={notification.enabled}
+                onCheckedChange={() => onToggleNotification(notification.id)}
+              />
+              <Label
+                htmlFor={`notification-${notification.id}`}
+                className="text-sm font-normal cursor-pointer"
+              >
+                {notification.label}
+              </Label>
+            </div>
           ))}
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };

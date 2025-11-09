@@ -1,5 +1,12 @@
 import React, { useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import type { Equipment } from '../types/callsheet';
 import { EQUIPMENT_CATEGORIES, DEPARTMENTS } from '../types/callsheet';
 
@@ -65,153 +72,166 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({
 
   return (
     <div className="space-y-6">
-      <div className="bg-card rounded-lg border border-border p-6">
-        <h3 className="text-lg font-semibold text-card-foreground mb-4">
-          Add Equipment
-        </h3>
+      <Card>
+        <CardHeader>
+          <CardTitle>Add Equipment</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="category">
+                Category <span className="text-red-500">*</span>
+              </Label>
+              <Select
+                value={category}
+                onValueChange={(value) => {
+                  setCategory(value);
+                  setItem('');
+                }}
+              >
+                <SelectTrigger id="category">
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.keys(EQUIPMENT_CATEGORIES).map((cat) => (
+                    <SelectItem key={cat} value={cat}>
+                      {cat}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-          <div>
-            <label className="block text-sm font-medium text-card-foreground mb-2">
-              Category <span className="text-red-500">*</span>
-            </label>
-            <select
-              value={category}
-              onChange={(e) => {
-                setCategory(e.target.value);
-                setItem('');
-              }}
-              className="w-full px-3 py-2.5 bg-card border border-border rounded-lg text-card-foreground focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
-            >
-              <option value="">Select Category</option>
-              {Object.keys(EQUIPMENT_CATEGORIES).map((cat) => (
-                <option key={cat} value={cat}>
-                  {cat}
-                </option>
-              ))}
-            </select>
+            <div className="space-y-2">
+              <Label htmlFor="item">
+                Item <span className="text-red-500">*</span>
+              </Label>
+              <Select
+                value={item}
+                onValueChange={setItem}
+                disabled={!category}
+              >
+                <SelectTrigger id="item">
+                  <SelectValue placeholder="Select item" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableItems.map((itm) => (
+                    <SelectItem key={itm} value={itm}>
+                      {itm}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="quantity">Quantity</Label>
+              <Input
+                id="quantity"
+                type="number"
+                min="1"
+                value={quantity}
+                onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
+              />
+            </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-card-foreground mb-2">
-              Item <span className="text-red-500">*</span>
-            </label>
-            <select
-              value={item}
-              onChange={(e) => setItem(e.target.value)}
-              disabled={!category}
-              className="w-full px-3 py-2.5 bg-card border border-border rounded-lg text-card-foreground focus:ring-2 focus:ring-primary focus:border-transparent outline-none disabled:opacity-50"
-            >
-              <option value="">Select Item</option>
-              {availableItems.map((itm) => (
-                <option key={itm} value={itm}>
-                  {itm}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-card-foreground mb-2">
-              Quantity
-            </label>
-            <input
-              type="number"
-              min="1"
-              value={quantity}
-              onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
-              className="w-full px-3 py-2.5 bg-card border border-border rounded-lg text-card-foreground focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
-            />
-          </div>
-        </div>
-
-        <button
-          onClick={handleAddEquipment}
-          className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
-        >
-          <Plus size={18} />
-          Add Equipment
-        </button>
-      </div>
+          <Button onClick={handleAddEquipment}>
+            <Plus size={18} className="mr-2" />
+            Add Equipment
+          </Button>
+        </CardContent>
+      </Card>
 
       {equipment.length > 0 && (
-        <div className="bg-card rounded-lg border border-border overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-muted border-b border-border">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-card-foreground uppercase tracking-wider">
-                  Category
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-card-foreground uppercase tracking-wider">
-                  Item
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-card-foreground uppercase tracking-wider">
-                  Qty
-                </th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-card-foreground uppercase tracking-wider">
-                  Action
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {equipment.map((eq) => (
-                <tr key={eq.id} className="hover:bg-muted/50 transition-colors">
-                  <td className="px-4 py-3 text-sm text-card-foreground">{eq.category}</td>
-                  <td className="px-4 py-3 text-sm text-card-foreground">{eq.item}</td>
-                  <td className="px-4 py-3 text-sm text-card-foreground">{eq.quantity}</td>
-                  <td className="px-4 py-3 text-sm text-right">
-                    <button
-                      onClick={() => onRemoveEquipment(eq.id)}
-                      className="text-red-600 hover:text-red-800 transition-colors"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Equipment List</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Category</TableHead>
+                  <TableHead>Item</TableHead>
+                  <TableHead>Qty</TableHead>
+                  <TableHead className="text-right">Action</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {equipment.map((eq) => (
+                  <TableRow key={eq.id}>
+                    <TableCell>{eq.category}</TableCell>
+                    <TableCell>{eq.item}</TableCell>
+                    <TableCell>{eq.quantity}</TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => onRemoveEquipment(eq.id)}
+                        className="text-red-600 hover:text-red-800 hover:bg-red-50"
+                      >
+                        <Trash2 size={16} />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
+
+      {equipment.length === 0 && (
+        <Card>
+          <CardContent className="py-12">
+            <div className="text-center text-muted-foreground">
+              No equipment added yet
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-card rounded-lg border border-border p-6">
-          <h3 className="text-lg font-semibold text-card-foreground mb-4">
-            Departments to Approve
-          </h3>
-          <div className="space-y-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Departments to Approve</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
             {DEPARTMENTS.map((dept) => (
-              <label key={dept} className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
+              <div key={dept} className="flex items-center space-x-2">
+                <Checkbox
+                  id={`approve-${dept}`}
                   checked={departmentsToApprove.includes(dept)}
-                  onChange={() => toggleDepartmentApprove(dept)}
-                  className="w-4 h-4 text-primary border-border rounded focus:ring-2 focus:ring-primary"
+                  onCheckedChange={() => toggleDepartmentApprove(dept)}
                 />
-                <span className="text-sm text-card-foreground">{dept}</span>
-              </label>
+                <Label htmlFor={`approve-${dept}`} className="text-sm font-normal cursor-pointer">
+                  {dept}
+                </Label>
+              </div>
             ))}
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
-        <div className="bg-card rounded-lg border border-border p-6">
-          <h3 className="text-lg font-semibold text-card-foreground mb-4">
-            Departments to Notify
-          </h3>
-          <div className="space-y-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Departments to Notify</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
             {DEPARTMENTS.map((dept) => (
-              <label key={dept} className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
+              <div key={dept} className="flex items-center space-x-2">
+                <Checkbox
+                  id={`notify-${dept}`}
                   checked={departmentsToNotify.includes(dept)}
-                  onChange={() => toggleDepartmentNotify(dept)}
-                  className="w-4 h-4 text-primary border-border rounded focus:ring-2 focus:ring-primary"
+                  onCheckedChange={() => toggleDepartmentNotify(dept)}
                 />
-                <span className="text-sm text-card-foreground">{dept}</span>
-              </label>
+                <Label htmlFor={`notify-${dept}`} className="text-sm font-normal cursor-pointer">
+                  {dept}
+                </Label>
+              </div>
             ))}
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
