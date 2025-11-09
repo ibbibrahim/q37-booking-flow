@@ -144,9 +144,9 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit }) => {
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="w-full grid grid-cols-3 mb-6">
-          <TabsTrigger value="request">Request & Metadata</TabsTrigger>
-          <TabsTrigger value="equipment">Resource Summary</TabsTrigger>
-          <TabsTrigger value="preview">Data Preview</TabsTrigger>
+          <TabsTrigger value="request">Call Sheet</TabsTrigger>
+          <TabsTrigger value="equipment">Equipment Request</TabsTrigger>
+          <TabsTrigger value="preview">Transportation</TabsTrigger>
         </TabsList>
 
         <TabsContent value="request" className="space-y-6">

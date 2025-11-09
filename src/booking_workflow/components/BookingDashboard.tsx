@@ -60,7 +60,7 @@ export const BookingDashboard: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex">
+    <div className="h-screen bg-background flex overflow-hidden">
       <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-sidebar-background border-r border-sidebar-border transform transition-transform duration-200 lg:translate-x-0 lg:static lg:inset-auto ${
         sidebarOpen ? 'translate-x-0' : '-translate-x-full'
       }`}>
@@ -185,7 +185,7 @@ export const BookingDashboard: React.FC = () => {
           </div>
         </header>
 
-        <main className="flex-1 px-4 sm:px-6 lg:px-8 py-6">
+        <main className="flex-1 px-4 sm:px-6 lg:px-8 py-6 overflow-y-auto">
           <Outlet />
         </main>
       </div>
