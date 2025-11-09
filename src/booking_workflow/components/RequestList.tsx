@@ -69,8 +69,8 @@ export const RequestList: React.FC<RequestListProps> = ({ requests, userRole, on
     if (searchTerm) {
       filtered = filtered.filter(req =>
         req.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        req.program.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        req.id.toLowerCase().includes(searchTerm.toLowerCase())
+        req.program.toLowerCase().includes(searchTerm.toLowerCase()) 
+        //req.id.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 

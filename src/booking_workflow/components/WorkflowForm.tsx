@@ -51,9 +51,6 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
     if (!formData.title) {
       newErrors.title = "Title is required";
     }
-    if (!formData.studio) {
-      newErrors.studio = "Please select a studio";
-    }
     if (!formData.program) {
       newErrors.program = "Program/Segment is required";
     }
@@ -74,6 +71,9 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
       if (!formData.feedEndTime) {
         newErrors.feedEndTime = "Feed end time is required";
       }
+      if (!formData.studio) {
+        newErrors.studio = "Please select a studio";
+      }
     }
 
     if (
@@ -86,6 +86,9 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
       if (!formData.inewsRundownId) {
         newErrors.inewsRundownId = "iNEWS Rundown ID is required";
       }
+      if (!formData.studio) {
+        newErrors.studio = "Please select a studio";
+      }
     }
 
     if (formData.bookingType === "Download and Ingest") {
@@ -94,6 +97,12 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
       }
       if (!formData.downloadLink) {
         newErrors.downloadLink = "Download link/URL is required";
+      }
+    }
+
+    if (formData.bookingType === "Camera Card and Ingest") {
+      if (!formData.cameraCardNumber) {
+        newErrors.cameraCardNumber = "Camera Card Number is required";
       }
     }
 
@@ -168,6 +177,20 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
     </>
   );
 
+  const renderCameraCardFields = () => (
+    <>
+      <FormField
+        label="Camera Card Quantity"
+        name="cameraCardNumber"
+        type="number"
+        value={formData.cameraCardNumber || ""}
+        onChange={handleChange}
+        required
+        error={errors.cameraCardNumber}
+      />
+    </>
+  );
+
   return (
     <div className="max-w-7xl mx-auto">
       <div className="mb-6 flex items-center gap-3">
@@ -205,6 +228,7 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
                 "Invite Guest for News",
                 "Invite Guest for Program",
                 "Download and Ingest",
+                "Camera Card and Ingest"
               ]}
               required
               error={errors.bookingType}
@@ -247,7 +271,12 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
               error={errors.program}
             />
             <FormField
-              label="Air Date / Time (Local)"
+              label={
+                formData.bookingType === "Download and Ingest" ||
+                formData.bookingType === "Camera Card and Ingest"
+                  ? "Ingest Time"
+                  : "Air Date / Time (Local)"
+              }
               name="airDateTime"
               type="datetime-local"
               value={formData.airDateTime}
@@ -328,6 +357,18 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
           </div>
         )}
 
+        {formData.bookingType === "Camera Card and Ingest" && (
+          <div className="bg-card rounded-lg border border-border p-6 shadow-sm">
+            <h2 className="text-lg font-semibold text-card-foreground mb-6">
+              Camera Card Details
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {renderCameraCardFields()}
+            </div>
+          </div>
+        )}
+
+
         <div className="bg-card rounded-lg border border-border p-6 shadow-sm">
           <h2 className="text-lg font-semibold text-card-foreground mb-6">
             Additional Information
@@ -382,7 +423,10 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
           <button
             type="button"
             onClick={() => {
-              if (formData.bookingType === "Download and Ingest") {
+              if (
+                formData.bookingType === "Download and Ingest" ||
+                formData.bookingType === "Camera Card and Ingest"
+              ) {
                 handleSubmit("With Ingest");
               } else {
                 handleSubmit("With NOC");
@@ -391,7 +435,8 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
             className="flex items-center gap-2 px-6 py-2.5 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
           >
             <Send size={18} />
-            {formData.bookingType === "Download and Ingest"
+            {formData.bookingType === "Download and Ingest" ||
+            formData.bookingType === "Camera Card and Ingest"
               ? "Submit Request to Ingest"
               : "Submit Request to NOC"}
           </button>
