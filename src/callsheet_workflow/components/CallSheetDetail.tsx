@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Download, Clock, User, FileText } from 'lucide-react';
-import { mockCallSheetApi } from '../services/mockCallSheetApi';
+import { callSheetApi } from '../services/mockCallSheetApi';
 import type { CallSheetRequest } from '../types/callsheet';
 
 export const CallSheetDetail: React.FC = () => {
@@ -16,7 +16,7 @@ export const CallSheetDetail: React.FC = () => {
       if (!id) return;
       setLoading(true);
       try {
-        const data = await mockCallSheetApi.getCallSheetById(id);
+        const data = await callSheetApi.getCallSheetById(Number(id));
         if (data) {
           setCallSheet(data);
         }

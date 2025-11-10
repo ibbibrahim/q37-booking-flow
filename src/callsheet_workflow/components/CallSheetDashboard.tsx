@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, FileText, Calendar, User } from 'lucide-react';
-import { mockCallSheetApi } from '../services/mockCallSheetApi';
+import { callSheetApi } from '../services/mockCallSheetApi';
 import type { CallSheetRequest } from '../types/callsheet';
 
 export const CallSheetDashboard: React.FC = () => {
@@ -16,7 +16,7 @@ export const CallSheetDashboard: React.FC = () => {
   const loadCallSheets = async () => {
     setLoading(true);
     try {
-      const data = await mockCallSheetApi.getCallSheets();
+      const data = await callSheetApi.getCallSheets();
       setCallSheets(data);
     } catch (error) {
       console.error('Failed to load call sheets:', error);

@@ -53,7 +53,7 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit }) => {
     returnDateTime: '',
     driverName: '',
     vehicleNo: '',
-    requestedBy: 'Current User'
+    requestedBy: 1 // TODO: replace with actual user context
   });
 
   const [notifications, setNotifications] = useState<Notification[]>(
@@ -115,7 +115,7 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit }) => {
       transportRequest,
       notifications,
       status: 'Draft',
-      createdBy: 'Current User',
+      createdBy: 1, // TODO: replace with actual user context
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };

@@ -33,7 +33,7 @@ export interface TransportRequest {
   returnDateTime: string;
   driverName: string;
   vehicleNo: string;
-  requestedBy: string;
+  requestedBy: string | number;
 }
 
 export interface Notification {
@@ -43,12 +43,12 @@ export interface Notification {
 }
 
 export interface CallSheetRequest {
-  id: string;
+  id: number;
   department: string;
   title: string;
-  filmingDate: string;
-  callTime: string;
-  wrapTime: string;
+  filmingDate: string;      // ISO string
+  callTime: string;         // HH:mm
+  wrapTime: string;         // HH:mm
   location: string;
   focalPoint: string;
   focalPointContact: string;
@@ -61,10 +61,11 @@ export interface CallSheetRequest {
   transportRequest: TransportRequest | null;
   notifications: Notification[];
   status: CallSheetStatus;
-  createdBy: string;
+  createdBy: string | number;
   createdAt: string;
   updatedAt: string;
 }
+
 
 export const DEPARTMENTS = [
   'News Media',

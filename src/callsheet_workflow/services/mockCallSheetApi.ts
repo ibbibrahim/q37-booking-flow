@@ -1,69 +1,78 @@
-import type { CallSheetRequest } from '../types/callsheet';
+import apiClient from "@/utils/apiClient";
+import type { CallSheetRequest } from "@/callsheet_workflow/types/callsheet";
 
-let callSheets: CallSheetRequest[] = [];
+const API_BASE = "/api/callsheet/requests";
 
-export const mockCallSheetApi = {
+export const callSheetApi = {
+  // GET all call sheets
   getCallSheets: async (): Promise<CallSheetRequest[]> => {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    return [...callSheets];
+    const { data } = await apiClient.get(API_BASE);
+
+    return data.map((item: any) => ({
+      ...item,
+      crewAssignments: JSON.parse(item.crewAssignments || "[]"),
+      departmentAcknowledgements: JSON.parse(item.departmentAcknowledgements || "[]"),
+      equipment: JSON.parse(item.equipment || "[]"),
+      transportRequest: item.transportRequest ? JSON.parse(item.transportRequest) : null,
+      notifications: JSON.parse(item.notifications || "[]"),
+      departmentsToApprove: JSON.parse(item.departmentsToApprove || "[]"),
+      departmentsToNotify: JSON.parse(item.departmentsToNotify || "[]"),
+    }));
   },
 
-  getCallSheetById: async (id: string): Promise<CallSheetRequest | null> => {
-    await new Promise(resolve => setTimeout(resolve, 200));
-    return callSheets.find(cs => cs.id === id) || null;
-  },
+  // GET single call sheet
+  getCallSheetById: async (id: number): Promise<CallSheetRequest> => {
+    const { data } = await apiClient.get(`${API_BASE}/${id}`);
 
-  createCallSheet: async (data: Partial<CallSheetRequest>): Promise<CallSheetRequest> => {
-    await new Promise(resolve => setTimeout(resolve, 500));
-
-    const newCallSheet: CallSheetRequest = {
-      id: `cs-${Date.now()}`,
-      department: data.department || '',
-      title: data.title || '',
-      filmingDate: data.filmingDate || '',
-      callTime: data.callTime || '',
-      wrapTime: data.wrapTime || '',
-      location: data.location || '',
-      focalPoint: data.focalPoint || '',
-      focalPointContact: data.focalPointContact || '',
-      driverNeeded: data.driverNeeded || false,
-      crewAssignments: data.crewAssignments || [],
-      departmentAcknowledgements: data.departmentAcknowledgements || [],
-      equipment: data.equipment || [],
-      departmentsToApprove: data.departmentsToApprove || [],
-      departmentsToNotify: data.departmentsToNotify || [],
-      transportRequest: data.transportRequest || null,
-      notifications: data.notifications || [],
-      status: data.status || 'Draft',
-      createdBy: data.createdBy || 'Current User',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-
-    callSheets = [newCallSheet, ...callSheets];
-    return newCallSheet;
-  },
-
-  updateCallSheet: async (id: string, data: Partial<CallSheetRequest>): Promise<CallSheetRequest | null> => {
-    await new Promise(resolve => setTimeout(resolve, 500));
-
-    const index = callSheets.findIndex(cs => cs.id === id);
-    if (index === -1) return null;
-
-    callSheets[index] = {
-      ...callSheets[index],
+    return {
       ...data,
-      updatedAt: new Date().toISOString()
+      crewAssignments: JSON.parse(data.crewAssignments || "[]"),
+      departmentAcknowledgements: JSON.parse(data.departmentAcknowledgements || "[]"),
+      equipment: JSON.parse(data.equipment || "[]"),
+      transportRequest: data.transportRequest ? JSON.parse(data.transportRequest) : null,
+      notifications: JSON.parse(data.notifications || "[]"),
+      departmentsToApprove: JSON.parse(data.departmentsToApprove || "[]"),
+      departmentsToNotify: JSON.parse(data.departmentsToNotify || "[]"),
     };
-
-    return callSheets[index];
   },
 
-  deleteCallSheet: async (id: string): Promise<boolean> => {
-    await new Promise(resolve => setTimeout(resolve, 300));
+  // POST create
+  createCallSheet: async (data: Partial<CallSheetRequest>): Promise<CallSheetRequest> => {
+    const body = {
+      ...data,
+      crewAssignments: JSON.stringify(data.crewAssignments || []),
+      departmentAcknowledgements: JSON.stringify(data.departmentAcknowledgements || []),
+      equipment: JSON.stringify(data.equipment || []),
+      transportRequest: JSON.stringify(data.transportRequest || {}),
+      notifications: JSON.stringify(data.notifications || []),
+      departmentsToApprove: JSON.stringify(data.departmentsToApprove || []),
+      departmentsToNotify: JSON.stringify(data.departmentsToNotify || []),
+    };
 
-    const initialLength = callSheets.length;
-    callSheets = callSheets.filter(cs => cs.id !== id);
-    return callSheets.length < initialLength;
-  }
+    const { data: result } = await apiClient.post(API_BASE, body);
+    return result;
+  },
+
+  // PUT update
+  updateCallSheet: async (id: number, data: Partial<CallSheetRequest>): Promise<CallSheetRequest> => {
+    const body = {
+      ...data,
+      crewAssignments: JSON.stringify(data.crewAssignments || []),
+      departmentAcknowledgements: JSON.stringify(data.departmentAcknowledgements || []),
+      equipment: JSON.stringify(data.equipment || []),
+      transportRequest: JSON.stringify(data.transportRequest || {}),
+      notifications: JSON.stringify(data.notifications || []),
+      departmentsToApprove: JSON.stringify(data.departmentsToApprove || []),
+      departmentsToNotify: JSON.stringify(data.departmentsToNotify || []),
+    };
+
+    const { data: result } = await apiClient.put(`${API_BASE}/${id}`, body);
+    return result;
+  },
+
+  // DELETE
+  deleteCallSheet: async (id: number): Promise<boolean> => {
+    const res = await apiClient.delete(`${API_BASE}/${id}`);
+    return res.status === 204 || res.status === 200;
+  },
 };
