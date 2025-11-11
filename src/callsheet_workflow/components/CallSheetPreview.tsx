@@ -34,7 +34,7 @@ export const CallSheetPreview: React.FC<CallSheetPreviewProps> = ({ callSheet })
           Unified Workflow Document
         </h3>
         <button
-          onClick={handlePrint}
+          onClick={handlePrintPreview}
           className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
         >
           <Download size={18} />
