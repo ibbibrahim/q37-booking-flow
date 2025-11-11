@@ -114,25 +114,50 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="item">
-                Item <span className="text-red-500">*</span>
-              </Label>
-              <Select
-                value={item}
-                onValueChange={setItem}
-                disabled={!category}
-              >
-                <SelectTrigger id="item">
-                  <SelectValue placeholder="Select item" />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableItems.map((itm) => (
-                    <SelectItem key={itm} value={itm}>
-                      {itm}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="item">
+                  Item <span className="text-red-500">*</span>
+                </Label>
+                {category && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setUseCustomItem(!useCustomItem);
+                      setItem('');
+                      setCustomItem('');
+                    }}
+                    className="text-xs text-blue-600 hover:text-blue-800 underline"
+                  >
+                    {useCustomItem ? 'Select from list' : 'Add custom'}
+                  </button>
+                )}
+              </div>
+              {useCustomItem ? (
+                <Input
+                  id="custom-item"
+                  placeholder="Enter custom item name"
+                  value={customItem}
+                  onChange={(e) => setCustomItem(e.target.value)}
+                  disabled={!category}
+                />
+              ) : (
+                <Select
+                  value={item}
+                  onValueChange={setItem}
+                  disabled={!category}
+                >
+                  <SelectTrigger id="item">
+                    <SelectValue placeholder="Select item" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableItems.map((itm) => (
+                      <SelectItem key={itm} value={itm}>
+                        {itm}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
 
             <div className="space-y-2">
