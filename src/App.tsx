@@ -31,6 +31,7 @@ function App() {
         {/* Call Sheet Workflow */}
         <Route path="callsheet" element={<CallSheetRoleView view="list" />} />
         <Route path="callsheet/new" element={<CallSheetRoleView view="new" />} />
+        <Route path="callsheet/preview-demo" element={<CallSheetPreviewDemo />} />
         <Route path="callsheet/:id" element={<CallSheetDetail />} />
 
         <Route path="*" element={<Navigate to="/booking" replace />} />
