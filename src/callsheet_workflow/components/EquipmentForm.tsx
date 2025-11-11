@@ -98,6 +98,8 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({
                 onValueChange={(value) => {
                   setCategory(value);
                   setItem('');
+                  setCustomItem('');
+                  setUseCustomItem(false);
                 }}
               >
                 <SelectTrigger id="category">
