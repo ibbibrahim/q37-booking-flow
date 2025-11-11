@@ -32,23 +32,34 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({
   const [category, setCategory] = useState('');
   const [item, setItem] = useState('');
   const [quantity, setQuantity] = useState(1);
+  const [customItem, setCustomItem] = useState('');
+  const [useCustomItem, setUseCustomItem] = useState(false);
 
   const handleAddEquipment = () => {
-    if (!category || !item) {
-      alert('Please select category and item');
+    if (!category) {
+      alert('Please select a category');
+      return;
+    }
+
+    const finalItem = useCustomItem ? customItem.trim() : item;
+
+    if (!finalItem) {
+      alert(useCustomItem ? 'Please enter a custom item name' : 'Please select an item');
       return;
     }
 
     const newEquipment: Equipment = {
       id: Date.now().toString(),
       category,
-      item,
+      item: finalItem,
       quantity
     };
 
     onAddEquipment(newEquipment);
-    setCategory('');
-    setItem('');
+    //setCategory('');
+    //setItem('');
+    setCustomItem('');
+    setUseCustomItem(false);
     setQuantity(1);
   };
 
@@ -77,64 +88,75 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({
           <CardTitle>Add Equipment</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="category">
-                Category <span className="text-red-500">*</span>
-              </Label>
-              <Select
-                value={category}
-                onValueChange={(value) => {
-                  setCategory(value);
-                  setItem('');
-                }}
-              >
-                <SelectTrigger id="category">
-                  <SelectValue placeholder="Select category" />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.keys(EQUIPMENT_CATEGORIES).map((cat) => (
-                    <SelectItem key={cat} value={cat}>
-                      {cat}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="item">
-                Item <span className="text-red-500">*</span>
-              </Label>
-              <Select
-                value={item}
-                onValueChange={setItem}
-                disabled={!category}
-              >
-                <SelectTrigger id="item">
-                  <SelectValue placeholder="Select item" />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableItems.map((itm) => (
-                    <SelectItem key={itm} value={itm}>
-                      {itm}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="quantity">Quantity</Label>
-              <Input
-                id="quantity"
-                type="number"
-                min="1"
-                value={quantity}
-                onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
-              />
-            </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+        {/* Category */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label htmlFor="category" className="text-sm font-medium">Category <span className="text-red-500">*</span></Label>
           </div>
+          <Select
+            value={category}
+            onValueChange={(value) => {
+              setCategory(value);
+              setItem('');
+              setCustomItem('');
+              setUseCustomItem(false);
+            }}
+          >
+            <SelectTrigger id="category" className="min-h-[40px]">
+              <SelectValue placeholder="Select category" />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.keys(EQUIPMENT_CATEGORIES).map((cat) => (
+                <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Item */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label htmlFor="item" className="text-sm font-medium">Item <span className="text-red-500">*</span></Label>
+            {category && (
+              <button
+                type="button"
+                onClick={() => {
+                  setUseCustomItem(!useCustomItem);
+                  setItem('');
+                  setCustomItem('');
+                }}
+                className="text-xs text-blue-600 hover:text-blue-800 underline leading-none"
+              >
+                {useCustomItem ? 'Select from list' : 'Add custom'}
+              </button>
+            )}
+          </div>
+          {useCustomItem ? (
+            <Input id="custom-item" placeholder="Enter custom item name" value={customItem} onChange={(e) => setCustomItem(e.target.value)} disabled={!category} className="min-h-[40px]" />
+          ) : (
+            <Select value={item} onValueChange={setItem} disabled={!category}>
+              <SelectTrigger id="item" className="min-h-[40px]">
+                <SelectValue placeholder="Select item" />
+              </SelectTrigger>
+              <SelectContent>
+                {availableItems.map((itm) => (
+                  <SelectItem key={itm} value={itm}>{itm}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        </div>
+
+        {/* Quantity */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label htmlFor="quantity" className="text-sm font-medium">Quantity</Label>
+          </div>
+          <Input id="quantity" type="number" min="1" value={quantity} onChange={(e) => setQuantity(parseInt(e.target.value) || 1)} className="min-h-[40px]" />
+        </div>
+      </div>
+
 
           <Button onClick={handleAddEquipment}>
             <Plus size={18} className="mr-2" />

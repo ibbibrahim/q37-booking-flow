@@ -32,10 +32,18 @@ export const CallSheetPreview: React.FC<CallSheetPreviewProps> = ({ callSheet })
               line-height: 1.3;
               padding: 20px;
             }
+
             @media print {
               body { padding: 0; margin: 0; }
               .section { page-break-inside: avoid; }
               .page-break { page-break-before: always; margin-top: 0; padding-top: 0; }
+
+              /* 🔹 Ensure colors & highlights are preserved in PDF */
+              * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+                color-adjust: exact !important;
+              }
             }
             
             .unified-header {
@@ -84,7 +92,8 @@ export const CallSheetPreview: React.FC<CallSheetPreviewProps> = ({ callSheet })
               font-size: 13px;
             }
             th { 
-              background-color: #e8e8e8; 
+              background-color: #2F459E;
+              color: #fff;
               font-weight: bold; 
               text-transform: uppercase;
             }
@@ -122,6 +131,7 @@ export const CallSheetPreview: React.FC<CallSheetPreviewProps> = ({ callSheet })
         </body>
       </html>
     `;
+
 
     printWindow.document.write(printHTML);
     printWindow.document.close();
@@ -178,111 +188,73 @@ export const CallSheetPreview: React.FC<CallSheetPreviewProps> = ({ callSheet })
           <h2 style={{ fontSize: '16px', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '15px' }}>CALL SHEET</h2>
           
           {/* Location Type Tabs */}
-          <div style={{ display: 'flex', gap: '20px', marginBottom: '15px', fontWeight: 'bold', fontSize: '13px' }}>
+          {/* <div style={{ display: 'flex', gap: '20px', marginBottom: '15px', fontWeight: 'bold', fontSize: '13px' }}>
             <div>Studio</div>
             <div>Outdoor</div>
-          </div>
+          </div> */}
 
           {/* Booking Information Table */}
-          <table style={{ marginBottom: '20px', borderCollapse: 'collapse' }}>
-            <tbody>
-              <tr>
-                <td style={{ fontWeight: 'bold', backgroundColor: '#f0f0f0', width: '140px', border: '1px solid #000', padding: '6px 8px' }}>Department</td>
-                <td style={{ border: '1px solid #000', padding: '6px 8px' }}>{callSheet.department || 'N/A'}</td>
-              </tr>
-              <tr>
-                <td style={{ fontWeight: 'bold', backgroundColor: '#f0f0f0', border: '1px solid #000', padding: '6px 8px' }}>Title</td>
-                <td style={{ border: '1px solid #000', padding: '6px 8px', backgroundColor: '#ffff99' }}>{callSheet.title || 'N/A'}</td>
-              </tr>
-              <tr>
-                <td style={{ fontWeight: 'bold', backgroundColor: '#f0f0f0', border: '1px solid #000', padding: '6px 8px' }}>Filming Date</td>
-                <td style={{ border: '1px solid #000', padding: '6px 8px' }}>{callSheet.filmingDate || 'N/A'}</td>
-              </tr>
-              <tr>
-                <td style={{ fontWeight: 'bold', backgroundColor: '#f0f0f0', border: '1px solid #000', padding: '6px 8px' }}>Call time</td>
-                <td style={{ border: '1px solid #000', padding: '6px 8px' }}>{callSheet.callTime || 'N/A'}</td>
-              </tr>
-              <tr>
-                <td style={{ fontWeight: 'bold', backgroundColor: '#f0f0f0', border: '1px solid #000', padding: '6px 8px' }}>Wrap time</td>
-                <td style={{ border: '1px solid #000', padding: '6px 8px' }}>{callSheet.wrapTime || 'N/A'}</td>
-              </tr>
-              <tr>
-                <td style={{ fontWeight: 'bold', backgroundColor: '#f0f0f0', border: '1px solid #000', padding: '6px 8px' }}>Locations</td>
-                <td style={{ border: '1px solid #000', padding: '6px 8px' }}>{callSheet.location || 'N/A'}</td>
-              </tr>
-              <tr>
-                <td style={{ fontWeight: 'bold', backgroundColor: '#f0f0f0', border: '1px solid #000', padding: '6px 8px' }}>Focal Point</td>
-                <td style={{ border: '1px solid #000', padding: '6px 8px' }}>{callSheet.focalPoint || 'N/A'}</td>
-              </tr>
-            </tbody>
-          </table>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: '60px', rowGap: '10px', marginBottom: '20px' }}>
+            {[
+              [['Department', callSheet.department || 'N/A'], ['Title', callSheet.title || 'N/A', true]],
+              [['Filming Date', callSheet.filmingDate || 'N/A'], ['Locations', callSheet.location || 'N/A']],
+              [['Call Time', callSheet.callTime || 'N/A'], ['Wrap Time', callSheet.wrapTime || 'N/A']],
+              [['Focal Point', callSheet.focalPoint || 'N/A'], ['Contact', callSheet.focalPointContact || 'N/A']],
+            ].map((pair, rowIdx) => (
+              <React.Fragment key={rowIdx}>
+                {pair.map(([label, value, highlight], colIdx) => (
+                  <div key={colIdx} style={{ display: 'flex', flexDirection: 'column', marginBottom: '10px' }}>
+                    <span style={{ fontSize: '13px', marginBottom: '2px' }}>{label}:</span>
+                    <div style={{ borderBottom: '1px solid #999', minHeight: '20px', color: '#000', fontWeight: 'bold', backgroundColor: highlight ? '#ffff99' : 'transparent', paddingBottom: '2px', fontSize: '13px' }}>{value}</div>
+                  </div>
+                ))}
+              </React.Fragment>
+            ))}
+          </div>
+
+
 
           {/* Crew Assignments Table */}
-          <table style={{ marginBottom: '20px', borderCollapse: 'collapse' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '15px' }}>
             <thead>
-              <tr style={{ backgroundColor: '#f0f0f0' }}>
-                <th style={{ border: '1px solid #000', padding: '6px 8px', fontWeight: 'bold', textAlign: 'left' }}>Role</th>
-                <th style={{ border: '1px solid #000', padding: '6px 8px', fontWeight: 'bold', textAlign: 'left' }}>Name</th>
-                <th style={{ border: '1px solid #000', padding: '6px 8px', fontWeight: 'bold', textAlign: 'left' }}>Contact</th>
+              <tr style={{ backgroundColor: '#2F459E', color: '#fff', textTransform: 'uppercase' }}>
+                <th style={{ width: '5%', border: '1px solid #000', padding: '6px', textAlign: 'center' }}>#</th>
+                <th style={{ width: '35%', border: '1px solid #000', padding: '6px', textAlign: 'left' }}>Role</th>
+                <th style={{ width: '35%', border: '1px solid #000', padding: '6px', textAlign: 'left' }}>Name</th>
+                <th style={{ width: '25%', border: '1px solid #000', padding: '6px', textAlign: 'left' }}>Contact</th>
               </tr>
             </thead>
             <tbody>
-              <tr>
-                <td style={{ fontWeight: 'bold', border: '1px solid #000', padding: '6px 8px' }}>Director</td>
-                <td style={{ border: '1px solid #000', padding: '6px 8px' }}></td>
-                <td style={{ border: '1px solid #000', padding: '6px 8px' }}></td>
-              </tr>
-              <tr>
-                <td style={{ fontWeight: 'bold', border: '1px solid #000', padding: '6px 8px' }}>Producer</td>
-                <td style={{ border: '1px solid #000', padding: '6px 8px' }}>{callSheet.crewAssignments?.find(c => c.role === 'Producer')?.name || ''}</td>
-                <td style={{ border: '1px solid #000', padding: '6px 8px' }}>{callSheet.crewAssignments?.find(c => c.role === 'Producer')?.phone || ''}</td>
-              </tr>
-              <tr>
-                <td style={{ fontWeight: 'bold', border: '1px solid #000', padding: '6px 8px' }}>Presenter</td>
-                <td style={{ border: '1px solid #000', padding: '6px 8px' }}></td>
-                <td style={{ border: '1px solid #000', padding: '6px 8px' }}></td>
-              </tr>
-              <tr>
-                <td style={{ fontWeight: 'bold', border: '1px solid #000', padding: '6px 8px' }}>Assistant Director (If Available)</td>
-                <td style={{ border: '1px solid #000', padding: '6px 8px' }}></td>
-                <td style={{ border: '1px solid #000', padding: '6px 8px' }}></td>
-              </tr>
-              <tr>
-                <td style={{ fontWeight: 'bold', border: '1px solid #000', padding: '6px 8px' }}>Camera 1</td>
-                <td style={{ border: '1px solid #000', padding: '6px 8px' }}>{callSheet.crewAssignments?.find(c => c.role === 'Camera 1')?.name || ''}</td>
-                <td style={{ border: '1px solid #000', padding: '6px 8px' }}>{callSheet.crewAssignments?.find(c => c.role === 'Camera 1')?.phone || ''}</td>
-              </tr>
-              <tr>
-                <td style={{ fontWeight: 'bold', border: '1px solid #000', padding: '6px 8px' }}>Camera 2</td>
-                <td style={{ border: '1px solid #000', padding: '6px 8px' }}></td>
-                <td style={{ border: '1px solid #000', padding: '6px 8px' }}></td>
-              </tr>
-              <tr>
-                <td style={{ fontWeight: 'bold', border: '1px solid #000', padding: '6px 8px' }}>Camera 3</td>
-                <td style={{ border: '1px solid #000', padding: '6px 8px' }}></td>
-                <td style={{ border: '1px solid #000', padding: '6px 8px' }}></td>
-              </tr>
-              <tr>
-                <td style={{ fontWeight: 'bold', border: '1px solid #000', padding: '6px 8px' }}>Camera Assistant (If Needed)</td>
-                <td style={{ border: '1px solid #000', padding: '6px 8px' }}></td>
-                <td style={{ border: '1px solid #000', padding: '6px 8px' }}></td>
-              </tr>
-              <tr>
-                <td style={{ fontWeight: 'bold', border: '1px solid #000', padding: '6px 8px' }}>Sound Technician</td>
-                <td style={{ border: '1px solid #000', padding: '6px 8px' }}>{callSheet.crewAssignments?.find(c => c.role === 'Sound Technician')?.name || ''}</td>
-                <td style={{ border: '1px solid #000', padding: '6px 8px' }}>{callSheet.crewAssignments?.find(c => c.role === 'Sound Technician')?.phone || ''}</td>
-              </tr>
-              <tr>
-                <td style={{ fontWeight: 'bold', border: '1px solid #000', padding: '6px 8px' }}>Studio Operator</td>
-                <td style={{ border: '1px solid #000', padding: '6px 8px' }}></td>
-                <td style={{ border: '1px solid #000', padding: '6px 8px' }}></td>
-              </tr>
-              <tr>
-                <td style={{ fontWeight: 'bold', border: '1px solid #000', padding: '6px 8px' }}>Driver Needed</td>
-                <td colSpan={2} style={{ border: '1px solid #000', padding: '6px 8px' }}>
-                  {callSheet.driverNeeded ? '✓ Yes' : '✗ No'}
-                </td>
-              </tr>
+              {[
+                'Director',
+                'Producer',
+                'Presenter',
+                'Assistant Director (If Available)',
+                'Camera 1',
+                'Camera 2',
+                'Camera 3',
+                'Camera Assistant (If Needed)',
+                'Sound Technician',
+                'Studio Operator',
+                'Driver Needed',
+              ].map((role, index) => {
+                const assignment = callSheet.crewAssignments?.find((c) => c.role === role);
+                const isDriver = role === 'Driver Needed';
+                return (
+                  <tr key={index}>
+                    <td style={{ border: '1px solid #000', padding: '5px 6px', textAlign: 'center' }}>{index + 1}</td>
+                    <td style={{ border: '1px solid #000', padding: '5px 6px', fontWeight: 'bold' }}>{role}</td>
+                    {isDriver ? (
+                      <td colSpan={2} style={{ border: '1px solid #000', padding: '5px 6px' }}>{callSheet.driverNeeded ? '✓ Yes' : '✗ No'}</td>
+                    ) : (
+                      <>
+                        <td style={{ border: '1px solid #000', padding: '5px 6px' }}>{assignment?.name || ''}</td>
+                        <td style={{ border: '1px solid #000', padding: '5px 6px' }}>{assignment?.phone || ''}</td>
+                      </>
+                    )}
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -293,131 +265,111 @@ export const CallSheetPreview: React.FC<CallSheetPreviewProps> = ({ callSheet })
         {/* ============ SECTION 2: EQUIPMENT BOOKING REQUEST ============ */}
         <div style={{ marginBottom: '30px', pageBreakInside: 'avoid' }}>
           <h2 style={{ fontSize: '16px', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '15px' }}>EQUIPMENT BOOKING REQUEST FORM</h2>
-          
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0', marginBottom: '20px' }}>
-            {/* Camera Requirement */}
-            <div style={{ borderRight: '1px solid #000' }}>
-              <div style={{ backgroundColor: '#b3d9ff', border: '1px solid #000', padding: '6px 8px', fontWeight: 'bold', textAlign: 'center' }}>Camera Requirement</div>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr style={{ backgroundColor: '#e8e8e8' }}>
-                    <th style={{ border: '1px solid #000', padding: '6px 8px', fontWeight: 'bold', width: '70%' }}>Description</th>
-                    <th style={{ border: '1px solid #000', padding: '6px 8px', fontWeight: 'bold', width: '30%', textAlign: 'center' }}>Qty</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(equipmentByCategory['Camera'] || []).map((eq, idx) => (
-                    <tr key={idx}>
-                      <td style={{ border: '1px solid #000', padding: '6px 8px' }}>{eq.item}</td>
-                      <td style={{ border: '1px solid #000', padding: '6px 8px', textAlign: 'center' }}>{eq.quantity}</td>
-                    </tr>
-                  ))}
-                  {[...Array(5 - (equipmentByCategory['Camera']?.length || 0))].map((_, idx) => (
-                    <tr key={`empty-camera-${idx}`}>
-                      <td style={{ border: '1px solid #000', padding: '6px 8px' }}></td>
-                      <td style={{ border: '1px solid #000', padding: '6px 8px' }}></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
 
-            {/* Lighting Requirement */}
-            <div>
-              <div style={{ backgroundColor: '#b3d9ff', border: '1px solid #000', padding: '6px 8px', fontWeight: 'bold', textAlign: 'center' }}>Lighting Requirement</div>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr style={{ backgroundColor: '#e8e8e8' }}>
-                    <th style={{ border: '1px solid #000', padding: '6px 8px', fontWeight: 'bold', width: '70%' }}>Description</th>
-                    <th style={{ border: '1px solid #000', padding: '6px 8px', fontWeight: 'bold', width: '30%', textAlign: 'center' }}>Qty</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(equipmentByCategory['Lighting'] || []).map((eq, idx) => (
-                    <tr key={idx}>
-                      <td style={{ border: '1px solid #000', padding: '6px 8px' }}>{eq.item}</td>
-                      <td style={{ border: '1px solid #000', padding: '6px 8px', textAlign: 'center' }}>{eq.quantity}</td>
-                    </tr>
-                  ))}
-                  {[...Array(5 - (equipmentByCategory['Lighting']?.length || 0))].map((_, idx) => (
-                    <tr key={`empty-light-${idx}`}>
-                      <td style={{ border: '1px solid #000', padding: '6px 8px' }}></td>
-                      <td style={{ border: '1px solid #000', padding: '6px 8px' }}></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0', marginBottom: '20px' }}>
-            {/* Sound Requirement */}
-            <div style={{ borderRight: '1px solid #000' }}>
-              <div style={{ backgroundColor: '#b3d9ff', border: '1px solid #000', padding: '6px 8px', fontWeight: 'bold', textAlign: 'center' }}>Sound Requirement</div>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr style={{ backgroundColor: '#e8e8e8' }}>
-                    <th style={{ border: '1px solid #000', padding: '6px 8px', fontWeight: 'bold', width: '70%' }}>Description</th>
-                    <th style={{ border: '1px solid #000', padding: '6px 8px', fontWeight: 'bold', width: '30%', textAlign: 'center' }}>Qty</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(equipmentByCategory['Sound'] || []).map((eq, idx) => (
-                    <tr key={idx}>
-                      <td style={{ border: '1px solid #000', padding: '6px 8px' }}>{eq.item}</td>
-                      <td style={{ border: '1px solid #000', padding: '6px 8px', textAlign: 'center' }}>{eq.quantity}</td>
-                    </tr>
-                  ))}
-                  {[...Array(5 - (equipmentByCategory['Sound']?.length || 0))].map((_, idx) => (
-                    <tr key={`empty-sound-${idx}`}>
-                      <td style={{ border: '1px solid #000', padding: '6px 8px' }}></td>
-                      <td style={{ border: '1px solid #000', padding: '6px 8px' }}></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* SD Cards */}
-            <div>
-              <div style={{ backgroundColor: '#b3d9ff', border: '1px solid #000', padding: '6px 8px', fontWeight: 'bold', textAlign: 'center' }}>SD Cards</div>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr style={{ backgroundColor: '#e8e8e8' }}>
-                    <th style={{ border: '1px solid #000', padding: '6px 8px', fontWeight: 'bold', width: '70%' }}>Description</th>
-                    <th style={{ border: '1px solid #000', padding: '6px 8px', fontWeight: 'bold', width: '30%', textAlign: 'center' }}>Qty</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(equipmentByCategory['SD Cards'] || []).map((eq, idx) => (
-                    <tr key={idx}>
-                      <td style={{ border: '1px solid #000', padding: '6px 8px' }}>{eq.item}</td>
-                      <td style={{ border: '1px solid #000', padding: '6px 8px', textAlign: 'center' }}>{eq.quantity}</td>
-                    </tr>
-                  ))}
-                  {[...Array(5 - (equipmentByCategory['SD Cards']?.length || 0))].map((_, idx) => (
-                    <tr key={`empty-sd-${idx}`}>
-                      <td style={{ border: '1px solid #000', padding: '6px 8px' }}></td>
-                      <td style={{ border: '1px solid #000', padding: '6px 8px' }}></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* Approval Section */}
-          <div style={{ marginTop: '20px' }}>
+          {/* Camera Requirement */}
+          <div style={{ marginBottom: '20px' }}>
+            <div style={{ backgroundColor: '#b3d9ff', border: '1px solid #000', padding: '6px 8px', fontWeight: 'bold', textAlign: 'center' }}>Camera Requirement</div>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ backgroundColor: '#e8e8e8' }}>
+                  <th style={{ border: '1px solid #000', padding: '6px 8px', fontWeight: 'bold', width: '70%' }}>Description</th>
+                  <th style={{ border: '1px solid #000', padding: '6px 8px', fontWeight: 'bold', width: '30%', textAlign: 'center' }}>Qty</th>
+                </tr>
+              </thead>
               <tbody>
-                <tr>
-                  <td style={{ fontWeight: 'bold', backgroundColor: '#f0f0f0', border: '1px solid #000', padding: '6px 8px', width: '140px' }}>Store Keeper</td>
-                  <td style={{ border: '1px solid #000', padding: '6px 8px' }}></td>
+                {(equipmentByCategory['Camera']?.length || 0) > 0 ? (
+                  equipmentByCategory['Camera'].map((eq, idx) => (
+                    <tr key={idx}>
+                      <td style={{ border: '1px solid #000', padding: '6px 8px', textAlign: 'center'}}>{eq.item}</td>
+                      <td style={{ border: '1px solid #000', padding: '6px 8px', textAlign: 'center' }}>{eq.quantity}</td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={2} style={{ border: '1px solid #000', padding: '8px', textAlign: 'center', color: '#666', fontStyle: 'italic', backgroundColor: '#f9f9f9' }}>No items listed</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Lighting Requirement */}
+          <div style={{ marginBottom: '20px' }}>
+            <div style={{ backgroundColor: '#b3d9ff', border: '1px solid #000', padding: '6px 8px', fontWeight: 'bold', textAlign: 'center' }}>Lighting Requirement</div>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ backgroundColor: '#e8e8e8' }}>
+                  <th style={{ border: '1px solid #000', padding: '6px 8px', fontWeight: 'bold', width: '70%' }}>Description</th>
+                  <th style={{ border: '1px solid #000', padding: '6px 8px', fontWeight: 'bold', width: '30%', textAlign: 'center' }}>Qty</th>
                 </tr>
-                <tr>
-                  <td style={{ fontWeight: 'bold', backgroundColor: '#f0f0f0', border: '1px solid #000', padding: '6px 8px' }}>Dept Manager Approval</td>
-                  <td style={{ border: '1px solid #000', padding: '6px 8px' }}></td>
+              </thead>
+              <tbody>
+                {(equipmentByCategory['Lighting']?.length || 0) > 0 ? (
+                  equipmentByCategory['Lighting'].map((eq, idx) => (
+                    <tr key={idx}>
+                      <td style={{ border: '1px solid #000', padding: '6px 8px', textAlign: 'center' }}>{eq.item}</td>
+                      <td style={{ border: '1px solid #000', padding: '6px 8px', textAlign: 'center' }}>{eq.quantity}</td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={2} style={{ border: '1px solid #000', padding: '8px', textAlign: 'center', color: '#666', fontStyle: 'italic', backgroundColor: '#f9f9f9' }}>No items listed</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Sound Requirement */}
+          <div style={{ marginBottom: '20px' }}>
+            <div style={{ backgroundColor: '#b3d9ff', border: '1px solid #000', padding: '6px 8px', fontWeight: 'bold', textAlign: 'center' }}>Sound Requirement</div>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ backgroundColor: '#e8e8e8' }}>
+                  <th style={{ border: '1px solid #000', padding: '6px 8px', fontWeight: 'bold', width: '70%' }}>Description</th>
+                  <th style={{ border: '1px solid #000', padding: '6px 8px', fontWeight: 'bold', width: '30%', textAlign: 'center' }}>Qty</th>
                 </tr>
+              </thead>
+              <tbody>
+                {(equipmentByCategory['Sound']?.length || 0) > 0 ? (
+                  equipmentByCategory['Sound'].map((eq, idx) => (
+                    <tr key={idx}>
+                      <td style={{ border: '1px solid #000', padding: '6px 8px', textAlign: 'center' }}>{eq.item}</td>
+                      <td style={{ border: '1px solid #000', padding: '6px 8px', textAlign: 'center' }}>{eq.quantity}</td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={2} style={{ border: '1px solid #000', padding: '8px', textAlign: 'center', color: '#666', fontStyle: 'italic', backgroundColor: '#f9f9f9' }}>No items listed</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* SD Cards */}
+          <div>
+            <div style={{ backgroundColor: '#b3d9ff', border: '1px solid #000', padding: '6px 8px', fontWeight: 'bold', textAlign: 'center' }}>SD Cards</div>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ backgroundColor: '#e8e8e8' }}>
+                  <th style={{ border: '1px solid #000', padding: '6px 8px', fontWeight: 'bold', width: '70%' }}>Description</th>
+                  <th style={{ border: '1px solid #000', padding: '6px 8px', fontWeight: 'bold', width: '30%', textAlign: 'center' }}>Qty</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(equipmentByCategory['SD Cards']?.length || 0) > 0 ? (
+                  equipmentByCategory['SD Cards'].map((eq, idx) => (
+                    <tr key={idx}>
+                      <td style={{ border: '1px solid #000', padding: '6px 8px', textAlign: 'center' }}>{eq.item}</td>
+                      <td style={{ border: '1px solid #000', padding: '6px 8px', textAlign: 'center' }}>{eq.quantity}</td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={2} style={{ border: '1px solid #000', padding: '8px', textAlign: 'center', color: '#666', fontStyle: 'italic', backgroundColor: '#f9f9f9' }}>No items listed</td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>

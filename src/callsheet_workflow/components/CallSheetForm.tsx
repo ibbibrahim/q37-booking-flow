@@ -14,7 +14,7 @@ import { EquipmentForm } from './EquipmentForm';
 import { TransportForm } from './TransportForm';
 import { CallSheetPreview } from './CallSheetPreview';
 import type { CallSheetRequest, CrewAssignment, Equipment, DepartmentAcknowledgement, TransportRequest, Notification } from '../types/callsheet';
-import { DEPARTMENTS, DEFAULT_NOTIFICATIONS, DEPARTMENT_ACKNOWLEDGEMENTS } from '../types/callsheet';
+import { DEPARTMENTS, DEFAULT_NOTIFICATIONS, DEPARTMENT_ACKNOWLEDGEMENTS, CALL_SHEET_ROLES  } from '../types/callsheet';
 
 interface CallSheetFormProps {
   onSubmit: (data: Partial<CallSheetRequest>) => void;
@@ -289,11 +289,21 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit }) => {
 
             <CardContent className="pt-4 space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                <Input
+              <Select
                   value={newCrew.role}
-                  onChange={(e) => setNewCrew({ ...newCrew, role: e.target.value })}
-                  placeholder="Role"
-                />
+                  onValueChange={(value) => setNewCrew({ ...newCrew, role: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CALL_SHEET_ROLES.map((role) => (
+                      <SelectItem key={role} value={role}>
+                        {role}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <Input
                   value={newCrew.name}
                   onChange={(e) => setNewCrew({ ...newCrew, name: e.target.value })}

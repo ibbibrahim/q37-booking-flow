@@ -97,6 +97,22 @@ export const TransportForm: React.FC<TransportFormProps> = ({
             </div>
 
             <div className="space-y-2">
+            <Label htmlFor="carType">Car Type</Label>
+            <Select
+              value={transportRequest.carType || ''}
+              onValueChange={(value) => onChange('carType', value)}
+            >
+              <SelectTrigger id="carType">
+                <SelectValue placeholder="Select car type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Van">Van</SelectItem>
+                <SelectItem value="SUV">SUV</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+            {/* <div className="space-y-2">
               <Label htmlFor="requestedBy">Requested By</Label>
               <Input
                 id="requestedBy"
@@ -104,7 +120,7 @@ export const TransportForm: React.FC<TransportFormProps> = ({
                 disabled
                 className="bg-muted"
               />
-            </div>
+            </div> */}
           </div>
         </CardContent>
       </Card>

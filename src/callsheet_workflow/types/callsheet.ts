@@ -68,12 +68,22 @@ export interface CallSheetRequest {
 
 
 export const DEPARTMENTS = [
-  'News Media',
-  '37TV Production',
-  'Technical Support',
-  'Engineering',
-  'IT Department',
-  'Administration'
+  'News and Digital Media',
+  'QTV37 Production',
+  'QBusiness',
+];
+
+export const CALL_SHEET_ROLES = [
+  'Director',
+  'Producer',
+  'Presenter',
+  'Assistant Director',
+  'Camera 1',
+  'Camera 2',
+  'Camera 3',
+  'Camera Assistant',
+  'Sound Technician',
+  'Studio Operator', 
 ];
 
 export const EQUIPMENT_CATEGORIES = {
