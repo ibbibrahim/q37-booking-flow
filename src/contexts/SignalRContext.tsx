@@ -26,6 +26,7 @@ export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ child
     if (path.includes('/noc')) role = 'NOC';
     else if (path.includes('/ingest')) role = 'Ingest';
     else if (path.includes('/admin')) role = 'Admin';
+    else if (path.includes('/callsheet')) role = 'Callsheet';
     else role = 'Booking';
 
     // 🟡 TODO: later, replace this detection with actual user role from auth/user context
