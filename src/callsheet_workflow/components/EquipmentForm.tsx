@@ -36,21 +36,30 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({
   const [useCustomItem, setUseCustomItem] = useState(false);
 
   const handleAddEquipment = () => {
-    if (!category || !item) {
-      alert('Please select category and item');
+    if (!category) {
+      alert('Please select a category');
+      return;
+    }
+
+    const finalItem = useCustomItem ? customItem.trim() : item;
+
+    if (!finalItem) {
+      alert(useCustomItem ? 'Please enter a custom item name' : 'Please select an item');
       return;
     }
 
     const newEquipment: Equipment = {
       id: Date.now().toString(),
       category,
-      item,
+      item: finalItem,
       quantity
     };
 
     onAddEquipment(newEquipment);
     setCategory('');
     setItem('');
+    setCustomItem('');
+    setUseCustomItem(false);
     setQuantity(1);
   };
 
