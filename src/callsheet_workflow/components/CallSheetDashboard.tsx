@@ -46,10 +46,10 @@ export const CallSheetDashboard: React.FC = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-card-foreground">Call Sheets</h1>
+          {/* <h1 className="text-2xl font-bold text-card-foreground">Call Sheets</h1>
           <p className="text-muted-foreground text-sm mt-1">
             Manage call sheets, equipment requests, and transportation
-          </p>
+          </p> */}
         </div>
         <button
           onClick={() => navigate('/callsheet/new')}

@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -151,214 +151,226 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit }) => {
 
         <TabsContent value="request" className="space-y-6">
           <Card>
-            <CardContent className="pt-6 space-y-8">
-              <div>
-                <h2 className="text-lg font-semibold text-card-foreground mb-6">Booking Information</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="department">
-                      Department <span className="text-red-500">*</span>
-                    </Label>
-                    <Select value={formData.department} onValueChange={(value) => handleChange('department', value)}>
-                      <SelectTrigger id="department">
-                        <SelectValue placeholder="Select department" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {DEPARTMENTS.map(dept => (
-                          <SelectItem key={dept} value={dept}>{dept}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+            <CardHeader>
+              <CardTitle>Booking Information</CardTitle>
+            </CardHeader>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="title">
-                      Title <span className="text-red-500">*</span>
-                    </Label>
-                    <Input
-                      id="title"
-                      value={formData.title}
-                      onChange={(e) => handleChange('title', e.target.value)}
-                      placeholder="Enter call sheet title"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="filmingDate">
-                      Filming Date <span className="text-red-500">*</span>
-                    </Label>
-                    <Input
-                      id="filmingDate"
-                      type="date"
-                      value={formData.filmingDate}
-                      onChange={(e) => handleChange('filmingDate', e.target.value)}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="location">Location</Label>
-                    <Input
-                      id="location"
-                      value={formData.location}
-                      onChange={(e) => handleChange('location', e.target.value)}
-                      placeholder="Filming location"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="callTime">Call Time</Label>
-                    <Input
-                      id="callTime"
-                      type="time"
-                      value={formData.callTime}
-                      onChange={(e) => handleChange('callTime', e.target.value)}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="wrapTime">Wrap Time</Label>
-                    <Input
-                      id="wrapTime"
-                      type="time"
-                      value={formData.wrapTime}
-                      onChange={(e) => handleChange('wrapTime', e.target.value)}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="focalPoint">Focal Point</Label>
-                    <Input
-                      id="focalPoint"
-                      value={formData.focalPoint}
-                      onChange={(e) => handleChange('focalPoint', e.target.value)}
-                      placeholder="Name"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="focalPointContact">Focal Contact</Label>
-                    <Input
-                      id="focalPointContact"
-                      value={formData.focalPointContact}
-                      onChange={(e) => handleChange('focalPointContact', e.target.value)}
-                      placeholder="Phone number"
-                    />
-                  </div>
-
-                  <div className="md:col-span-2">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="driverNeeded"
-                        checked={formData.driverNeeded}
-                        onCheckedChange={(checked) => handleChange('driverNeeded', checked as boolean)}
-                      />
-                      <Label htmlFor="driverNeeded" className="text-sm font-normal cursor-pointer">
-                        Driver Needed
-                      </Label>
-                    </div>
-                  </div>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Department */}
+                <div className="space-y-2">
+                  <Label htmlFor="department">
+                    Department <span className="text-red-500">*</span>
+                  </Label>
+                  <Select
+                    value={formData.department}
+                    onValueChange={(value) => handleChange('department', value)}
+                  >
+                    <SelectTrigger id="department">
+                      <SelectValue placeholder="Select department" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {DEPARTMENTS.map((dept) => (
+                        <SelectItem key={dept} value={dept}>
+                          {dept}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-              </div>
 
-              <div className="border-t pt-8">
-                <h2 className="text-lg font-semibold text-card-foreground mb-6">Crew Assignments</h2>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                {/* Title */}
+                <div className="space-y-2">
+                  <Label htmlFor="title">
+                    Title <span className="text-red-500">*</span>
+                  </Label>
                   <Input
-                    value={newCrew.role}
-                    onChange={(e) => setNewCrew({ ...newCrew, role: e.target.value })}
-                    placeholder="Role"
+                    id="title"
+                    value={formData.title}
+                    onChange={(e) => handleChange('title', e.target.value)}
+                    placeholder="Enter call sheet title"
                   />
+                </div>
+
+                {/* Filming Date */}
+                <div className="space-y-2">
+                  <Label htmlFor="filmingDate">
+                    Filming Date <span className="text-red-500">*</span>
+                  </Label>
                   <Input
-                    value={newCrew.name}
-                    onChange={(e) => setNewCrew({ ...newCrew, name: e.target.value })}
+                    id="filmingDate"
+                    type="date"
+                    value={formData.filmingDate}
+                    onChange={(e) => handleChange('filmingDate', e.target.value)}
+                  />
+                </div>
+
+                {/* Location */}
+                <div className="space-y-2">
+                  <Label htmlFor="location">Location</Label>
+                  <Input
+                    id="location"
+                    value={formData.location}
+                    onChange={(e) => handleChange('location', e.target.value)}
+                    placeholder="Filming location"
+                  />
+                </div>
+
+                {/* Call Time */}
+                <div className="space-y-2">
+                  <Label htmlFor="callTime">Call Time</Label>
+                  <Input
+                    id="callTime"
+                    type="time"
+                    value={formData.callTime}
+                    onChange={(e) => handleChange('callTime', e.target.value)}
+                  />
+                </div>
+
+                {/* Wrap Time */}
+                <div className="space-y-2">
+                  <Label htmlFor="wrapTime">Wrap Time</Label>
+                  <Input
+                    id="wrapTime"
+                    type="time"
+                    value={formData.wrapTime}
+                    onChange={(e) => handleChange('wrapTime', e.target.value)}
+                  />
+                </div>
+
+                {/* Focal Point */}
+                <div className="space-y-2">
+                  <Label htmlFor="focalPoint">Focal Point</Label>
+                  <Input
+                    id="focalPoint"
+                    value={formData.focalPoint}
+                    onChange={(e) => handleChange('focalPoint', e.target.value)}
                     placeholder="Name"
                   />
+                </div>
+
+                {/* Focal Contact */}
+                <div className="space-y-2">
+                  <Label htmlFor="focalPointContact">Focal Contact</Label>
                   <Input
-                    value={newCrew.phone}
-                    onChange={(e) => setNewCrew({ ...newCrew, phone: e.target.value })}
-                    placeholder="Phone"
+                    id="focalPointContact"
+                    value={formData.focalPointContact}
+                    onChange={(e) => handleChange('focalPointContact', e.target.value)}
+                    placeholder="Phone number"
                   />
                 </div>
 
-                <Button onClick={handleAddCrew} className="mb-4">
-                  <Plus size={18} className="mr-2" />
-                  Add Assignment
-                </Button>
+                {/* Driver Needed */}
+                <div className="md:col-span-2">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="driverNeeded"
+                      checked={formData.driverNeeded}
+                      onCheckedChange={(checked) =>
+                        handleChange('driverNeeded', checked as boolean)
+                      }
+                    />
+                    <Label
+                      htmlFor="driverNeeded"
+                      className="text-sm font-normal cursor-pointer"
+                    >
+                      Driver Needed
+                    </Label>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-                {crewAssignments.length > 0 && (
-                  <Card>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Role</TableHead>
-                          <TableHead>Name</TableHead>
-                          <TableHead>Phone</TableHead>
-                          <TableHead className="text-right">Action</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {crewAssignments.map((crew) => (
-                          <TableRow key={crew.id}>
-                            <TableCell>{crew.role}</TableCell>
-                            <TableCell>{crew.name}</TableCell>
-                            <TableCell className="text-muted-foreground">{crew.phone}</TableCell>
-                            <TableCell className="text-right">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleRemoveCrew(crew.id)}
-                                className="text-red-600 hover:text-red-800 hover:bg-red-50"
-                              >
-                                <Trash2 size={16} />
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </Card>
-                )}
+          <Card>
+            <CardHeader>
+              <CardTitle>Crew Assignments</CardTitle>
+            </CardHeader>
+
+            <CardContent className="pt-4 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <Input
+                  value={newCrew.role}
+                  onChange={(e) => setNewCrew({ ...newCrew, role: e.target.value })}
+                  placeholder="Role"
+                />
+                <Input
+                  value={newCrew.name}
+                  onChange={(e) => setNewCrew({ ...newCrew, name: e.target.value })}
+                  placeholder="Name"
+                />
+                <Input
+                  value={newCrew.phone}
+                  onChange={(e) => setNewCrew({ ...newCrew, phone: e.target.value })}
+                  placeholder="Phone"
+                />
               </div>
 
-              {/* <div className="border-t pt-8">
-                <AcknowledgementPanel
-                  acknowledgements={departmentAcknowledgements}
-                  onChange={handleAcknowledgementChange}
-                />
-              </div> */}
+              <Button onClick={handleAddCrew} className="mb-4">
+                <Plus size={18} className="mr-2" />
+                Add Assignment
+              </Button>
+
+              {crewAssignments.length > 0 && (
+                <Card className="border border-border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Role</TableHead>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Phone</TableHead>
+                        <TableHead className="text-right">Action</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {crewAssignments.map((crew) => (
+                        <TableRow key={crew.id}>
+                          <TableCell>{crew.role}</TableCell>
+                          <TableCell>{crew.name}</TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {crew.phone}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleRemoveCrew(crew.id)}
+                              className="text-red-600 hover:text-red-800 hover:bg-red-50"
+                            >
+                              <Trash2 size={16} />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </Card>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="equipment">
-          <Card>
-            <CardContent className="pt-6">
-              <EquipmentForm
-                equipment={equipment}
-                onAddEquipment={(eq) => setEquipment([...equipment, eq])}
-                onRemoveEquipment={(id) => setEquipment(equipment.filter(e => e.id !== id))}
-                departmentsToApprove={departmentsToApprove}
-                departmentsToNotify={departmentsToNotify}
-                onDepartmentsToApproveChange={setDepartmentsToApprove}
-                onDepartmentsToNotifyChange={setDepartmentsToNotify}
-              />
-            </CardContent>
-          </Card>
+
+        <TabsContent value="equipment" className="space-y-6">
+          <EquipmentForm
+            equipment={equipment}
+            onAddEquipment={(eq) => setEquipment([...equipment, eq])}
+            onRemoveEquipment={(id) => setEquipment(equipment.filter(e => e.id !== id))}
+            departmentsToApprove={departmentsToApprove}
+            departmentsToNotify={departmentsToNotify}
+            onDepartmentsToApproveChange={setDepartmentsToApprove}
+            onDepartmentsToNotifyChange={setDepartmentsToNotify}
+          />
         </TabsContent>
 
         <TabsContent value="preview" className="space-y-6">
-          <Card>
-            <CardContent className="pt-6">
-              <TransportForm
-                transportRequest={transportRequest}
-                onChange={handleTransportChange}
-                notifications={notifications}
-                onToggleNotification={handleToggleNotification}
-              />
-            </CardContent>
-          </Card>
-
+          <TransportForm
+            transportRequest={transportRequest}
+            onChange={handleTransportChange}
+            notifications={notifications}
+            onToggleNotification={handleToggleNotification}
+          />
+      
           <div className="pt-4">
             <CallSheetPreview
               callSheet={{

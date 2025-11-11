@@ -76,7 +76,7 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({
         <CardHeader>
           <CardTitle>Add Equipment</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label htmlFor="category">
