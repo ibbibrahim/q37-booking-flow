@@ -32,6 +32,8 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({
   const [category, setCategory] = useState('');
   const [item, setItem] = useState('');
   const [quantity, setQuantity] = useState(1);
+  const [customItem, setCustomItem] = useState('');
+  const [useCustomItem, setUseCustomItem] = useState(false);
 
   const handleAddEquipment = () => {
     if (!category || !item) {
