@@ -1,4 +1,8 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { useAuth } from './contexts/AuthContext';
+import { Login } from './components/Login';
+import { Unauthorized } from './components/Unauthorized';
+import { ProtectedRoute } from './components/ProtectedRoute';
 import { BookingDashboard } from './booking_workflow/components/BookingDashboard';
 import { RoleView } from './booking_workflow/components/RoleView';
 import { RequestDetail } from './booking_workflow/components/RequestDetail';
@@ -6,31 +10,98 @@ import { CallSheetRoleView } from './callsheet_workflow/components/CallSheetRole
 import { CallSheetDetail } from './callsheet_workflow/components/CallSheetDetail';
 
 function App() {
+  const { isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent mb-4"></div>
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <Routes>
-      <Route path="/" element={<BookingDashboard />}>
+      <Route path="/login" element={
+        isAuthenticated ? <Navigate to="/booking" replace /> : <Login />
+      } />
+
+      <Route path="/unauthorized" element={<Unauthorized />} />
+
+      <Route path="/" element={
+        <ProtectedRoute>
+          <BookingDashboard />
+        </ProtectedRoute>
+      }>
         <Route index element={<Navigate to="/booking" replace />} />
-        {/* Booking role */}
-        <Route path="booking" element={<RoleView role="Booking" />} />
-        <Route path="booking/new" element={<RoleView role="Booking" />} />
-        <Route path="booking/request/:id" element={<RequestDetail />} />
 
-        {/* NOC role */}
-        <Route path="noc" element={<RoleView role="NOC" />} />
-        <Route path="noc/request/:id" element={<RequestDetail />} />
+        <Route path="booking" element={
+          <ProtectedRoute allowedRoles={['Booking', 'Admin']}>
+            <RoleView role="Booking" />
+          </ProtectedRoute>
+        } />
+        <Route path="booking/new" element={
+          <ProtectedRoute allowedRoles={['Booking', 'Admin']}>
+            <RoleView role="Booking" />
+          </ProtectedRoute>
+        } />
+        <Route path="booking/request/:id" element={
+          <ProtectedRoute allowedRoles={['Booking', 'Admin']}>
+            <RequestDetail />
+          </ProtectedRoute>
+        } />
 
-        {/* Ingest role */}
-        <Route path="ingest" element={<RoleView role="Ingest" />} />
-        <Route path="ingest/request/:id" element={<RequestDetail />} />
-        <Route path="ingest/new" element={<RoleView role="Ingest" />} />
+        <Route path="noc" element={
+          <ProtectedRoute allowedRoles={['NOC', 'Admin']}>
+            <RoleView role="NOC" />
+          </ProtectedRoute>
+        } />
+        <Route path="noc/request/:id" element={
+          <ProtectedRoute allowedRoles={['NOC', 'Admin']}>
+            <RequestDetail />
+          </ProtectedRoute>
+        } />
 
-        {/* Admin role */}
-        <Route path="admin" element={<RoleView role="Admin" />} />
+        <Route path="ingest" element={
+          <ProtectedRoute allowedRoles={['Ingest', 'Admin']}>
+            <RoleView role="Ingest" />
+          </ProtectedRoute>
+        } />
+        <Route path="ingest/request/:id" element={
+          <ProtectedRoute allowedRoles={['Ingest', 'Admin']}>
+            <RequestDetail />
+          </ProtectedRoute>
+        } />
+        <Route path="ingest/new" element={
+          <ProtectedRoute allowedRoles={['Ingest', 'Admin']}>
+            <RoleView role="Ingest" />
+          </ProtectedRoute>
+        } />
 
-        {/* Call Sheet Workflow */}
-        <Route path="callsheet" element={<CallSheetRoleView view="list" />} />
-        <Route path="callsheet/new" element={<CallSheetRoleView view="new" />} />
-        <Route path="callsheet/:id" element={<CallSheetDetail />} />
+        <Route path="admin" element={
+          <ProtectedRoute allowedRoles={['Admin']}>
+            <RoleView role="Admin" />
+          </ProtectedRoute>
+        } />
+
+        <Route path="callsheet" element={
+          <ProtectedRoute>
+            <CallSheetRoleView view="list" />
+          </ProtectedRoute>
+        } />
+        <Route path="callsheet/new" element={
+          <ProtectedRoute>
+            <CallSheetRoleView view="new" />
+          </ProtectedRoute>
+        } />
+        <Route path="callsheet/:id" element={
+          <ProtectedRoute>
+            <CallSheetDetail />
+          </ProtectedRoute>
+        } />
 
         <Route path="*" element={<Navigate to="/booking" replace />} />
       </Route>

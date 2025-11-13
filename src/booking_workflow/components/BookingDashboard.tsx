@@ -1,16 +1,19 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import type { UserRole } from '../types/workflow';
-import { User, Radio, Package, Shield, Menu, X, Sun, Moon, FileText } from 'lucide-react';
+import { User, Radio, Package, Shield, Menu, X, Sun, Moon, FileText, LogOut, UserCircle } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { NotificationDropdown } from '../../components/NotificationDropdown';
 import q37Logo from '../../assets/q37.png';
 
 export const BookingDashboard: React.FC = () => {
   const { theme, toggleTheme } = useTheme();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
 
   const getCurrentSection = (): string => {
     const path = location.pathname.split('/')[1];
@@ -180,6 +183,45 @@ export const BookingDashboard: React.FC = () => {
                 >
                   {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
                 </button>
+
+                <div className="relative">
+                  <button
+                    onClick={() => setUserMenuOpen(!userMenuOpen)}
+                    className="flex items-center gap-2 px-3 py-2 hover:bg-muted rounded-lg transition-colors"
+                  >
+                    <UserCircle size={20} className="text-muted-foreground" />
+                    <div className="hidden sm:block text-left">
+                      <p className="text-sm font-medium text-card-foreground">{user?.username}</p>
+                      <p className="text-xs text-muted-foreground">{user?.role}</p>
+                    </div>
+                  </button>
+
+                  {userMenuOpen && (
+                    <>
+                      <div
+                        className="fixed inset-0 z-40"
+                        onClick={() => setUserMenuOpen(false)}
+                      />
+                      <div className="absolute right-0 mt-2 w-48 bg-card border border-border rounded-lg shadow-lg z-50">
+                        <div className="p-3 border-b border-border">
+                          <p className="text-sm font-medium text-card-foreground">{user?.username}</p>
+                          <p className="text-xs text-muted-foreground">{user?.role}</p>
+                        </div>
+                        <button
+                          onClick={() => {
+                            logout();
+                            navigate('/login');
+                            setUserMenuOpen(false);
+                          }}
+                          className="w-full flex items-center gap-2 px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                        >
+                          <LogOut size={16} />
+                          Sign Out
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
           </div>
