@@ -13,6 +13,7 @@ interface SignalRContextType {
 const SignalRContext = createContext<SignalRContextType | undefined>(undefined);
 
 export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { isAuthenticated, user } = useAuth();
   const [connectionState, setConnectionState] = useState<signalR.HubConnectionState>(
     signalR.HubConnectionState.Disconnected
   );
@@ -20,17 +21,21 @@ export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const listenersRef = useRef<Map<string, Set<(data: any) => void>>>(new Map());
   const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
 
-  const setupConnection = useCallback(() => {
-    // 🟢 Detect role from URL path
-    const path = window.location.pathname.toLowerCase();
-    let role: UserRole = 'Booking';
-    if (path.includes('/noc')) role = 'NOC';
-    else if (path.includes('/ingest')) role = 'Ingest';
-    else if (path.includes('/admin')) role = 'Admin';
-    else if (path.includes('/callsheet')) role = 'Callsheet';
-    else role = 'Booking';
+  const getPrimaryRole = useCallback((): UserRole => {
+    if (!user || !user.roles || user.roles.length === 0) {
+      return 'Booking';
+    }
 
-    // 🟡 TODO: later, replace this detection with actual user role from auth/user context
+    const roleArray = user.roles;
+    if (roleArray.includes('Admin')) return 'Admin';
+    if (roleArray.includes('NOC')) return 'NOC';
+    if (roleArray.includes('Ingest')) return 'Ingest';
+    if (roleArray.includes('Callsheet')) return 'Callsheet';
+    return 'Booking';
+  }, [user]);
+
+  const setupConnection = useCallback(() => {
+    const role = getPrimaryRole();
 
     // Determine hub URL with fallback to localhost for dev
     const baseHubUrl =
@@ -84,7 +89,7 @@ export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
     connectionRef.current = connection;
     return connection;
-  }, []);
+  }, [getPrimaryRole]);
 
   const reattachListeners = (connection: signalR.HubConnection) => {
     listenersRef.current.forEach((handlers, eventName) => {
