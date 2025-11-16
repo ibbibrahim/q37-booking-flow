@@ -7,6 +7,8 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertCircle } from 'lucide-react';
 
+import q37Logo from '@/assets/q37.png';
+
 export const Login: React.FC = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
@@ -55,7 +57,7 @@ export const Login: React.FC = () => {
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-2">
           <div className="flex items-center justify-center mb-4">
-            <img src="/src/assets/q37.png" alt="Q37 Logo" className="h-12" />
+            <img src={q37Logo} alt="Q37 Logo" className="h-12" />
           </div>
           <CardTitle className="text-2xl text-center">Welcome Back</CardTitle>
           <p className="text-center text-muted-foreground text-sm">
