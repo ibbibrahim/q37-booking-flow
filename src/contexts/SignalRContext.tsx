@@ -20,6 +20,7 @@ export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const connectionRef = useRef<signalR.HubConnection | null>(null);
   const listenersRef = useRef<Map<string, Set<(data: any) => void>>>(new Map());
   const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
+  const isAuthenticatedRef = useRef<boolean>(isAuthenticated);
 
   const getPrimaryRole = useCallback((): UserRole => {
     if (!user || !user.roles || user.roles.length === 0) {
