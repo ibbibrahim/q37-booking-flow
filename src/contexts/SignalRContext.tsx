@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import * as signalR from '@microsoft/signalr';
 import { UserRole } from '../booking_workflow/types/workflow';
+import { useAuth } from './AuthContext';
 
 interface SignalRContextType {
   invoke: (eventName: string, payload?: any) => Promise<void>;
