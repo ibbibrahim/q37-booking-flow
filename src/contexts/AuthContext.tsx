@@ -67,11 +67,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const { token: receivedToken } = response.data;
 
       const payload = JSON.parse(atob(receivedToken.split('.')[1]));
-      const userRole = payload.role || payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'];
+
+      let userRoles: string[] = [];
+
+      // Handle both roles array and single role
+      if (payload.roles && Array.isArray(payload.roles)) {
+        userRoles = payload.roles;
+      } else if (payload.role) {
+        userRoles = [payload.role];
+      } else if (payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role']) {
+        const role = payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'];
+        userRoles = Array.isArray(role) ? role : [role];
+      }
 
       const userData: User = {
         username: payload.unique_name || payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'] || username,
-        role: userRole
+        roles: userRoles
       };
 
       localStorage.setItem('auth_token', receivedToken);
