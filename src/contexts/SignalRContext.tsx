@@ -143,6 +143,9 @@ export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ child
       if (connectionRef.current && connectionRef.current.state !== signalR.HubConnectionState.Disconnected) {
         connectionRef.current.stop().catch(err => console.log('Error stopping connection:', err));
       }
+
+      // Clear all stale listeners when user logs out to prevent reattaching dead handlers
+      listenersRef.current.clear();
       return;
     }
 
