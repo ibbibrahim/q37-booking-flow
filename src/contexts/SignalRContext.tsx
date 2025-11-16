@@ -77,9 +77,13 @@ export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ child
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
       }
-      reconnectTimeoutRef.current = setTimeout(() => {
-        startConnection(connection);
-      }, 5000);
+
+      // Only attempt to reconnect if user is still authenticated
+      if (isAuthenticatedRef.current) {
+        reconnectTimeoutRef.current = setTimeout(() => {
+          startConnection(connection);
+        }, 5000);
+      }
     });
 
     connection.onreconnecting((error) => {
