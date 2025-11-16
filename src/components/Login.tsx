@@ -27,20 +27,17 @@ export const Login: React.FC = () => {
     setIsLoading(true);
 
     try {
-      await login(username, password);
-
-      // Get the user data from AuthContext after login
-      const { user } = useAuth();
+      const userData = await login(username, password);
 
       let redirectRoute = '/booking';
-      if (user && user.roles && user.roles.length > 0) {
-        if (user.roles.includes('Admin')) {
+      if (userData && userData.roles && userData.roles.length > 0) {
+        if (userData.roles.includes('Admin')) {
           redirectRoute = '/admin';
-        } else if (user.roles.includes('Booking')) {
+        } else if (userData.roles.includes('Booking')) {
           redirectRoute = '/booking';
-        } else if (user.roles.includes('NOC')) {
+        } else if (userData.roles.includes('NOC')) {
           redirectRoute = '/noc';
-        } else if (user.roles.includes('Ingest')) {
+        } else if (userData.roles.includes('Ingest')) {
           redirectRoute = '/ingest';
         }
       }
