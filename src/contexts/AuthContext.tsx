@@ -12,7 +12,7 @@ interface AuthContextType {
 
 interface User {
   username: string;
-  role: 'Booking' | 'NOC' | 'Ingest' | 'Admin';
+  roles: string[];
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
