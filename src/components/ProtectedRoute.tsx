@@ -29,11 +29,12 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   }
 
   if (allowedRoles && user) {
-    if (user.role === 'Admin') {
+    if (user.roles.includes('Admin')) {
       return <>{children}</>;
     }
 
-    if (!allowedRoles.includes(user.role)) {
+    const hasAllowedRole = user.roles.some(role => allowedRoles.includes(role));
+    if (!hasAllowedRole) {
       return <Navigate to="/unauthorized" replace />;
     }
   }
