@@ -103,7 +103,7 @@ export const RoleView: React.FC<RoleViewProps> = ({ role }) => {
       unsubscribeResourcesAssigned();
       unsubscribeNotDone();
     };
-  }, [listen]);
+  }, [isConnected, listen]);
 
   const handleCreateRequest = async (data: Partial<WorkflowRequest>, status: WorkflowStatus) => {
     try {
