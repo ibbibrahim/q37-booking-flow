@@ -119,7 +119,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       unsubscribeResourcesAssigned();
       unsubscribeNotDone();
     };
-  }, [listen, showToast]);
+  }, [isConnected, listen, showToast]);
 
   const markAsRead = useCallback((id: string) => {
     setNotifications((prev) =>
