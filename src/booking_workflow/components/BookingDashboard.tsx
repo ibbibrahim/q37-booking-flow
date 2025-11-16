@@ -128,22 +128,26 @@ export const BookingDashboard: React.FC = () => {
                 );
               })}
 
-              <div className="my-3 border-t border-sidebar-border"></div>
+              {user && user.roles.includes('NOC') && (
+                <>
+                  <div className="my-3 border-t border-sidebar-border"></div>
 
-              <button
-                onClick={() => {
-                  navigate('/callsheet');
-                  setSidebarOpen(false);
-                }}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
-                  currentSection === 'callsheet'
-                    ? 'bg-sidebar-primary text-sidebar-primary-foreground'
-                    : 'text-sidebar-foreground hover:bg-sidebar-accent'
-                }`}
-              >
-                <FileText size={20} />
-                <span className="font-medium text-sm">Call Sheet</span>
-              </button>
+                  <button
+                    onClick={() => {
+                      navigate('/callsheet');
+                      setSidebarOpen(false);
+                    }}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
+                      currentSection === 'callsheet'
+                        ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+                        : 'text-sidebar-foreground hover:bg-sidebar-accent'
+                    }`}
+                  >
+                    <FileText size={20} />
+                    <span className="font-medium text-sm">Call Sheet</span>
+                  </button>
+                </>
+              )}
             </div>
           </nav>
 
