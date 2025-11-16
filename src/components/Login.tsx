@@ -28,7 +28,24 @@ export const Login: React.FC = () => {
 
     try {
       await login(username, password);
-      navigate('/booking');
+
+      // Get the user data from AuthContext after login
+      const { user } = useAuth();
+
+      let redirectRoute = '/booking';
+      if (user && user.roles && user.roles.length > 0) {
+        if (user.roles.includes('Admin')) {
+          redirectRoute = '/admin';
+        } else if (user.roles.includes('Booking')) {
+          redirectRoute = '/booking';
+        } else if (user.roles.includes('NOC')) {
+          redirectRoute = '/noc';
+        } else if (user.roles.includes('Ingest')) {
+          redirectRoute = '/ingest';
+        }
+      }
+
+      navigate(redirectRoute);
     } catch (err: any) {
       setError(err.message || 'Login failed. Please try again.');
     } finally {
