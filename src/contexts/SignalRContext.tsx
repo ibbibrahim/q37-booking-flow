@@ -22,6 +22,11 @@ export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
   const isAuthenticatedRef = useRef<boolean>(isAuthenticated);
 
+  // Keep track of authentication state in a ref so it's accessible in callbacks
+  useEffect(() => {
+    isAuthenticatedRef.current = isAuthenticated;
+  }, [isAuthenticated]);
+
   const getPrimaryRole = useCallback((): UserRole => {
     if (!user || !user.roles || user.roles.length === 0) {
       return 'Booking';
