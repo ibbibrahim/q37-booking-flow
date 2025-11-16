@@ -207,7 +207,7 @@ export const BookingDashboard: React.FC = () => {
                     <UserCircle size={20} className="text-muted-foreground" />
                     <div className="hidden sm:block text-left">
                       <p className="text-sm font-medium text-card-foreground">{user?.username}</p>
-                      <p className="text-xs text-muted-foreground">{user?.role}</p>
+                      <p className="text-xs text-muted-foreground">{user?.roles?.join(', ')}</p>
                     </div>
                   </button>
 
