@@ -119,6 +119,17 @@ export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ child
   };
 
   useEffect(() => {
+    const isOnLoginPage = window.location.pathname === '/login';
+
+    // Only connect if authenticated and not on login page
+    if (!isAuthenticated || isOnLoginPage) {
+      // Cleanup existing connection if user logs out
+      if (connectionRef.current && connectionRef.current.state === signalR.HubConnectionState.Connected) {
+        connectionRef.current.stop().catch(err => console.log('Error stopping connection:', err));
+      }
+      return;
+    }
+
     const connection = setupConnection();
     startConnection(connection);
 
@@ -127,11 +138,11 @@ export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ child
         clearTimeout(reconnectTimeoutRef.current);
       }
       if (connectionRef.current) {
-        connectionRef.current.stop();
+        connectionRef.current.stop().catch(err => console.log('Error stopping connection:', err));
       }
       listenersRef.current.clear();
     };
-  }, [setupConnection]);
+  }, [isAuthenticated, user, setupConnection]);
 
   const invoke = useCallback(async (eventName: string, payload?: any) => {
     if (!connectionRef.current || connectionRef.current.state !== signalR.HubConnectionState.Connected) {
