@@ -5,14 +5,14 @@ interface AuthContextType {
   isAuthenticated: boolean;
   user: User | null;
   token: string | null;
-  login: (username: string, password: string) => Promise<void>;
+  login: (username: string, password: string) => Promise<User>;
   logout: () => void;
   isLoading: boolean;
 }
 
 interface User {
   username: string;
-  role: 'Booking' | 'NOC' | 'Ingest' | 'Admin';
+  roles: string[];
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -67,11 +67,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const { token: receivedToken } = response.data;
 
       const payload = JSON.parse(atob(receivedToken.split('.')[1]));
-      const userRole = payload.role || payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'];
+
+      let userRoles: string[] = [];
+      debugger;
+
+      // Handle both roles array and single role
+      if (payload.roles && Array.isArray(payload.roles)) {
+        userRoles = payload.roles;
+      } else if (payload.role) {
+        userRoles = Array.isArray(payload.role) ? payload.role : [payload.role];
+      } else if (payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role']) {
+        const role = payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'];
+        userRoles = Array.isArray(role) ? role : [role];
+      }
 
       const userData: User = {
         username: payload.unique_name || payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'] || username,
-        role: userRole
+        roles: userRoles
       };
 
       localStorage.setItem('auth_token', receivedToken);
@@ -82,6 +94,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setIsAuthenticated(true);
 
       apiClient.defaults.headers.common['Authorization'] = `Bearer ${receivedToken}`;
+
+      return userData;
     } catch (error: any) {
       console.error('Login failed:', error);
       throw new Error(error.response?.data?.message || 'Invalid username or password');

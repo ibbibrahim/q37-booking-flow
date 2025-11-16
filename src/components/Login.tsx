@@ -27,8 +27,22 @@ export const Login: React.FC = () => {
     setIsLoading(true);
 
     try {
-      await login(username, password);
-      navigate('/booking');
+      const userData = await login(username, password);
+
+      let redirectRoute = '/booking';
+      if (userData && userData.roles && userData.roles.length > 0) {
+        if (userData.roles.includes('Admin')) {
+          redirectRoute = '/admin';
+        } else if (userData.roles.includes('Booking')) {
+          redirectRoute = '/booking';
+        } else if (userData.roles.includes('NOC')) {
+          redirectRoute = '/noc';
+        } else if (userData.roles.includes('Ingest')) {
+          redirectRoute = '/ingest';
+        }
+      }
+
+      navigate(redirectRoute);
     } catch (err: any) {
       setError(err.message || 'Login failed. Please try again.');
     } finally {

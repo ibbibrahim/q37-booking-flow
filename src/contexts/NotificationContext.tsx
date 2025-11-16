@@ -26,10 +26,15 @@ const NotificationContext = createContext<NotificationContextType | undefined>(u
 
 export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const { listen } = useSignalR();
+  const { listen, isConnected } = useSignalR();
   const { showToast } = useToast();
 
   useEffect(() => {
+    // Don't subscribe if not connected
+    if (!isConnected) {
+      return;
+    }
+
     const unsubscribeCreated = listen('RequestCreated', (data: WorkflowRequest) => {
       const notification: Notification = {
         id: `notif-${Date.now()}-${Math.random()}`,
@@ -114,7 +119,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       unsubscribeResourcesAssigned();
       unsubscribeNotDone();
     };
-  }, [listen, showToast]);
+  }, [isConnected, listen, showToast]);
 
   const markAsRead = useCallback((id: string) => {
     setNotifications((prev) =>

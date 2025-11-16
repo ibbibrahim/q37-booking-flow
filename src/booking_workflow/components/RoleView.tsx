@@ -14,7 +14,7 @@ interface RoleViewProps {
 export const RoleView: React.FC<RoleViewProps> = ({ role }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { listen, invoke } = useSignalR();
+  const { listen, invoke, isConnected } = useSignalR();
   const [requests, setRequests] = useState<WorkflowRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const showForm = location.pathname.includes('/new');
@@ -36,6 +36,11 @@ export const RoleView: React.FC<RoleViewProps> = ({ role }) => {
   }, [loadRequests]);
 
   useEffect(() => {
+    // Don't subscribe if not connected
+    if (!isConnected) {
+      return;
+    }
+
     const unsubscribeCreated = listen('RequestCreated', (newRequest: WorkflowRequest) => {
         newRequest.__isNew = true;
         setRequests((prev) => {
@@ -98,7 +103,7 @@ export const RoleView: React.FC<RoleViewProps> = ({ role }) => {
       unsubscribeResourcesAssigned();
       unsubscribeNotDone();
     };
-  }, [listen]);
+  }, [isConnected, listen]);
 
   const handleCreateRequest = async (data: Partial<WorkflowRequest>, status: WorkflowStatus) => {
     try {

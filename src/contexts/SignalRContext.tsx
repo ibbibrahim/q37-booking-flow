@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import * as signalR from '@microsoft/signalr';
 import { UserRole } from '../booking_workflow/types/workflow';
+import { useAuth } from './AuthContext';
 
 interface SignalRContextType {
   invoke: (eventName: string, payload?: any) => Promise<void>;
@@ -12,24 +13,35 @@ interface SignalRContextType {
 const SignalRContext = createContext<SignalRContextType | undefined>(undefined);
 
 export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { isAuthenticated, user } = useAuth();
   const [connectionState, setConnectionState] = useState<signalR.HubConnectionState>(
     signalR.HubConnectionState.Disconnected
   );
   const connectionRef = useRef<signalR.HubConnection | null>(null);
   const listenersRef = useRef<Map<string, Set<(data: any) => void>>>(new Map());
   const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
+  const isAuthenticatedRef = useRef<boolean>(isAuthenticated);
+
+  // Keep track of authentication state in a ref so it's accessible in callbacks
+  useEffect(() => {
+    isAuthenticatedRef.current = isAuthenticated;
+  }, [isAuthenticated]);
+
+  const getPrimaryRole = useCallback((): UserRole => {
+    if (!user || !user.roles || user.roles.length === 0) {
+      return 'Booking';
+    }
+
+    const roleArray = user.roles;
+    if (roleArray.includes('Admin')) return 'Admin';
+    if (roleArray.includes('NOC')) return 'NOC';
+    if (roleArray.includes('Ingest')) return 'Ingest';
+    if (roleArray.includes('Callsheet')) return 'Callsheet';
+    return 'Booking';
+  }, [user]);
 
   const setupConnection = useCallback(() => {
-    // 🟢 Detect role from URL path
-    const path = window.location.pathname.toLowerCase();
-    let role: UserRole = 'Booking';
-    if (path.includes('/noc')) role = 'NOC';
-    else if (path.includes('/ingest')) role = 'Ingest';
-    else if (path.includes('/admin')) role = 'Admin';
-    else if (path.includes('/callsheet')) role = 'Callsheet';
-    else role = 'Booking';
-
-    // 🟡 TODO: later, replace this detection with actual user role from auth/user context
+    const role = getPrimaryRole();
 
     // Determine hub URL with fallback to localhost for dev
     const baseHubUrl =
@@ -65,9 +77,13 @@ export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ child
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
       }
-      reconnectTimeoutRef.current = setTimeout(() => {
-        startConnection(connection);
-      }, 5000);
+
+      // Only attempt to reconnect if user is still authenticated
+      if (isAuthenticatedRef.current) {
+        reconnectTimeoutRef.current = setTimeout(() => {
+          startConnection(connection);
+        }, 5000);
+      }
     });
 
     connection.onreconnecting((error) => {
@@ -83,7 +99,7 @@ export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
     connectionRef.current = connection;
     return connection;
-  }, []);
+  }, [getPrimaryRole]);
 
   const reattachListeners = (connection: signalR.HubConnection) => {
     listenersRef.current.forEach((handlers, eventName) => {
@@ -113,19 +129,40 @@ export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ child
   };
 
   useEffect(() => {
+    const isOnLoginPage = window.location.pathname === '/login';
+
+    // Only connect if authenticated and not on login page
+    if (!isAuthenticated || isOnLoginPage) {
+      // Clear any pending reconnect timeout
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = undefined;
+      }
+
+      // Cleanup existing connection if user logs out
+      if (connectionRef.current && connectionRef.current.state !== signalR.HubConnectionState.Disconnected) {
+        connectionRef.current.stop().catch(err => console.log('Error stopping connection:', err));
+      }
+
+      // Clear all stale listeners when user logs out to prevent reattaching dead handlers
+      listenersRef.current.clear();
+      return;
+    }
+
     const connection = setupConnection();
     startConnection(connection);
 
     return () => {
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = undefined;
       }
       if (connectionRef.current) {
-        connectionRef.current.stop();
+        connectionRef.current.stop().catch(err => console.log('Error stopping connection:', err));
       }
       listenersRef.current.clear();
     };
-  }, [setupConnection]);
+  }, [isAuthenticated, user, setupConnection]);
 
   const invoke = useCallback(async (eventName: string, payload?: any) => {
     if (!connectionRef.current || connectionRef.current.state !== signalR.HubConnectionState.Connected) {

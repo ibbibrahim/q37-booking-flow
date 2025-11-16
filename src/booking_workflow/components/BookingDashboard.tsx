@@ -42,10 +42,27 @@ export const BookingDashboard: React.FC = () => {
     Booking: { icon: User, label: 'Booking', path: '/booking' },
     NOC: { icon: Radio, label: 'NOC', path: '/noc' },
     Ingest: { icon: Package, label: 'Ingest', path: '/ingest' },
-    Admin: { icon: Shield, label: 'Admin', path: '/admin' }
+    Admin: { icon: Shield, label: 'Admin', path: '/admin' },
+    Callsheet: { icon: FileText, label: 'Call Sheet', path: '/callsheet' }
   };
 
-  const roles: UserRole[] = ['Booking', 'NOC', 'Ingest', 'Admin'];
+  const getAllowedRoles = (): UserRole[] => {
+    if (!user || !user.roles || user.roles.length === 0) {
+      return [];
+    }
+
+    const allowed: UserRole[] = [];
+
+    if (user.roles.includes('Booking')) allowed.push('Booking');
+    if (user.roles.includes('NOC')) allowed.push('NOC');
+    if (user.roles.includes('Ingest')) allowed.push('Ingest');
+    if (user.roles.includes('Admin')) allowed.push('Admin');
+    if (user.roles.includes('Callsheet')) allowed.push('Callsheet');
+
+    return allowed;
+  };
+
+  const roles: UserRole[] = getAllowedRoles();
 
   const getRoleDescription = (role: UserRole): string => {
     switch (role) {
@@ -91,44 +108,25 @@ export const BookingDashboard: React.FC = () => {
 
           <nav className="flex-1 p-4">
             <div className="space-y-1">
-              {roles.map(role => {
-                const Icon = roleConfig[role].icon;
-                const isActive = currentRole === role && currentSection !== 'callsheet';
-                return (
-                  <button
-                    key={role}
-                    onClick={() => {
-                      navigate(roleConfig[role].path);
-                      setSidebarOpen(false);
-                    }}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
-                      isActive
-                        ? 'bg-sidebar-primary text-sidebar-primary-foreground'
-                        : 'text-sidebar-foreground hover:bg-sidebar-accent'
-                    }`}
-                  >
-                    <Icon size={20} />
-                    <span className="font-medium text-sm">{roleConfig[role].label}</span>
-                  </button>
-                );
-              })}
+            {roles.map(role => {
+              const Icon = roleConfig[role].icon;
+              const isActive = currentSection === role.toLowerCase();
 
-              <div className="my-3 border-t border-sidebar-border"></div>
-
-              <button
-                onClick={() => {
-                  navigate('/callsheet');
-                  setSidebarOpen(false);
-                }}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
-                  currentSection === 'callsheet'
-                    ? 'bg-sidebar-primary text-sidebar-primary-foreground'
-                    : 'text-sidebar-foreground hover:bg-sidebar-accent'
-                }`}
-              >
-                <FileText size={20} />
-                <span className="font-medium text-sm">Call Sheet</span>
-              </button>
+              return (
+                <button
+                  key={role}
+                  onClick={() => navigate(roleConfig[role].path)}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
+                    isActive
+                      ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+                      : 'text-sidebar-foreground hover:bg-sidebar-accent'
+                  }`}
+                >
+                  <Icon size={20} />
+                  <span className="font-medium text-sm">{roleConfig[role].label}</span>
+                </button>
+              );
+            })}
             </div>
           </nav>
 
@@ -192,7 +190,7 @@ export const BookingDashboard: React.FC = () => {
                     <UserCircle size={20} className="text-muted-foreground" />
                     <div className="hidden sm:block text-left">
                       <p className="text-sm font-medium text-card-foreground">{user?.username}</p>
-                      <p className="text-xs text-muted-foreground">{user?.role}</p>
+                      <p className="text-xs text-muted-foreground">{user?.roles?.join(', ')}</p>
                     </div>
                   </button>
 
@@ -205,7 +203,7 @@ export const BookingDashboard: React.FC = () => {
                       <div className="absolute right-0 mt-2 w-48 bg-card border border-border rounded-lg shadow-lg z-50">
                         <div className="p-3 border-b border-border">
                           <p className="text-sm font-medium text-card-foreground">{user?.username}</p>
-                          <p className="text-xs text-muted-foreground">{user?.role}</p>
+                          <p className="text-xs text-muted-foreground">{user?.roles?.join(', ')}</p>
                         </div>
                         <button
                           onClick={() => {
