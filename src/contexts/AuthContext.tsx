@@ -93,6 +93,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setIsAuthenticated(true);
 
       apiClient.defaults.headers.common['Authorization'] = `Bearer ${receivedToken}`;
+
+      return userData;
     } catch (error: any) {
       console.error('Login failed:', error);
       throw new Error(error.response?.data?.message || 'Invalid username or password');
