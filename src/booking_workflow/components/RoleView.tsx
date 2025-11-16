@@ -36,6 +36,11 @@ export const RoleView: React.FC<RoleViewProps> = ({ role }) => {
   }, [loadRequests]);
 
   useEffect(() => {
+    // Don't subscribe if not connected
+    if (!isConnected) {
+      return;
+    }
+
     const unsubscribeCreated = listen('RequestCreated', (newRequest: WorkflowRequest) => {
         newRequest.__isNew = true;
         setRequests((prev) => {
