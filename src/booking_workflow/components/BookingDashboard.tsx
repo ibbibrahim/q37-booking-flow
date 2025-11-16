@@ -45,7 +45,22 @@ export const BookingDashboard: React.FC = () => {
     Admin: { icon: Shield, label: 'Admin', path: '/admin' }
   };
 
-  const roles: UserRole[] = ['Booking', 'NOC', 'Ingest', 'Admin'];
+  const getAllowedRoles = (): UserRole[] => {
+    if (!user || !user.roles || user.roles.length === 0) {
+      return [];
+    }
+
+    const allowed: UserRole[] = [];
+
+    if (user.roles.includes('Booking')) allowed.push('Booking');
+    if (user.roles.includes('NOC')) allowed.push('NOC');
+    if (user.roles.includes('Ingest')) allowed.push('Ingest');
+    if (user.roles.includes('Admin')) allowed.push('Admin');
+
+    return allowed;
+  };
+
+  const roles: UserRole[] = getAllowedRoles();
 
   const getRoleDescription = (role: UserRole): string => {
     switch (role) {
