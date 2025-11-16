@@ -14,7 +14,7 @@ interface RoleViewProps {
 export const RoleView: React.FC<RoleViewProps> = ({ role }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { listen, invoke } = useSignalR();
+  const { listen, invoke, isConnected } = useSignalR();
   const [requests, setRequests] = useState<WorkflowRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const showForm = location.pathname.includes('/new');
