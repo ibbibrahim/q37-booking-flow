@@ -69,12 +69,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const payload = JSON.parse(atob(receivedToken.split('.')[1]));
 
       let userRoles: string[] = [];
-
+  
       // Handle both roles array and single role
       if (payload.roles && Array.isArray(payload.roles)) {
         userRoles = payload.roles;
       } else if (payload.role) {
-        userRoles = [payload.role];
+        userRoles = Array.isArray(payload.role) ? payload.role : [payload.role];
       } else if (payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role']) {
         const role = payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'];
         userRoles = Array.isArray(role) ? role : [role];
