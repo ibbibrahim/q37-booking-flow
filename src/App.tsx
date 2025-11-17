@@ -8,6 +8,7 @@ import { RoleView } from './booking_workflow/components/RoleView';
 import { RequestDetail } from './booking_workflow/components/RequestDetail';
 import { CallSheetRoleView } from './callsheet_workflow/components/CallSheetRoleView';
 import { CallSheetDetail } from './callsheet_workflow/components/CallSheetDetail';
+import { CallsheetAnalyticsDashboard } from './callsheet_workflow/components/CallsheetAnalyticsDashboard';
 
 function App() {
   const { isAuthenticated, isLoading } = useAuth();
