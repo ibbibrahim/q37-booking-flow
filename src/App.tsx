@@ -11,8 +11,22 @@ import { CallSheetDetail } from './callsheet_workflow/components/CallSheetDetail
 import { CallsheetAnalyticsDashboard } from './callsheet_workflow/components/CallsheetAnalyticsDashboard';
 
 function App() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, user, isLoading } = useAuth();
 
+  // 🔥 1. Choose default route based on ROLE
+  const getDefaultRoute = () => {
+    if (!user || !user.roles) return "/login";
+
+    if (user.roles.includes("Admin")) return "/admin";
+    if (user.roles.includes("NOC")) return "/noc";
+    if (user.roles.includes("Ingest")) return "/ingest";
+    if (user.roles.includes("Booking")) return "/booking";
+    if (user.roles.includes("Callsheet")) return "/callsheet";
+
+    return "/unauthorized";
+  };
+
+  // 🔄 While auth is restoring
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -26,18 +40,36 @@ function App() {
 
   return (
     <Routes>
-      <Route path="/login" element={
-        isAuthenticated ? <Navigate to="/booking" replace /> : <Login />
-      } />
+
+      {/** 🔥 LOGIN FIX — Uses dynamic redirect */}
+      <Route
+        path="/login"
+        element={
+          isAuthenticated ? (
+            <Navigate to={getDefaultRoute()} replace />
+          ) : (
+            <Login />
+          )
+        }
+      />
 
       <Route path="/unauthorized" element={<Unauthorized />} />
 
-      <Route path="/" element={
-        <ProtectedRoute>
-          <BookingDashboard />
-        </ProtectedRoute>
-      }>
-        <Route index element={<Navigate to="/booking" replace />} />
+      {/** MAIN WRAPPER */}
+      <Route
+        path="/"
+        element={
+          <ProtectedRoute>
+            <BookingDashboard />
+          </ProtectedRoute>
+        }
+      >
+
+        {/** 🔥 DEFAULT HOME REDIRECT FIX */}
+        <Route
+          index
+          element={<Navigate to={getDefaultRoute()} replace />}
+        />
 
         {/** BOOKING */}
         <Route
@@ -123,7 +155,7 @@ function App() {
         <Route
           path="callsheet"
           element={
-            <ProtectedRoute allowedRoles={['NOC', 'Admin']}>
+            <ProtectedRoute allowedRoles={['Callsheet', 'Admin']}>
               <CallSheetRoleView view="list" />
             </ProtectedRoute>
           }
@@ -131,7 +163,7 @@ function App() {
         <Route
           path="callsheet/new"
           element={
-            <ProtectedRoute allowedRoles={['NOC', 'Admin']}>
+            <ProtectedRoute allowedRoles={['Callsheet', 'Admin']}>
               <CallSheetRoleView view="new" />
             </ProtectedRoute>
           }
@@ -139,7 +171,7 @@ function App() {
         <Route
           path="callsheet/analytics"
           element={
-            <ProtectedRoute allowedRoles={['NOC', 'Admin']}>
+            <ProtectedRoute allowedRoles={['Callsheet', 'Admin']}>
               <CallsheetAnalyticsDashboard />
             </ProtectedRoute>
           }
@@ -147,13 +179,13 @@ function App() {
         <Route
           path="callsheet/:id"
           element={
-            <ProtectedRoute allowedRoles={['NOC', 'Admin']}>
+            <ProtectedRoute allowedRoles={['Callsheet', 'Admin']}>
               <CallSheetDetail />
             </ProtectedRoute>
           }
         />
 
-        <Route path="*" element={<Navigate to="/booking" replace />} />
+        <Route path="*" element={<Navigate to={getDefaultRoute()} replace />} />
       </Route>
     </Routes>
   );
