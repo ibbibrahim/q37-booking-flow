@@ -39,6 +39,7 @@ function App() {
       }>
         <Route index element={<Navigate to="/booking" replace />} />
 
+        {/** BOOKING */}
         <Route path="booking" element={
           <ProtectedRoute allowedRoles={['Booking', 'Admin']}>
             <RoleView role="Booking" />
