@@ -98,6 +98,11 @@ function App() {
             <CallSheetRoleView view="new" />
           </ProtectedRoute>
         } />
+        <Route path="callsheet/analytics" element={
+          <ProtectedRoute>
+            <CallsheetAnalyticsDashboard />
+          </ProtectedRoute>
+        } />
         <Route path="callsheet/:id" element={
           <ProtectedRoute>
             <CallSheetDetail />
