@@ -8,6 +8,7 @@ import { RoleView } from './booking_workflow/components/RoleView';
 import { RequestDetail } from './booking_workflow/components/RequestDetail';
 import { CallSheetRoleView } from './callsheet_workflow/components/CallSheetRoleView';
 import { CallSheetDetail } from './callsheet_workflow/components/CallSheetDetail';
+import { CallsheetAnalyticsDashboard } from './callsheet_workflow/components/CallsheetAnalyticsDashboard';
 
 function App() {
   const { isAuthenticated, user, isLoading } = useAuth();
@@ -164,6 +165,14 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={['Callsheet', 'Admin']}>
               <CallSheetRoleView view="new" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="callsheet/analytics"
+          element={
+            <ProtectedRoute allowedRoles={['NOC', 'Admin']}>
+              <CallsheetAnalyticsDashboard />
             </ProtectedRoute>
           }
         />

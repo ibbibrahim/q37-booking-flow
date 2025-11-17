@@ -49,7 +49,7 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({
     }
 
     const newEquipment: Equipment = {
-      id: Date.now().toString(),
+      // id: Date.now().toString(),
       category,
       item: finalItem,
       quantity
