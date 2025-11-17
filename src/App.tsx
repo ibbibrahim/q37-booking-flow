@@ -8,6 +8,7 @@ import { RoleView } from './booking_workflow/components/RoleView';
 import { RequestDetail } from './booking_workflow/components/RequestDetail';
 import { CallSheetRoleView } from './callsheet_workflow/components/CallSheetRoleView';
 import { CallSheetDetail } from './callsheet_workflow/components/CallSheetDetail';
+import { CallSheetAnalytics } from './callsheet_workflow/components/CallSheetAnalytics';
 
 function App() {
   const { isAuthenticated, user, isLoading } = useAuth();
@@ -154,7 +155,7 @@ function App() {
         <Route
           path="callsheet"
           element={
-            <ProtectedRoute allowedRoles={['Callsheet', 'Admin']}>
+            <ProtectedRoute>
               <CallSheetRoleView view="list" />
             </ProtectedRoute>
           }
@@ -162,15 +163,23 @@ function App() {
         <Route
           path="callsheet/new"
           element={
-            <ProtectedRoute allowedRoles={['Callsheet', 'Admin']}>
+            <ProtectedRoute>
               <CallSheetRoleView view="new" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="callsheet/analytics"
+          element={
+            <ProtectedRoute>
+              <CallSheetAnalytics />
             </ProtectedRoute>
           }
         />
         <Route
           path="callsheet/:id"
           element={
-            <ProtectedRoute allowedRoles={['Callsheet', 'Admin']}>
+            <ProtectedRoute>
               <CallSheetDetail />
             </ProtectedRoute>
           }
