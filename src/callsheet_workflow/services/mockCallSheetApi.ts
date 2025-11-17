@@ -1,76 +1,60 @@
+// ------------------------------------------------------
+// CallSheet API Client (Updated for Normalized DB Schema)
+// ------------------------------------------------------
+
 import apiClient from "@/utils/apiClient";
 import type { CallSheetRequest } from "@/callsheet_workflow/types/callsheet";
 
 const API_BASE = "/api/callsheet/requests";
 
 export const callSheetApi = {
+  // ------------------------------------------------------
   // GET all call sheets
+  // ------------------------------------------------------
   getCallSheets: async (): Promise<CallSheetRequest[]> => {
     const { data } = await apiClient.get(API_BASE);
 
-    return data.map((item: any) => ({
-      ...item,
-      crewAssignments: JSON.parse(item.crewAssignments || "[]"),
-      departmentAcknowledgements: JSON.parse(item.departmentAcknowledgements || "[]"),
-      equipment: JSON.parse(item.equipment || "[]"),
-      transportRequest: item.transportRequest ? JSON.parse(item.transportRequest) : null,
-      notifications: JSON.parse(item.notifications || "[]"),
-      departmentsToApprove: JSON.parse(item.departmentsToApprove || "[]"),
-      departmentsToNotify: JSON.parse(item.departmentsToNotify || "[]"),
-    }));
+    // Backend now returns real arrays/objects -> no parsing needed
+    return data as CallSheetRequest[];
   },
 
-  // GET single call sheet
+  // ------------------------------------------------------
+  // GET single call sheet by ID
+  // ------------------------------------------------------
   getCallSheetById: async (id: number): Promise<CallSheetRequest> => {
     const { data } = await apiClient.get(`${API_BASE}/${id}`);
 
-    return {
-      ...data,
-      crewAssignments: JSON.parse(data.crewAssignments || "[]"),
-      departmentAcknowledgements: JSON.parse(data.departmentAcknowledgements || "[]"),
-      equipment: JSON.parse(data.equipment || "[]"),
-      transportRequest: data.transportRequest ? JSON.parse(data.transportRequest) : null,
-      notifications: JSON.parse(data.notifications || "[]"),
-      departmentsToApprove: JSON.parse(data.departmentsToApprove || "[]"),
-      departmentsToNotify: JSON.parse(data.departmentsToNotify || "[]"),
-    };
+    return data as CallSheetRequest;
   },
 
-  // POST create
+  // ------------------------------------------------------
+  // CREATE call sheet
+  // ------------------------------------------------------
   createCallSheet: async (data: Partial<CallSheetRequest>): Promise<CallSheetRequest> => {
+    // Send arrays/objects directly (normalized DB)
     const body = {
       ...data,
-      crewAssignments: JSON.stringify(data.crewAssignments || []),
-      departmentAcknowledgements: JSON.stringify(data.departmentAcknowledgements || []),
-      equipment: JSON.stringify(data.equipment || []),
-      transportRequest: JSON.stringify(data.transportRequest || {}),
-      notifications: JSON.stringify(data.notifications || []),
-      departmentsToApprove: JSON.stringify(data.departmentsToApprove || []),
-      departmentsToNotify: JSON.stringify(data.departmentsToNotify || []),
     };
 
     const { data: result } = await apiClient.post(API_BASE, body);
-    return result;
+    return result as CallSheetRequest;
   },
 
-  // PUT update
+  // ------------------------------------------------------
+  // UPDATE call sheet
+  // ------------------------------------------------------
   updateCallSheet: async (id: number, data: Partial<CallSheetRequest>): Promise<CallSheetRequest> => {
     const body = {
       ...data,
-      crewAssignments: JSON.stringify(data.crewAssignments || []),
-      departmentAcknowledgements: JSON.stringify(data.departmentAcknowledgements || []),
-      equipment: JSON.stringify(data.equipment || []),
-      transportRequest: JSON.stringify(data.transportRequest || {}),
-      notifications: JSON.stringify(data.notifications || []),
-      departmentsToApprove: JSON.stringify(data.departmentsToApprove || []),
-      departmentsToNotify: JSON.stringify(data.departmentsToNotify || []),
     };
 
     const { data: result } = await apiClient.put(`${API_BASE}/${id}`, body);
-    return result;
+    return result as CallSheetRequest;
   },
 
-  // DELETE
+  // ------------------------------------------------------
+  // DELETE call sheet
+  // ------------------------------------------------------
   deleteCallSheet: async (id: number): Promise<boolean> => {
     const res = await apiClient.delete(`${API_BASE}/${id}`);
     return res.status === 204 || res.status === 200;

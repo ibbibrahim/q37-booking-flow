@@ -71,7 +71,7 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit }) => {
     }
 
     const crew: CrewAssignment = {
-      id: Date.now().toString(),
+      // id: Date.now().toString(),
       ...newCrew
     };
 
