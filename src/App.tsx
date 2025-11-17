@@ -171,7 +171,7 @@ function App() {
         <Route
           path="callsheet/analytics"
           element={
-            <ProtectedRoute allowedRoles={['Callsheet', 'Admin']}>
+            <ProtectedRoute allowedRoles={['NOC', 'Admin']}>
               <CallsheetAnalyticsDashboard />
             </ProtectedRoute>
           }
