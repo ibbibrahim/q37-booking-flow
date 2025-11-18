@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import type { UserRole } from '../types/workflow';
-import { User, Radio, Package, Shield, Menu, X, Sun, Moon, FileText, LogOut, UserCircle } from 'lucide-react';
+import { User, Radio, Package, Shield, Menu, X, Sun, Moon, FileText, LogOut, UserCircle, BarChart3 } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { NotificationDropdown } from '../../components/NotificationDropdown';
@@ -46,6 +46,8 @@ export const BookingDashboard: React.FC = () => {
     Admin: { icon: Shield, label: 'Admin', path: '/admin' },
     Callsheet: { icon: FileText, label: 'Call Sheet', path: '/callsheet' }
   };
+
+  const hasCallsheetAccess = user?.roles?.includes('Callsheet') || user?.roles?.includes('Admin');
 
   const getAllowedRoles = (): UserRole[] => {
     if (!user || !user.roles || user.roles.length === 0) {
@@ -128,6 +130,23 @@ export const BookingDashboard: React.FC = () => {
                 </button>
               );
             })}
+
+            {hasCallsheetAccess && (
+              <>
+                <div className="my-2 border-t border-sidebar-border"></div>
+                <button
+                  onClick={() => navigate('/callsheet/analytics')}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
+                    location.pathname === '/callsheet/analytics'
+                      ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+                      : 'text-sidebar-foreground hover:bg-sidebar-accent'
+                  }`}
+                >
+                  <BarChart3 size={20} />
+                  <span className="font-medium text-sm">Call Sheet Analytics</span>
+                </button>
+              </>
+            )}
             </div>
           </nav>
 

@@ -111,37 +111,42 @@ export const CallSheetAnalytics: React.FC = () => {
 
       const result = await callSheetApi.searchCallSheets(filters);
 
-      setCallSheetResults(result.callSheets || []);
-      setTotalCount(result.totalCount || 0);
-      setTotalPages(Math.ceil((result.totalCount || 0) / pageSize));
+      setCallSheetResults(result.items || []);
+      setTotalCount(result.total || 0);
+      setTotalPages(Math.ceil((result.total || 0) / pageSize));
 
-      const totalCallSheets = result.callSheets?.length || 0;
-      const uniquePrograms = new Set(result.callSheets?.map((cs: any) => cs.department) || []);
+      const totalCallSheets = result.items?.length || 0;
+      const uniquePrograms = new Set(result.items?.map((cs: any) => cs.department) || []);
       const uniqueRoles = new Set(
-        result.callSheets?.flatMap((cs: any) =>
+        result.items?.flatMap((cs: any) =>
           cs.crewAssignments?.map((crew: any) => crew.role) || []
         ) || []
       );
 
-      const totalAssignments = result.callSheets?.reduce(
-        (sum: number, cs: any) => sum + (cs.crewAssignments?.length || 0),
+      const totalAssignments = result.items?.reduce(
+        (sum: number, cs: any) => sum + (cs.crewAssignments?.length || cs.crewSize || 0),
         0
       ) || 0;
 
-      const totalCrewSize = result.callSheets?.reduce(
+      const totalCrewSize = result.items?.reduce(
         (sum: number, cs: any) => sum + (cs.crewSize || cs.crewAssignments?.length || 0),
         0
       ) || 0;
 
+      const totalHoursFromAPI = result.items?.reduce(
+        (sum: number, cs: any) => sum + (cs.durationHours || 0),
+        0
+      ) || 0;
+
       setAnalytics({
-        totalCallSheets,
+        totalCallSheets: result.total || 0,
         totalAssignments,
         programsWorked: uniquePrograms.size,
         rolesPerformed: uniqueRoles.size,
-        totalHours: totalAssignments * 7.5,
+        totalHours: totalHoursFromAPI,
         avgCrewSize: totalCallSheets > 0 ? Math.round(totalCrewSize / totalCallSheets) : 0,
         completionRate: 92,
-        avgDuration: 7.5,
+        avgDuration: totalCallSheets > 0 ? (totalHoursFromAPI / totalCallSheets) : 0,
       });
     } catch (error) {
       console.error('Failed to load analytics:', error);
@@ -543,55 +548,65 @@ export const CallSheetAnalytics: React.FC = () => {
               </div>
 
               {totalPages > 1 && (
-                <Pagination>
-                  <PaginationContent>
-                    <PaginationItem>
-                      <PaginationPrevious
-                        onClick={() => currentPage > 1 && setCurrentPage(currentPage - 1)}
-                        className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
-                      />
-                    </PaginationItem>
+                <div className="flex items-center justify-between pt-4 border-t border-border">
+                  <p className="text-sm text-muted-foreground">
+                    Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, totalCount)} of {totalCount} results
+                  </p>
+                  <Pagination>
+                    <PaginationContent>
+                      <PaginationItem>
+                        <PaginationPrevious
+                          onClick={() => currentPage > 1 && setCurrentPage(currentPage - 1)}
+                          className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                        />
+                      </PaginationItem>
 
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
-                      if (
-                        page === 1 ||
-                        page === totalPages ||
-                        (page >= currentPage - 1 && page <= currentPage + 1)
-                      ) {
-                        return (
-                          <PaginationItem key={page}>
-                            <PaginationLink
-                              onClick={() => setCurrentPage(page)}
-                              isActive={currentPage === page}
-                              className="cursor-pointer"
-                            >
-                              {page}
-                            </PaginationLink>
-                          </PaginationItem>
-                        );
-                      } else if (page === currentPage - 2 || page === currentPage + 2) {
-                        return (
-                          <PaginationItem key={page}>
-                            <PaginationEllipsis />
-                          </PaginationItem>
-                        );
-                      }
-                      return null;
-                    })}
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                        if (
+                          page === 1 ||
+                          page === totalPages ||
+                          (page >= currentPage - 1 && page <= currentPage + 1)
+                        ) {
+                          return (
+                            <PaginationItem key={page}>
+                              <PaginationLink
+                                onClick={() => setCurrentPage(page)}
+                                isActive={currentPage === page}
+                                className="cursor-pointer"
+                              >
+                                {page}
+                              </PaginationLink>
+                            </PaginationItem>
+                          );
+                        } else if (page === currentPage - 2 || page === currentPage + 2) {
+                          return (
+                            <PaginationItem key={page}>
+                              <PaginationEllipsis />
+                            </PaginationItem>
+                          );
+                        }
+                        return null;
+                      })}
 
-                    <PaginationItem>
-                      <PaginationNext
-                        onClick={() => currentPage < totalPages && setCurrentPage(currentPage + 1)}
-                        className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
-                      />
-                    </PaginationItem>
-                  </PaginationContent>
-                </Pagination>
+                      <PaginationItem>
+                        <PaginationNext
+                          onClick={() => currentPage < totalPages && setCurrentPage(currentPage + 1)}
+                          className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                        />
+                      </PaginationItem>
+                    </PaginationContent>
+                  </Pagination>
+                  <p className="text-sm text-muted-foreground">
+                    Page {currentPage} of {totalPages}
+                  </p>
+                </div>
               )}
 
-              <p className="text-sm text-muted-foreground text-center">
-                Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, totalCount)} of {totalCount} results
-              </p>
+              {totalPages === 1 && totalCount > 0 && (
+                <p className="text-sm text-muted-foreground text-center pt-4 border-t border-border">
+                  Showing all {totalCount} results
+                </p>
+              )}
             </div>
           )}
         </CardContent>
