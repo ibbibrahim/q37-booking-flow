@@ -1,5 +1,15 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Download, Filter, X, Search, ChevronDown, Clock, Users, Briefcase, TrendingUp } from 'lucide-react';
+import {
+  Download,
+  Filter,
+  X,
+  Search,
+  ChevronDown,
+  Clock,
+  Users,
+  Briefcase,
+  TrendingUp
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,7 +18,15 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { DateRangePicker } from '@/components/DateRangePicker';
-import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious, PaginationEllipsis } from '@/components/ui/pagination';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+  PaginationEllipsis
+} from '@/components/ui/pagination';
 import { CALL_SHEET_ROLES } from '../types/callsheet';
 import { callSheetApi } from '../services/mockCallSheetApi';
 import { format, subDays } from 'date-fns';
@@ -25,6 +43,12 @@ interface AnalyticsData {
   avgDuration: number;
 }
 
+interface CrewAssignmentResult {
+  name: string;
+  role: string;
+  phone?: string;
+}
+
 interface CallSheetResult {
   id: number;
   title: string;
@@ -33,13 +57,22 @@ interface CallSheetResult {
   department: string;
   status: string;
   crewSize: number;
+  durationHours: number;
+  crewAssignments: CrewAssignmentResult[];
+}
+
+interface MemberStats {
+  totalCallSheets: number;
+  totalHours: number;
+  avgDuration: number;
+  callSheets: CallSheetResult[];
 }
 
 const QUICK_DATE_RANGES = [
   { label: '24 hours', days: 1 },
   { label: '7 days', days: 7 },
   { label: '30 days', days: 30 },
-  { label: '12 months', days: 365 },
+  { label: '12 months', days: 365 }
 ];
 
 export const CallSheetAnalytics: React.FC = () => {
@@ -61,7 +94,8 @@ export const CallSheetAnalytics: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
-  const pageSize = 10;
+  const pageSize = 50;
+
   const [analytics, setAnalytics] = useState<AnalyticsData>({
     totalAssignments: 0,
     programsWorked: 0,
@@ -70,20 +104,27 @@ export const CallSheetAnalytics: React.FC = () => {
     totalCallSheets: 0,
     avgCrewSize: 0,
     completionRate: 0,
-    avgDuration: 0,
+    avgDuration: 0
   });
 
+  const [memberStats, setMemberStats] = useState<Record<string, MemberStats>>({});
+
+  // Load crew members whenever roles change
   useEffect(() => {
     loadCrewMembers();
   }, [selectedRoles]);
 
+  // Reset to page 1 on filter change
   useEffect(() => {
     setCurrentPage(1);
     loadAnalytics(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dateRange, selectedRoles, selectedMembers, searchQuery]);
 
+  // Load when page changes
   useEffect(() => {
     loadAnalytics(currentPage);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPage]);
 
   const loadCrewMembers = async () => {
@@ -106,48 +147,91 @@ export const CallSheetAnalytics: React.FC = () => {
         crewMembers: selectedMembers.length > 0 ? selectedMembers : undefined,
         searchQuery: searchQuery || undefined,
         page,
-        pageSize,
+        pageSize
       };
 
       const result = await callSheetApi.searchCallSheets(filters);
 
-      setCallSheetResults(result.items || []);
-      setTotalCount(result.total || 0);
-      setTotalPages(Math.ceil((result.total || 0) / pageSize));
+      const items: CallSheetResult[] = (result.items || []) as CallSheetResult[];
 
-      const totalCallSheets = result.items?.length || 0;
-      const uniquePrograms = new Set(result.items?.map((cs: any) => cs.department) || []);
+      setCallSheetResults(items);
+      const total = result.total || 0;
+      setTotalCount(total);
+      setTotalPages(Math.ceil(total / pageSize));
+
+      const totalCallSheetsOnPage = items.length;
+      const uniquePrograms = new Set(items.map((cs) => cs.department));
       const uniqueRoles = new Set(
-        result.items?.flatMap((cs: any) =>
-          cs.crewAssignments?.map((crew: any) => crew.role) || []
-        ) || []
+        items.flatMap((cs) => cs.crewAssignments?.map((crew) => crew.role) || [])
       );
 
-      const totalAssignments = result.items?.reduce(
-        (sum: number, cs: any) => sum + (cs.crewAssignments?.length || cs.crewSize || 0),
-        0
-      ) || 0;
+      const totalAssignments =
+        items.reduce(
+          (sum, cs) => sum + (cs.crewAssignments?.length || cs.crewSize || 0),
+          0
+        ) || 0;
 
-      const totalCrewSize = result.items?.reduce(
-        (sum: number, cs: any) => sum + (cs.crewSize || cs.crewAssignments?.length || 0),
-        0
-      ) || 0;
+      const totalCrewSize =
+        items.reduce(
+          (sum, cs) => sum + (cs.crewSize || cs.crewAssignments?.length || 0),
+          0
+        ) || 0;
 
-      const totalHoursFromAPI = result.items?.reduce(
-        (sum: number, cs: any) => sum + (cs.durationHours || 0),
-        0
-      ) || 0;
+      const totalHoursFromAPI =
+        items.reduce((sum, cs) => sum + (cs.durationHours || 0), 0) || 0;
 
       setAnalytics({
-        totalCallSheets: result.total || 0,
+        totalCallSheets: total,
         totalAssignments,
         programsWorked: uniquePrograms.size,
         rolesPerformed: uniqueRoles.size,
         totalHours: totalHoursFromAPI,
-        avgCrewSize: totalCallSheets > 0 ? Math.round(totalCrewSize / totalCallSheets) : 0,
-        completionRate: 92,
-        avgDuration: totalCallSheets > 0 ? (totalHoursFromAPI / totalCallSheets) : 0,
+        avgCrewSize:
+          totalCallSheetsOnPage > 0
+            ? Math.round(totalCrewSize / totalCallSheetsOnPage)
+            : 0,
+        completionRate: 92, // placeholder
+        avgDuration:
+          totalCallSheetsOnPage > 0
+            ? totalHoursFromAPI / totalCallSheetsOnPage
+            : 0
       });
+
+      // ---- Per-member stats (only if members selected) ----
+      if (selectedMembers.length === 0) {
+        setMemberStats({});
+      } else {
+        const stats: Record<string, MemberStats> = {};
+
+        selectedMembers.forEach((memberName) => {
+          // All callsheets (from current result set) where this member appears
+          const memberSheets = items.filter((cs) =>
+            cs.crewAssignments?.some(
+              (a) => a.name.toLowerCase() === memberName.toLowerCase()
+            )
+          );
+
+          const totalMemberCallSheets = memberSheets.length;
+          const totalMemberHours =
+            memberSheets.reduce(
+              (sum, cs) => sum + (cs.durationHours || 0),
+              0
+            ) || 0;
+          const avgMemberDuration =
+            totalMemberCallSheets > 0
+              ? totalMemberHours / totalMemberCallSheets
+              : 0;
+
+          stats[memberName] = {
+            totalCallSheets: totalMemberCallSheets,
+            totalHours: totalMemberHours,
+            avgDuration: avgMemberDuration,
+            callSheets: memberSheets
+          };
+        });
+
+        setMemberStats(stats);
+      }
     } catch (error) {
       console.error('Failed to load analytics:', error);
     } finally {
@@ -159,7 +243,7 @@ export const CallSheetAnalytics: React.FC = () => {
     let members = crewMembers;
 
     if (memberSearchQuery) {
-      members = members.filter(m =>
+      members = members.filter((m) =>
         m.toLowerCase().includes(memberSearchQuery.toLowerCase())
       );
     }
@@ -169,7 +253,7 @@ export const CallSheetAnalytics: React.FC = () => {
 
   const filteredRoles = useMemo(() => {
     if (!roleSearchQuery) return CALL_SHEET_ROLES;
-    return CALL_SHEET_ROLES.filter(role =>
+    return CALL_SHEET_ROLES.filter((role) =>
       role.toLowerCase().includes(roleSearchQuery.toLowerCase())
     );
   }, [roleSearchQuery]);
@@ -182,18 +266,16 @@ export const CallSheetAnalytics: React.FC = () => {
   };
 
   const handleRoleToggle = (role: string) => {
-    setSelectedRoles(prev =>
-      prev.includes(role)
-        ? prev.filter(r => r !== role)
-        : [...prev, role]
+    setSelectedRoles((prev) =>
+      prev.includes(role) ? prev.filter((r) => r !== role) : [...prev, role]
     );
     setSelectedMembers([]);
   };
 
   const handleMemberToggle = (memberName: string) => {
-    setSelectedMembers(prev =>
+    setSelectedMembers((prev) =>
       prev.includes(memberName)
-        ? prev.filter(name => name !== memberName)
+        ? prev.filter((name) => name !== memberName)
         : [...prev, memberName]
     );
   };
@@ -212,32 +294,17 @@ export const CallSheetAnalytics: React.FC = () => {
 
   const handleExport = async () => {
     setIsExporting(true);
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    await new Promise((resolve) => setTimeout(resolve, 1500));
     console.log('Exporting to Excel...');
     setIsExporting(false);
   };
 
-  const hasActiveFilters = selectedRoles.length > 0 || selectedMembers.length > 0 || searchQuery;
+  const hasActiveFilters =
+    selectedRoles.length > 0 || selectedMembers.length > 0 || searchQuery;
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-card-foreground">Call Sheet Analytics</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            Track and analyze call sheet performance and crew assignments
-          </p>
-        </div>
-        <Button
-          onClick={handleExport}
-          disabled={isExporting || isLoading}
-          className="gap-2"
-        >
-          <Download size={18} />
-          {isExporting ? 'Exporting...' : 'Export to Excel'}
-        </Button>
-      </div>
-
+      {/* Top quick ranges */}
       <div className="flex gap-2">
         {QUICK_DATE_RANGES.map((range) => (
           <Button
@@ -251,6 +318,7 @@ export const CallSheetAnalytics: React.FC = () => {
         ))}
       </div>
 
+      {/* Filters */}
       <Card>
         <CardHeader className="pb-4">
           <div className="flex items-center gap-2">
@@ -266,6 +334,7 @@ export const CallSheetAnalytics: React.FC = () => {
               className="w-full"
             />
 
+            {/* Roles */}
             <Popover>
               <PopoverTrigger asChild>
                 <Button variant="outline" className="justify-between">
@@ -307,6 +376,7 @@ export const CallSheetAnalytics: React.FC = () => {
               </PopoverContent>
             </Popover>
 
+            {/* Members */}
             <Popover>
               <PopoverTrigger asChild>
                 <Button variant="outline" className="justify-between">
@@ -356,8 +426,12 @@ export const CallSheetAnalytics: React.FC = () => {
               </PopoverContent>
             </Popover>
 
+            {/* Text search */}
             <div className="relative">
-              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <Search
+                size={16}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+              />
               <Input
                 placeholder="Search all fields (title, location, crew, program...)"
                 value={searchQuery}
@@ -367,6 +441,7 @@ export const CallSheetAnalytics: React.FC = () => {
             </div>
           </div>
 
+          {/* Active filters chips */}
           {hasActiveFilters && (
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-sm text-muted-foreground">Active filters:</span>
@@ -423,6 +498,7 @@ export const CallSheetAnalytics: React.FC = () => {
         </CardContent>
       </Card>
 
+      {/* Global stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardContent className="pt-6">
@@ -434,7 +510,9 @@ export const CallSheetAnalytics: React.FC = () => {
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
                   {selectedMembers.length > 0
-                    ? `For ${selectedMembers.length} member${selectedMembers.length !== 1 ? 's' : ''}`
+                    ? `For ${selectedMembers.length} member${
+                        selectedMembers.length !== 1 ? 's' : ''
+                      }`
                     : 'All crew members'}
                 </p>
               </div>
@@ -453,7 +531,9 @@ export const CallSheetAnalytics: React.FC = () => {
                 <p className="text-3xl font-bold mt-2">
                   {isLoading ? '...' : analytics.programsWorked}
                 </p>
-                <p className="text-xs text-muted-foreground mt-1">Different programs</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Different programs
+                </p>
               </div>
               <div className="p-2 bg-green-100 dark:bg-green-900/20 rounded-lg">
                 <TrendingUp size={20} className="text-green-600 dark:text-green-400" />
@@ -468,12 +548,14 @@ export const CallSheetAnalytics: React.FC = () => {
               <div>
                 <p className="text-sm text-muted-foreground">Total Hours Worked</p>
                 <p className="text-3xl font-bold mt-2">
-                  {isLoading ? '...' : `${analytics.totalHours}h`}
+                  {isLoading ? '...' : `${analytics.totalHours.toFixed(1)}h`}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Avg. {analytics.totalAssignments > 0
+                  Avg.{' '}
+                  {analytics.totalAssignments > 0
                     ? (analytics.totalHours / analytics.totalAssignments).toFixed(1)
-                    : 0}h per assignment
+                    : 0}
+                  h per assignment
                 </p>
               </div>
               <div className="p-2 bg-orange-100 dark:bg-orange-900/20 rounded-lg">
@@ -501,20 +583,100 @@ export const CallSheetAnalytics: React.FC = () => {
         </Card>
       </div>
 
+      {/* Member stats block (only when members selected) */}
+      {selectedMembers.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Member Stats</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Per-member breakdown for selected crew within current filters.
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {selectedMembers.map((memberName) => {
+              const stats = memberStats[memberName];
+
+              if (!stats) {
+                return (
+                  <div
+                    key={memberName}
+                    className="border border-dashed border-border rounded-lg p-3 text-sm text-muted-foreground"
+                  >
+                    No data found for <span className="font-medium">{memberName}</span>{' '}
+                    in this range.
+                  </div>
+                );
+              }
+
+              return (
+                <div
+                  key={memberName}
+                  className="border border-border rounded-lg p-4 space-y-3 bg-muted/30"
+                >
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h3 className="font-semibold text-card-foreground">
+                        {memberName}
+                      </h3>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {stats.totalCallSheets} call sheet
+                        {stats.totalCallSheets !== 1 ? 's' : ''} ·{' '}
+                        {stats.totalHours.toFixed(1)}h total · Avg{' '}
+                        {stats.avgDuration.toFixed(1)}h
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* List of call sheets for this member */}
+                  <div className="space-y-2">
+                    {stats.callSheets.map((cs) => (
+                      <div
+                        key={cs.id}
+                        className="flex items-center justify-between text-xs border border-border rounded-md px-2 py-2 bg-background/60"
+                      >
+                        <div className="flex-1">
+                          <div className="font-medium text-sm text-card-foreground">
+                            {cs.title}
+                          </div>
+                          <div className="text-[11px] text-muted-foreground flex flex-wrap gap-2">
+                            <span>{cs.department}</span>
+                            <span>•</span>
+                            <span>{cs.location}</span>
+                            <span>•</span>
+                            <span>
+                              {format(new Date(cs.filmingDate), 'MMM dd, yyyy')}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="text-right text-[11px] text-muted-foreground min-w-[60px]">
+                          {cs.durationHours.toFixed(1)}h
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Timeline + pagination */}
       <Card>
         <CardHeader>
           <CardTitle>Call Sheet Timeline</CardTitle>
           <p className="text-sm text-muted-foreground">
             {isLoading
               ? 'Loading...'
-              : `${analytics.totalCallSheets} call sheet${analytics.totalCallSheets !== 1 ? 's' : ''} found`
-            }
+              : `${analytics.totalCallSheets} call sheet${
+                  analytics.totalCallSheets !== 1 ? 's' : ''
+                } found`}
           </p>
         </CardHeader>
         <CardContent>
           {isLoading ? (
             <div className="text-center py-12">
-              <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent mb-4"></div>
+              <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent mb-4" />
               <p className="text-muted-foreground">Loading analytics data...</p>
             </div>
           ) : analytics.totalCallSheets === 0 ? (
@@ -533,13 +695,17 @@ export const CallSheetAnalytics: React.FC = () => {
                     className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors"
                   >
                     <div className="flex-1">
-                      <h4 className="font-medium text-card-foreground">{callSheet.title}</h4>
-                      <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
+                      <h4 className="font-medium text-card-foreground">
+                        {callSheet.title}
+                      </h4>
+                      <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground flex-wrap">
                         <span>{callSheet.department}</span>
                         <span>•</span>
                         <span>{callSheet.location}</span>
                         <span>•</span>
-                        <span>{format(new Date(callSheet.filmingDate), 'MMM dd, yyyy')}</span>
+                        <span>
+                          {format(new Date(callSheet.filmingDate), 'MMM dd, yyyy')}
+                        </span>
                       </div>
                     </div>
                     <Badge variant="secondary">{callSheet.status}</Badge>
@@ -550,48 +716,68 @@ export const CallSheetAnalytics: React.FC = () => {
               {totalPages > 1 && (
                 <div className="flex items-center justify-between pt-4 border-t border-border">
                   <p className="text-sm text-muted-foreground">
-                    Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, totalCount)} of {totalCount} results
+                    Showing {(currentPage - 1) * pageSize + 1} to{' '}
+                    {Math.min(currentPage * pageSize, totalCount)} of {totalCount} results
                   </p>
                   <Pagination>
                     <PaginationContent>
                       <PaginationItem>
                         <PaginationPrevious
-                          onClick={() => currentPage > 1 && setCurrentPage(currentPage - 1)}
-                          className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                          onClick={() =>
+                            currentPage > 1 && setCurrentPage(currentPage - 1)
+                          }
+                          className={
+                            currentPage === 1
+                              ? 'pointer-events-none opacity-50'
+                              : 'cursor-pointer'
+                          }
                         />
                       </PaginationItem>
 
-                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
-                        if (
-                          page === 1 ||
-                          page === totalPages ||
-                          (page >= currentPage - 1 && page <= currentPage + 1)
-                        ) {
-                          return (
-                            <PaginationItem key={page}>
-                              <PaginationLink
-                                onClick={() => setCurrentPage(page)}
-                                isActive={currentPage === page}
-                                className="cursor-pointer"
-                              >
-                                {page}
-                              </PaginationLink>
-                            </PaginationItem>
-                          );
-                        } else if (page === currentPage - 2 || page === currentPage + 2) {
-                          return (
-                            <PaginationItem key={page}>
-                              <PaginationEllipsis />
-                            </PaginationItem>
-                          );
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                        (page) => {
+                          if (
+                            page === 1 ||
+                            page === totalPages ||
+                            (page >= currentPage - 1 &&
+                              page <= currentPage + 1)
+                          ) {
+                            return (
+                              <PaginationItem key={page}>
+                                <PaginationLink
+                                  onClick={() => setCurrentPage(page)}
+                                  isActive={currentPage === page}
+                                  className="cursor-pointer"
+                                >
+                                  {page}
+                                </PaginationLink>
+                              </PaginationItem>
+                            );
+                          } else if (
+                            page === currentPage - 2 ||
+                            page === currentPage + 2
+                          ) {
+                            return (
+                              <PaginationItem key={page}>
+                                <PaginationEllipsis />
+                              </PaginationItem>
+                            );
+                          }
+                          return null;
                         }
-                        return null;
-                      })}
+                      )}
 
                       <PaginationItem>
                         <PaginationNext
-                          onClick={() => currentPage < totalPages && setCurrentPage(currentPage + 1)}
-                          className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                          onClick={() =>
+                            currentPage < totalPages &&
+                            setCurrentPage(currentPage + 1)
+                          }
+                          className={
+                            currentPage === totalPages
+                              ? 'pointer-events-none opacity-50'
+                              : 'cursor-pointer'
+                          }
                         />
                       </PaginationItem>
                     </PaginationContent>

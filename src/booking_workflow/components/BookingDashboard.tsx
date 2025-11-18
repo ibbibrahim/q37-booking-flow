@@ -158,7 +158,7 @@ export const BookingDashboard: React.FC = () => {
               {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
               <span className="font-medium text-sm">{theme === 'light' ? 'Dark Mode' : 'Light Mode'}</span>
             </button> */}
-            <p className="text-xs text-sidebar-foreground opacity-60">Resource Management Workflow</p>
+            <p className="text-xs text-sidebar-foreground font-bold opacity-60">Resource Management Workflow</p>
           </div>
         </div>
       </aside>
