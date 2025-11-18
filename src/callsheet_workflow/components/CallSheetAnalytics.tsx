@@ -8,6 +8,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { DateRangePicker } from '@/components/DateRangePicker';
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious, PaginationEllipsis } from '@/components/ui/pagination';
 import { CALL_SHEET_ROLES } from '../types/callsheet';
 import { callSheetApi } from '../services/mockCallSheetApi';
 import { format, subDays } from 'date-fns';
@@ -57,6 +58,10 @@ export const CallSheetAnalytics: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [crewMembers, setCrewMembers] = useState<string[]>([]);
   const [callSheetResults, setCallSheetResults] = useState<CallSheetResult[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const pageSize = 10;
   const [analytics, setAnalytics] = useState<AnalyticsData>({
     totalAssignments: 0,
     programsWorked: 0,
@@ -73,8 +78,13 @@ export const CallSheetAnalytics: React.FC = () => {
   }, [selectedRoles]);
 
   useEffect(() => {
-    loadAnalytics();
+    setCurrentPage(1);
+    loadAnalytics(1);
   }, [dateRange, selectedRoles, selectedMembers, searchQuery]);
+
+  useEffect(() => {
+    loadAnalytics(currentPage);
+  }, [currentPage]);
 
   const loadCrewMembers = async () => {
     try {
@@ -86,7 +96,7 @@ export const CallSheetAnalytics: React.FC = () => {
     }
   };
 
-  const loadAnalytics = async () => {
+  const loadAnalytics = async (page: number) => {
     setIsLoading(true);
     try {
       const filters = {
@@ -95,13 +105,15 @@ export const CallSheetAnalytics: React.FC = () => {
         roles: selectedRoles.length > 0 ? selectedRoles : undefined,
         crewMembers: selectedMembers.length > 0 ? selectedMembers : undefined,
         searchQuery: searchQuery || undefined,
-        page: 1,
-        pageSize: 50,
+        page,
+        pageSize,
       };
 
       const result = await callSheetApi.searchCallSheets(filters);
 
       setCallSheetResults(result.callSheets || []);
+      setTotalCount(result.totalCount || 0);
+      setTotalPages(Math.ceil((result.totalCount || 0) / pageSize));
 
       const totalCallSheets = result.callSheets?.length || 0;
       const uniquePrograms = new Set(result.callSheets?.map((cs: any) => cs.department) || []);
@@ -508,30 +520,78 @@ export const CallSheetAnalytics: React.FC = () => {
               </p>
             </div>
           ) : (
-            <div className="space-y-3">
-              {callSheetResults.slice(0, 10).map((callSheet) => (
-                <div
-                  key={callSheet.id}
-                  className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors"
-                >
-                  <div className="flex-1">
-                    <h4 className="font-medium text-card-foreground">{callSheet.title}</h4>
-                    <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
-                      <span>{callSheet.department}</span>
-                      <span>•</span>
-                      <span>{callSheet.location}</span>
-                      <span>•</span>
-                      <span>{format(new Date(callSheet.filmingDate), 'MMM dd, yyyy')}</span>
+            <div className="space-y-4">
+              <div className="space-y-3">
+                {callSheetResults.map((callSheet) => (
+                  <div
+                    key={callSheet.id}
+                    className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors"
+                  >
+                    <div className="flex-1">
+                      <h4 className="font-medium text-card-foreground">{callSheet.title}</h4>
+                      <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
+                        <span>{callSheet.department}</span>
+                        <span>•</span>
+                        <span>{callSheet.location}</span>
+                        <span>•</span>
+                        <span>{format(new Date(callSheet.filmingDate), 'MMM dd, yyyy')}</span>
+                      </div>
                     </div>
+                    <Badge variant="secondary">{callSheet.status}</Badge>
                   </div>
-                  <Badge variant="secondary">{callSheet.status}</Badge>
-                </div>
-              ))}
-              {callSheetResults.length > 10 && (
-                <p className="text-sm text-muted-foreground text-center pt-2">
-                  Showing 10 of {callSheetResults.length} results
-                </p>
+                ))}
+              </div>
+
+              {totalPages > 1 && (
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious
+                        onClick={() => currentPage > 1 && setCurrentPage(currentPage - 1)}
+                        className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                      />
+                    </PaginationItem>
+
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                      if (
+                        page === 1 ||
+                        page === totalPages ||
+                        (page >= currentPage - 1 && page <= currentPage + 1)
+                      ) {
+                        return (
+                          <PaginationItem key={page}>
+                            <PaginationLink
+                              onClick={() => setCurrentPage(page)}
+                              isActive={currentPage === page}
+                              className="cursor-pointer"
+                            >
+                              {page}
+                            </PaginationLink>
+                          </PaginationItem>
+                        );
+                      } else if (page === currentPage - 2 || page === currentPage + 2) {
+                        return (
+                          <PaginationItem key={page}>
+                            <PaginationEllipsis />
+                          </PaginationItem>
+                        );
+                      }
+                      return null;
+                    })}
+
+                    <PaginationItem>
+                      <PaginationNext
+                        onClick={() => currentPage < totalPages && setCurrentPage(currentPage + 1)}
+                        className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
               )}
+
+              <p className="text-sm text-muted-foreground text-center">
+                Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, totalCount)} of {totalCount} results
+              </p>
             </div>
           )}
         </CardContent>

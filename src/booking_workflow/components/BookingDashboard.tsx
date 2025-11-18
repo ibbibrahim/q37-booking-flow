@@ -5,7 +5,8 @@ import { User, Radio, Package, Shield, Menu, X, Sun, Moon, FileText, LogOut, Use
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { NotificationDropdown } from '../../components/NotificationDropdown';
-import q37Logo from '../../assets/q37.png';
+import qBusinessLogoDark from '../../assets/Qbusiness_Logo_NEG_POS-01.png';
+import qBusinessLogoLight from '../../assets/Qbusiness_Logo_NEG_POS-02.png';
 
 export const BookingDashboard: React.FC = () => {
   const { theme, toggleTheme } = useTheme();
@@ -89,9 +90,9 @@ export const BookingDashboard: React.FC = () => {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <img
-                  src={q37Logo}
-                  alt="Q37 Logo"
-                  className="h-16 w-16 object-contain"
+                  src={theme === 'dark' ? qBusinessLogoDark : qBusinessLogoLight}
+                  alt="QBusiness Logo"
+                  className="h-12 object-contain"
                 />
                 <div>
                   <h1 className="text-lg font-bold text-sidebar-foreground">Workflow Hub</h1>

@@ -1,7 +1,7 @@
 import React, { useRef } from 'react';
 import { Download, FileText } from 'lucide-react';
 import type { CallSheetRequest } from '../types/callsheet';
-import qmcLogo from '../../assets/q37.png';
+import qBusinessLogo from '../../assets/Qbusiness_Logo_NEG_POS-02.png';
 
 interface CallSheetPreviewProps {
   callSheet: Partial<CallSheetRequest>;
@@ -173,7 +173,7 @@ export const CallSheetPreview: React.FC<CallSheetPreviewProps> = ({ callSheet })
         {/* ============ UNIFIED HEADER (appears once at top) ============ */}
         <div className="flex justify-between items-start mb-6" style={{ pageBreakAfter: 'avoid' }}>
           <div className="flex-shrink-0">
-            <img src={qmcLogo} alt="QMC Logo" style={{ height: '60px', width: 'auto' }} />
+            <img src={qBusinessLogo} alt="QBusiness Logo" style={{ height: '60px', width: 'auto' }} />
           </div>
           <div className="text-center flex-grow">
             <div className="text-lg font-semibold uppercase tracking-wider">QATAR MEDIA CORPORATION – 37TV PRODUCTION</div>
