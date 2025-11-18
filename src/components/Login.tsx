@@ -90,12 +90,12 @@ export const Login: React.FC = () => {
           </div>
 
           <div className="text-center mb-8">
-            <div className="flex items-center justify-center gap-2 mb-2">
+            {/* <div className="flex items-center justify-center gap-2 mb-2">
               <Video size={20} className="text-blue-600 dark:text-blue-400" />
               <h1 className="text-2xl font-bold text-foreground">Welcome Back</h1>
-            </div>
+            </div> */}
             <p className="text-muted-foreground text-sm">
-              Sign in to access your media dashboard
+              Sign in to access Resourse Management Dashboard
             </p>
           </div>
 
@@ -155,11 +155,11 @@ export const Login: React.FC = () => {
               disabled={isLoading}
             >
               <Video size={18} className="mr-2" />
-              {isLoading ? 'Signing in...' : 'Sign In to Media Dashboard'}
+              {isLoading ? 'Signing in...' : 'Sign In'}
             </Button>
           </form>
 
-          <div className="mt-8 pt-6 border-t border-border">
+          {/* <div className="mt-8 pt-6 border-t border-border">
             <div className="grid grid-cols-3 gap-4">
               <div className="text-center">
                 <Video size={24} className="mx-auto mb-2 text-blue-600 dark:text-blue-400" />
@@ -174,7 +174,7 @@ export const Login: React.FC = () => {
                 <p className="text-xs text-muted-foreground">Streaming</p>
               </div>
             </div>
-          </div>
+          </div> */}
 
           <div className="mt-6 text-center">
             <p className="text-xs text-muted-foreground">

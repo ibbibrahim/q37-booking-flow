@@ -96,9 +96,9 @@ export const BookingDashboard: React.FC = () => {
                   alt="QBusiness Logo"
                   className="h-12 object-contain"
                 />
-                <div>
+                {/* <div>
                   <h1 className="text-lg font-bold text-sidebar-foreground">Workflow Hub</h1>
-                </div>
+                </div> */}
               </div>
               <button
                 onClick={() => setSidebarOpen(false)}
