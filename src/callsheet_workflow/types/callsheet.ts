@@ -5,20 +5,12 @@ export type CallSheetStatus =
   | 'In Progress'
   | 'Completed'
   | 'Cancelled';
-
-// -----------------------------
-// Crew Assignments Table
-// -----------------------------
 export interface CrewAssignment {
-  // id: number;             // DB PK → number, not string
+  id: number;             // DB PK → number, not string
   role: string;
   name: string;
   phone: string;
 }
-
-// -----------------------------
-// Department Acknowledgements (normalized later)
-// -----------------------------
 export interface DepartmentAcknowledgement {
   id?: number;            // backend will generate
   department: string;
@@ -31,7 +23,7 @@ export interface DepartmentAcknowledgement {
 // Equipment Table
 // -----------------------------
 export interface Equipment {
-  // id: number;             // DB PK → number
+  id: number;             // DB PK → number
   category: string;
   item: string;
   quantity: number;
@@ -49,7 +41,7 @@ export interface TransportRequest {
   driverName: string;
   vehicleNo: string;
   carType?: string;       // optional (SUV/Van)
-  requestedBy: number;    // always number
+  requestedBy:  string | number;    // always number
 }
 
 // -----------------------------
@@ -90,8 +82,7 @@ export interface CallSheetRequest {
   notifications: Notification[];
 
   status: CallSheetStatus;
-
-  createdBy: number;           // always integer
+  createdBy:  string | number;           // always integer
   createdAt: string;
   updatedAt: string;
 }
