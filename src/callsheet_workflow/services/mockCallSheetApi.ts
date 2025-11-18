@@ -42,4 +42,16 @@ export const callSheetApi = {
     const res = await apiClient.delete(`${API_BASE}/${id}`);
     return res.status === 204 || res.status === 200;
   },
+
+  getCrewMembers: async (roles: string[]): Promise<string[]> => {
+    const { data } = await apiClient.post("/api/callsheet/requests/crew-members", {
+      roles
+    });
+    return data.members;
+  },
+
+  searchCallSheets: async (filters: any): Promise<any> => {
+    const { data } = await apiClient.post("/api/callsheet/requests/search", filters);
+    return data;
+  },
 };

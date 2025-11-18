@@ -155,7 +155,7 @@ function App() {
         <Route
           path="callsheet"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={['Callsheet', 'Admin']}>
               <CallSheetRoleView view="list" />
             </ProtectedRoute>
           }
@@ -163,7 +163,7 @@ function App() {
         <Route
           path="callsheet/new"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={['Callsheet', 'Admin']}>
               <CallSheetRoleView view="new" />
             </ProtectedRoute>
           }
@@ -171,7 +171,7 @@ function App() {
         <Route
           path="callsheet/analytics"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={['Callsheet', 'Admin']}>
               <CallSheetAnalytics />
             </ProtectedRoute>
           }
