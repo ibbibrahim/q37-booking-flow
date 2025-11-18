@@ -1,26 +1,17 @@
-import React, { useState, useMemo } from 'react';
-import { Download, Filter, Calendar, X, Search, ChevronDown, Clock, Users, Briefcase, TrendingUp } from 'lucide-react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { Download, Filter, X, Search, ChevronDown, Clock, Users, Briefcase, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+import { DateRangePicker } from '@/components/DateRangePicker';
 import { CALL_SHEET_ROLES } from '../types/callsheet';
-import { format, subDays, startOfDay, endOfDay } from 'date-fns';
-
-interface DateRange {
-  from: Date | undefined;
-  to: Date | undefined;
-}
-
-interface CrewMember {
-  id: string;
-  name: string;
-  role: string;
-}
+import { callSheetApi } from '../services/mockCallSheetApi';
+import { format, subDays } from 'date-fns';
+import { DateRange } from 'react-day-picker';
 
 interface AnalyticsData {
   totalAssignments: number;
@@ -33,18 +24,15 @@ interface AnalyticsData {
   avgDuration: number;
 }
 
-const MOCK_CREW_MEMBERS: CrewMember[] = [
-  { id: '1', name: 'Jennifer Williams', role: 'Producer' },
-  { id: '2', name: 'Dr. Samira Patel', role: 'Producer' },
-  { id: '3', name: 'Michael Chen', role: 'Director' },
-  { id: '4', name: 'Sarah Johnson', role: 'Camera 1' },
-  { id: '5', name: 'Alex Rodriguez', role: 'Camera 2' },
-  { id: '6', name: 'Emily Parker', role: 'Sound Technician' },
-  { id: '7', name: 'David Kim', role: 'Assistant Director' },
-  { id: '8', name: 'Lisa Anderson', role: 'Presenter' },
-  { id: '9', name: 'James Wilson', role: 'Camera Assistant' },
-  { id: '10', name: 'Maria Garcia', role: 'Studio Operator' },
-];
+interface CallSheetResult {
+  id: number;
+  title: string;
+  filmingDate: string;
+  location: string;
+  department: string;
+  status: string;
+  crewSize: number;
+}
 
 const QUICK_DATE_RANGES = [
   { label: '24 hours', days: 1 },
@@ -54,30 +42,113 @@ const QUICK_DATE_RANGES = [
 ];
 
 export const CallSheetAnalytics: React.FC = () => {
-  const [dateRange, setDateRange] = useState<DateRange>({ from: undefined, to: undefined });
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(() => {
+    const to = new Date();
+    const from = subDays(to, 1);
+    return { from, to };
+  });
   const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [roleSearchQuery, setRoleSearchQuery] = useState('');
   const [memberSearchQuery, setMemberSearchQuery] = useState('');
   const [isExporting, setIsExporting] = useState(false);
-  const [selectedQuickRange, setSelectedQuickRange] = useState<number>(30);
+  const [selectedQuickRange, setSelectedQuickRange] = useState<number>(1);
+  const [isLoading, setIsLoading] = useState(false);
+  const [crewMembers, setCrewMembers] = useState<string[]>([]);
+  const [callSheetResults, setCallSheetResults] = useState<CallSheetResult[]>([]);
+  const [analytics, setAnalytics] = useState<AnalyticsData>({
+    totalAssignments: 0,
+    programsWorked: 0,
+    totalHours: 0,
+    rolesPerformed: 0,
+    totalCallSheets: 0,
+    avgCrewSize: 0,
+    completionRate: 0,
+    avgDuration: 0,
+  });
+
+  useEffect(() => {
+    loadCrewMembers();
+  }, [selectedRoles]);
+
+  useEffect(() => {
+    loadAnalytics();
+  }, [dateRange, selectedRoles, selectedMembers, searchQuery]);
+
+  const loadCrewMembers = async () => {
+    try {
+      const members = await callSheetApi.getCrewMembers(selectedRoles);
+      setCrewMembers(members);
+    } catch (error) {
+      console.error('Failed to load crew members:', error);
+      setCrewMembers([]);
+    }
+  };
+
+  const loadAnalytics = async () => {
+    setIsLoading(true);
+    try {
+      const filters = {
+        dateFrom: dateRange?.from ? format(dateRange.from, 'yyyy-MM-dd') : undefined,
+        dateTo: dateRange?.to ? format(dateRange.to, 'yyyy-MM-dd') : undefined,
+        roles: selectedRoles.length > 0 ? selectedRoles : undefined,
+        crewMembers: selectedMembers.length > 0 ? selectedMembers : undefined,
+        searchQuery: searchQuery || undefined,
+        page: 1,
+        pageSize: 50,
+      };
+
+      const result = await callSheetApi.searchCallSheets(filters);
+
+      setCallSheetResults(result.callSheets || []);
+
+      const totalCallSheets = result.callSheets?.length || 0;
+      const uniquePrograms = new Set(result.callSheets?.map((cs: any) => cs.department) || []);
+      const uniqueRoles = new Set(
+        result.callSheets?.flatMap((cs: any) =>
+          cs.crewAssignments?.map((crew: any) => crew.role) || []
+        ) || []
+      );
+
+      const totalAssignments = result.callSheets?.reduce(
+        (sum: number, cs: any) => sum + (cs.crewAssignments?.length || 0),
+        0
+      ) || 0;
+
+      const totalCrewSize = result.callSheets?.reduce(
+        (sum: number, cs: any) => sum + (cs.crewSize || cs.crewAssignments?.length || 0),
+        0
+      ) || 0;
+
+      setAnalytics({
+        totalCallSheets,
+        totalAssignments,
+        programsWorked: uniquePrograms.size,
+        rolesPerformed: uniqueRoles.size,
+        totalHours: totalAssignments * 7.5,
+        avgCrewSize: totalCallSheets > 0 ? Math.round(totalCrewSize / totalCallSheets) : 0,
+        completionRate: 92,
+        avgDuration: 7.5,
+      });
+    } catch (error) {
+      console.error('Failed to load analytics:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const filteredCrewMembers = useMemo(() => {
-    let members = MOCK_CREW_MEMBERS;
-
-    if (selectedRoles.length > 0) {
-      members = members.filter(m => selectedRoles.includes(m.role));
-    }
+    let members = crewMembers;
 
     if (memberSearchQuery) {
       members = members.filter(m =>
-        m.name.toLowerCase().includes(memberSearchQuery.toLowerCase())
+        m.toLowerCase().includes(memberSearchQuery.toLowerCase())
       );
     }
 
     return members;
-  }, [selectedRoles, memberSearchQuery]);
+  }, [crewMembers, memberSearchQuery]);
 
   const filteredRoles = useMemo(() => {
     if (!roleSearchQuery) return CALL_SHEET_ROLES;
@@ -85,32 +156,6 @@ export const CallSheetAnalytics: React.FC = () => {
       role.toLowerCase().includes(roleSearchQuery.toLowerCase())
     );
   }, [roleSearchQuery]);
-
-  const mockAnalytics: AnalyticsData = useMemo(() => {
-    if (selectedMembers.length > 0) {
-      return {
-        totalAssignments: 24,
-        programsWorked: 8,
-        totalHours: 186,
-        rolesPerformed: selectedMembers.length === 1 ? 1 : 3,
-        totalCallSheets: 12,
-        avgCrewSize: 8,
-        completionRate: 92,
-        avgDuration: 7.75,
-      };
-    }
-
-    return {
-      totalAssignments: 0,
-      programsWorked: 0,
-      totalHours: 0,
-      rolesPerformed: 0,
-      totalCallSheets: 0,
-      avgCrewSize: 0,
-      completionRate: 0,
-      avgDuration: 0,
-    };
-  }, [selectedMembers]);
 
   const handleQuickDateRange = (days: number) => {
     const to = new Date();
@@ -128,22 +173,24 @@ export const CallSheetAnalytics: React.FC = () => {
     setSelectedMembers([]);
   };
 
-  const handleMemberToggle = (memberId: string) => {
+  const handleMemberToggle = (memberName: string) => {
     setSelectedMembers(prev =>
-      prev.includes(memberId)
-        ? prev.filter(id => id !== memberId)
-        : [...prev, memberId]
+      prev.includes(memberName)
+        ? prev.filter(name => name !== memberName)
+        : [...prev, memberName]
     );
   };
 
   const handleClearAll = () => {
-    setDateRange({ from: undefined, to: undefined });
+    const to = new Date();
+    const from = subDays(to, 1);
+    setDateRange({ from, to });
     setSelectedRoles([]);
     setSelectedMembers([]);
     setSearchQuery('');
     setRoleSearchQuery('');
     setMemberSearchQuery('');
-    setSelectedQuickRange(30);
+    setSelectedQuickRange(1);
   };
 
   const handleExport = async () => {
@@ -153,7 +200,7 @@ export const CallSheetAnalytics: React.FC = () => {
     setIsExporting(false);
   };
 
-  const hasActiveFilters = selectedRoles.length > 0 || selectedMembers.length > 0 || searchQuery || dateRange.from || dateRange.to;
+  const hasActiveFilters = selectedRoles.length > 0 || selectedMembers.length > 0 || searchQuery;
 
   return (
     <div className="space-y-6">
@@ -166,7 +213,7 @@ export const CallSheetAnalytics: React.FC = () => {
         </div>
         <Button
           onClick={handleExport}
-          disabled={isExporting}
+          disabled={isExporting || isLoading}
           className="gap-2"
         >
           <Download size={18} />
@@ -196,82 +243,11 @@ export const CallSheetAnalytics: React.FC = () => {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className="justify-start text-left font-normal"
-                >
-                  <Calendar size={16} className="mr-2" />
-                  {dateRange.from ? (
-                    dateRange.to ? (
-                      <>
-                        {format(dateRange.from, 'MM/dd/yyyy')} - {format(dateRange.to, 'MM/dd/yyyy')}
-                      </>
-                    ) : (
-                      format(dateRange.from, 'MM/dd/yyyy')
-                    )
-                  ) : (
-                    'Select date range'
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <div className="p-3 border-b">
-                  <p className="text-sm font-medium">Quick ranges</p>
-                  <div className="grid grid-cols-2 gap-2 mt-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        const today = new Date();
-                        setDateRange({ from: today, to: today });
-                      }}
-                    >
-                      Today
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        const yesterday = subDays(new Date(), 1);
-                        setDateRange({ from: yesterday, to: yesterday });
-                      }}
-                    >
-                      Yesterday
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        const to = new Date();
-                        const from = subDays(to, 7);
-                        setDateRange({ from, to });
-                      }}
-                    >
-                      Last week
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        const to = new Date();
-                        const from = subDays(to, 30);
-                        setDateRange({ from, to });
-                      }}
-                    >
-                      Last month
-                    </Button>
-                  </div>
-                </div>
-                <CalendarComponent
-                  mode="range"
-                  selected={{ from: dateRange.from, to: dateRange.to }}
-                  onSelect={(range: any) => setDateRange(range || { from: undefined, to: undefined })}
-                  numberOfMonths={2}
-                />
-              </PopoverContent>
-            </Popover>
+            <DateRangePicker
+              value={dateRange}
+              onChange={setDateRange}
+              className="w-full"
+            />
 
             <Popover>
               <PopoverTrigger asChild>
@@ -337,20 +313,17 @@ export const CallSheetAnalytics: React.FC = () => {
                   <div className="max-h-64 overflow-y-auto space-y-2">
                     {filteredCrewMembers.length > 0 ? (
                       filteredCrewMembers.map((member) => (
-                        <div key={member.id} className="flex items-center space-x-2">
+                        <div key={member} className="flex items-center space-x-2">
                           <Checkbox
-                            id={`member-${member.id}`}
-                            checked={selectedMembers.includes(member.id)}
-                            onCheckedChange={() => handleMemberToggle(member.id)}
+                            id={`member-${member}`}
+                            checked={selectedMembers.includes(member)}
+                            onCheckedChange={() => handleMemberToggle(member)}
                           />
                           <Label
-                            htmlFor={`member-${member.id}`}
+                            htmlFor={`member-${member}`}
                             className="text-sm font-normal cursor-pointer flex-1"
                           >
-                            <div>
-                              <p>{member.name}</p>
-                              <p className="text-xs text-muted-foreground">{member.role}</p>
-                            </div>
+                            {member}
                           </Label>
                         </div>
                       ))
@@ -358,7 +331,7 @@ export const CallSheetAnalytics: React.FC = () => {
                       <p className="text-sm text-muted-foreground text-center py-4">
                         {selectedRoles.length > 0
                           ? 'No crew members found for selected roles'
-                          : 'Select a role first to see crew members'}
+                          : 'Select a role first or loading...'}
                       </p>
                     )}
                   </div>
@@ -394,21 +367,18 @@ export const CallSheetAnalytics: React.FC = () => {
                 </Badge>
               ))}
 
-              {selectedMembers.map((memberId) => {
-                const member = MOCK_CREW_MEMBERS.find(m => m.id === memberId);
-                return member ? (
-                  <Badge key={memberId} variant="secondary" className="gap-1">
-                    <Users size={12} />
-                    {member.name}
-                    <button
-                      onClick={() => handleMemberToggle(memberId)}
-                      className="ml-1 hover:bg-muted-foreground/20 rounded-full"
-                    >
-                      <X size={12} />
-                    </button>
-                  </Badge>
-                ) : null;
-              })}
+              {selectedMembers.map((memberName) => (
+                <Badge key={memberName} variant="secondary" className="gap-1">
+                  <Users size={12} />
+                  {memberName}
+                  <button
+                    onClick={() => handleMemberToggle(memberName)}
+                    className="ml-1 hover:bg-muted-foreground/20 rounded-full"
+                  >
+                    <X size={12} />
+                  </button>
+                </Badge>
+              ))}
 
               {searchQuery && (
                 <Badge variant="secondary" className="gap-1">
@@ -442,9 +412,13 @@ export const CallSheetAnalytics: React.FC = () => {
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Total Assignments</p>
-                <p className="text-3xl font-bold mt-2">{mockAnalytics.totalAssignments}</p>
+                <p className="text-3xl font-bold mt-2">
+                  {isLoading ? '...' : analytics.totalAssignments}
+                </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  For {selectedMembers.length || 'all'} member{selectedMembers.length !== 1 ? 's' : ''}
+                  {selectedMembers.length > 0
+                    ? `For ${selectedMembers.length} member${selectedMembers.length !== 1 ? 's' : ''}`
+                    : 'All crew members'}
                 </p>
               </div>
               <div className="p-2 bg-blue-100 dark:bg-blue-900/20 rounded-lg">
@@ -459,7 +433,9 @@ export const CallSheetAnalytics: React.FC = () => {
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Programs Worked</p>
-                <p className="text-3xl font-bold mt-2">{mockAnalytics.programsWorked}</p>
+                <p className="text-3xl font-bold mt-2">
+                  {isLoading ? '...' : analytics.programsWorked}
+                </p>
                 <p className="text-xs text-muted-foreground mt-1">Different programs</p>
               </div>
               <div className="p-2 bg-green-100 dark:bg-green-900/20 rounded-lg">
@@ -474,10 +450,12 @@ export const CallSheetAnalytics: React.FC = () => {
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Total Hours Worked</p>
-                <p className="text-3xl font-bold mt-2">{mockAnalytics.totalHours}h</p>
+                <p className="text-3xl font-bold mt-2">
+                  {isLoading ? '...' : `${analytics.totalHours}h`}
+                </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Avg. {mockAnalytics.totalAssignments > 0
-                    ? (mockAnalytics.totalHours / mockAnalytics.totalAssignments).toFixed(1)
+                  Avg. {analytics.totalAssignments > 0
+                    ? (analytics.totalHours / analytics.totalAssignments).toFixed(1)
                     : 0}h per assignment
                 </p>
               </div>
@@ -493,7 +471,9 @@ export const CallSheetAnalytics: React.FC = () => {
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Roles Performed</p>
-                <p className="text-3xl font-bold mt-2">{mockAnalytics.rolesPerformed}</p>
+                <p className="text-3xl font-bold mt-2">
+                  {isLoading ? '...' : analytics.rolesPerformed}
+                </p>
                 <p className="text-xs text-muted-foreground mt-1">Different roles</p>
               </div>
               <div className="p-2 bg-purple-100 dark:bg-purple-900/20 rounded-lg">
@@ -508,24 +488,50 @@ export const CallSheetAnalytics: React.FC = () => {
         <CardHeader>
           <CardTitle>Call Sheet Timeline</CardTitle>
           <p className="text-sm text-muted-foreground">
-            {selectedMembers.length > 0
-              ? `${mockAnalytics.totalCallSheets} call sheets found for selected members`
-              : '0 call sheets found'}
+            {isLoading
+              ? 'Loading...'
+              : `${analytics.totalCallSheets} call sheet${analytics.totalCallSheets !== 1 ? 's' : ''} found`
+            }
           </p>
         </CardHeader>
         <CardContent>
-          {selectedMembers.length === 0 ? (
+          {isLoading ? (
+            <div className="text-center py-12">
+              <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent mb-4"></div>
+              <p className="text-muted-foreground">Loading analytics data...</p>
+            </div>
+          ) : analytics.totalCallSheets === 0 ? (
             <div className="text-center py-12">
               <Users size={48} className="mx-auto text-muted-foreground mb-4" />
               <p className="text-muted-foreground">
-                Select crew roles and members to view analytics
+                No call sheets found matching your filters
               </p>
             </div>
           ) : (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground">
-                Call sheet timeline will be displayed here based on API data
-              </p>
+            <div className="space-y-3">
+              {callSheetResults.slice(0, 10).map((callSheet) => (
+                <div
+                  key={callSheet.id}
+                  className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors"
+                >
+                  <div className="flex-1">
+                    <h4 className="font-medium text-card-foreground">{callSheet.title}</h4>
+                    <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
+                      <span>{callSheet.department}</span>
+                      <span>•</span>
+                      <span>{callSheet.location}</span>
+                      <span>•</span>
+                      <span>{format(new Date(callSheet.filmingDate), 'MMM dd, yyyy')}</span>
+                    </div>
+                  </div>
+                  <Badge variant="secondary">{callSheet.status}</Badge>
+                </div>
+              ))}
+              {callSheetResults.length > 10 && (
+                <p className="text-sm text-muted-foreground text-center pt-2">
+                  Showing 10 of {callSheetResults.length} results
+                </p>
+              )}
             </div>
           )}
         </CardContent>
