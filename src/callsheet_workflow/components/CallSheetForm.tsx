@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Plus, Trash2 } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Upload, X, MapPin } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -36,6 +36,21 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit }) => {
     driverNeeded: false
   });
 
+  const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
+  const [locationSuggestions] = useState<string[]>([
+    'Q37 Studio A, Doha',
+    'Q37 Studio B, Doha',
+    'Katara Cultural Village, Doha',
+    'The Pearl Qatar',
+    'Museum of Islamic Art, Doha',
+    'Souq Waqif, Doha',
+    'Aspire Park, Doha',
+    'Education City, Doha',
+    'West Bay, Doha',
+    'Al Bidda Park, Doha'
+  ]);
+  const [showLocationSuggestions, setShowLocationSuggestions] = useState(false);
+
   const [crewAssignments, setCrewAssignments] = useState<CrewAssignment[]>([]);
   const [newCrew, setNewCrew] = useState({ role: '', name: '', phone: '' });
 
@@ -62,7 +77,30 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit }) => {
 
   const handleChange = (field: string, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+    if (field === 'location') {
+      setShowLocationSuggestions(false);
+    }
   };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const newFiles = Array.from(e.target.files);
+      setAttachedFiles(prev => [...prev, ...newFiles]);
+    }
+  };
+
+  const handleRemoveFile = (index: number) => {
+    setAttachedFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleLocationSelect = (location: string) => {
+    handleChange('location', location);
+    setShowLocationSuggestions(false);
+  };
+
+  const filteredLocationSuggestions = locationSuggestions.filter(loc =>
+    loc.toLowerCase().includes(formData.location.toLowerCase())
+  );
 
   const handleAddCrew = () => {
     if (!newCrew.role || !newCrew.name) {
@@ -205,15 +243,38 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit }) => {
                   />
                 </div>
 
-                {/* Location */}
-                <div className="space-y-2">
-                  <Label htmlFor="location">Location</Label>
-                  <Input
-                    id="location"
-                    value={formData.location}
-                    onChange={(e) => handleChange('location', e.target.value)}
-                    placeholder="Filming location"
-                  />
+                {/* Location with suggestions */}
+                <div className="space-y-2 relative">
+                  <Label htmlFor="location">
+                    <MapPin className="inline-block w-4 h-4 mr-1" />
+                    Location
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      id="location"
+                      value={formData.location}
+                      onChange={(e) => handleChange('location', e.target.value)}
+                      onFocus={() => setShowLocationSuggestions(true)}
+                      placeholder="Enter or select filming location"
+                      autoComplete="off"
+                    />
+                    {showLocationSuggestions && formData.location && filteredLocationSuggestions.length > 0 && (
+                      <div className="absolute z-10 w-full mt-1 bg-background border border-border rounded-md shadow-lg max-h-60 overflow-y-auto">
+                        {filteredLocationSuggestions.map((location, index) => (
+                          <button
+                            key={index}
+                            type="button"
+                            className="w-full text-left px-3 py-2 hover:bg-accent hover:text-accent-foreground cursor-pointer text-sm flex items-center gap-2"
+                            onClick={() => handleLocationSelect(location)}
+                          >
+                            <MapPin className="w-4 h-4 text-muted-foreground" />
+                            {location}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">Start typing to see location suggestions</p>
                 </div>
 
                 {/* Call Time */}
@@ -279,6 +340,74 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit }) => {
                   </div>
                 </div>
               </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>File Attachments</CardTitle>
+            </CardHeader>
+
+            <CardContent className="space-y-4">
+              <div className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-primary/50 transition-colors">
+                <input
+                  type="file"
+                  id="file-upload"
+                  multiple
+                  onChange={handleFileChange}
+                  className="hidden"
+                  accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.gif"
+                />
+                <Label
+                  htmlFor="file-upload"
+                  className="cursor-pointer flex flex-col items-center gap-2"
+                >
+                  <div className="p-3 bg-primary/10 rounded-full">
+                    <Upload className="w-6 h-6 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">Click to upload files</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      PDF, DOC, XLS, or images (Max 10MB each)
+                    </p>
+                  </div>
+                </Label>
+              </div>
+
+              {attachedFiles.length > 0 && (
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Attached Files ({attachedFiles.length})</Label>
+                  <div className="space-y-2">
+                    {attachedFiles.map((file, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center justify-between p-3 bg-muted/50 rounded-lg border border-border"
+                      >
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <div className="p-2 bg-background rounded">
+                            <Upload className="w-4 h-4 text-muted-foreground" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate">{file.name}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {(file.size / 1024).toFixed(2)} KB
+                            </p>
+                          </div>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleRemoveFile(index)}
+                          className="text-red-600 hover:text-red-800 hover:bg-red-50 flex-shrink-0"
+                        >
+                          <X size={16} />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
