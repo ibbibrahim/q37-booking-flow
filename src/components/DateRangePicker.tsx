@@ -51,6 +51,17 @@ export function DateRangePicker({ value, onChange, className }: DateRangePickerP
     return `${format(value.from, "MMM dd, yyyy")} – ${format(value.to, "MMM dd, yyyy")}`;
   };
 
+  const isPresetActive = (preset: typeof presets[0]) => {
+    const presetValue = preset.getValue();
+    if (!tempRange?.from || !tempRange?.to || !presetValue.from || !presetValue.to) {
+      return false;
+    }
+    return (
+      presetValue.from.toDateString() === tempRange.from.toDateString() &&
+      presetValue.to.toDateString() === tempRange.to.toDateString()
+    );
+  };
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -68,19 +79,18 @@ export function DateRangePicker({ value, onChange, className }: DateRangePickerP
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0 bg-background" align="start" sideOffset={4}>
         <div className="flex">
-          <div className="border-r border-border">
+          <div className="border-r border-border bg-muted/30">
             <div className="p-3 space-y-1 min-w-[140px]">
+              <p className="text-xs font-medium text-muted-foreground px-2 mb-2">Quick Select</p>
               {presets.map((preset) => (
                 <Button
                   key={preset.label}
                   variant="ghost"
                   size="sm"
                   className={cn(
-                    "w-full justify-start text-sm font-normal hover:bg-accent",
-                    tempRange?.from && tempRange?.to &&
-                    preset.getValue().from?.toDateString() === tempRange.from.toDateString() &&
-                    preset.getValue().to?.toDateString() === tempRange.to.toDateString() &&
-                    "bg-orange-500 text-white hover:bg-orange-600 hover:text-white"
+                    "w-full justify-start text-sm font-normal",
+                    isPresetActive(preset) &&
+                    "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground"
                   )}
                   onClick={() => handlePresetClick(preset)}
                 >
@@ -90,7 +100,7 @@ export function DateRangePicker({ value, onChange, className }: DateRangePickerP
             </div>
           </div>
 
-          <div className="p-3">
+          <div className="p-4">
             <Calendar
               mode="range"
               selected={tempRange}
@@ -99,7 +109,7 @@ export function DateRangePicker({ value, onChange, className }: DateRangePickerP
               className="pointer-events-auto"
             />
 
-            <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border">
+            <div className="flex items-center gap-2 mt-4 pt-4 border-t border-border">
               <Input
                 value={tempRange?.from ? format(tempRange.from, "MM/dd/yyyy") : ""}
                 placeholder="MM/DD/YYYY"
@@ -116,7 +126,7 @@ export function DateRangePicker({ value, onChange, className }: DateRangePickerP
               <Button variant="outline" size="sm" onClick={handleCancel}>
                 Cancel
               </Button>
-              <Button size="sm" onClick={handleApply} className="bg-primary">
+              <Button size="sm" onClick={handleApply} className="bg-primary hover:bg-primary/90">
                 Apply
               </Button>
             </div>

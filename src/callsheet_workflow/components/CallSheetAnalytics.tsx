@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   Download,
   Filter,
@@ -99,6 +99,7 @@ export const CallSheetAnalytics: React.FC = () => {
   const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [roleSearchQuery, setRoleSearchQuery] = useState('');
   const [memberSearchQuery, setMemberSearchQuery] = useState('');
   const [isExporting, setIsExporting] = useState(false);
@@ -130,12 +131,21 @@ export const CallSheetAnalytics: React.FC = () => {
     loadCrewMembers();
   }, [selectedRoles]);
 
+  // Debounce search query
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
   // Reset to page 1 on filter change
   useEffect(() => {
     setCurrentPage(1);
     loadAnalytics(1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dateRange, selectedRoles, selectedMembers, searchQuery]);
+  }, [dateRange, selectedRoles, selectedMembers, debouncedSearchQuery]);
 
   // Load when page changes
   useEffect(() => {
@@ -161,7 +171,7 @@ export const CallSheetAnalytics: React.FC = () => {
         dateTo: dateRange?.to ? format(dateRange.to, 'yyyy-MM-dd') : undefined,
         roles: selectedRoles.length > 0 ? selectedRoles : undefined,
         crewMembers: selectedMembers.length > 0 ? selectedMembers : undefined,
-        searchQuery: searchQuery || undefined,
+        searchQuery: debouncedSearchQuery || undefined,
         page,
         pageSize
       };
@@ -567,25 +577,6 @@ export const CallSheetAnalytics: React.FC = () => {
           <CardContent className="pt-6">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Programs Worked</p>
-                <p className="text-3xl font-bold mt-2">
-                  {isLoading ? '...' : analytics.programsWorked}
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Different programs
-                </p>
-              </div>
-              <div className="p-2 bg-green-100 dark:bg-green-900/20 rounded-lg">
-                <TrendingUp size={20} className="text-green-600 dark:text-green-400" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-start justify-between">
-              <div>
                 <p className="text-sm text-muted-foreground">Total Hours Worked</p>
                 <p className="text-3xl font-bold mt-2">
                   {isLoading ? '...' : `${analytics.totalHours}`}
@@ -603,23 +594,52 @@ export const CallSheetAnalytics: React.FC = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        {topMembers.slice(0, 2).map((member, index) => (
+          <Card key={member.name} className="border-l-4" style={{ borderLeftColor: index === 0 ? '#10b981' : '#8b5cf6' }}>
+            <CardContent className="pt-6">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Top {index + 1} Crew Member</p>
+                  <p className="text-xl font-bold mt-2 truncate" title={member.name}>
+                    {member.name}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {member.totalHours}h • {member.callSheets} call sheets
+                  </p>
+                </div>
+                <div className={`p-2 rounded-lg ${index === 0 ? 'bg-green-100 dark:bg-green-900/20' : 'bg-violet-100 dark:bg-violet-900/20'}`}>
+                  <Users size={20} className={index === 0 ? 'text-green-600 dark:text-green-400' : 'text-violet-600 dark:text-violet-400'} />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Third top member - full width */}
+      {topMembers[2] && (
+        <Card className="border-l-4 border-l-amber-500">
           <CardContent className="pt-6">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Roles Performed</p>
-                <p className="text-3xl font-bold mt-2">
-                  {isLoading ? '...' : analytics.rolesPerformed}
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">Different roles</p>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-amber-100 dark:bg-amber-900/20 rounded-lg">
+                  <Users size={24} className="text-amber-600 dark:text-amber-400" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Top 3 Crew Member</p>
+                  <p className="text-2xl font-bold mt-1">{topMembers[2].name}</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {topMembers[2].totalHours} hours worked • {topMembers[2].callSheets} call sheets completed
+                  </p>
+                </div>
               </div>
-              <div className="p-2 bg-purple-100 dark:bg-purple-900/20 rounded-lg">
-                <Users size={20} className="text-purple-600 dark:text-purple-400" />
-              </div>
+              <Badge variant="secondary" className="text-base px-4 py-2">
+                #{3}
+              </Badge>
             </div>
           </CardContent>
         </Card>
-      </div>
+      )}
 
       {/* Member stats block (only when members selected) */}
       {selectedMembers.length > 0 && (
