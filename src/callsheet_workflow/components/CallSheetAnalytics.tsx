@@ -140,6 +140,12 @@ export const CallSheetAnalytics: React.FC = () => {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
+  // Load top members only when date range changes (not affected by role/member filters)
+  useEffect(() => {
+    loadTopMembers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dateRange]);
+
   // Reset to page 1 on filter change
   useEffect(() => {
     setCurrentPage(1);
@@ -160,6 +166,47 @@ export const CallSheetAnalytics: React.FC = () => {
     } catch (error) {
       console.error('Failed to load crew members:', error);
       setCrewMembers([]);
+    }
+  };
+
+  const loadTopMembers = async () => {
+    try {
+      const filters = {
+        dateFrom: dateRange?.from ? format(dateRange.from, 'yyyy-MM-dd') : undefined,
+        dateTo: dateRange?.to ? format(dateRange.to, 'yyyy-MM-dd') : undefined,
+        page: 1,
+        pageSize: 1000
+      };
+
+      const result: CallSheetSearchResponse = await callSheetApi.searchCallSheets(filters);
+      const items: CallSheetResult[] = (result.items || []) as CallSheetResult[];
+
+      const memberHours: Record<string, TopMember> = {};
+
+      items.forEach((cs) => {
+        const duration = cs.durationHours || 0;
+
+        cs.crewAssignments?.forEach((crew) => {
+          if (!memberHours[crew.name]) {
+            memberHours[crew.name] = {
+              name: crew.name,
+              totalHours: 0,
+              callSheets: 0
+            };
+          }
+
+          memberHours[crew.name].totalHours += duration;
+          memberHours[crew.name].callSheets += 1;
+        });
+      });
+
+      const top2 = Object.values(memberHours)
+        .sort((a, b) => b.totalHours - a.totalHours)
+        .slice(0, 2);
+
+      setTopMembers(top2);
+    } catch (error) {
+      console.error('Failed to load top members:', error);
     }
   };
 
@@ -207,31 +254,7 @@ export const CallSheetAnalytics: React.FC = () => {
         ) || 0;
 
 
-        // --- NEW: aggregate hours per member from current result set ---
-      const memberHours: Record<string, TopMember> = {};
-
-      items.forEach((cs) => {
-        const duration = cs.durationHours || 0;
-
-        cs.crewAssignments?.forEach((crew) => {
-          if (!memberHours[crew.name]) {
-            memberHours[crew.name] = {
-              name: crew.name,
-              totalHours: 0,
-              callSheets: 0
-            };
-          }
-
-          memberHours[crew.name].totalHours += duration;
-          memberHours[crew.name].callSheets += 1;
-        });
-      });
-
-      const top3 = Object.values(memberHours)
-        .sort((a, b) => b.totalHours - a.totalHours)
-        .slice(0, 3);
-
-      setTopMembers(top3);
+        // Top members are loaded separately by date range only
 
       setAnalytics({
         totalCallSheets: total,
@@ -553,17 +576,13 @@ export const CallSheetAnalytics: React.FC = () => {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-start justify-between">
-              <div>
+              <div className="flex-1">
                 <p className="text-sm text-muted-foreground">Total CallSheet</p>
                 <p className="text-3xl font-bold mt-2">
                   {isLoading ? '...' : analytics.totalCallSheets}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {selectedMembers.length > 0
-                    ? `For ${selectedMembers.length} member${
-                        selectedMembers.length !== 1 ? 's' : ''
-                      }`
-                    : 'All crew members'}
+                  All crew members
                 </p>
               </div>
               <div className="p-2 bg-blue-100 dark:bg-blue-900/20 rounded-lg">
@@ -576,15 +595,13 @@ export const CallSheetAnalytics: React.FC = () => {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-start justify-between">
-              <div>
+              <div className="flex-1">
                 <p className="text-sm text-muted-foreground">Total Hours Worked</p>
                 <p className="text-3xl font-bold mt-2">
                   {isLoading ? '...' : `${analytics.totalHours}`}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Avg.{' '}
-                  {analytics.avgDuration}
-                  {' '}per callsheet
+                  Avg. {analytics.avgDuration} per callsheet
                 </p>
               </div>
               <div className="p-2 bg-orange-100 dark:bg-orange-900/20 rounded-lg">
@@ -594,52 +611,48 @@ export const CallSheetAnalytics: React.FC = () => {
           </CardContent>
         </Card>
 
-        {topMembers.slice(0, 2).map((member, index) => (
-          <Card key={member.name} className="border-l-4" style={{ borderLeftColor: index === 0 ? '#10b981' : '#8b5cf6' }}>
+        {topMembers.length > 0 && topMembers[0] && (
+          <Card className="border-l-4 border-l-green-500">
             <CardContent className="pt-6">
               <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Top {index + 1} Crew Member</p>
-                  <p className="text-xl font-bold mt-2 truncate" title={member.name}>
-                    {member.name}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-muted-foreground">Top 1 Crew Member</p>
+                  <p className="text-xl font-bold mt-2 truncate" title={topMembers[0].name}>
+                    {topMembers[0].name}
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {member.totalHours}h • {member.callSheets} call sheets
+                    {topMembers[0].totalHours}h • {topMembers[0].callSheets} call sheets
                   </p>
                 </div>
-                <div className={`p-2 rounded-lg ${index === 0 ? 'bg-green-100 dark:bg-green-900/20' : 'bg-violet-100 dark:bg-violet-900/20'}`}>
-                  <Users size={20} className={index === 0 ? 'text-green-600 dark:text-green-400' : 'text-violet-600 dark:text-violet-400'} />
+                <div className="p-2 bg-green-100 dark:bg-green-900/20 rounded-lg flex-shrink-0">
+                  <Users size={20} className="text-green-600 dark:text-green-400" />
                 </div>
               </div>
             </CardContent>
           </Card>
-        ))}
-      </div>
+        )}
 
-      {/* Third top member - full width */}
-      {topMembers[2] && (
-        <Card className="border-l-4 border-l-amber-500">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-amber-100 dark:bg-amber-900/20 rounded-lg">
-                  <Users size={24} className="text-amber-600 dark:text-amber-400" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Top 3 Crew Member</p>
-                  <p className="text-2xl font-bold mt-1">{topMembers[2].name}</p>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {topMembers[2].totalHours} hours worked • {topMembers[2].callSheets} call sheets completed
+        {topMembers.length > 1 && topMembers[1] && (
+          <Card className="border-l-4 border-l-violet-500">
+            <CardContent className="pt-6">
+              <div className="flex items-start justify-between">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-muted-foreground">Top 2 Crew Member</p>
+                  <p className="text-xl font-bold mt-2 truncate" title={topMembers[1].name}>
+                    {topMembers[1].name}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {topMembers[1].totalHours}h • {topMembers[1].callSheets} call sheets
                   </p>
                 </div>
+                <div className="p-2 bg-violet-100 dark:bg-violet-900/20 rounded-lg flex-shrink-0">
+                  <Users size={20} className="text-violet-600 dark:text-violet-400" />
+                </div>
               </div>
-              <Badge variant="secondary" className="text-base px-4 py-2">
-                #{3}
-              </Badge>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+            </CardContent>
+          </Card>
+        )}
+      </div>
 
       {/* Member stats block (only when members selected) */}
       {selectedMembers.length > 0 && (
