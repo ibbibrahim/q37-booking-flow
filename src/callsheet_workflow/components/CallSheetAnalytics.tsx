@@ -77,6 +77,12 @@ interface MemberStats {
   callSheets: CallSheetResult[];
 }
 
+interface TopMember {
+  name: string;
+  totalHours: number;
+  callSheets: number;
+}
+
 const QUICK_DATE_RANGES = [
   { label: '24 hours', days: 1 },
   { label: '7 days', days: 7 },
@@ -117,6 +123,7 @@ export const CallSheetAnalytics: React.FC = () => {
   });
 
   const [memberStats, setMemberStats] = useState<Record<string, MemberStats>>({});
+  const [topMembers, setTopMembers] = useState<TopMember[]>([]);
 
   // Load crew members whenever roles change
   useEffect(() => {
@@ -188,6 +195,33 @@ export const CallSheetAnalytics: React.FC = () => {
           (sum, cs) => sum + (cs.crewSize || cs.crewAssignments?.length || 0),
           0
         ) || 0;
+
+
+        // --- NEW: aggregate hours per member from current result set ---
+      const memberHours: Record<string, TopMember> = {};
+
+      items.forEach((cs) => {
+        const duration = cs.durationHours || 0;
+
+        cs.crewAssignments?.forEach((crew) => {
+          if (!memberHours[crew.name]) {
+            memberHours[crew.name] = {
+              name: crew.name,
+              totalHours: 0,
+              callSheets: 0
+            };
+          }
+
+          memberHours[crew.name].totalHours += duration;
+          memberHours[crew.name].callSheets += 1;
+        });
+      });
+
+      const top3 = Object.values(memberHours)
+        .sort((a, b) => b.totalHours - a.totalHours)
+        .slice(0, 3);
+
+      setTopMembers(top3);
 
       setAnalytics({
         totalCallSheets: total,

@@ -113,7 +113,7 @@ export const BookingDashboard: React.FC = () => {
             <div className="space-y-1">
             {roles.map(role => {
               const Icon = roleConfig[role].icon;
-              const isActive = currentSection === role.toLowerCase();
+              const isActive = currentSection === role.toLowerCase() && location.pathname !== '/callsheet/analytics';
 
               return (
                 <button
