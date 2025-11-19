@@ -592,71 +592,69 @@ export const CallSheetAnalytics: React.FC = () => {
               Per-member breakdown for selected crew within current filters.
             </p>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {selectedMembers.map((memberName) => {
-              const stats = memberStats[memberName];
 
-              if (!stats) {
-                return (
-                  <div
-                    key={memberName}
-                    className="border border-dashed border-border rounded-lg p-3 text-sm text-muted-foreground"
-                  >
-                    No data found for <span className="font-medium">{memberName}</span>{' '}
-                    in this range.
-                  </div>
-                );
-              }
+          {/* Scrollable area so many members don’t stretch the whole page */}
+          <CardContent>
+            <div className="max-h-[340px] overflow-y-auto pr-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {selectedMembers.map((memberName) => {
+                  const stats = memberStats[memberName];
 
-              return (
-                <div
-                  key={memberName}
-                  className="border border-border rounded-lg p-4 space-y-3 bg-muted/30"
-                >
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h3 className="font-semibold text-card-foreground">
-                        {memberName}
-                      </h3>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {stats.totalCallSheets} call sheet
-                        {stats.totalCallSheets !== 1 ? 's' : ''} ·{' '}
-                        {stats.totalHours.toFixed(1)}h total · Avg{' '}
-                        {stats.avgDuration.toFixed(1)}h
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* List of call sheets for this member */}
-                  <div className="space-y-2">
-                    {stats.callSheets.map((cs) => (
+                  if (!stats) {
+                    return (
                       <div
-                        key={cs.id}
-                        className="flex items-center justify-between text-xs border border-border rounded-md px-2 py-2 bg-background/60"
+                        key={memberName}
+                        className="rounded-xl border border-dashed border-border bg-muted/20 p-4 text-sm text-muted-foreground flex flex-col justify-between"
                       >
-                        <div className="flex-1">
-                          <div className="font-medium text-sm text-card-foreground">
-                            {cs.title}
-                          </div>
-                          <div className="text-[11px] text-muted-foreground flex flex-wrap gap-2">
-                            <span>{cs.department}</span>
-                            <span>•</span>
-                            <span>{cs.location}</span>
-                            <span>•</span>
-                            <span>
-                              {format(new Date(cs.filmingDate), 'MMM dd, yyyy')}
-                            </span>
-                          </div>
+                        <div className="font-semibold text-foreground mb-1">
+                          {memberName}
                         </div>
-                        <div className="text-right text-[11px] text-muted-foreground min-w-[60px]">
-                          {cs.durationHours.toFixed(1)}h
+                        <p>No data found in this range.</p>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div
+                      key={memberName}
+                      className="rounded-xl border border-border bg-muted/30 p-4 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between"
+                    >
+                      <div className="flex items-start justify-between mb-3">
+                        <div>
+                          <h3 className="font-semibold text-sm text-foreground">
+                            {memberName}
+                          </h3>
+                          {/* <p className="text-[11px] text-muted-foreground mt-0.5">
+                            Selected crew member
+                          </p> */}
+                        </div>
+                        <div className="px-2 py-1 rounded-full bg-primary/10 text-primary text-[11px] font-medium">
+                          {stats.totalCallSheets} sheet
+                          {stats.totalCallSheets !== 1 ? 's' : ''}
                         </div>
                       </div>
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
+
+                      <div className="space-y-1 text-xs text-muted-foreground">
+                        <div className="flex items-center justify-between">
+                          <span>Total hours</span>
+                          <span className="font-semibold text-foreground">
+                            {stats.totalHours.toFixed(1)}h
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span>Avg / call sheet</span>
+                          <span className="font-semibold text-foreground">
+                            {stats.avgDuration.toFixed(1)}h
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* No call-sheet list – kept removed on purpose */}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </CardContent>
         </Card>
       )}
