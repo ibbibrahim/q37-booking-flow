@@ -35,12 +35,21 @@ import { DateRange } from 'react-day-picker';
 interface AnalyticsData {
   totalAssignments: number;
   programsWorked: number;
-  totalHours: number;
+  totalHours: string;
   rolesPerformed: number;
   totalCallSheets: number;
   avgCrewSize: number;
   completionRate: number;
-  avgDuration: number;
+  avgDuration: string;
+}
+
+export interface CallSheetSearchResponse {
+  total: number;
+  page: number;
+  pageSize: number;
+  totalDuration: string; // "129h 2m"
+  avgTime: string;       // "5h 9m"
+  items: CallSheetResult[];
 }
 
 interface CrewAssignmentResult {
@@ -94,17 +103,17 @@ export const CallSheetAnalytics: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
-  const pageSize = 50;
+  const pageSize = 10;
 
   const [analytics, setAnalytics] = useState<AnalyticsData>({
     totalAssignments: 0,
     programsWorked: 0,
-    totalHours: 0,
+    totalHours: "0",
     rolesPerformed: 0,
     totalCallSheets: 0,
     avgCrewSize: 0,
     completionRate: 0,
-    avgDuration: 0
+    avgDuration: "0"
   });
 
   const [memberStats, setMemberStats] = useState<Record<string, MemberStats>>({});
@@ -150,11 +159,14 @@ export const CallSheetAnalytics: React.FC = () => {
         pageSize
       };
 
-      const result = await callSheetApi.searchCallSheets(filters);
+      const result: CallSheetSearchResponse = await callSheetApi.searchCallSheets(filters);
 
       const items: CallSheetResult[] = (result.items || []) as CallSheetResult[];
 
+       // Set list
       setCallSheetResults(items);
+
+      // Set pagination
       const total = result.total || 0;
       setTotalCount(total);
       setTotalPages(Math.ceil(total / pageSize));
@@ -177,24 +189,18 @@ export const CallSheetAnalytics: React.FC = () => {
           0
         ) || 0;
 
-      const totalHoursFromAPI =
-        items.reduce((sum, cs) => sum + (cs.durationHours || 0), 0) || 0;
-
       setAnalytics({
         totalCallSheets: total,
         totalAssignments,
         programsWorked: uniquePrograms.size,
         rolesPerformed: uniqueRoles.size,
-        totalHours: totalHoursFromAPI,
+        totalHours: result.totalDuration,
         avgCrewSize:
           totalCallSheetsOnPage > 0
             ? Math.round(totalCrewSize / totalCallSheetsOnPage)
             : 0,
         completionRate: 92, // placeholder
-        avgDuration:
-          totalCallSheetsOnPage > 0
-            ? totalHoursFromAPI / totalCallSheetsOnPage
-            : 0
+        avgDuration: result.avgTime
       });
 
       // ---- Per-member stats (only if members selected) ----
@@ -504,9 +510,9 @@ export const CallSheetAnalytics: React.FC = () => {
           <CardContent className="pt-6">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Total Assignments</p>
+                <p className="text-sm text-muted-foreground">Total CallSheet</p>
                 <p className="text-3xl font-bold mt-2">
-                  {isLoading ? '...' : analytics.totalAssignments}
+                  {isLoading ? '...' : analytics.totalCallSheets}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
                   {selectedMembers.length > 0
@@ -548,14 +554,12 @@ export const CallSheetAnalytics: React.FC = () => {
               <div>
                 <p className="text-sm text-muted-foreground">Total Hours Worked</p>
                 <p className="text-3xl font-bold mt-2">
-                  {isLoading ? '...' : `${analytics.totalHours.toFixed(1)}h`}
+                  {isLoading ? '...' : `${analytics.totalHours}`}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
                   Avg.{' '}
-                  {analytics.totalAssignments > 0
-                    ? (analytics.totalHours / analytics.totalAssignments).toFixed(1)
-                    : 0}
-                  h per assignment
+                  {analytics.avgDuration}
+                  {' '}per callsheet
                 </p>
               </div>
               <div className="p-2 bg-orange-100 dark:bg-orange-900/20 rounded-lg">
@@ -687,28 +691,109 @@ export const CallSheetAnalytics: React.FC = () => {
           ) : (
             <div className="space-y-4">
               <div className="space-y-3">
-                {callSheetResults.map((callSheet) => (
-                  <div
-                    key={callSheet.id}
-                    className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors"
-                  >
-                    <div className="flex-1">
-                      <h4 className="font-medium text-card-foreground">
-                        {callSheet.title}
-                      </h4>
-                      <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground flex-wrap">
-                        <span>{callSheet.department}</span>
-                        <span>•</span>
-                        <span>{callSheet.location}</span>
-                        <span>•</span>
-                        <span>
-                          {format(new Date(callSheet.filmingDate), 'MMM dd, yyyy')}
-                        </span>
+                {callSheetResults.map((callSheet) => {
+                  // Show only selected members if any are chosen, otherwise show full crew
+                  const crewToShow =
+                    selectedMembers.length > 0
+                      ? callSheet.crewAssignments.filter((c) =>
+                          selectedMembers.includes(c.name)
+                        )
+                      : callSheet.crewAssignments;
+
+                  return (
+                    <div
+                      key={callSheet.id}
+                      className="p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors"
+                    >
+                      {/* Top row: title + meta + status badge */}
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1">
+                          <h4 className="font-medium text-card-foreground">
+                            {callSheet.title}
+                          </h4>
+                          <div className="flex items-center gap-6 mt-1 text-sm text-muted-foreground flex-wrap">
+                            <div>
+                              <div className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                                Program
+                              </div>
+                              <div className="font-semibold text-[13px] text-foreground">
+                                {callSheet.department}
+                              </div>
+                            </div>
+
+                            <div>
+                              <div className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                                Location
+                              </div>
+                              <div className="font-semibold text-[13px] text-foreground">
+                                {callSheet.location}
+                              </div>
+                            </div>
+
+                            <div>
+                              <div className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                                Date
+                              </div>
+                              <div className="font-semibold text-[13px] text-foreground">
+                                {format(new Date(callSheet.filmingDate), 'MMM dd, yyyy')}
+                              </div>
+                            </div>
+
+                            <div>
+                              <div className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                                Crew Size
+                              </div>
+                              <div className="font-semibold text-[13px] text-foreground">
+                                {callSheet.crewSize} member
+                                {callSheet.crewSize !== 1 ? 's' : ''}
+                              </div>
+                            </div>
+
+                            <div>
+                              <div className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                                Duration
+                              </div>
+                              <div className="font-semibold text-[13px] text-foreground">
+                                {callSheet.durationHours}h
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <Badge variant="secondary" className="self-start">
+                          {callSheet.status}
+                        </Badge>
                       </div>
+
+                      {/* Divider + crew chips */}
+                      {crewToShow.length > 0 && (
+                        <div className="mt-4 pt-3 border-t border-border">
+                          <p className="text-xs text-muted-foreground mb-2">
+                            {selectedMembers.length > 0
+                              ? 'Selected crew on this call sheet:'
+                              : 'Crew on this call sheet:'}
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            {crewToShow.map((crew) => (
+                              <span
+                                key={`${callSheet.id}-${crew.name}-${crew.role}`}
+                                className="inline-flex items-center rounded-full bg-muted px-3 py-1 text-xs font-medium text-foreground"
+                              >
+                                {crew.name}
+                                {crew.role && (
+                                  <span className="ml-1 text-[11px] text-muted-foreground">
+                                    {' '}
+                                    - {crew.role}
+                                  </span>
+                                )}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
-                    <Badge variant="secondary">{callSheet.status}</Badge>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               {totalPages > 1 && (
