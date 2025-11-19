@@ -87,7 +87,7 @@ export const TransportForm: React.FC<TransportFormProps> = ({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="vehicleNo">Vehicle No</Label>
+              <Label htmlFor="vehicleNo">Driver Phone No</Label>
               <Input
                 id="vehicleNo"
                 value={transportRequest.vehicleNo}
