@@ -1,8 +1,7 @@
 export type CallSheetStatus =
   | 'Draft'
-  | 'Pending Approval'
-  | 'Approved'
-  | 'In Progress'
+  | 'With Technical Store'
+  | 'Submitted'
   | 'Completed'
   | 'Cancelled';
 export interface CrewAssignment {

@@ -10,7 +10,7 @@ export type WorkflowStatus =
   | 'Completed'
   | 'Not Done';
 
-export type UserRole = 'Booking' | 'NOC' | 'Ingest' | 'Admin' | 'Callsheet';
+export type UserRole = 'Booking' | 'NOC' | 'Ingest' | 'Admin' | 'Callsheet' | 'TechnicalStore';
 
 export type Priority = 'Normal' | 'High' | 'Urgent';
 export type Language = 'English' | 'Arabic';

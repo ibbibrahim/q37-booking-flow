@@ -67,10 +67,11 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
   // Initialize form with existing data if provided
   useEffect(() => {
     if (initialCallSheet) {
+      debugger;
       setFormData({
         department: initialCallSheet.department || '',
         title: initialCallSheet.title || '',
-        filmingDate: initialCallSheet.filmingDate || '',
+        filmingDate: initialCallSheet.filmingDate ? initialCallSheet.filmingDate.slice(0, 10) : '',
         callTime: initialCallSheet.callTime || '',
         wrapTime: initialCallSheet.wrapTime || '',
         location: initialCallSheet.location || '',
@@ -184,7 +185,7 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
       departmentsToNotify,
       transportRequest,
       notifications,
-      status: 'Draft',
+      // status: 'Draft',
       createdBy: 1, // TODO: replace with actual user context
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()

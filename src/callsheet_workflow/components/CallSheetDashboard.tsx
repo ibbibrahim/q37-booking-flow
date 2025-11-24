@@ -40,14 +40,15 @@ export const CallSheetDashboard: React.FC = () => {
     if (!isConnected) {
       return;
     }
-
+    debugger
     // Listen for new call sheets created
     const unsubscribeCreated = listen('CallSheetCreated', (newCallSheet: CallSheetRequest) => {
+      
       console.log('CallSheetCreated event received:', newCallSheet);
 
       // For TechnicalStore users, only add if it matches their filter criteria
       if (isTechnicalStore) {
-        if (newCallSheet.status === 'Submitted' && newCallSheet.driverNeeded) {
+        if (newCallSheet.status === 'With Technical Store' && newCallSheet.driverNeeded) {
           setCallSheets((prev) => {
             const exists = prev.some((cs) => cs.id === newCallSheet.id);
             if (exists) return prev;
