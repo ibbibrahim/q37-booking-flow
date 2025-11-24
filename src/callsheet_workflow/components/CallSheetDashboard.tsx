@@ -40,7 +40,6 @@ export const CallSheetDashboard: React.FC = () => {
     if (!isConnected) {
       return;
     }
-    debugger
     // Listen for new call sheets created
     const unsubscribeCreated = listen('CallSheetCreated', (newCallSheet: CallSheetRequest) => {
       

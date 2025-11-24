@@ -67,7 +67,6 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
   // Initialize form with existing data if provided
   useEffect(() => {
     if (initialCallSheet) {
-      debugger;
       setFormData({
         department: initialCallSheet.department || '',
         title: initialCallSheet.title || '',

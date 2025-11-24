@@ -69,8 +69,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const payload = JSON.parse(atob(receivedToken.split('.')[1]));
 
       let userRoles: string[] = [];
-      debugger;
-
+      
       // Handle both roles array and single role
       if (payload.roles && Array.isArray(payload.roles)) {
         userRoles = payload.roles;
