@@ -38,7 +38,7 @@ export interface TransportRequest {
   startDateTime: string;
   returnDateTime: string;
   driverName: string;
-  vehicleNo: string;
+  driverNo: string;
   carType?: string;       // optional (SUV/Van)
   requestedBy:  string | number;    // always number
 }

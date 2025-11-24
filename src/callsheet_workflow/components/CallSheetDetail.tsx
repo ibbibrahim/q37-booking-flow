@@ -129,7 +129,7 @@ export const CallSheetDetail: React.FC = () => {
     try {
       const updateData = {
         driverName: data.transportRequest?.driverName || '',
-        driverNo: data.transportRequest?.vehicleNo || '',
+        driverNo: data.transportRequest?.driverNo || '',
         equipment: data.equipment || []
       };
 
@@ -298,8 +298,8 @@ export const CallSheetDetail: React.FC = () => {
                     <div className="text-card-foreground font-medium">{callSheet.transportRequest.driverName}</div>
                   </div>
                   <div>
-                    <div className="text-xs text-muted-foreground mb-1">Vehicle No</div>
-                    <div className="text-card-foreground font-medium">{callSheet.transportRequest.vehicleNo}</div>
+                    <div className="text-xs text-muted-foreground mb-1">Driver Number</div>
+                    <div className="text-card-foreground font-medium">{callSheet.transportRequest.driverNo}</div>
                   </div>
                   <div>
                     <div className="text-xs text-muted-foreground mb-1">Requested By</div>
