@@ -214,8 +214,8 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({
         </Card>
       )}
 
-      {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* <Card>
           <CardHeader>
             <CardTitle>Departments to Approve</CardTitle>
           </CardHeader>
@@ -233,7 +233,7 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({
               </div>
             ))}
           </CardContent>
-        </Card>
+        </Card> */}
 
         <Card>
           <CardHeader>
@@ -254,7 +254,7 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({
             ))}
           </CardContent>
         </Card>
-      </div> */}
+      </div>
     </div>
   );
 };
