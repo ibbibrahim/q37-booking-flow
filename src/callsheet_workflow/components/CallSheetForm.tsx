@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Plus, Trash2, Upload, X, MapPin } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -18,11 +18,14 @@ import { DEPARTMENTS, DEFAULT_NOTIFICATIONS, DEPARTMENT_ACKNOWLEDGEMENTS, CALL_S
 
 interface CallSheetFormProps {
   onSubmit: (data: Partial<CallSheetRequest>) => void;
+  initialCallSheet?: CallSheetRequest;
+  mode?: 'create' | 'technicalStore';
 }
 
-export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit }) => {
+export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialCallSheet, mode = 'create' }) => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('request');
+  const isTechnicalStoreMode = mode === 'technicalStore';
 
   const [formData, setFormData] = useState({
     department: '',
@@ -61,8 +64,63 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit }) => {
     JSON.parse(JSON.stringify(DEFAULT_NOTIFICATIONS))
   );
 
+  // Initialize form with existing data if provided
+  useEffect(() => {
+    if (initialCallSheet) {
+      setFormData({
+        department: initialCallSheet.department || '',
+        title: initialCallSheet.title || '',
+        filmingDate: initialCallSheet.filmingDate || '',
+        callTime: initialCallSheet.callTime || '',
+        wrapTime: initialCallSheet.wrapTime || '',
+        location: initialCallSheet.location || '',
+        focalPoint: initialCallSheet.focalPoint || '',
+        focalPointContact: initialCallSheet.focalPointContact || '',
+        driverNeeded: initialCallSheet.driverNeeded || false
+      });
+
+      if (initialCallSheet.crewAssignments) {
+        setCrewAssignments(initialCallSheet.crewAssignments);
+      }
+
+      if (initialCallSheet.departmentAcknowledgements) {
+        setDepartmentAcknowledgements(initialCallSheet.departmentAcknowledgements);
+      }
+
+      if (initialCallSheet.equipment) {
+        setEquipment(initialCallSheet.equipment);
+      }
+
+      if (initialCallSheet.transportRequest) {
+        setTransportRequest({
+          reason: initialCallSheet.transportRequest.reason || '',
+          startDateTime: initialCallSheet.transportRequest.startDateTime || '',
+          returnDateTime: initialCallSheet.transportRequest.returnDateTime || '',
+          driverName: initialCallSheet.transportRequest.driverName || '',
+          vehicleNo: initialCallSheet.transportRequest.vehicleNo || '',
+          requestedBy: initialCallSheet.transportRequest.requestedBy || 1
+        });
+      }
+
+      if (initialCallSheet.departmentsToApprove) {
+        setDepartmentsToApprove(initialCallSheet.departmentsToApprove);
+      }
+
+      if (initialCallSheet.departmentsToNotify) {
+        setDepartmentsToNotify(initialCallSheet.departmentsToNotify);
+      }
+
+      if (initialCallSheet.notifications) {
+        setNotifications(initialCallSheet.notifications);
+      }
+    }
+  }, [initialCallSheet]);
+
   const handleChange = (field: string, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+    if (field === 'location') {
+      setShowLocationSuggestions(false);
+    }
   };
 
   const handleAddCrew = () => {
@@ -147,9 +205,13 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit }) => {
           <ArrowLeft size={20} />
         </Button>
         <div>
-          <h1 className="text-2xl font-bold text-card-foreground">New Call Sheet</h1>
+          <h1 className="text-2xl font-bold text-card-foreground">
+            {isTechnicalStoreMode ? 'Assign Driver & Equipment' : 'New Call Sheet'}
+          </h1>
           <p className="text-muted-foreground text-sm mt-0.5">
-            Create a new call sheet with equipment and transportation requests
+            {isTechnicalStoreMode
+              ? 'Update driver assignment and equipment details'
+              : 'Create a new call sheet with equipment and transportation requests'}
           </p>
         </div>
       </div>
@@ -177,6 +239,7 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit }) => {
                   <Select
                     value={formData.department}
                     onValueChange={(value) => handleChange('department', value)}
+                    disabled={isTechnicalStoreMode}
                   >
                     <SelectTrigger id="department">
                       <SelectValue placeholder="Select department" />
@@ -201,6 +264,7 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit }) => {
                     value={formData.title}
                     onChange={(e) => handleChange('title', e.target.value)}
                     placeholder="Enter call sheet title"
+                    readOnly={isTechnicalStoreMode}
                   />
                 </div>
 
@@ -214,6 +278,7 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit }) => {
                     type="date"
                     value={formData.filmingDate}
                     onChange={(e) => handleChange('filmingDate', e.target.value)}
+                    readOnly={isTechnicalStoreMode}
                   />
                 </div>
 
@@ -225,6 +290,7 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit }) => {
                     value={formData.location}
                     onChange={(e) => handleChange('location', e.target.value)}
                     placeholder="Filming location"
+                    readOnly={isTechnicalStoreMode}
                   />
                 </div>
 
@@ -236,6 +302,7 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit }) => {
                     type="time"
                     value={formData.callTime}
                     onChange={(e) => handleChange('callTime', e.target.value)}
+                    readOnly={isTechnicalStoreMode}
                   />
                 </div>
 
@@ -247,6 +314,7 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit }) => {
                     type="time"
                     value={formData.wrapTime}
                     onChange={(e) => handleChange('wrapTime', e.target.value)}
+                    readOnly={isTechnicalStoreMode}
                   />
                 </div>
 
@@ -258,6 +326,7 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit }) => {
                     value={formData.focalPoint}
                     onChange={(e) => handleChange('focalPoint', e.target.value)}
                     placeholder="Name"
+                    readOnly={isTechnicalStoreMode}
                   />
                 </div>
 
@@ -269,6 +338,7 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit }) => {
                     value={formData.focalPointContact}
                     onChange={(e) => handleChange('focalPointContact', e.target.value)}
                     placeholder="Phone number"
+                    readOnly={isTechnicalStoreMode}
                   />
                 </div>
 
@@ -281,6 +351,7 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit }) => {
                       onCheckedChange={(checked) =>
                         handleChange('driverNeeded', checked as boolean)
                       }
+                      disabled={isTechnicalStoreMode}
                     />
                     <Label
                       htmlFor="driverNeeded"
@@ -508,7 +579,7 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit }) => {
             </Button>
           ) : (
             <Button onClick={handleSubmit}>
-              Submit Call Sheet
+              {isTechnicalStoreMode ? 'Update Driver & Equipment' : 'Submit Call Sheet'}
             </Button>
           )}
         </div>

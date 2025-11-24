@@ -2,14 +2,20 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Download, Clock, User, FileText } from 'lucide-react';
 import { callSheetApi } from '../services/mockCallSheetApi';
+import { useAuth } from '@/contexts/AuthContext';
+import { CallSheetForm } from './CallSheetForm';
 import type { CallSheetRequest } from '../types/callsheet';
 
 export const CallSheetDetail: React.FC = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [callSheet, setCallSheet] = useState<CallSheetRequest | null>(null);
   const [loading, setLoading] = useState(true);
   const printRef = useRef<HTMLDivElement>(null);
+
+  // Check if user has TechnicalStore role
+  const isTechnicalStore = user?.roles?.includes('TechnicalStore') || false;
 
   useEffect(() => {
     const loadCallSheet = async () => {
@@ -93,6 +99,37 @@ export const CallSheetDetail: React.FC = () => {
     'Completed': 'bg-purple-100 text-purple-700',
     'Cancelled': 'bg-red-100 text-red-700'
   };
+
+  // Handler for Technical Store update
+  const handleTechnicalStoreSubmit = async (data: Partial<CallSheetRequest>) => {
+    if (!id) return;
+
+    try {
+      const updateData = {
+        driverName: data.transportRequest?.driverName || '',
+        driverNo: data.transportRequest?.vehicleNo || '',
+        equipment: data.equipment || []
+      };
+
+      await callSheetApi.updateTechnicalStore(Number(id), updateData);
+      alert('Driver and equipment updated successfully');
+      navigate('/callsheet');
+    } catch (error) {
+      console.error('Failed to update technical store data:', error);
+      alert('Failed to update. Please try again.');
+    }
+  };
+
+  // If TechnicalStore user, render the form instead
+  if (isTechnicalStore) {
+    return (
+      <CallSheetForm
+        initialCallSheet={callSheet || undefined}
+        mode="technicalStore"
+        onSubmit={handleTechnicalStoreSubmit}
+      />
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto">

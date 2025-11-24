@@ -2,12 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, FileText, Calendar, User } from 'lucide-react';
 import { callSheetApi } from '../services/mockCallSheetApi';
+import { useAuth } from '@/contexts/AuthContext';
 import type { CallSheetRequest } from '../types/callsheet';
 
 export const CallSheetDashboard: React.FC = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [callSheets, setCallSheets] = useState<CallSheetRequest[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Check if user has TechnicalStore role
+  const isTechnicalStore = user?.roles?.includes('TechnicalStore') || false;
 
   useEffect(() => {
     loadCallSheets();
@@ -16,7 +21,10 @@ export const CallSheetDashboard: React.FC = () => {
   const loadCallSheets = async () => {
     setLoading(true);
     try {
-      const data = await callSheetApi.getCallSheets();
+      // Use different API endpoint based on role
+      const data = isTechnicalStore
+        ? await callSheetApi.getTechnicalStoreCallSheets()
+        : await callSheetApi.getCallSheets();
       setCallSheets(data);
     } catch (error) {
       console.error('Failed to load call sheets:', error);
@@ -51,29 +59,37 @@ export const CallSheetDashboard: React.FC = () => {
             Manage call sheets, equipment requests, and transportation
           </p> */}
         </div>
-        <button
-          onClick={() => navigate('/callsheet/new')}
-          className="flex items-center gap-2 px-6 py-2.5 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
-        >
-          <Plus size={18} />
-          New Call Sheet
-        </button>
+        {!isTechnicalStore && (
+          <button
+            onClick={() => navigate('/callsheet/new')}
+            className="flex items-center gap-2 px-6 py-2.5 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
+          >
+            <Plus size={18} />
+            New Call Sheet
+          </button>
+        )}
       </div>
 
       {callSheets.length === 0 ? (
         <div className="text-center py-16 bg-card rounded-lg border border-border">
           <FileText size={48} className="mx-auto text-muted-foreground mb-4" />
-          <h3 className="text-lg font-semibold text-card-foreground mb-2">No call sheets yet</h3>
+          <h3 className="text-lg font-semibold text-card-foreground mb-2">
+            {isTechnicalStore ? 'No call sheets available' : 'No call sheets yet'}
+          </h3>
           <p className="text-muted-foreground mb-6">
-            Create your first call sheet to get started
+            {isTechnicalStore
+              ? 'No call sheets require technical store action at this time'
+              : 'Create your first call sheet to get started'}
           </p>
-          <button
-            onClick={() => navigate('/callsheet/new')}
-            className="inline-flex items-center gap-2 px-6 py-2.5 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
-          >
-            <Plus size={18} />
-            Create Call Sheet
-          </button>
+          {!isTechnicalStore && (
+            <button
+              onClick={() => navigate('/callsheet/new')}
+              className="inline-flex items-center gap-2 px-6 py-2.5 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
+            >
+              <Plus size={18} />
+              Create Call Sheet
+            </button>
+          )}
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

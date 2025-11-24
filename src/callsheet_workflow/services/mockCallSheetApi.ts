@@ -54,4 +54,18 @@ export const callSheetApi = {
     const { data } = await apiClient.post("/api/callsheet/requests/search", filters);
     return data;
   },
+
+  // Technical Store specific methods
+  getTechnicalStoreCallSheets: async (): Promise<CallSheetRequest[]> => {
+    const { data } = await apiClient.get(`${API_BASE}/technical-store`);
+    return data as CallSheetRequest[];
+  },
+
+  updateTechnicalStore: async (
+    id: number,
+    data: { driverName?: string; driverNo?: string; equipment?: any[] }
+  ): Promise<CallSheetRequest> => {
+    const { data: result } = await apiClient.put(`${API_BASE}/${id}/technical-store`, data);
+    return result as CallSheetRequest;
+  },
 };

@@ -21,6 +21,7 @@ function App() {
     if (user.roles.includes("NOC")) return "/noc";
     if (user.roles.includes("Ingest")) return "/ingest";
     if (user.roles.includes("Booking")) return "/booking";
+    if (user.roles.includes("TechnicalStore")) return "/callsheet";
     if (user.roles.includes("Callsheet")) return "/callsheet";
 
     return "/unauthorized";
@@ -155,7 +156,7 @@ function App() {
         <Route
           path="callsheet"
           element={
-            <ProtectedRoute allowedRoles={['Callsheet', 'Admin']}>
+            <ProtectedRoute allowedRoles={['Callsheet', 'Admin', 'TechnicalStore']}>
               <CallSheetRoleView view="list" />
             </ProtectedRoute>
           }
