@@ -8,9 +8,10 @@ export interface Notification {
   title: string;
   message: string;
   timestamp: Date;
-  type: 'request_created' | 'request_updated' | 'request_completed';
+  type: 'request_created' | 'request_updated' | 'request_completed' | 'callsheet_created' | 'callsheet_updated';
   read: boolean;
   requestId?: string;
+  callSheetId?: number;
 }
 
 interface NotificationContextType {
@@ -112,12 +113,46 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       showToast(`🎬 Resources assigned: ${data.title}`, 'info');
     });
 
+    // CallSheet Created
+    const unsubscribeCallSheetCreated = listen('CallSheetCreated', (data: any) => {
+      const notification: Notification = {
+        id: `notif-${Date.now()}-${Math.random()}`,
+        title: 'New Call Sheet Created',
+        message: `${data.department}: ${data.title}`,
+        timestamp: new Date(),
+        type: 'callsheet_created',
+        read: false,
+        callSheetId: data.id,
+      };
+
+      setNotifications((prev) => [notification, ...prev]);
+      showToast(`📋 New call sheet created: ${data.title}`, 'info');
+    });
+
+    // CallSheet Updated by Technical Store
+    const unsubscribeCallSheetUpdated = listen('CallSheetUpdatedByTechnicalStore', (data: any) => {
+      const notification: Notification = {
+        id: `notif-${Date.now()}-${Math.random()}`,
+        title: 'Call Sheet Updated',
+        message: `${data.department}: ${data.title} - Driver assigned by Technical Store`,
+        timestamp: new Date(),
+        type: 'callsheet_updated',
+        read: false,
+        callSheetId: data.id,
+      };
+
+      setNotifications((prev) => [notification, ...prev]);
+      showToast(`🚗 Driver assigned: ${data.title}`, 'success');
+    });
+
     return () => {
       unsubscribeCreated();
       unsubscribeUpdated();
       unsubscribeCompleted();
       unsubscribeResourcesAssigned();
       unsubscribeNotDone();
+      unsubscribeCallSheetCreated();
+      unsubscribeCallSheetUpdated();
     };
   }, [isConnected, listen, showToast]);
 

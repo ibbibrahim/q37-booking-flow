@@ -525,14 +525,16 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
         </TabsContent>
 
         <TabsContent value="preview" className="space-y-6">
-          <TransportForm
-            transportRequest={transportRequest}
-            onChange={handleTransportChange}
-            notifications={notifications}
-            onToggleNotification={handleToggleNotification}
-          />
-      
-          <div className="pt-4">
+          {formData.driverNeeded && (
+            <TransportForm
+              transportRequest={transportRequest}
+              onChange={handleTransportChange}
+              notifications={notifications}
+              onToggleNotification={handleToggleNotification}
+            />
+          )}
+
+          <div className={formData.driverNeeded ? "pt-4" : ""}>
             <CallSheetPreview
               callSheet={{
                 ...formData,

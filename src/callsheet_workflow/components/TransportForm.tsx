@@ -22,6 +22,19 @@ export const TransportForm: React.FC<TransportFormProps> = ({
 }) => {
   if (!transportRequest) return null;
 
+  // Get current datetime in the required format for datetime-local input
+  const getCurrentDateTime = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  };
+
+  const minDateTime = getCurrentDateTime();
+
   return (
     <div className="space-y-6">
       <Card>
@@ -70,7 +83,11 @@ export const TransportForm: React.FC<TransportFormProps> = ({
                 type="datetime-local"
                 value={transportRequest.startDateTime}
                 onChange={(e) => onChange('startDateTime', e.target.value)}
+                min={minDateTime}
               />
+              <p className="text-xs text-muted-foreground">
+                Cannot select a past date and time
+              </p>
             </div>
 
             <div className="space-y-2">
@@ -82,8 +99,11 @@ export const TransportForm: React.FC<TransportFormProps> = ({
                 type="datetime-local"
                 value={transportRequest.returnDateTime}
                 onChange={(e) => onChange('returnDateTime', e.target.value)}
-                min={transportRequest.startDateTime}
+                min={transportRequest.startDateTime || minDateTime}
               />
+              <p className="text-xs text-muted-foreground">
+                Must be after start date and time
+              </p>
             </div>
 
             <div className="space-y-2">
