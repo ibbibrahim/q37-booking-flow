@@ -531,6 +531,7 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
               onChange={handleTransportChange}
               notifications={notifications}
               onToggleNotification={handleToggleNotification}
+              isTechnicalStoreMode={isTechnicalStoreMode}
             />
           )}
 

@@ -13,13 +13,15 @@ interface TransportFormProps {
   onChange: (field: keyof TransportRequest, value: string) => void;
   notifications: Notification[];
   onToggleNotification: (id: string) => void;
+  isTechnicalStoreMode?: boolean;
 }
 
 export const TransportForm: React.FC<TransportFormProps> = ({
   transportRequest,
   onChange,
   notifications,
-  onToggleNotification
+  onToggleNotification,
+  isTechnicalStoreMode = false
 }) => {
   const [startDateError, setStartDateError] = useState<string>('');
   const [returnDateError, setReturnDateError] = useState<string>('');
@@ -134,8 +136,12 @@ export const TransportForm: React.FC<TransportFormProps> = ({
               <Select
                 value={transportRequest.reason}
                 onValueChange={(value) => onChange('reason', value)}
+                disabled={isTechnicalStoreMode}
               >
-                <SelectTrigger id="reason">
+                <SelectTrigger
+                  id="reason"
+                  className={isTechnicalStoreMode ? 'bg-muted cursor-not-allowed' : ''}
+                >
                   <SelectValue placeholder="Select reason" />
                 </SelectTrigger>
                 <SelectContent>
@@ -146,16 +152,30 @@ export const TransportForm: React.FC<TransportFormProps> = ({
                   ))}
                 </SelectContent>
               </Select>
+              {isTechnicalStoreMode && (
+                <p className="text-xs text-muted-foreground">
+                  Only the requester can modify this field
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="driverName">Driver Name</Label>
+              <Label htmlFor="driverName">
+                Driver Name {isTechnicalStoreMode && <span className="text-red-500">*</span>}
+              </Label>
               <Input
                 id="driverName"
                 value={transportRequest.driverName}
                 onChange={(e) => onChange('driverName', e.target.value)}
                 placeholder="Enter driver name"
+                disabled={!isTechnicalStoreMode}
+                className={!isTechnicalStoreMode ? 'bg-muted cursor-not-allowed' : ''}
               />
+              {!isTechnicalStoreMode && (
+                <p className="text-xs text-muted-foreground">
+                  Only Technical Store can fill this field
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -168,9 +188,20 @@ export const TransportForm: React.FC<TransportFormProps> = ({
                 value={transportRequest.startDateTime}
                 onChange={handleStartDateChange}
                 min={minDateTime}
-                className={startDateError ? 'border-red-500 focus-visible:ring-red-500' : ''}
+                disabled={isTechnicalStoreMode}
+                className={
+                  isTechnicalStoreMode
+                    ? 'bg-muted cursor-not-allowed'
+                    : startDateError
+                    ? 'border-red-500 focus-visible:ring-red-500'
+                    : ''
+                }
               />
-              {startDateError ? (
+              {isTechnicalStoreMode ? (
+                <p className="text-xs text-muted-foreground">
+                  Only the requester can modify this field
+                </p>
+              ) : startDateError ? (
                 <div className="flex items-center gap-1.5 text-xs text-red-600 dark:text-red-400">
                   <AlertCircle className="w-3.5 h-3.5" />
                   <span>{startDateError}</span>
@@ -192,9 +223,20 @@ export const TransportForm: React.FC<TransportFormProps> = ({
                 value={transportRequest.returnDateTime}
                 onChange={handleReturnDateChange}
                 min={transportRequest.startDateTime || minDateTime}
-                className={returnDateError ? 'border-red-500 focus-visible:ring-red-500' : ''}
+                disabled={isTechnicalStoreMode}
+                className={
+                  isTechnicalStoreMode
+                    ? 'bg-muted cursor-not-allowed'
+                    : returnDateError
+                    ? 'border-red-500 focus-visible:ring-red-500'
+                    : ''
+                }
               />
-              {returnDateError ? (
+              {isTechnicalStoreMode ? (
+                <p className="text-xs text-muted-foreground">
+                  Only the requester can modify this field
+                </p>
+              ) : returnDateError ? (
                 <div className="flex items-center gap-1.5 text-xs text-red-600 dark:text-red-400">
                   <AlertCircle className="w-3.5 h-3.5" />
                   <span>{returnDateError}</span>
@@ -207,13 +249,22 @@ export const TransportForm: React.FC<TransportFormProps> = ({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="driverNo">Driver Phone No</Label>
+              <Label htmlFor="driverNo">
+                Driver Phone No {isTechnicalStoreMode && <span className="text-red-500">*</span>}
+              </Label>
               <Input
                 id="driverNo"
                 value={transportRequest.driverNo}
                 onChange={(e) => onChange('driverNo', e.target.value)}
                 placeholder="Enter driver number"
+                disabled={!isTechnicalStoreMode}
+                className={!isTechnicalStoreMode ? 'bg-muted cursor-not-allowed' : ''}
               />
+              {!isTechnicalStoreMode && (
+                <p className="text-xs text-muted-foreground">
+                  Only Technical Store can fill this field
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -221,8 +272,12 @@ export const TransportForm: React.FC<TransportFormProps> = ({
             <Select
               value={transportRequest.carType || ''}
               onValueChange={(value) => onChange('carType', value)}
+              disabled={isTechnicalStoreMode}
             >
-              <SelectTrigger id="carType">
+              <SelectTrigger
+                id="carType"
+                className={isTechnicalStoreMode ? 'bg-muted cursor-not-allowed' : ''}
+              >
                 <SelectValue placeholder="Select car type" />
               </SelectTrigger>
               <SelectContent>
@@ -230,6 +285,11 @@ export const TransportForm: React.FC<TransportFormProps> = ({
                 <SelectItem value="SUV">SUV</SelectItem>
               </SelectContent>
             </Select>
+            {isTechnicalStoreMode && (
+              <p className="text-xs text-muted-foreground">
+                Only the requester can modify this field
+              </p>
+            )}
           </div>
 
             {/* <div className="space-y-2">
