@@ -1,24 +1,22 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, FileText, Calendar, User } from 'lucide-react';
 import { callSheetApi } from '../services/mockCallSheetApi';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSignalR } from '@/contexts/SignalRContext';
 import type { CallSheetRequest } from '../types/callsheet';
 
 export const CallSheetDashboard: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { listen, isConnected } = useSignalR();
   const [callSheets, setCallSheets] = useState<CallSheetRequest[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Check if user has TechnicalStore role
   const isTechnicalStore = user?.roles?.includes('TechnicalStore') || false;
 
-  useEffect(() => {
-    loadCallSheets();
-  }, []);
-
-  const loadCallSheets = async () => {
+  const loadCallSheets = useCallback(async () => {
     setLoading(true);
     try {
       // Use different API endpoint based on role
@@ -31,7 +29,74 @@ export const CallSheetDashboard: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [isTechnicalStore]);
+
+  useEffect(() => {
+    loadCallSheets();
+  }, [loadCallSheets]);
+
+  // SignalR listeners for real-time updates
+  useEffect(() => {
+    if (!isConnected) {
+      return;
+    }
+
+    // Listen for new call sheets created
+    const unsubscribeCreated = listen('CallSheetCreated', (newCallSheet: CallSheetRequest) => {
+      console.log('CallSheetCreated event received:', newCallSheet);
+
+      // For TechnicalStore users, only add if it matches their filter criteria
+      if (isTechnicalStore) {
+        if (newCallSheet.status === 'Submitted' && newCallSheet.driverNeeded) {
+          setCallSheets((prev) => {
+            const exists = prev.some((cs) => cs.id === newCallSheet.id);
+            if (exists) return prev;
+            return [newCallSheet, ...prev];
+          });
+        }
+      } else {
+        // For regular users, add all new call sheets
+        setCallSheets((prev) => {
+          const exists = prev.some((cs) => cs.id === newCallSheet.id);
+          if (exists) return prev;
+          return [newCallSheet, ...prev];
+        });
+      }
+    });
+
+    // Listen for call sheets updated by Technical Store
+    const unsubscribeUpdatedByTechnicalStore = listen('CallSheetUpdatedByTechnicalStore', (updatedCallSheet: CallSheetRequest) => {
+      console.log('CallSheetUpdatedByTechnicalStore event received:', updatedCallSheet);
+
+      setCallSheets((prev) => {
+        // For TechnicalStore users, remove from list if no longer matches criteria
+        if (isTechnicalStore) {
+          if (updatedCallSheet.status !== 'Submitted' || !updatedCallSheet.driverNeeded) {
+            return prev.filter((cs) => cs.id !== updatedCallSheet.id);
+          }
+        }
+
+        // Update existing call sheet
+        const exists = prev.some((cs) => cs.id === updatedCallSheet.id);
+        if (exists) {
+          return prev.map((cs) => (cs.id === updatedCallSheet.id ? updatedCallSheet : cs));
+        }
+
+        // For TechnicalStore, add if it now matches criteria
+        if (isTechnicalStore && updatedCallSheet.status === 'Submitted' && updatedCallSheet.driverNeeded) {
+          return [updatedCallSheet, ...prev];
+        }
+
+        return prev;
+      });
+    });
+
+    return () => {
+      unsubscribeCreated();
+      unsubscribeUpdatedByTechnicalStore();
+    };
+  }, [isConnected, listen, isTechnicalStore]);
+
 
   const statusColors: Record<string, string> = {
     'Draft': 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300',

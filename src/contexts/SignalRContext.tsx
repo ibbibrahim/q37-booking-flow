@@ -36,6 +36,7 @@ export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ child
     if (roleArray.includes('Admin')) return 'Admin';
     if (roleArray.includes('NOC')) return 'NOC';
     if (roleArray.includes('Ingest')) return 'Ingest';
+    if (roleArray.includes('TechnicalStore')) return 'TechnicalStore' as UserRole;
     if (roleArray.includes('Callsheet')) return 'Callsheet';
     return 'Booking';
   }, [user]);

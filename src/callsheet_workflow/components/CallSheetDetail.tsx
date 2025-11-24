@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Download, Clock, User, FileText } from 'lucide-react';
 import { callSheetApi } from '../services/mockCallSheetApi';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSignalR } from '@/contexts/SignalRContext';
 import { CallSheetForm } from './CallSheetForm';
 import type { CallSheetRequest } from '../types/callsheet';
 
@@ -10,6 +11,7 @@ export const CallSheetDetail: React.FC = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { listen, isConnected } = useSignalR();
   const [callSheet, setCallSheet] = useState<CallSheetRequest | null>(null);
   const [loading, setLoading] = useState(true);
   const printRef = useRef<HTMLDivElement>(null);
@@ -35,6 +37,26 @@ export const CallSheetDetail: React.FC = () => {
 
     loadCallSheet();
   }, [id]);
+
+  // SignalR listeners for real-time updates
+  useEffect(() => {
+    if (!isConnected || !id) {
+      return;
+    }
+
+    // Listen for updates to this specific call sheet
+    const unsubscribeUpdatedByTechnicalStore = listen('CallSheetUpdatedByTechnicalStore', (updatedCallSheet: CallSheetRequest) => {
+      // Only update if it's the call sheet we're currently viewing
+      if (updatedCallSheet.id === Number(id)) {
+        console.log('Current call sheet updated by Technical Store:', updatedCallSheet);
+        setCallSheet(updatedCallSheet);
+      }
+    });
+
+    return () => {
+      unsubscribeUpdatedByTechnicalStore();
+    };
+  }, [isConnected, listen, id]);
 
   const handlePrint = () => {
     const printContent = printRef.current;
