@@ -1,5 +1,14 @@
 import React, { useState } from 'react';
 import { CheckCircle2, AlertCircle, Send, Trash2, Plus } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import type { WorkflowRequest } from '../types/workflow';
 
 interface NOCActionsProps {
@@ -84,234 +93,195 @@ export const NOCActions: React.FC<NOCActionsProps> = ({ request, onAction }) => 
       alert('Please assign at least one resource before sending to Ingest');
       return;
     }
-  
+
     onAction('send_to_ingest', {
-      nocAssignedResources: JSON.stringify(assignedResources), // ✅ correct key
+      nocAssignedResources: JSON.stringify(assignedResources),
       changedBy: 10017,
       comment: "Resources assigned by NOC",
     });
   };
 
-  // const isIncomingFeed = request.bookingType === 'Incoming Feed';
-
   return (
-    <div className="bg-white border border-slate-200 rounded-lg shadow-sm">
-      <div className="flex items-center justify-between p-8 border-b border-slate-200">
-        <h3 className="text-xl font-bold text-slate-900">NOC Actions</h3>
-
-        <button
-          onClick={() => onAction("acknowledge", { changedBy: 10017 })}
-          className="flex items-center gap-2 px-6 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium shadow-sm transition-colors"
-        >
-          <CheckCircle2 size={18} />
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+        <CardTitle>NOC Actions</CardTitle>
+        <Button onClick={() => onAction("acknowledge", { changedBy: 10017 })}>
+          <CheckCircle2 className="mr-2 h-4 w-4" />
           Acknowledge
-        </button>
-      </div>
+        </Button>
+      </CardHeader>
 
-      <div className="p-8 space-y-8">
-        {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-6"> */}
-          {/* <div>
-            <label className="block text-sm font-medium text-slate-700 mb-3">
-              Acknowledge
-            </label>
-            <select
-              value={nocData.action}
-              onChange={(e) => setNocData({ ...nocData, action: e.target.value })}
-              className="w-full px-4 py-3 bg-white border border-slate-300 text-slate-900 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-            >
-              <option value="">—</option>
-              <option value="acknowledged">Acknowledged</option>
-              <option value="in_progress">In Progress</option>
-            </select>
-          </div> */}
-
-          {/* <div>
-            <label className="block text-sm font-medium text-slate-700 mb-3">
-              Forward to Ingest?
-            </label>
-            <select
-              value={nocData.forwardToIngest}
-              onChange={(e) => setNocData({ ...nocData, forwardToIngest: e.target.value })}
-              className="w-full px-4 py-3 bg-white border border-slate-300 text-slate-900 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-            >
-              <option value="Yes">Yes</option>
-              <option value="No">No</option>
-            </select>
-          </div> */}
-        {/* </div> */}
-
-        {true && (
-          <div className="pt-6 border-t border-slate-200">
-            <h4 className="text-base font-semibold text-slate-900 mb-6">Feed Configuration</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-3">
-                  Source Type <span className="text-red-600">*</span>
-                </label>
-                <select
+      <CardContent className="space-y-6">
+        <div className="space-y-6">
+          <div className="space-y-4">
+            <h3 className="text-base font-semibold">Feed Configuration</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="sourceType">
+                  Source Type <span className="text-red-500">*</span>
+                </Label>
+                <Select
                   value={nocData.sourceType}
-                  onChange={(e) => setNocData({ ...nocData, sourceType: e.target.value, qmcSource: '' })}
-                  className="w-full px-4 py-3 bg-white border border-slate-300 text-slate-900 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                  onValueChange={(value) => setNocData({ ...nocData, sourceType: value, qmcSource: '' })}
                 >
-                  <option value="">Select Source Type</option>
-                  <option value="QMC Earth Station">QMC Earth Station</option>
-                  <option value="Streaming">Streaming</option>
-                </select>
+                  <SelectTrigger id="sourceType">
+                    <SelectValue placeholder="Select Source Type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="QMC Earth Station">QMC Earth Station</SelectItem>
+                    <SelectItem value="Streaming">Streaming</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               {nocData.sourceType === 'QMC Earth Station' && (
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-3">
-                    Source <span className="text-red-600">*</span>
-                  </label>
-                  <select
+                <div className="space-y-2">
+                  <Label htmlFor="qmcSource">
+                    Source <span className="text-red-500">*</span>
+                  </Label>
+                  <Select
                     value={nocData.qmcSource}
-                    onChange={(e) => setNocData({ ...nocData, qmcSource: e.target.value })}
-                    className="w-full px-4 py-3 bg-white border border-slate-300 text-slate-900 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                    onValueChange={(value) => setNocData({ ...nocData, qmcSource: value })}
                   >
-                    <option value="">Select Source</option>
-                    {Array.from({ length: 10 }, (_, i) => (
-                      <option key={i + 1} value={`Ext-${i + 1}`}>
-                        Ext-{i + 1}
-                      </option>
-                    ))}
-                  </select>
+                    <SelectTrigger id="qmcSource">
+                      <SelectValue placeholder="Select Source" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 10 }, (_, i) => (
+                        <SelectItem key={i + 1} value={`Ext-${i + 1}`}>
+                          Ext-{i + 1}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               )}
 
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-3">
-                  Resolution
-                </label>
-                <select
+              <div className="space-y-2">
+                <Label htmlFor="resolution">Resolution</Label>
+                <Select
                   value={nocData.resolution}
-                  onChange={(e) => setNocData({ ...nocData, resolution: e.target.value })}
-                  className="w-full px-4 py-3 bg-white border border-slate-300 text-slate-900 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                  onValueChange={(value) => setNocData({ ...nocData, resolution: value })}
                 >
-                  <option value="">Select Resolution</option>
-                  <option value="HD">HD</option>
-                  <option value="UHD">UHD</option>
-                </select>
+                  <SelectTrigger id="resolution">
+                    <SelectValue placeholder="Select Resolution" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="HD">HD</SelectItem>
+                    <SelectItem value="UHD">UHD</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-3">
-                  Type
-                </label>
-                <select
+              <div className="space-y-2">
+                <Label htmlFor="resourceType">Type</Label>
+                <Select
                   value={nocData.resourceType}
-                  onChange={(e) => setNocData({ ...nocData, resourceType: e.target.value as 'Main' | 'Backup' })}
-                  className="w-full px-4 py-3 bg-white border border-slate-300 text-slate-900 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                  onValueChange={(value) => setNocData({ ...nocData, resourceType: value as 'Main' | 'Backup' })}
                 >
-                  <option value="Main">Main</option>
-                  <option value="Backup">Backup</option>
-                </select>
+                  <SelectTrigger id="resourceType">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Main">Main</SelectItem>
+                    <SelectItem value="Backup">Backup</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
-            <div className="mt-6">
-              <button
-                onClick={handleAddFeedResource}
-                className="w-full md:w-auto px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium shadow-sm flex items-center justify-center gap-2"
-              >
-                <Plus size={18} />
-                Add to Resources
-              </button>
-            </div>
+            <Button
+              onClick={handleAddFeedResource}
+              variant="default"
+              className="w-full md:w-auto"
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Add to Resources
+            </Button>
           </div>
-        )}
 
-        <div className={true ? 'pt-6 border-t border-slate-200' : ''}>
-          <h4 className="text-base font-semibold text-slate-900 mb-6">Assigned Resources (NOC)</h4>
+          <div className="space-y-4">
+            <h3 className="text-base font-semibold">Assigned Resources (NOC)</h3>
 
-          {assignedResources.length > 0 ? (
-            <div className="border border-slate-200 rounded-lg overflow-hidden mb-6">
-              <table className="w-full">
-                <thead className="bg-slate-50 border-b border-slate-200">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                      Resource Name
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                      Type
-                    </th>
-                    <th className="px-4 py-3 text-right text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                      Action
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-slate-200">
-                  {assignedResources.map((resource) => (
-                    <tr key={resource.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="px-4 py-3 text-sm text-slate-900">
-                        {resource.resourceName}
-                      </td>
-                      <td className="px-4 py-3 text-sm">
-                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
-                          resource.type === 'Main'
-                            ? 'bg-blue-100 text-blue-800'
-                            : 'bg-amber-100 text-amber-800'
-                        }`}>
-                          {resource.type}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-right">
-                        <button
-                          onClick={() => handleRemoveResource(resource.id)}
-                          className="text-red-600 hover:text-red-800 transition-colors p-1"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            {assignedResources.length > 0 ? (
+              <div className="rounded-lg border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Resource Name</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead className="text-right">Action</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {assignedResources.map((resource) => (
+                      <TableRow key={resource.id}>
+                        <TableCell className="font-medium">
+                          {resource.resourceName}
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={resource.type === 'Main' ? 'default' : 'secondary'}
+                          >
+                            {resource.type}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleRemoveResource(resource.id)}
+                            className="text-red-600 hover:text-red-800 hover:bg-red-50"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            ) : (
+              <Alert>
+                <AlertDescription>
+                  No resources assigned yet. Use the Feed Configuration above to add resources.
+                </AlertDescription>
+              </Alert>
+            )}
+
+            <div className="space-y-2">
+              <Label htmlFor="clarificationMessage">
+                Clarification for Booking (if needed)
+              </Label>
+              <Textarea
+                id="clarificationMessage"
+                value={nocData.clarificationMessage}
+                onChange={(e) => setNocData({ ...nocData, clarificationMessage: e.target.value })}
+                placeholder="e.g., Need guest confirmed number and SRT pub key"
+                rows={4}
+              />
             </div>
-          ) : (
-            <div className="text-sm text-slate-500 mb-6 p-4 bg-slate-50 rounded-lg border border-slate-200">
-              No resources assigned yet. Use the Feed Configuration above to add resources.
-            </div>
-          )}
-
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-3">
-              Clarification for Booking (if needed)
-            </label>
-            <textarea
-              value={nocData.clarificationMessage}
-              onChange={(e) => setNocData({ ...nocData, clarificationMessage: e.target.value })}
-              placeholder="e.g., Need guest confirmed number and SRT pub key"
-              rows={4}
-              className="w-full px-4 py-3 bg-white border border-slate-300 text-slate-900 placeholder-slate-400 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none resize-none transition-all"
-            />
           </div>
         </div>
-      </div>
 
-      <div className="flex flex-wrap gap-3 p-8 pt-6 border-t border-slate-200 bg-slate-50">
-        {/* <button
-          onClick={handleSaveUpdates}
-          className="flex items-center gap-2 px-6 py-3 bg-white hover:bg-slate-50 text-slate-900 rounded-lg transition-colors font-medium border border-slate-300 shadow-sm"
-        >
-          <CheckCircle2 size={18} />
-          Save NOC Updates
-        </button> */}
-        <button
-          onClick={handleRequestClarification}
-          className="flex items-center gap-2 px-6 py-3 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg transition-colors font-medium shadow-sm"
-        >
-          <AlertCircle size={18} />
-          Request Clarification
-        </button>
-        <button
-          onClick={handleSendToIngest}
-          className="flex items-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors font-medium shadow-sm"
-        >
-          <Send size={18} />
-          Send to Ingest
-        </button>
-      </div>
-    </div>
+        <div className="flex flex-wrap gap-3 pt-4 border-t">
+          <Button
+            onClick={handleRequestClarification}
+            variant="outline"
+            className="bg-yellow-600 text-white hover:bg-yellow-700 hover:text-white"
+          >
+            <AlertCircle className="mr-2 h-4 w-4" />
+            Request Clarification
+          </Button>
+          <Button
+            onClick={handleSendToIngest}
+            className="bg-green-600 text-white hover:bg-green-700"
+          >
+            <Send className="mr-2 h-4 w-4" />
+            Send to Ingest
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   );
 };
