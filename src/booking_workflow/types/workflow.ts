@@ -14,8 +14,36 @@ export type UserRole = 'Booking' | 'NOC' | 'Ingest' | 'Admin' | 'Callsheet' | 'T
 
 export type Priority = 'Normal' | 'High' | 'Urgent';
 export type Language = 'English' | 'Arabic';
-export type SourceType = 'QMC Earth Station' | 'Streaming';
-export type QMCSource = 'Ext-1' | 'Ext-2' | 'Ext-3' | 'Ext-4' | 'Ext-5' | 'Ext-6' | 'Ext-7' | 'Ext-8' | 'Ext-9' | 'Ext-10';
+export type SourceType =
+  | 'Earth Stations'
+  | 'Qatar TV'
+  | 'Haivision'
+  | 'Galley'
+  | 'Streaming'
+  | 'ISO Recording';
+
+export type QMCSource =
+  | 'CONV1 - up'
+  | 'CONV2 - up'
+  | 'CONV3 - up'
+  | 'CONV4 - up'
+  | 'CONV5 - up'
+  | 'CONV6 - up'
+  | 'CONV7 - up'
+  | 'CONV8 - up'
+  | 'CONV9 - up'
+  | 'CONV10 - up'
+  | 'RX4K-7'
+  | 'RX4K-8'
+  | 'RX4K-9'
+  | 'RX4K-10'
+  | 'PGM QA-1'
+  | 'PGM QA-2'
+  | 'GA-1 CLN'
+  | 'GA-2 CLN'
+  | 'IRD-2 UHD'
+  | 'CAM 1 ISO QA1';
+
 export type ResourceAssignmentType = 'Main' | 'Backup';
 export type Resolution = 'HD' | 'UHD';
 export type ReturnPath = 'Enabled' | 'Disabled';
@@ -96,3 +124,19 @@ export interface ResourceAssignment {
   assignedBy?: string;
   assignedAt?: string;
 }
+
+
+export const SOURCE_MAP: Record<string, string[]> = {
+  "Earth Stations": [
+    "CONV1 - up","CONV2 - up","CONV3 - up","CONV4 - up","CONV5 - up",
+    "CONV6 - up","CONV7 - up","CONV8 - up","CONV9 - up","CONV10 - up",
+  ],
+  "Qatar TV": [
+    "CONV1 - up","CONV2 - up","CONV3 - up","CONV4 - up","CONV5 - up",
+    "CONV6 - up","CONV7 - up","CONV8 - up","CONV9 - up","CONV10 - up",
+  ],
+  "Haivision": ["RX4K-7", "RX4K-8", "RX4K-9", "RX4K-10"],
+  "Galley": ["PGM QA-1", "PGM QA-2", "GA-1 CLN", "GA-2 CLN"],
+  "Streaming": ["IRD-2 UHD"],
+  "ISO Recording": ["CAM 1 ISO QA1"],
+};

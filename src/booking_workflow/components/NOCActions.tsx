@@ -11,6 +11,8 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import type { WorkflowRequest } from '../types/workflow';
 
+import { SOURCE_MAP } from '../types/workflow.ts';
+
 interface NOCActionsProps {
   request: WorkflowRequest;
   onAction: (action: string, data: any) => void;
@@ -128,34 +130,43 @@ export const NOCActions: React.FC<NOCActionsProps> = ({ request, onAction }) => 
                     <SelectValue placeholder="Select Source Type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="QMC Earth Station">QMC Earth Station</SelectItem>
+                    <SelectItem value="Earth Stations">Earth Stations</SelectItem>
+                    <SelectItem value="Qatar TV">Qatar TV</SelectItem>
+                    <SelectItem value="Haivision">Haivision</SelectItem>
+                    <SelectItem value="Gallery">Galley</SelectItem>
                     <SelectItem value="Streaming">Streaming</SelectItem>
+                    <SelectItem value="ISO Recording">ISO Recording</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
-              {nocData.sourceType === 'QMC Earth Station' && (
+              {nocData.sourceType && (
                 <div className="space-y-2">
                   <Label htmlFor="qmcSource">
                     Source <span className="text-red-500">*</span>
                   </Label>
+
                   <Select
                     value={nocData.qmcSource}
-                    onValueChange={(value) => setNocData({ ...nocData, qmcSource: value })}
+                    onValueChange={(value) =>
+                      setNocData({ ...nocData, qmcSource: value })
+                    }
                   >
                     <SelectTrigger id="qmcSource">
                       <SelectValue placeholder="Select Source" />
                     </SelectTrigger>
+
                     <SelectContent>
-                      {Array.from({ length: 10 }, (_, i) => (
-                        <SelectItem key={i + 1} value={`Ext-${i + 1}`}>
-                          Ext-{i + 1}
+                      {SOURCE_MAP[nocData.sourceType]?.map((src) => (
+                        <SelectItem key={src} value={src}>
+                          {src}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
               )}
+
 
               <div className="space-y-2">
                 <Label htmlFor="resolution">Resolution</Label>
