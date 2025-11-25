@@ -59,10 +59,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const login = async (username: string, password: string) => {
     try {
-      const response = await apiClient.post('api/users/login', {
-        username,
-        password
-      });
+      const response = await apiClient.post(
+        'api/users/login',
+        { username, password },
+        { skipAuthRedirect: true }
+      );
 
       const { token: receivedToken } = response.data;
 

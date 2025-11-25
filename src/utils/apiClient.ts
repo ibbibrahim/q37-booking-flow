@@ -24,6 +24,13 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
+    const config: any = error.config;
+
+    // ✅ Don't run global 401 logic if this request opts out
+    if (config?.skipAuthRedirect) {
+      return Promise.reject(error);
+    }
+
     if (error.response?.status === 401) {
       localStorage.removeItem('auth_token');
       localStorage.removeItem('auth_user');
