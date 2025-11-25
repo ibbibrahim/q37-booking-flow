@@ -1,6 +1,11 @@
 import React, { useState } from "react";
-import { FormField } from "./FormField";
-import { Send, FileJson, Bell, Package, Save, ArrowLeft } from "lucide-react";
+import { Send, Save, ArrowLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type {
   BookingType,
   WorkflowRequest,
@@ -117,9 +122,8 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
 
   const handleSubmit = (status: WorkflowStatus, skipValidation = false) => {
     if (skipValidation || validateForm()) {
-      // Build type-specific JSON based on booking type
       let typeSpecific: Record<string, any> = {};
-  
+
       switch (formData.bookingType) {
         case "Invite Guest for News":
         case "Invite Guest for Program":
@@ -131,341 +135,437 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
             rundownPosition: formData.rundownPosition,
           };
           break;
-  
+
         case "Download and Ingest":
           typeSpecific = {
             downloadSource: formData.downloadSource,
             downloadLink: formData.downloadLink,
           };
           break;
-  
+
         case "Camera Card and Ingest":
           typeSpecific = {
             cameraCardNumber: formData.cameraCardNumber,
           };
           break;
-  
+
         default:
           typeSpecific = {};
           break;
       }
-  
-      // ✅ Attach JSON string
+
       const payload = {
         ...formData,
         typeSpecificData: JSON.stringify(typeSpecific),
       };
-  
+
       onSubmit(payload as any, status);
     }
   };
-  
 
   const renderGuestRundownFields = () => (
     <>
-      <FormField
-        label="Guest Name"
-        name="guestName"
-        value={formData.guestName || ""}
-        onChange={handleChange}
-        required
-        error={errors.guestName}
-      />
-      <FormField
-        label="Guest Contact"
-        name="guestContact"
-        value={formData.guestContact || ""}
-        onChange={handleChange}
-      />
-      <FormField
-        label="iNEWS Rundown ID"
-        name="inewsRundownId"
-        value={formData.inewsRundownId || ""}
-        onChange={handleChange}
-        required
-        error={errors.inewsRundownId}
-      />
-      <FormField
-        label="Story Slug"
-        name="storySlug"
-        value={formData.storySlug || ""}
-        onChange={handleChange}
-      />
-      <FormField
-        label="Rundown Position"
-        name="rundownPosition"
-        value={formData.rundownPosition || ""}
-        onChange={handleChange}
-      />
+      <div className="space-y-2">
+        <Label htmlFor="guestName">
+          Guest Name <span className="text-red-500">*</span>
+        </Label>
+        <Input
+          id="guestName"
+          value={formData.guestName || ""}
+          onChange={(e) => handleChange("guestName", e.target.value)}
+          className={errors.guestName ? "border-red-500" : ""}
+        />
+        {errors.guestName && (
+          <p className="text-sm text-red-500">{errors.guestName}</p>
+        )}
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="guestContact">Guest Contact</Label>
+        <Input
+          id="guestContact"
+          value={formData.guestContact || ""}
+          onChange={(e) => handleChange("guestContact", e.target.value)}
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="inewsRundownId">
+          iNEWS Rundown ID <span className="text-red-500">*</span>
+        </Label>
+        <Input
+          id="inewsRundownId"
+          value={formData.inewsRundownId || ""}
+          onChange={(e) => handleChange("inewsRundownId", e.target.value)}
+          className={errors.inewsRundownId ? "border-red-500" : ""}
+        />
+        {errors.inewsRundownId && (
+          <p className="text-sm text-red-500">{errors.inewsRundownId}</p>
+        )}
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="storySlug">Story Slug</Label>
+        <Input
+          id="storySlug"
+          value={formData.storySlug || ""}
+          onChange={(e) => handleChange("storySlug", e.target.value)}
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="rundownPosition">Rundown Position</Label>
+        <Input
+          id="rundownPosition"
+          value={formData.rundownPosition || ""}
+          onChange={(e) => handleChange("rundownPosition", e.target.value)}
+        />
+      </div>
     </>
   );
 
   const renderDownloadAndIngestFields = () => (
     <>
-      <FormField
-        label="Download Source"
-        name="downloadSource"
-        value={formData.downloadSource || ""}
-        onChange={handleChange}
-        options={["YouTube", "WeTransfer", "FTP", "Other"]}
-        required
-        error={errors.downloadSource}
-      />
-      <FormField
-        label="Download Link / URL"
-        name="downloadLink"
-        value={formData.downloadLink || ""}
-        onChange={handleChange}
-        required
-        error={errors.downloadLink}
-      />
+      <div className="space-y-2">
+        <Label htmlFor="downloadSource">
+          Download Source <span className="text-red-500">*</span>
+        </Label>
+        <Select
+          value={formData.downloadSource || ""}
+          onValueChange={(value) => handleChange("downloadSource", value)}
+        >
+          <SelectTrigger id="downloadSource" className={errors.downloadSource ? "border-red-500" : ""}>
+            <SelectValue placeholder="Select download source" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="YouTube">YouTube</SelectItem>
+            <SelectItem value="WeTransfer">WeTransfer</SelectItem>
+            <SelectItem value="FTP">FTP</SelectItem>
+            <SelectItem value="Other">Other</SelectItem>
+          </SelectContent>
+        </Select>
+        {errors.downloadSource && (
+          <p className="text-sm text-red-500">{errors.downloadSource}</p>
+        )}
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="downloadLink">
+          Download Link / URL <span className="text-red-500">*</span>
+        </Label>
+        <Input
+          id="downloadLink"
+          value={formData.downloadLink || ""}
+          onChange={(e) => handleChange("downloadLink", e.target.value)}
+          className={errors.downloadLink ? "border-red-500" : ""}
+        />
+        {errors.downloadLink && (
+          <p className="text-sm text-red-500">{errors.downloadLink}</p>
+        )}
+      </div>
     </>
   );
 
   const renderCameraCardFields = () => (
-    <>
-      <FormField
-        label="Camera Card Quantity"
-        name="cameraCardNumber"
+    <div className="space-y-2">
+      <Label htmlFor="cameraCardNumber">
+        Camera Card Quantity <span className="text-red-500">*</span>
+      </Label>
+      <Input
+        id="cameraCardNumber"
         type="number"
         value={formData.cameraCardNumber || ""}
-        onChange={handleChange}
-        required
-        error={errors.cameraCardNumber}
+        onChange={(e) => handleChange("cameraCardNumber", e.target.value)}
+        className={errors.cameraCardNumber ? "border-red-500" : ""}
       />
-    </>
+      {errors.cameraCardNumber && (
+        <p className="text-sm text-red-500">{errors.cameraCardNumber}</p>
+      )}
+    </div>
   );
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
-      <div className="mb-6 flex items-center gap-3">
-        <button
+      <div className="flex items-center gap-3">
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={onCancel}
-          className="p-2 hover:bg-muted rounded-lg transition-colors text-muted-foreground hover:text-card-foreground"
-          aria-label="Go back"
+          className="hover:bg-muted"
         >
-          <ArrowLeft size={20} />{" "}
-        </button>
+          <ArrowLeft className="h-5 w-5" />
+        </Button>
         <div>
-          <h1 className="text-2xl font-bold text-card-foreground">
-            New Workflow Request
-          </h1>
-          <p className="text-muted-foreground text-sm mt-0.5">
+          <h1 className="text-2xl font-bold">New Workflow Request</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">
             Create a new booking request for NOC and Ingest teams
           </p>
         </div>
       </div>
 
       <form onSubmit={(e) => e.preventDefault()} className="space-y-6">
-        <div className="bg-card rounded-lg border border-border p-8">
-          <h2 className="text-lg font-semibold text-card-foreground mb-6">
-            Booking Information
-          </h2>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <FormField
-              label="Booking Type"
-              name="bookingType"
-              value={formData.bookingType}
-              onChange={handleChange}
-              options={[
-                "Incoming Feed",
-                "Invite Guest for News",
-                "Invite Guest for Program",
-                "Download and Ingest",
-                "Camera Card and Ingest"
-              ]}
-              required
-              error={errors.bookingType}
-            />
-            <FormField
-              label="Title"
-              name="title"
-              value={formData.title}
-              onChange={handleChange}
-              required
-              error={errors.title}
-            />
-          </div>
-
-          {(formData.bookingType === "Incoming Feed" ||
-            formData.bookingType === "Invite Guest for News" ||
-            formData.bookingType === "Invite Guest for Program") && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-              <FormField
-                label="Studio"
-                name="studio"
-                value={formData.studio || ""}
-                onChange={handleChange}
-                options={["Studio 1", "Studio 2"]}
-                required
-                error={errors.studio}
-              />
-              <div></div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Booking Information</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label htmlFor="bookingType">
+                  Booking Type <span className="text-red-500">*</span>
+                </Label>
+                <Select
+                  value={formData.bookingType}
+                  onValueChange={(value) => handleChange("bookingType", value)}
+                >
+                  <SelectTrigger id="bookingType" className={errors.bookingType ? "border-red-500" : ""}>
+                    <SelectValue placeholder="Select booking type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Incoming Feed">Incoming Feed</SelectItem>
+                    <SelectItem value="Invite Guest for News">Invite Guest for News</SelectItem>
+                    <SelectItem value="Invite Guest for Program">Invite Guest for Program</SelectItem>
+                    <SelectItem value="Download and Ingest">Download and Ingest</SelectItem>
+                    <SelectItem value="Camera Card and Ingest">Camera Card and Ingest</SelectItem>
+                  </SelectContent>
+                </Select>
+                {errors.bookingType && (
+                  <p className="text-sm text-red-500">{errors.bookingType}</p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="title">
+                  Title <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="title"
+                  value={formData.title}
+                  onChange={(e) => handleChange("title", e.target.value)}
+                  className={errors.title ? "border-red-500" : ""}
+                />
+                {errors.title && (
+                  <p className="text-sm text-red-500">{errors.title}</p>
+                )}
+              </div>
             </div>
-          )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-            <FormField
-              label="Program / Segment"
-              name="program"
-              value={formData.program}
-              onChange={handleChange}
-              placeholder="e.g., Evening News"
-              required
-              error={errors.program}
-            />
-            <FormField
-              label={
-                formData.bookingType === "Download and Ingest" ||
-                formData.bookingType === "Camera Card and Ingest"
-                  ? "Ingest Time"
-                  : "Air Date / Time (Local)"
-              }
-              name="airDateTime"
-              type="datetime-local"
-              value={formData.airDateTime}
-              onChange={handleChange}
-              required
-              error={errors.airDateTime}
-            />
-          </div>
+            {(formData.bookingType === "Incoming Feed" ||
+              formData.bookingType === "Invite Guest for News" ||
+              formData.bookingType === "Invite Guest for Program") && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="studio">
+                    Studio <span className="text-red-500">*</span>
+                  </Label>
+                  <Select
+                    value={formData.studio || ""}
+                    onValueChange={(value) => handleChange("studio", value)}
+                  >
+                    <SelectTrigger id="studio" className={errors.studio ? "border-red-500" : ""}>
+                      <SelectValue placeholder="Select studio" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Studio 1">Studio 1</SelectItem>
+                      <SelectItem value="Studio 2">Studio 2</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {errors.studio && (
+                    <p className="text-sm text-red-500">{errors.studio}</p>
+                  )}
+                </div>
+              </div>
+            )}
 
-          {(formData.bookingType === "Incoming Feed" ||
-            formData.bookingType === "Invite Guest for News" ||
-            formData.bookingType === "Invite Guest for Program") && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-              <FormField
-                label="Feed Start Time"
-                name="feedStartTime"
-                type="datetime-local"
-                value={formData.feedStartTime || ""}
-                onChange={handleChange}
-                required
-                error={errors.feedStartTime}
-              />
-              <FormField
-                label="Feed End Time"
-                name="feedEndTime"
-                type="datetime-local"
-                value={formData.feedEndTime || ""}
-                onChange={handleChange}
-                required
-                error={errors.feedEndTime}
-                min={formData.feedStartTime || ""}
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label htmlFor="program">
+                  Program / Segment <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="program"
+                  value={formData.program}
+                  onChange={(e) => handleChange("program", e.target.value)}
+                  placeholder="e.g., Evening News"
+                  className={errors.program ? "border-red-500" : ""}
+                />
+                {errors.program && (
+                  <p className="text-sm text-red-500">{errors.program}</p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="airDateTime">
+                  {formData.bookingType === "Download and Ingest" ||
+                  formData.bookingType === "Camera Card and Ingest"
+                    ? "Ingest Time"
+                    : "Air Date / Time (Local)"}{" "}
+                  <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="airDateTime"
+                  type="datetime-local"
+                  value={formData.airDateTime}
+                  onChange={(e) => handleChange("airDateTime", e.target.value)}
+                  className={errors.airDateTime ? "border-red-500" : ""}
+                />
+                {errors.airDateTime && (
+                  <p className="text-sm text-red-500">{errors.airDateTime}</p>
+                )}
+              </div>
             </div>
-          )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-            <FormField
-              label="Language"
-              name="language"
-              value={formData.language}
-              onChange={handleChange}
-              options={["English", "Arabic"]}
-              required
-              error={errors.language}
-            />
-            <FormField
-              label="Priority"
-              name="priority"
-              value={formData.priority}
-              onChange={handleChange}
-              options={["Normal", "High", "Urgent"]}
-              required
-              error={errors.priority}
-            />
-          </div>
-        </div>
+            {(formData.bookingType === "Incoming Feed" ||
+              formData.bookingType === "Invite Guest for News" ||
+              formData.bookingType === "Invite Guest for Program") && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="feedStartTime">
+                    Feed Start Time <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="feedStartTime"
+                    type="datetime-local"
+                    value={formData.feedStartTime || ""}
+                    onChange={(e) => handleChange("feedStartTime", e.target.value)}
+                    className={errors.feedStartTime ? "border-red-500" : ""}
+                  />
+                  {errors.feedStartTime && (
+                    <p className="text-sm text-red-500">{errors.feedStartTime}</p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="feedEndTime">
+                    Feed End Time <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="feedEndTime"
+                    type="datetime-local"
+                    value={formData.feedEndTime || ""}
+                    onChange={(e) => handleChange("feedEndTime", e.target.value)}
+                    min={formData.feedStartTime || ""}
+                    className={errors.feedEndTime ? "border-red-500" : ""}
+                  />
+                  {errors.feedEndTime && (
+                    <p className="text-sm text-red-500">{errors.feedEndTime}</p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label htmlFor="language">
+                  Language <span className="text-red-500">*</span>
+                </Label>
+                <Select
+                  value={formData.language}
+                  onValueChange={(value) => handleChange("language", value)}
+                >
+                  <SelectTrigger id="language" className={errors.language ? "border-red-500" : ""}>
+                    <SelectValue placeholder="Select language" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="English">English</SelectItem>
+                    <SelectItem value="Arabic">Arabic</SelectItem>
+                  </SelectContent>
+                </Select>
+                {errors.language && (
+                  <p className="text-sm text-red-500">{errors.language}</p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="priority">
+                  Priority <span className="text-red-500">*</span>
+                </Label>
+                <Select
+                  value={formData.priority}
+                  onValueChange={(value) => handleChange("priority", value)}
+                >
+                  <SelectTrigger id="priority" className={errors.priority ? "border-red-500" : ""}>
+                    <SelectValue placeholder="Select priority" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Normal">Normal</SelectItem>
+                    <SelectItem value="High">High</SelectItem>
+                    <SelectItem value="Urgent">Urgent</SelectItem>
+                  </SelectContent>
+                </Select>
+                {errors.priority && (
+                  <p className="text-sm text-red-500">{errors.priority}</p>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {(formData.bookingType === "Invite Guest for News" ||
           formData.bookingType === "Invite Guest for Program") && (
-          <div className="bg-card rounded-lg border border-border p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-card-foreground mb-6">
-              Guest & Rundown Details
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {renderGuestRundownFields()}
-            </div>
-          </div>
+          <Card>
+            <CardHeader>
+              <CardTitle>Guest & Rundown Details</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {renderGuestRundownFields()}
+              </div>
+            </CardContent>
+          </Card>
         )}
 
         {formData.bookingType === "Download and Ingest" && (
-          <div className="bg-card rounded-lg border border-border p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-card-foreground mb-6">
-              Download Details
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {renderDownloadAndIngestFields()}
-            </div>
-          </div>
+          <Card>
+            <CardHeader>
+              <CardTitle>Download Details</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {renderDownloadAndIngestFields()}
+              </div>
+            </CardContent>
+          </Card>
         )}
 
         {formData.bookingType === "Camera Card and Ingest" && (
-          <div className="bg-card rounded-lg border border-border p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-card-foreground mb-6">
-              Camera Card Details
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {renderCameraCardFields()}
-            </div>
-          </div>
+          <Card>
+            <CardHeader>
+              <CardTitle>Camera Card Details</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {renderCameraCardFields()}
+              </div>
+            </CardContent>
+          </Card>
         )}
 
+        <Card>
+          <CardHeader>
+            <CardTitle>Additional Information</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label htmlFor="resourcesNeeded">Resources Needed (Booking)</Label>
+                <Input
+                  id="resourcesNeeded"
+                  value={formData.resourcesNeeded}
+                  onChange={(e) => handleChange("resourcesNeeded", e.target.value)}
+                />
+              </div>
+            </div>
 
-        <div className="bg-card rounded-lg border border-border p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-card-foreground mb-6">
-            Additional Information
-          </h2>
+            <div className="space-y-2">
+              <Label htmlFor="notes">Notes</Label>
+              <Textarea
+                id="notes"
+                value={formData.notes}
+                onChange={(e) => handleChange("notes", e.target.value)}
+                rows={4}
+              />
+            </div>
+          </CardContent>
+        </Card>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* <FormField
-                  label="NOC Required"
-                  name="nocRequired"
-                  value={formData.nocRequired}
-                  onChange={handleChange}
-                  options={['Yes', 'No']}
-                  required
-                  error={errors.nocRequired}
-                /> */}
-            <FormField
-              label="Resources Needed (Booking)"
-              name="resourcesNeeded"
-              value={formData.resourcesNeeded}
-              onChange={handleChange}
-            />
-          </div>
-
-          <div className="mt-6">
-            <FormField
-              label="Notes"
-              name="notes"
-              type="textarea"
-              value={formData.notes}
-              onChange={handleChange}
-            />
-          </div>
-        </div>
-
-        <div className="flex justify-end gap-3 pt-4 pb-8">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="px-6 py-2.5 text-card-foreground rounded-lg hover:bg-muted transition-colors font-medium border border-border"
-          >
+        <div className="flex justify-end gap-3 pt-4">
+          <Button type="button" variant="outline" onClick={onCancel}>
             Cancel
-          </button>
+          </Button>
 
-          {/* <button
-                type="button"
-                onClick={() => handleSubmit('Draft')}
-                className="flex items-center gap-2 px-6 py-2.5 bg-muted text-card-foreground rounded-lg hover:bg-muted/80 transition-colors font-medium border border-border"
-              >
-                <Save size={18} />
-                Save as Draft
-              </button> */}
-          <button
+          <Button
             type="button"
             onClick={() => {
               if (
@@ -477,14 +577,13 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
                 handleSubmit("With NOC");
               }
             }}
-            className="flex items-center gap-2 px-6 py-2.5 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
           >
-            <Send size={18} />
+            <Send className="mr-2 h-4 w-4" />
             {formData.bookingType === "Download and Ingest" ||
             formData.bookingType === "Camera Card and Ingest"
               ? "Submit Request to Ingest"
               : "Submit Request to NOC"}
-          </button>
+          </Button>
         </div>
       </form>
     </div>
