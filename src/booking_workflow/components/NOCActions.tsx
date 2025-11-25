@@ -114,7 +114,7 @@ export const NOCActions: React.FC<NOCActionsProps> = ({ request, onAction }) => 
       <CardContent className="space-y-6">
         <div className="space-y-6">
           <div className="space-y-4">
-            <h3 className="text-base font-semibold">Feed Configuration</h3>
+            {/* <h3 className="text-base font-semibold">Feed Configuration</h3> */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="sourceType">
@@ -193,10 +193,10 @@ export const NOCActions: React.FC<NOCActionsProps> = ({ request, onAction }) => 
             <Button
               onClick={handleAddFeedResource}
               variant="default"
-              className="w-full md:w-auto"
+              className="w-full gap-2"
             >
-              <Plus className="mr-2 h-4 w-4" />
-              Add to Resources
+              <Plus size={18} />
+              Add Resources
             </Button>
           </div>
 
@@ -268,7 +268,7 @@ export const NOCActions: React.FC<NOCActionsProps> = ({ request, onAction }) => 
           <Button
             onClick={handleRequestClarification}
             variant="outline"
-            className="bg-yellow-600 text-white hover:bg-yellow-700 hover:text-white"
+            className=""
           >
             <AlertCircle className="mr-2 h-4 w-4" />
             Request Clarification

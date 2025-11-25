@@ -70,7 +70,10 @@ export const IngestActions: React.FC<IngestActionsProps> = ({ request, onAction 
             </Select>
           </div>
 
-          {ingestData.ingestStatus === 'Completed' && (
+          
+        </div>
+
+        {ingestData.ingestStatus === 'Completed' && (
             <div className="space-y-2">
               <Label htmlFor="folderPath">
                 Folder Path <span className="text-red-500">*</span>
@@ -83,8 +86,7 @@ export const IngestActions: React.FC<IngestActionsProps> = ({ request, onAction 
                 placeholder="e.g., /storage/ingest/2025-10-28/content-001"
               />
             </div>
-          )}
-        </div>
+        )}
 
         {ingestData.ingestStatus === 'Not Done' && (
           <div className="space-y-2">

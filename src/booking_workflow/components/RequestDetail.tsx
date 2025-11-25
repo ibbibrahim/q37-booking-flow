@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Clock, User, Radio } from 'lucide-react';
+import { ArrowLeft, Clock, User, FileText, CheckCircle2, AlertCircle, Send } from 'lucide-react';
 import type {
   WorkflowRequest,
   WorkflowTransition,
@@ -10,6 +10,9 @@ import type {
 import { mockApi } from '../services/mockApi';
 import { NOCActions } from './NOCActions';
 import { IngestActions } from './IngestActions';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 
 export const RequestDetail: React.FC = () => {
   const { id } = useParams();
@@ -47,17 +50,6 @@ export const RequestDetail: React.FC = () => {
     loadRequest();
   }, [id]);
 
-  // const handleNOCAction = async (action: string, data: any) => {
-  //   console.log('NOC Action:', action, data);
-  //   if (!request) return;
-  //   // await mockApi.assignNOCResources(request.id, data.newStatus, data, userRole);  
-  //   debugger
-
-  //   await mockApi.assignNOCResources(request.id, data);
-  //   const updated = await mockApi.getRequestById(request.id);
-  //   if (updated) setRequest(updated);
-  // };
-
   const handleNOCAction = async (action: string, data: any) => {
     if (!request) return;
     console.log('NOC Action:', action, data);
@@ -73,7 +65,6 @@ export const RequestDetail: React.FC = () => {
     const updated = await mockApi.getRequestById(request.id);
     if (updated) setRequest(updated);
   };
-
 
   const handleIngestAction = async (action: string, data: any) => {
     if (!request) return;
@@ -98,12 +89,12 @@ export const RequestDetail: React.FC = () => {
     return (
       <div className="text-center py-16">
         <p className="text-muted-foreground">Request not found</p>
-        <button
+        <Button
           onClick={() => navigate(-1)}
-          className="mt-4 px-4 py-2 bg-primary text-white rounded-md"
+          className="mt-4"
         >
           Go Back
-        </button>
+        </Button>
       </div>
     );
   }
@@ -122,8 +113,8 @@ export const RequestDetail: React.FC = () => {
     const isUrl = /^https?:\/\//i.test(value);
   
     return (
-      <div className="mb-4">
-        <div className="text-xs text-muted-foreground mb-1">{label}</div>
+      <div>
+        <div className="text-xs font-medium text-muted-foreground mb-1">{label}</div>
         <div className="text-sm text-card-foreground break-all">
           {isUrl ? (
             <a
@@ -142,6 +133,27 @@ export const RequestDetail: React.FC = () => {
     );
   };
 
+  const getStatusColor = (status: string) => {
+    const statusMap: Record<string, string> = {
+      'Submitted': 'bg-blue-100 text-blue-800',
+      'With NOC': 'bg-yellow-100 text-yellow-800',
+      'With Ingest': 'bg-purple-100 text-purple-800',
+      'Completed': 'bg-green-100 text-green-800',
+      'Clarification Requested': 'bg-orange-100 text-orange-800',
+      'Rejected': 'bg-red-100 text-red-800',
+    };
+    return statusMap[status] || 'bg-gray-100 text-gray-800';
+  };
+
+  const getPriorityColor = (priority: string) => {
+    const priorityMap: Record<string, string> = {
+      'High': 'bg-red-100 text-red-700',
+      'Medium': 'bg-yellow-100 text-yellow-700',
+      'Low': 'bg-green-100 text-green-700',
+    };
+    return priorityMap[priority] || 'bg-gray-100 text-gray-700';
+  };
+
   const transitions = request.transitions || [];
   const parsedResources: ResourceAssignment[] = request.nocAssignedResources
   ? JSON.parse(request.nocAssignedResources)
@@ -149,228 +161,203 @@ export const RequestDetail: React.FC = () => {
   const parsedTypeSpecific =
   request.typeSpecificData ? JSON.parse(request.typeSpecificData) : null;
 
-
   return (
-    <div className="max-w-7xl mx-auto">
-      <div className="bg-card border-b border-border px-6 py-4">
-        <div className="max-w-7xl mx-auto flex items-center gap-4">
-          <button
-            onClick={() => navigate(-1)}
-            className="text-muted-foreground hover:text-card-foreground transition-colors"
-          >
-            <ArrowLeft size={20} />
-          </button>
+    <div className="max-w-6xl mx-auto">
+      {/* Header */}
+      <div className="px-6">
+        <div className="flex items-center gap-4">
+          {/* Back button using shared Button */}
+          <Button variant="outline" size="icon" onClick={() => navigate(-1)}>
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+
           <div className="flex-1">
-            <div className="flex items-center gap-3">
-              <h1 className="text-xl font-bold text-card-foreground">{request.title}</h1>
-              <span className="px-3 py-1 text-xs font-medium bg-blue-100 text-blue-700 rounded-full">
-                {request.status}
-              </span>
+            {/* Title + status badge row */}
+            <div className="flex items-center gap-3 mb-2">
+              <h1 className="text-3xl font-bold text-foreground">{request.title}</h1>
+              <Badge className={getStatusColor(request.status)}>{request.status}</Badge>
             </div>
-            <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
-              <span>{request.id}</span>
-              <span>•</span>
-              <span>{request.bookingType}</span>
-              <span>•</span>
-              <span className="px-2 py-0.5 bg-red-100 text-red-700 rounded text-xs font-medium">
-                {request.priority}
-              </span>
+
+            {/* ID / booking type / priority row */}
+            <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+              <span className="font-mono">{request.id}</span>
+              <span>·</span>
+              <Badge variant="outline">{request.bookingType}</Badge>
+              {request.priority && (
+                <>
+                  <span>·</span>
+                  <Badge className={getPriorityColor(request.priority)}>{request.priority}</Badge>
+                </>
+              )}
             </div>
           </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 py-6">
+
+      {/* Main Content */}
+      <div className="px-6 py-6">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {showActions && userRole === 'NOC' && (
-            <div className="lg:col-span-2">
-              <NOCActions request={request} onAction={handleNOCAction} />
-            </div>
-          )}
-          <div
-            className={
-              showActions && userRole === 'NOC'
-                ? 'space-y-6'
-                : 'lg:col-span-2 space-y-6'
-            }
-          >
-            <div className="bg-card rounded-lg border border-border p-6">
-              <h2 className="text-lg font-semibold text-card-foreground mb-4">
-                Request Details
-              </h2>
-              <div className="grid grid-cols-2 gap-x-8 gap-y-4">
-                {renderField('Program / Segment', request.program)}
-                {renderField('Language', request.language)}
-                {renderField(request.bookingType === "Download and Ingest" || request.bookingType === "Camera Card and Ingest" ? "Ingest Time" 
-                  : "Air Date / Time", new Date(request.airDateTime).toLocaleString())}
-                {request.feedStartTime && renderField("Feed Start Time", new Date(request.feedStartTime).toLocaleString())}
-                {request.feedEndTime && renderField("Feed End Time", new Date(request.feedEndTime).toLocaleString())}
-                {renderField('Studio', request.studio)}
-              </div>
-
-              {/* <div className="mt-6 pt-6 border-t border-border">
-                <h3 className="text-sm font-semibold text-card-foreground mb-3">
-                  Feed Configuration
-                </h3>
-                <div className="grid grid-cols-2 gap-x-8 gap-y-4">
-                  {request.bookingType === 'Incoming Feed' && 'sourceType' in request && (
-                    <>
-                      {renderField('Source Type', request.sourceType)}
-                      {renderField('vMix Input', request.vmixInputNumber)}
-                      {renderField('Return Path', request.returnPath)}
-                      {renderField('Key/Fill', request.keyFill)}
-                    </>
-                  )}
+          {/* Main Content Column */}
+          <div className={showActions && userRole === 'NOC' ? 'lg:col-span-2 space-y-6' : 'lg:col-span-2 space-y-6'}>
+            {/* Request Details Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText size={20} />
+                  Request Details
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {renderField('Program / Segment', request.program)}
+                  {renderField('Language', request.language)}
+                  {renderField(request.bookingType === "Download and Ingest" || request.bookingType === "Camera Card and Ingest" ? "Ingest Time" 
+                    : "Air Date / Time", new Date(request.airDateTime).toLocaleString())}
+                  {request.feedStartTime && renderField("Feed Start Time", new Date(request.feedStartTime).toLocaleString())}
+                  {request.feedEndTime && renderField("Feed End Time", new Date(request.feedEndTime).toLocaleString())}
+                  {renderField('Studio', request.studio)}
                 </div>
-              </div> */}
 
-              {parsedTypeSpecific && (
-                <div className="mt-6 pt-6 border-t border-border">
-                  <h3 className="text-sm font-semibold text-card-foreground mb-3">
-                  {request.bookingType === "Invite Guest for News" ||
-                    request.bookingType === "Invite Guest for Program"
-                      ? "Guest Information"
-                      : request.bookingType === "Download and Ingest"
-                      ? "Download Details"
-                      : request.bookingType === "Camera Card and Ingest"
-                      ? "Camera Card Details"
-                      : ""}
-                  </h3>
-                  <div className="grid grid-cols-2 gap-x-8 gap-y-4">
+                {parsedTypeSpecific && (
+                  <div className="pt-6 border-t border-border">
+                    <h3 className="text-sm font-semibold text-card-foreground mb-4">
                     {request.bookingType === "Invite Guest for News" ||
-                    request.bookingType === "Invite Guest for Program" ? (
-                      <>
-                        {renderField("Guest Name", parsedTypeSpecific.guestName)}
-                        {renderField("Guest Contact", parsedTypeSpecific.guestContact)}
-                        {renderField("iNEWS Rundown ID", parsedTypeSpecific.inewsRundownId)}
-                        {renderField("Story Slug", parsedTypeSpecific.storySlug)}
-                        {renderField("Rundown Position", parsedTypeSpecific.rundownPosition)}
-                      </>
-                    ) : request.bookingType === "Download and Ingest" ? (
-                      <>
-                        {renderField("Download Source", parsedTypeSpecific.downloadSource)}
-                        {renderField("Download Link", parsedTypeSpecific.downloadLink)}
-                      </>
-                    ) : request.bookingType === "Camera Card and Ingest" ? (
-                      <>
-                        {renderField("Camera Card Quantity", parsedTypeSpecific.cameraCardNumber)}
-                      </>
-                    ) : null}
+                      request.bookingType === "Invite Guest for Program"
+                        ? "Guest Information"
+                        : request.bookingType === "Download and Ingest"
+                        ? "Download Details"
+                        : request.bookingType === "Camera Card and Ingest"
+                        ? "Camera Card Details"
+                        : "Additional Details"}
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {request.bookingType === "Invite Guest for News" ||
+                      request.bookingType === "Invite Guest for Program" ? (
+                        <>
+                          {renderField("Guest Name", parsedTypeSpecific.guestName)}
+                          {renderField("Guest Contact", parsedTypeSpecific.guestContact)}
+                          {renderField("iNEWS Rundown ID", parsedTypeSpecific.inewsRundownId)}
+                          {renderField("Story Slug", parsedTypeSpecific.storySlug)}
+                          {renderField("Rundown Position", parsedTypeSpecific.rundownPosition)}
+                        </>
+                      ) : request.bookingType === "Download and Ingest" ? (
+                        <>
+                          {renderField("Download Source", parsedTypeSpecific.downloadSource)}
+                          {renderField("Download Link", parsedTypeSpecific.downloadLink)}
+                        </>
+                      ) : request.bookingType === "Camera Card and Ingest" ? (
+                        <>
+                          {renderField("Camera Card Quantity", parsedTypeSpecific.cameraCardNumber)}
+                        </>
+                      ) : null}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
-              <div className="mt-6 pt-6 border-t border-border">
-                <h3 className="text-sm font-semibold text-card-foreground mb-3">
-                  Resources Needed
-                </h3>
-                <div className="text-sm text-card-foreground">
-                  {request.resourcesNeeded || 'None specified'}
-                </div>
-              </div>
-
-              {/* {true && (
-                <div className="mt-6 pt-6 border-t border-border">
+                <div className="pt-6 border-t border-border">
                   <h3 className="text-sm font-semibold text-card-foreground mb-3">
-                    Compliance Tags
-                  </h3>
-                  <div className="flex flex-wrap gap-2">
-                    <span className="px-3 py-1 bg-muted text-muted-foreground rounded-full text-xs font-medium">
-                      {"request.complianceTags"}
-                    </span>
-                  </div>
-                </div>
-              )} */}
-
-              {request.notes && (
-                <div className="mt-6 pt-6 border-t border-border">
-                  <h3 className="text-sm font-semibold text-card-foreground mb-3">Notes</h3>
-                  <div className="bg-muted rounded p-3 text-sm text-muted-foreground">
-                    {request.notes}
-                  </div>
-                </div>
-              )}
-
-              {request.ingestFolderPath && (
-                <div className="mt-6 pt-6 border-t border-border">
-                  <h3 className="text-sm font-semibold text-card-foreground mb-3">
-                    Ingest Folder Path
+                    Resources Needed
                   </h3>
                   <div className="text-sm text-card-foreground">
-                    {request.ingestFolderPath}
+                    {request.resourcesNeeded || 'None specified'}
                   </div>
                 </div>
-              )}
 
-              {/* {true && (
-                <div className="mt-6 pt-6 border-t border-border">
-                  <h3 className="text-sm font-semibold text-card-foreground mb-3">
-                    Newsroom Ticket
-                  </h3>
-                  <div className="text-sm text-card-foreground">{"request.newsroomTicket"}</div>
-                </div>
-              )} */}
-            </div>
+                {request.notes && (
+                  <div className="pt-6 border-t border-border">
+                    <h3 className="text-sm font-semibold text-card-foreground mb-3">Notes</h3>
+                    <div className="bg-muted rounded p-3 text-sm text-muted-foreground">
+                      {request.notes}
+                    </div>
+                  </div>
+                )}
 
+                {request.ingestFolderPath && (
+                  <div className="pt-6 border-t border-border">
+                    <h3 className="text-sm font-semibold text-card-foreground mb-3">
+                      Ingest Folder Path
+                    </h3>
+                    <div className="text-sm font-mono text-muted-foreground bg-muted p-3 rounded">
+                      {request.ingestFolderPath}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Allocated Resources */}
             {parsedResources.length > 0 && (
-              <div className="bg-card rounded-lg border border-border p-6">
-                <h2 className="text-lg font-semibold text-card-foreground mb-4">
-                  Allocated Resources by NOC
-                </h2>
-                <div className="space-y-3">
-                  {parsedResources.map((res) => (
-                    <div
-                      key={res.id}
-                      className="bg-blue-50 rounded-lg p-4 border border-blue-100"
-                    >
-                      <div className="flex items-start gap-3">
-                        <div className="mt-1">
-                          <Radio size={16} className="text-blue-600" />
-                        </div>
-                        <div className="flex-1">
-                          <div className="font-semibold text-card-foreground text-sm">
-                            {res.resourceName}
-                          </div>
-                          <div className="text-xs text-muted-foreground mt-1">
-                            {res.type}
-                          </div>
-                          <div className="text-xs text-blue-600 mt-2">
-                            Allocated by {res.assignedBy} •{' '}
-                            {new Date(res.assignedAt).toLocaleString('en-US', {
-                              month: 'short',
-                              day: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            })}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Allocated Resources by NOC</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {parsedResources.map((res) => (
+                      <div
+                        key={res.id}
+                        className="bg-blue-50 rounded-lg p-4 border border-blue-200"
+                      >
+                        <div className="flex items-start gap-3">
+                          <CheckCircle2 size={16} className="text-blue-600 mt-1 flex-shrink-0" />
+                          <div className="flex-1">
+                            <div className="font-semibold text-card-foreground text-sm">
+                              {res.resourceName}
+                            </div>
+                            <div className="text-xs text-muted-foreground mt-1">
+                              {res.type}
+                            </div>
+                            <div className="text-xs text-blue-600 mt-2">
+                              Allocated by {res.assignedBy} •{' '}
+                              {new Date(res.assignedAt).toLocaleString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* NOC Actions */}
+            {showActions && userRole === 'NOC' && (
+              <NOCActions request={request} onAction={handleNOCAction} />
+            )}
+
+            {/* Ingest Actions */}
+            {showActions && userRole === 'Ingest' && (
+              <IngestActions request={request} onAction={handleIngestAction} />
             )}
           </div>
 
+          {/* Sidebar */}
           <div className="space-y-6">
-          <div className="bg-card rounded-lg border border-border p-6">
-              <h2 className="text-lg font-semibold text-card-foreground mb-4">
-                Metadata
-              </h2>
-              <div className="space-y-4">
+            {/* Metadata */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <User size={20} />
+                  Metadata
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
                 <div>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
-                    <User size={14} />
-                    <span>Created by</span>
-                  </div>
+                  <div className="text-xs font-medium text-muted-foreground mb-1">Created by</div>
                   <div className="text-sm font-medium text-card-foreground">
                     {request.createdBy}
                   </div>
                 </div>
                 <div>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
+                  <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground mb-1">
                     <Clock size={14} />
-                    <span>Created at</span>
+                    Created at
                   </div>
                   <div className="text-sm text-card-foreground">
                     {new Date(request.createdAt).toLocaleDateString('en-US', {
@@ -385,9 +372,9 @@ export const RequestDetail: React.FC = () => {
                   </div>
                 </div>
                 <div>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
+                  <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground mb-1">
                     <Clock size={14} />
-                    <span>Last updated</span>
+                    Last updated
                   </div>
                   <div className="text-sm text-card-foreground">
                     {new Date(request.updatedAt).toLocaleDateString('en-US', {
@@ -401,79 +388,84 @@ export const RequestDetail: React.FC = () => {
                     })}
                   </div>
                 </div>
-              </div>
-            </div>
-            <div className="bg-card rounded-lg border border-border p-6">
-              <h2 className="text-lg font-semibold text-card-foreground mb-4">
-                Workflow History
-              </h2>
-              <div className="space-y-4">
+              </CardContent>
+            </Card>
+
+            {/* Workflow History */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <CheckCircle2 size={20} />
+                  Workflow History
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
                 {transitions.length === 0 ? (
                   <div className="text-sm text-muted-foreground">No transitions yet</div>
                 ) : (
-                  transitions.map((trans, idx) => (
-                    <div key={trans.id} className="relative pl-6">
-                      <div className="absolute left-0 top-1.5 w-2 h-2 rounded-full bg-blue-500"></div>
-                      {idx < transitions.length - 1 && (
-                        <div className="absolute left-[3px] top-3 w-0.5 h-full bg-border"></div>
-                      )}
-                      <div>
-                        <div className="text-sm font-semibold text-card-foreground">
+                  <div className="space-y-4">
+                    {transitions.map((trans, idx) => (
+                      <div key={trans.id} className="relative pl-6">
+                        <div className="absolute left-0 top-1.5 w-2 h-2 rounded-full bg-blue-500"></div>
+                        {idx < transitions.length - 1 && (
+                          <div className="absolute left-[3px] top-4 w-0.5 h-16 bg-border"></div>
+                        )}
+                        <div>
+                          <div className="text-sm font-semibold text-card-foreground">
+                            {trans.toStatus}
+                          </div>
+                          <div className="text-xs text-muted-foreground mt-1">
+                            by {trans.changedBy || 'System'} •{' '}
+                            {new Date(trans.changedAt).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                            })},{' '}
+                            {new Date(trans.changedAt).toLocaleTimeString('en-US', {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                          </div>
+                          {trans.comment && (
+                            <div className="text-xs text-muted-foreground mt-1 italic">{trans.comment}</div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Notifications */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <AlertCircle size={20} />
+                  Recent Updates
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {transitions.length === 0 ? (
+                  <div className="text-sm text-muted-foreground">No notifications</div>
+                ) : (
+                  <div className="space-y-3">
+                    {transitions.slice(0, 3).map((trans) => (
+                      <div
+                        key={trans.id}
+                        className="bg-muted rounded p-3 border border-border text-sm"
+                      >
+                        <div className="font-medium text-card-foreground">
                           {trans.toStatus}
                         </div>
                         <div className="text-xs text-muted-foreground mt-1">
-                          by {trans.changedBy || 'System'} •{' '}
-                          {new Date(trans.changedAt).toLocaleDateString('en-US', {
-                            month: 'short',
-                            day: 'numeric',
-                          })},{' '}
-                          {new Date(trans.changedAt).toLocaleTimeString('en-US', {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}
+                          {trans.comment || `Status changed to ${trans.toStatus}`}
                         </div>
-                        {trans.comment && (
-                          <div className="text-xs text-muted-foreground mt-1">{trans.comment}</div>
-                        )}
                       </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-
-            <div className="bg-card rounded-lg border border-border p-6">
-              <h2 className="text-lg font-semibold text-card-foreground mb-4">
-                Notifications
-              </h2>
-              <div className="space-y-3">
-                {transitions.slice(0, 2).map((trans) => (
-                  <div
-                    key={trans.id}
-                    className="bg-muted rounded p-3 border border-border"
-                  >
-                    <div className="text-xs font-medium text-muted-foreground mb-1">
-                      To: {userRole}
-                    </div>
-                    <div className="text-sm text-card-foreground">
-                      {trans.comment || `Status changed to ${trans.toStatus}`}
-                    </div>
+                    ))}
                   </div>
-                ))}
-                {transitions.length === 0 && (
-                  <div className="text-sm text-muted-foreground">No notifications</div>
                 )}
-              </div>
-            </div>
-
-            {showActions && userRole === 'Ingest' && (
-              <div className="bg-card rounded-lg border border-border p-6">
-                <h2 className="text-lg font-semibold text-card-foreground mb-4">
-                  Actions
-                </h2>
-                <IngestActions request={request} onAction={handleIngestAction} />
-              </div>
-            )}
+              </CardContent>
+            </Card>
           </div>
         </div>
       </div>

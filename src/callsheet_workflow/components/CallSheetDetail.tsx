@@ -6,6 +6,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useSignalR } from '@/contexts/SignalRContext';
 import { CallSheetForm } from './CallSheetForm';
 import type { CallSheetRequest } from '../types/callsheet';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 
 export const CallSheetDetail: React.FC = () => {
   const { id } = useParams();
@@ -154,37 +156,33 @@ export const CallSheetDetail: React.FC = () => {
   }
 
   return (
-    <div className="max-w-7xl mx-auto">
-      <div className="bg-card border-b border-border px-6 py-4 mb-6">
+    <div className="max-w-6xl mx-auto">
+      <div className="px-6 mb-6">
         <div className="flex items-center gap-4">
-          <button
-            onClick={() => navigate('/callsheet')}
-            className="text-muted-foreground hover:text-card-foreground transition-colors"
-          >
-            <ArrowLeft size={20} />
-          </button>
+          <Button variant="outline" size="icon" onClick={() => navigate('/callsheet')}>
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+
           <div className="flex-1">
-            <div className="flex items-center gap-3">
-              <h1 className="text-xl font-bold text-card-foreground">{callSheet.title}</h1>
-              <span className={`px-3 py-1 text-xs font-medium rounded-full ${statusColors[callSheet.status]}`}>
-                {callSheet.status}
-              </span>
+            <div className="flex items-center gap-3 mb-2">
+              <h1 className="text-3xl font-bold text-foreground">{callSheet.title}</h1>
+              <Badge className={statusColors[callSheet.status]}>{callSheet.status}</Badge>
             </div>
-            <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
-              <span>{callSheet.id}</span>
-              <span>•</span>
-              <span>{callSheet.department}</span>
+
+            <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+              <span className="font-mono">{callSheet.id}</span>
+              <span>·</span>
+              <Badge variant="outline">{callSheet.department}</Badge>
             </div>
           </div>
-          <button
-            onClick={handlePrint}
-            className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
-          >
-            <Download size={18} />
+
+          <Button onClick={handlePrint} className="gap-2">
+            <Download className="h-4 w-4" />
             Download PDF
-          </button>
+          </Button>
         </div>
       </div>
+
 
       <div ref={printRef} className="px-6 space-y-6">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
