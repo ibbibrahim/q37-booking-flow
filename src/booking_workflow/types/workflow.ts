@@ -137,6 +137,6 @@ export const SOURCE_MAP: Record<string, string[]> = {
   ],
   "Haivision": ["RX4K-7", "RX4K-8", "RX4K-9", "RX4K-10"],
   "Galley": ["PGM QA-1", "PGM QA-2", "GA-1 CLN", "GA-2 CLN"],
-  "Streaming": ["IRD-2 UHD"],
-  "ISO Recording": ["CAM 1 ISO QA1"],
+  "Streaming": ["IRD-2"],
+  "ISO Recording": ["CAM 1 ISO GA1"],
 };
