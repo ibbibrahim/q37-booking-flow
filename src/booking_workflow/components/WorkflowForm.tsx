@@ -51,6 +51,11 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
     title: "",
     program: "",
     airDateTime: "",
+    airTime: "", // Time only for bulk mode
+    feedStartTime: "",
+    feedEndTime: "",
+    feedStartTimeOnly: "", // Time only for bulk mode
+    feedEndTimeOnly: "", // Time only for bulk mode
     language: "",
     priority: "",
     nocRequired: "",
@@ -167,9 +172,18 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
     if (!formData.program) {
       newErrors.program = "Program/Segment is required";
     }
-    if (!formData.airDateTime) {
-      newErrors.airDateTime = "Air date and time is required";
+
+    // In bulk mode, only validate time; in single mode, validate datetime
+    if (bookingMode === 'bulk') {
+      if (!formData.airTime) {
+        newErrors.airTime = "Air time is required";
+      }
+    } else {
+      if (!formData.airDateTime) {
+        newErrors.airDateTime = "Air date and time is required";
+      }
     }
+
     if (!formData.language) {
       newErrors.language = "Please select a language";
     }
@@ -194,11 +208,20 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
     }
 
     if (formData.bookingType === "Incoming Feed") {
-      if (!formData.feedStartTime) {
-        newErrors.feedStartTime = "Feed start time is required";
-      }
-      if (!formData.feedEndTime) {
-        newErrors.feedEndTime = "Feed end time is required";
+      if (bookingMode === 'bulk') {
+        if (!formData.feedStartTimeOnly) {
+          newErrors.feedStartTimeOnly = "Feed start time is required";
+        }
+        if (!formData.feedEndTimeOnly) {
+          newErrors.feedEndTimeOnly = "Feed end time is required";
+        }
+      } else {
+        if (!formData.feedStartTime) {
+          newErrors.feedStartTime = "Feed start time is required";
+        }
+        if (!formData.feedEndTime) {
+          newErrors.feedEndTime = "Feed end time is required";
+        }
       }
       if (!formData.studio) {
         newErrors.studio = "Please select a studio";
@@ -217,6 +240,22 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
       }
       if (!formData.studio) {
         newErrors.studio = "Please select a studio";
+      }
+      // Feed times for guest bookings
+      if (bookingMode === 'bulk') {
+        if (!formData.feedStartTimeOnly) {
+          newErrors.feedStartTimeOnly = "Feed start time is required";
+        }
+        if (!formData.feedEndTimeOnly) {
+          newErrors.feedEndTimeOnly = "Feed end time is required";
+        }
+      } else {
+        if (!formData.feedStartTime) {
+          newErrors.feedStartTime = "Feed start time is required";
+        }
+        if (!formData.feedEndTime) {
+          newErrors.feedEndTime = "Feed end time is required";
+        }
       }
     }
 
@@ -295,20 +334,40 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
       };
       onSubmit(payload as any, status);
     } else {
-      // Bulk submission - submit multiple bookings
+      // Bulk submission - submit multiple bookings with proper date/time combinations
       bulkDates.forEach((date, index) => {
-        const airDate = new Date(formData.airDateTime);
+        // Parse the time from airTime (format: HH:mm)
+        const [airHours, airMinutes] = formData.airTime.split(':').map(Number);
+
+        // Create air datetime by combining bulk date with template time
         const newAirDateTime = new Date(date);
-        newAirDateTime.setHours(airDate.getHours(), airDate.getMinutes(), 0, 0);
+        newAirDateTime.setHours(airHours, airMinutes, 0, 0);
+
+        // Handle feed times if applicable
+        let newFeedStartTime = undefined;
+        let newFeedEndTime = undefined;
+
+        if (formData.feedStartTimeOnly && formData.feedEndTimeOnly) {
+          const [startHours, startMinutes] = formData.feedStartTimeOnly.split(':').map(Number);
+          const [endHours, endMinutes] = formData.feedEndTimeOnly.split(':').map(Number);
+
+          newFeedStartTime = new Date(date);
+          newFeedStartTime.setHours(startHours, startMinutes, 0, 0);
+
+          newFeedEndTime = new Date(date);
+          newFeedEndTime.setHours(endHours, endMinutes, 0, 0);
+        }
 
         const payload = {
           ...formData,
           title: generateTitleForDate(date, index),
           airDateTime: newAirDateTime.toISOString(),
+          feedStartTime: newFeedStartTime ? newFeedStartTime.toISOString() : formData.feedStartTime,
+          feedEndTime: newFeedEndTime ? newFeedEndTime.toISOString() : formData.feedEndTime,
           typeSpecificData: JSON.stringify(typeSpecific),
         };
 
-        // Submit each booking
+        // Submit each booking individually
         onSubmit(payload as any, status);
       });
     }
@@ -728,20 +787,30 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
                 )}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="airDateTime">
+                <Label htmlFor={bookingMode === 'bulk' ? "airTime" : "airDateTime"}>
                   {formData.bookingType === "Download and Ingest" ||
                   formData.bookingType === "Camera Card and Ingest"
-                    ? "Ingest Time"
-                    : bookingMode === 'bulk' ? "Air Time (Template)" : "Air Date / Time (Local)"}{" "}
+                    ? bookingMode === 'bulk' ? "Ingest Time (Time of day)" : "Ingest Time"
+                    : bookingMode === 'bulk' ? "Air Time (Time of day)" : "Air Date / Time (Local)"}{" "}
                   <span className="text-red-500">*</span>
                 </Label>
-                <Input
-                  id="airDateTime"
-                  type="datetime-local"
-                  value={formData.airDateTime}
-                  onChange={(e) => handleChange("airDateTime", e.target.value)}
-                  className={errors.airDateTime ? "border-red-500" : ""}
-                />
+                {bookingMode === 'bulk' ? (
+                  <Input
+                    id="airTime"
+                    type="time"
+                    value={formData.airTime}
+                    onChange={(e) => handleChange("airTime", e.target.value)}
+                    className={errors.airTime ? "border-red-500" : ""}
+                  />
+                ) : (
+                  <Input
+                    id="airDateTime"
+                    type="datetime-local"
+                    value={formData.airDateTime}
+                    onChange={(e) => handleChange("airDateTime", e.target.value)}
+                    className={errors.airDateTime ? "border-red-500" : ""}
+                  />
+                )}
                 {bookingMode === 'bulk' && (
                   <p className="text-xs text-muted-foreground">
                     Time will be applied to all bookings. Dates come from Bulk Booking Options.
@@ -749,6 +818,9 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
                 )}
                 {errors.airDateTime && (
                   <p className="text-sm text-red-500">{errors.airDateTime}</p>
+                )}
+                {errors.airTime && (
+                  <p className="text-sm text-red-500">{errors.airTime}</p>
                 )}
               </div>
             </div>
@@ -758,34 +830,61 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
               formData.bookingType === "Invite Guest for Program") && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label htmlFor="feedStartTime">
-                    Feed Start Time <span className="text-red-500">*</span>
+                  <Label htmlFor={bookingMode === 'bulk' ? "feedStartTimeOnly" : "feedStartTime"}>
+                    {bookingMode === 'bulk' ? "Feed Start Time (Time of day)" : "Feed Start Time"} <span className="text-red-500">*</span>
                   </Label>
-                  <Input
-                    id="feedStartTime"
-                    type="datetime-local"
-                    value={formData.feedStartTime || ""}
-                    onChange={(e) => handleChange("feedStartTime", e.target.value)}
-                    className={errors.feedStartTime ? "border-red-500" : ""}
-                  />
+                  {bookingMode === 'bulk' ? (
+                    <Input
+                      id="feedStartTimeOnly"
+                      type="time"
+                      value={formData.feedStartTimeOnly || ""}
+                      onChange={(e) => handleChange("feedStartTimeOnly", e.target.value)}
+                      className={errors.feedStartTimeOnly ? "border-red-500" : ""}
+                    />
+                  ) : (
+                    <Input
+                      id="feedStartTime"
+                      type="datetime-local"
+                      value={formData.feedStartTime || ""}
+                      onChange={(e) => handleChange("feedStartTime", e.target.value)}
+                      className={errors.feedStartTime ? "border-red-500" : ""}
+                    />
+                  )}
                   {errors.feedStartTime && (
                     <p className="text-sm text-red-500">{errors.feedStartTime}</p>
                   )}
+                  {errors.feedStartTimeOnly && (
+                    <p className="text-sm text-red-500">{errors.feedStartTimeOnly}</p>
+                  )}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="feedEndTime">
-                    Feed End Time <span className="text-red-500">*</span>
+                  <Label htmlFor={bookingMode === 'bulk' ? "feedEndTimeOnly" : "feedEndTime"}>
+                    {bookingMode === 'bulk' ? "Feed End Time (Time of day)" : "Feed End Time"} <span className="text-red-500">*</span>
                   </Label>
-                  <Input
-                    id="feedEndTime"
-                    type="datetime-local"
-                    value={formData.feedEndTime || ""}
-                    onChange={(e) => handleChange("feedEndTime", e.target.value)}
-                    min={formData.feedStartTime || ""}
-                    className={errors.feedEndTime ? "border-red-500" : ""}
-                  />
+                  {bookingMode === 'bulk' ? (
+                    <Input
+                      id="feedEndTimeOnly"
+                      type="time"
+                      value={formData.feedEndTimeOnly || ""}
+                      onChange={(e) => handleChange("feedEndTimeOnly", e.target.value)}
+                      min={formData.feedStartTimeOnly || ""}
+                      className={errors.feedEndTimeOnly ? "border-red-500" : ""}
+                    />
+                  ) : (
+                    <Input
+                      id="feedEndTime"
+                      type="datetime-local"
+                      value={formData.feedEndTime || ""}
+                      onChange={(e) => handleChange("feedEndTime", e.target.value)}
+                      min={formData.feedStartTime || ""}
+                      className={errors.feedEndTime ? "border-red-500" : ""}
+                    />
+                  )}
                   {errors.feedEndTime && (
                     <p className="text-sm text-red-500">{errors.feedEndTime}</p>
+                  )}
+                  {errors.feedEndTimeOnly && (
+                    <p className="text-sm text-red-500">{errors.feedEndTimeOnly}</p>
                   )}
                 </div>
               </div>
