@@ -197,10 +197,9 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
     <div className="max-w-5xl mx-auto space-y-6">
       <div className="mb-6 flex items-center gap-3">
         <Button
-          variant="ghost"
+          variant="outline"
           size="icon"
           onClick={() => navigate('/callsheet')}
-          className="rounded-lg"
         >
           <ArrowLeft size={20} />
         </Button>

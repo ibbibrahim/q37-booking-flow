@@ -128,15 +128,28 @@ export interface ResourceAssignment {
 
 export const SOURCE_MAP: Record<string, string[]> = {
   "Earth Stations": [
-    "CONV1 - up","CONV2 - up","CONV3 - up","CONV4 - up","CONV5 - up",
-    "CONV6 - up","CONV7 - up","CONV8 - up","CONV9 - up","CONV10 - up",
+    "CONV 1 - up","CONV 2 - up","CONV 3 - up","CONV 4 - up","CONV 5 - up",
+    "CONV 6 - up","CONV 7 - up","CONV 8 - up","CONV 9 - up","CONV 10 - up",
   ],
   "Qatar TV": [
-    "CONV1 - up","CONV2 - up","CONV3 - up","CONV4 - up","CONV5 - up",
-    "CONV6 - up","CONV7 - up","CONV8 - up","CONV9 - up","CONV10 - up",
+    "CONV 1 - up","CONV 2 - up","CONV 3 - up","CONV 4 - up","CONV 5 - up",
+    "CONV 6 - up","CONV 7 - up","CONV 8 - up","CONV 9 - up","CONV 10 - up",
   ],
   "Haivision": ["RX4K-7", "RX4K-8", "RX4K-9", "RX4K-10"],
-  "Galley": ["PGM QA-1", "PGM QA-2", "GA-1 CLN", "GA-2 CLN"],
-  "Streaming": ["IRD-2"],
-  "ISO Recording": ["CAM 1 ISO GA1"],
+  "Gallery": ["PGM GA-1", "PGM GA-2", "GA-1 CLN", "GA-2 CLN"],
+  "Streaming": ["IRD-2" , "CONV 1 - up","CONV 2 - up","CONV 3 - up","CONV 4 - up","CONV 5 - up",
+    "CONV 6 - up","CONV 7 - up","CONV 8 - up","CONV 9 - up","CONV 10 - up"],
+  "ISO Recording": [
+    "CAM 1 ISO GA1","CAM 1 ISO GA2",
+    "CAM 2 ISO GA1","CAM 2 ISO GA2",
+    "CAM 3 ISO GA1","CAM 3 ISO GA2",
+    "CAM 4 ISO GA1","CAM 4 ISO GA2",
+    "CAM 5 ISO GA1","CAM 5 ISO GA2",
+    "CAM 6 ISO GA1","CAM 6 ISO GA2",
+    "CAM 7 ISO GA1","CAM 7 ISO GA2",
+    "CAM 8 ISO GA1","CAM 8 ISO GA2",
+    "CAM 9 ISO GA1","CAM 9 ISO GA2",
+    "CAM 10 ISO GA1","CAM 10 ISO GA2",
+    "CAM 11 ISO GA1","CAM 11 ISO GA2",
+  ],
 };
