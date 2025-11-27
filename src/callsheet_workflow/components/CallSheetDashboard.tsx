@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, FileText, Calendar, User, Search, Filter } from 'lucide-react';
-import { addDays, startOfToday, endOfToday, startOfTomorrow, endOfTomorrow, endOfDay, startOfMonth, endOfMonth } from 'date-fns';
+import { addDays, startOfToday, endOfToday, startOfTomorrow, endOfTomorrow, endOfDay, startOfMonth, endOfMonth, format } from 'date-fns';
 import { DateRange } from 'react-day-picker';
 import { callSheetApi } from '../services/mockCallSheetApi';
 import { useAuth } from '@/contexts/AuthContext';
@@ -21,6 +21,7 @@ export const CallSheetDashboard: React.FC = () => {
 
   // Filter states
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('All');
   const [driverFilter, setDriverFilter] = useState<string>('All');
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
@@ -30,15 +31,27 @@ export const CallSheetDashboard: React.FC = () => {
 
   const isTechnicalStore = user?.roles?.includes('TechnicalStore') || false;
 
+  // Debounce search query so we don't call API on every keystroke
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 500); // 500ms pause
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
   const loadCallSheets = useCallback(async () => {
-    setLoading(true);
+    // setLoading(true);
     try {
       // Build filter object
-      const filters: any = {};
+      const filters: any = {
+        page: 1,
+        pageSize: 1000
+      };
 
       // Search query
-      if (searchQuery.trim()) {
-        filters.searchQuery = searchQuery.trim();
+      if (debouncedSearchQuery.trim()) {
+        filters.searchQuery = debouncedSearchQuery.trim();
       }
 
       // Status filter
@@ -53,19 +66,20 @@ export const CallSheetDashboard: React.FC = () => {
 
       // Date range filter
       if (dateRange?.from) {
-        filters.startDate = dateRange.from.toISOString();
+        filters.dateFrom = format(dateRange.from, 'yyyy-MM-dd')
       }
       if (dateRange?.to) {
-        filters.endDate = endOfDay(dateRange.to).toISOString();
+        filters.dateTo = format(dateRange.to, 'yyyy-MM-dd')
       }
 
+      
       // Use search API if any filters are active, otherwise use default
       const hasFilters = Object.keys(filters).length > 0;
 
       let data: CallSheetRequest[];
       if (hasFilters) {
         const response = await callSheetApi.searchCallSheets(filters);
-        data = response.callSheets || response;
+        data = response.items || response;
       } else {
         data = isTechnicalStore
           ? await callSheetApi.getTechnicalStoreCallSheets()
@@ -78,7 +92,7 @@ export const CallSheetDashboard: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [isTechnicalStore, searchQuery, statusFilter, driverFilter, dateRange]);
+  }, [isTechnicalStore, debouncedSearchQuery, statusFilter, driverFilter, dateRange]);
 
   useEffect(() => {
     loadCallSheets();
@@ -159,13 +173,13 @@ export const CallSheetDashboard: React.FC = () => {
     'Cancelled': 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-16">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
+  // if (loading) {
+  //   return (
+  //     <div className="flex items-center justify-center py-16">
+  //       <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+  //     </div>
+  //   );
+  // }
 
   return (
     <div className="space-y-6">
@@ -201,6 +215,15 @@ export const CallSheetDashboard: React.FC = () => {
             />
           </div>
 
+          {/* Date Range Picker */}
+          <div className="md:col-span-3">
+            <DateRangePicker
+              value={dateRange}
+              onChange={setDateRange}
+              className="w-full"
+            />
+          </div>
+
           {/* Status Filter */}
           <div className="md:col-span-2">
             <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -232,18 +255,11 @@ export const CallSheetDashboard: React.FC = () => {
             </Select>
           </div>
 
-          {/* Date Range Picker */}
-          <div className="md:col-span-3">
-            <DateRangePicker
-              value={dateRange}
-              onChange={setDateRange}
-              className="w-full"
-            />
-          </div>
+          
         </div>
 
         {/* Quick Date Filters */}
-        <div className="flex items-center gap-2 flex-wrap">
+        {/* <div className="flex items-center gap-2 flex-wrap">
           <span className="text-sm text-muted-foreground">Quick filters:</span>
           <Button
             variant="outline"
@@ -273,7 +289,7 @@ export const CallSheetDashboard: React.FC = () => {
           >
             This Month
           </Button>
-        </div>
+        </div> */}
       </div>
 
       {/* Results Count */}

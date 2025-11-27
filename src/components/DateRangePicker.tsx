@@ -79,18 +79,20 @@ export function DateRangePicker({ value, onChange, className }: DateRangePickerP
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0 bg-background" align="start" sideOffset={4}>
         <div className="flex">
-          <div className="border-r border-border bg-muted/30">
-            <div className="p-3 space-y-1 min-w-[140px]">
-              <p className="text-xs font-medium text-muted-foreground px-2 mb-2">Quick Select</p>
+          <div className="border-r border-border bg-muted/30 w-40">
+            <div className="p-2 space-y-1">
+              <p className="text-[11px] font-medium text-muted-foreground px-2 mb-1">
+                Quick Select
+              </p>
               {presets.map((preset) => (
                 <Button
                   key={preset.label}
                   variant="ghost"
                   size="sm"
                   className={cn(
-                    "w-full justify-start text-sm font-normal",
+                    "w-full justify-start text-xs font-normal py-1",
                     isPresetActive(preset) &&
-                    "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground"
+                      "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground"
                   )}
                   onClick={() => handlePresetClick(preset)}
                 >
