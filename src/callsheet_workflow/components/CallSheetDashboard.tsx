@@ -1,9 +1,15 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, FileText, Calendar, User } from 'lucide-react';
+import { Plus, FileText, Calendar, User, Search, Filter } from 'lucide-react';
+import { addDays, startOfToday, endOfToday, startOfTomorrow, endOfTomorrow, endOfDay, startOfMonth, endOfMonth } from 'date-fns';
+import { DateRange } from 'react-day-picker';
 import { callSheetApi } from '../services/mockCallSheetApi';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSignalR } from '@/contexts/SignalRContext';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { DateRangePicker } from '@/components/DateRangePicker';
 import type { CallSheetRequest } from '../types/callsheet';
 
 export const CallSheetDashboard: React.FC = () => {
@@ -13,23 +19,66 @@ export const CallSheetDashboard: React.FC = () => {
   const [callSheets, setCallSheets] = useState<CallSheetRequest[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Check if user has TechnicalStore role
+  // Filter states
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('All');
+  const [driverFilter, setDriverFilter] = useState<string>('All');
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+    from: startOfToday(),
+    to: endOfToday()
+  });
+
   const isTechnicalStore = user?.roles?.includes('TechnicalStore') || false;
 
   const loadCallSheets = useCallback(async () => {
     setLoading(true);
     try {
-      // Use different API endpoint based on role
-      const data = isTechnicalStore
-        ? await callSheetApi.getTechnicalStoreCallSheets()
-        : await callSheetApi.getCallSheets();
+      // Build filter object
+      const filters: any = {};
+
+      // Search query
+      if (searchQuery.trim()) {
+        filters.searchQuery = searchQuery.trim();
+      }
+
+      // Status filter
+      if (statusFilter && statusFilter !== 'All') {
+        filters.status = statusFilter;
+      }
+
+      // Driver filter
+      if (driverFilter !== 'All') {
+        filters.driverNeeded = driverFilter === 'Yes';
+      }
+
+      // Date range filter
+      if (dateRange?.from) {
+        filters.startDate = dateRange.from.toISOString();
+      }
+      if (dateRange?.to) {
+        filters.endDate = endOfDay(dateRange.to).toISOString();
+      }
+
+      // Use search API if any filters are active, otherwise use default
+      const hasFilters = Object.keys(filters).length > 0;
+
+      let data: CallSheetRequest[];
+      if (hasFilters) {
+        const response = await callSheetApi.searchCallSheets(filters);
+        data = response.callSheets || response;
+      } else {
+        data = isTechnicalStore
+          ? await callSheetApi.getTechnicalStoreCallSheets()
+          : await callSheetApi.getCallSheets();
+      }
+
       setCallSheets(data);
     } catch (error) {
       console.error('Failed to load call sheets:', error);
     } finally {
       setLoading(false);
     }
-  }, [isTechnicalStore]);
+  }, [isTechnicalStore, searchQuery, statusFilter, driverFilter, dateRange]);
 
   useEffect(() => {
     loadCallSheets();
@@ -40,12 +89,10 @@ export const CallSheetDashboard: React.FC = () => {
     if (!isConnected) {
       return;
     }
-    // Listen for new call sheets created
+
     const unsubscribeCreated = listen('CallSheetCreated', (newCallSheet: CallSheetRequest) => {
-      
       console.log('CallSheetCreated event received:', newCallSheet);
 
-      // For TechnicalStore users, only add if it matches their filter criteria
       if (isTechnicalStore) {
         if (newCallSheet.status === 'With Technical Store' && newCallSheet.driverNeeded) {
           setCallSheets((prev) => {
@@ -55,7 +102,6 @@ export const CallSheetDashboard: React.FC = () => {
           });
         }
       } else {
-        // For regular users, add all new call sheets
         setCallSheets((prev) => {
           const exists = prev.some((cs) => cs.id === newCallSheet.id);
           if (exists) return prev;
@@ -64,25 +110,21 @@ export const CallSheetDashboard: React.FC = () => {
       }
     });
 
-    // Listen for call sheets updated by Technical Store
     const unsubscribeUpdatedByTechnicalStore = listen('CallSheetUpdatedByTechnicalStore', (updatedCallSheet: CallSheetRequest) => {
       console.log('CallSheetUpdatedByTechnicalStore event received:', updatedCallSheet);
 
       setCallSheets((prev) => {
-        // For TechnicalStore users, remove from list if no longer matches criteria
         if (isTechnicalStore) {
           if (updatedCallSheet.status !== 'Submitted' || !updatedCallSheet.driverNeeded) {
             return prev.filter((cs) => cs.id !== updatedCallSheet.id);
           }
         }
 
-        // Update existing call sheet
         const exists = prev.some((cs) => cs.id === updatedCallSheet.id);
         if (exists) {
           return prev.map((cs) => (cs.id === updatedCallSheet.id ? updatedCallSheet : cs));
         }
 
-        // For TechnicalStore, add if it now matches criteria
         if (isTechnicalStore && updatedCallSheet.status === 'Submitted' && updatedCallSheet.driverNeeded) {
           return [updatedCallSheet, ...prev];
         }
@@ -97,13 +139,23 @@ export const CallSheetDashboard: React.FC = () => {
     };
   }, [isConnected, listen, isTechnicalStore]);
 
+  const handleQuickDateFilter = (days: number | 'today' | 'tomorrow' | 'month') => {
+    if (days === 'today') {
+      setDateRange({ from: startOfToday(), to: endOfToday() });
+    } else if (days === 'tomorrow') {
+      setDateRange({ from: startOfTomorrow(), to: endOfTomorrow() });
+    } else if (days === 'month') {
+      setDateRange({ from: startOfMonth(new Date()), to: endOfMonth(new Date()) });
+    } else if (typeof days === 'number') {
+      setDateRange({ from: startOfToday(), to: addDays(startOfToday(), days - 1) });
+    }
+  };
 
   const statusColors: Record<string, string> = {
     'Draft': 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300',
-    'Pending Approval': 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400',
-    'Approved': 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400',
-    'In Progress': 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400',
-    'Completed': 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400',
+    'With Technical Store': 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400',
+    'Submitted': 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400',
+    'Completed': 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400',
     'Cancelled': 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
   };
 
@@ -119,41 +171,135 @@ export const CallSheetDashboard: React.FC = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          {/* <h1 className="text-2xl font-bold text-card-foreground">Call Sheets</h1>
+          <h1 className="text-2xl font-bold text-card-foreground">Call Sheets</h1>
           <p className="text-muted-foreground text-sm mt-1">
             Manage call sheets, equipment requests, and transportation
-          </p> */}
+          </p>
         </div>
         {!isTechnicalStore && (
-          <button
+          <Button
             onClick={() => navigate('/callsheet/new')}
-            className="flex items-center gap-2 px-6 py-2.5 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
+            className="flex items-center gap-2"
           >
             <Plus size={18} />
             New Call Sheet
-          </button>
+          </Button>
         )}
+      </div>
+
+      {/* Filter Bar */}
+      <div className="bg-card rounded-lg border border-border p-4 space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+          {/* Search Input - Takes more space */}
+          <div className="md:col-span-5 relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search by title or location..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+
+          {/* Status Filter */}
+          <div className="md:col-span-2">
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger>
+                <SelectValue placeholder="All Statuses" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="All">All Statuses</SelectItem>
+                <SelectItem value="Draft">Draft</SelectItem>
+                <SelectItem value="With Technical Store">With Technical Store</SelectItem>
+                <SelectItem value="Submitted">Submitted</SelectItem>
+                <SelectItem value="Completed">Completed</SelectItem>
+                <SelectItem value="Cancelled">Cancelled</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Driver Filter */}
+          <div className="md:col-span-2">
+            <Select value={driverFilter} onValueChange={setDriverFilter}>
+              <SelectTrigger>
+                <SelectValue placeholder="Driver Needed" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="All">All</SelectItem>
+                <SelectItem value="Yes">Driver Needed</SelectItem>
+                <SelectItem value="No">No Driver</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Date Range Picker */}
+          <div className="md:col-span-3">
+            <DateRangePicker
+              value={dateRange}
+              onChange={setDateRange}
+              className="w-full"
+            />
+          </div>
+        </div>
+
+        {/* Quick Date Filters */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-sm text-muted-foreground">Quick filters:</span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handleQuickDateFilter('today')}
+          >
+            Today
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handleQuickDateFilter('tomorrow')}
+          >
+            Tomorrow
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handleQuickDateFilter(7)}
+          >
+            Next 7 Days
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handleQuickDateFilter('month')}
+          >
+            This Month
+          </Button>
+        </div>
+      </div>
+
+      {/* Results Count */}
+      <div className="text-sm text-muted-foreground">
+        Showing {callSheets.length} call sheet{callSheets.length !== 1 ? 's' : ''}
       </div>
 
       {callSheets.length === 0 ? (
         <div className="text-center py-16 bg-card rounded-lg border border-border">
           <FileText size={48} className="mx-auto text-muted-foreground mb-4" />
           <h3 className="text-lg font-semibold text-card-foreground mb-2">
-            {isTechnicalStore ? 'No call sheets available' : 'No call sheets yet'}
+            {isTechnicalStore ? 'No call sheets available' : 'No call sheets found'}
           </h3>
           <p className="text-muted-foreground mb-6">
             {isTechnicalStore
               ? 'No call sheets require technical store action at this time'
-              : 'Create your first call sheet to get started'}
+              : 'Try adjusting your filters or create a new call sheet'}
           </p>
           {!isTechnicalStore && (
-            <button
+            <Button
               onClick={() => navigate('/callsheet/new')}
-              className="inline-flex items-center gap-2 px-6 py-2.5 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
+              className="inline-flex items-center gap-2"
             >
               <Plus size={18} />
               Create Call Sheet
-            </button>
+            </Button>
           )}
         </div>
       ) : (
@@ -203,6 +349,11 @@ export const CallSheetDashboard: React.FC = () => {
                   )}
                   {callSheet.transportRequest && (
                     <span>Transport requested</span>
+                  )}
+                  {callSheet.driverNeeded && (
+                    <span className="text-orange-600 dark:text-orange-400 font-medium">
+                      Driver needed
+                    </span>
                   )}
                 </div>
               </div>
