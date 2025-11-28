@@ -12,6 +12,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import type { WorkflowRequest } from '../types/workflow';
 
 import { SOURCE_MAP } from '../types/workflow.ts';
+import { useToast } from '@/contexts/ToastContext.tsx';
+
 
 interface NOCActionsProps {
   request: WorkflowRequest;
@@ -36,14 +38,16 @@ export const NOCActions: React.FC<NOCActionsProps> = ({ request, onAction }) => 
   });
 
   const [assignedResources, setAssignedResources] = useState<AssignedResource[]>([]);
+  const { showToast } = useToast();
+  
 
   const handleAddFeedResource = () => {
     if (!nocData.sourceType) {
-      alert('Please select Source Type');
+      showToast(`Please select Source Type`, 'error');
       return;
     }
     if (!nocData.qmcSource) {
-      alert('Please select Source');
+      showToast(`Please select Source`, 'error');
       return;
     }
 
@@ -54,7 +58,8 @@ export const NOCActions: React.FC<NOCActionsProps> = ({ request, onAction }) => 
     );
 
     if (isDuplicate) {
-      alert('This resource with the same type has already been assigned');
+      // alert('This resource with the same type has already been assigned');
+      showToast(`This resource with the same type has already been assigned`, 'error');
       return;
     }
 
@@ -82,6 +87,7 @@ export const NOCActions: React.FC<NOCActionsProps> = ({ request, onAction }) => 
   const handleRequestClarification = () => {
     if (!nocData.clarificationMessage.trim()) {
       alert('Please provide a clarification message');
+      
       return;
     }
     onAction('request_clarification', {

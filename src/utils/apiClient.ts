@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || "https://draughtier-maritime-dacia.ngrok-free.dev",
+  baseURL: import.meta.env.VITE_API_BASE_URL || "https://qtv37-workflow-api-hjf6ctanamguc0h6.qatarcentral-01.azurewebsites.net",
   headers: {
     "Content-Type": "application/json",
     "ngrok-skip-browser-warning": "true",

@@ -255,7 +255,6 @@ export const CallSheetDashboard: React.FC = () => {
             </Select>
           </div>
 
-          
         </div>
 
         {/* Quick Date Filters */}

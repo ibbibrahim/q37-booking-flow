@@ -47,7 +47,7 @@ export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ child
     // Determine hub URL with fallback to localhost for dev
     const baseHubUrl =
       import.meta.env.VITE_SIGNALR_HUB_URL?.trim() ||
-      'https://draughtier-maritime-dacia.ngrok-free.dev/workflowHub';
+      'https://qtv37-workflow-api-hjf6ctanamguc0h6.qatarcentral-01.azurewebsites.net/workflowHub';
 
     const hubUrl = `${baseHubUrl}?role=${role}`;
 
