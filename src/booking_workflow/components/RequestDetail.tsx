@@ -69,11 +69,15 @@ export const RequestDetail: React.FC = () => {
 
   const handleIngestAction = async (action: string, data: any) => {
     if (!request) return;
-  
+
     console.log('Ingest Action:', action, data);
-  
-    await mockApi.updateIngestAction(request.id.toString(), data);
-  
+
+    if (action === 'acknowledge') {
+      await mockApi.acknowledgeRequest(request.id, data);
+    } else {
+      await mockApi.updateIngestAction(request.id.toString(), data);
+    }
+
     const updated = await mockApi.getRequestById(request.id);
     if (updated) setRequest(updated);
   };

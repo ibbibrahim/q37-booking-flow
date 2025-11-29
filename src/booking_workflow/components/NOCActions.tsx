@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CheckCircle2, AlertCircle, Send, Trash2, Plus } from 'lucide-react';
+import { CheckCircle2, AlertCircle, Send, Trash2, Plus, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import type { WorkflowRequest } from '../types/workflow';
 
 import { SOURCE_MAP } from '../types/workflow.ts';
@@ -40,7 +40,12 @@ export const NOCActions: React.FC<NOCActionsProps> = ({ request, onAction }) => 
 
   const [assignedResources, setAssignedResources] = useState<AssignedResource[]>([]);
   const { showToast } = useToast();
-  
+
+  const isAcknowledged = request.nocAcknowledged === true;
+
+  const handleAcknowledge = () => {
+    onAction("acknowledge", { changedBy: 10017 });
+  };
 
   const handleAddFeedResource = () => {
     if (!nocData.sourceType) {
@@ -59,7 +64,6 @@ export const NOCActions: React.FC<NOCActionsProps> = ({ request, onAction }) => 
     );
 
     if (isDuplicate) {
-      // alert('This resource with the same type has already been assigned');
       showToast(`This resource with the same type has already been assigned`, 'error');
       return;
     }
@@ -116,16 +120,41 @@ export const NOCActions: React.FC<NOCActionsProps> = ({ request, onAction }) => 
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
         <CardTitle>NOC Actions</CardTitle>
-        <Button onClick={() => onAction("acknowledge", { changedBy: 10017 })} disabled={request.nocAcknowledged === true}>
-          <CheckCircle2 className="mr-2 h-4 w-4" />
-          Acknowledge
-        </Button>
+        {!isAcknowledged && (
+          <Button
+            onClick={handleAcknowledge}
+            className="bg-blue-600 hover:bg-blue-700"
+          >
+            <CheckCircle2 className="mr-2 h-4 w-4" />
+            Acknowledge
+          </Button>
+        )}
+        {isAcknowledged && (
+          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+            <CheckCircle2 className="mr-1 h-3 w-3" />
+            Acknowledged
+          </Badge>
+        )}
       </CardHeader>
 
       <CardContent className="space-y-6">
-        <div className="space-y-6">
+        {/* Acknowledgment Required Alert */}
+        {!isAcknowledged && (
+          <Alert className="border-blue-200 bg-blue-50 dark:bg-blue-900/20">
+            <Lock className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+            <AlertTitle className="text-blue-900 dark:text-blue-100">
+              Acknowledgment Required
+            </AlertTitle>
+            <AlertDescription className="text-blue-800 dark:text-blue-200">
+              Please acknowledge this request before assigning resources or requesting clarification.
+              Click the <strong>Acknowledge</strong> button above to proceed.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Main Form - Disabled until acknowledged */}
+        <div className={`space-y-6 ${!isAcknowledged ? 'opacity-50 pointer-events-none' : ''}`}>
           <div className="space-y-4">
-            {/* <h3 className="text-base font-semibold">Feed Configuration</h3> */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="sourceType">
@@ -134,6 +163,7 @@ export const NOCActions: React.FC<NOCActionsProps> = ({ request, onAction }) => 
                 <Select
                   value={nocData.sourceType}
                   onValueChange={(value) => setNocData({ ...nocData, sourceType: value, qmcSource: '' })}
+                  disabled={!isAcknowledged}
                 >
                   <SelectTrigger id="sourceType">
                     <SelectValue placeholder="Select Source Type" />
@@ -160,6 +190,7 @@ export const NOCActions: React.FC<NOCActionsProps> = ({ request, onAction }) => 
                     onValueChange={(value) =>
                       setNocData({ ...nocData, qmcSource: value })
                     }
+                    disabled={!isAcknowledged}
                   >
                     <SelectTrigger id="qmcSource">
                       <SelectValue placeholder="Select Source" />
@@ -182,6 +213,7 @@ export const NOCActions: React.FC<NOCActionsProps> = ({ request, onAction }) => 
                 <Select
                   value={nocData.resolution}
                   onValueChange={(value) => setNocData({ ...nocData, resolution: value })}
+                  disabled={!isAcknowledged}
                 >
                   <SelectTrigger id="resolution">
                     <SelectValue placeholder="Select Resolution" />
@@ -198,6 +230,7 @@ export const NOCActions: React.FC<NOCActionsProps> = ({ request, onAction }) => 
                 <Select
                   value={nocData.resourceType}
                   onValueChange={(value) => setNocData({ ...nocData, resourceType: value as 'Main' | 'Backup' })}
+                  disabled={!isAcknowledged}
                 >
                   <SelectTrigger id="resourceType">
                     <SelectValue />
@@ -214,6 +247,7 @@ export const NOCActions: React.FC<NOCActionsProps> = ({ request, onAction }) => 
               onClick={handleAddFeedResource}
               variant="default"
               className="w-full gap-2"
+              disabled={!isAcknowledged}
             >
               <Plus size={18} />
               Add Resources
@@ -252,6 +286,7 @@ export const NOCActions: React.FC<NOCActionsProps> = ({ request, onAction }) => 
                             size="sm"
                             onClick={() => handleRemoveResource(resource.id)}
                             className="text-red-600 hover:text-red-800 hover:bg-red-50"
+                            disabled={!isAcknowledged}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -279,6 +314,7 @@ export const NOCActions: React.FC<NOCActionsProps> = ({ request, onAction }) => 
                 onChange={(e) => setNocData({ ...nocData, clarificationMessage: e.target.value })}
                 placeholder="e.g., Need guest confirmed number and SRT pub key"
                 rows={4}
+                disabled={!isAcknowledged}
               />
             </div>
 
@@ -292,6 +328,7 @@ export const NOCActions: React.FC<NOCActionsProps> = ({ request, onAction }) => 
                 onChange={(e) => setNocData({ ...nocData, notes: e.target.value })}
                 placeholder="Add optional notes..."
                 rows={3}
+                disabled={!isAcknowledged}
               />
             </div>
           </div>
@@ -301,7 +338,7 @@ export const NOCActions: React.FC<NOCActionsProps> = ({ request, onAction }) => 
           <Button
             onClick={handleRequestClarification}
             variant="outline"
-            className=""
+            disabled={!isAcknowledged}
           >
             <AlertCircle className="mr-2 h-4 w-4" />
             Request Clarification
@@ -309,6 +346,7 @@ export const NOCActions: React.FC<NOCActionsProps> = ({ request, onAction }) => 
           <Button
             onClick={handleSendToIngest}
             className="bg-green-600 text-white hover:bg-green-700"
+            disabled={!isAcknowledged}
           >
             <Send className="mr-2 h-4 w-4" />
             Send to Ingest
