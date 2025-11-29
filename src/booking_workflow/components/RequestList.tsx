@@ -1,9 +1,32 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Search, Filter, Plus, Grid3x3, List, Download, Calendar, ChevronLeft, ChevronRight, Edit, Trash2, ChevronDown, Check } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import {
+  Search,
+  Filter,
+  Plus,
+  Grid3x3,
+  List,
+  Download,
+  ChevronLeft,
+  ChevronRight,
+  Edit,
+  Trash2
+} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { RequestCard } from './RequestCard';
 import { RequestDetail } from './RequestDetail';
 import type { WorkflowRequest, WorkflowStatus, UserRole } from '../types/workflow';
+
+import { DateRange } from 'react-day-picker';
+import { startOfDay, endOfDay } from 'date-fns';
+import { DateRangePicker } from '@/components/DateRangePicker';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select';
 
 interface RequestListProps {
   requests: WorkflowRequest[];
@@ -15,80 +38,108 @@ interface RequestListProps {
 type ViewMode = 'grid' | 'list';
 
 const statusColors: Record<WorkflowStatus, { bg: string; text: string }> = {
-  'Draft': { bg: 'bg-slate-100 dark:bg-slate-800', text: 'text-slate-700 dark:text-slate-300' },
-  'Submitted': { bg: 'bg-blue-100 dark:bg-blue-900/30', text: 'text-blue-700 dark:text-blue-400' },
+  Draft: { bg: 'bg-slate-100 dark:bg-slate-800', text: 'text-slate-700 dark:text-slate-300' },
+  Submitted: { bg: 'bg-blue-100 dark:bg-blue-900/30', text: 'text-blue-700 dark:text-blue-400' },
   'With NOC': { bg: 'bg-yellow-100 dark:bg-yellow-900/30', text: 'text-yellow-700 dark:text-yellow-400' },
-  'Clarification Requested': { bg: 'bg-orange-100 dark:bg-orange-900/30', text: 'text-orange-700 dark:text-orange-400' },
-  'Resources Added': { bg: 'bg-indigo-100 dark:bg-indigo-900/30', text: 'text-indigo-700 dark:text-indigo-400' },
+  'Clarification Requested': {
+    bg: 'bg-orange-100 dark:bg-orange-900/30',
+    text: 'text-orange-700 dark:text-orange-400'
+  },
+  'Resources Added': {
+    bg: 'bg-indigo-100 dark:bg-indigo-900/30',
+    text: 'text-indigo-700 dark:text-indigo-400'
+  },
   'With Ingest': { bg: 'bg-cyan-100 dark:bg-cyan-900/30', text: 'text-cyan-700 dark:text-cyan-400' },
-  'Completed': { bg: 'bg-green-100 dark:bg-green-900/30', text: 'text-green-700 dark:text-green-400' },
+  Completed: { bg: 'bg-green-100 dark:bg-green-900/30', text: 'text-green-700 dark:text-green-400' },
   'Not Done': { bg: 'bg-red-100 dark:bg-red-900/30', text: 'text-red-700 dark:text-red-400' }
 };
 
 const priorityColors = {
-  'Normal': 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300',
-  'High': 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400',
-  'Urgent': 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
+  Normal: 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300',
+  High: 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400',
+  Urgent: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
 };
 
-export const RequestList: React.FC<RequestListProps> = ({ requests, userRole, onCreateNew, onUpdate }) => {
+export const RequestList: React.FC<RequestListProps> = ({
+  requests,
+  userRole,
+  onCreateNew,
+  onUpdate
+}) => {
   const [selectedRequest, setSelectedRequest] = useState<WorkflowRequest | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<WorkflowStatus | 'All'>('All');
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [filteredRequests, setFilteredRequests] = useState<WorkflowRequest[]>(requests);
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
-  const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
-  const statusDropdownRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (statusDropdownRef.current && !statusDropdownRef.current.contains(event.target as Node)) {
-        setIsStatusDropdownOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
 
   useEffect(() => {
     let filtered = requests;
 
+    // Role-based visibility
     if (userRole === 'NOC') {
-      filtered = filtered.filter(req =>
-        (req.status === 'Submitted' || req.status === 'With NOC' || req.status === 'Clarification Requested' || req.status === 'Resources Added')
+      filtered = filtered.filter(
+        (req) =>
+          req.status === 'Submitted' ||
+          req.status === 'With NOC' ||
+          req.status === 'Clarification Requested' ||
+          req.status === 'Resources Added'
       );
     } else if (userRole === 'Ingest') {
-      filtered = filtered.filter(req => req.status === 'With Ingest');
+      filtered = filtered.filter((req) => req.status === 'With Ingest');
     }
 
+    // Search filter (title, program)
     if (searchTerm) {
-      filtered = filtered.filter(req =>
-        req.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        req.program.toLowerCase().includes(searchTerm.toLowerCase()) 
-        //req.id.toLowerCase().includes(searchTerm.toLowerCase())
+      const key = searchTerm.toLowerCase();
+      filtered = filtered.filter(
+        (req) =>
+          req.title.toLowerCase().includes(key) ||
+          req.program.toLowerCase().includes(key)
+        // or also ID if you want: req.id.toLowerCase().includes(key)
       );
     }
 
+    // Status filter
     if (statusFilter !== 'All') {
-      filtered = filtered.filter(req => req.status === statusFilter);
+      filtered = filtered.filter((req) => req.status === statusFilter);
+    }
+
+    // Date range filter on airDateTime
+    if (dateRange?.from || dateRange?.to) {
+      filtered = filtered.filter((req) => {
+        if (!req.airDateTime) return false;
+        const d = new Date(req.airDateTime);
+        if (Number.isNaN(d.getTime())) return false;
+
+        if (dateRange.from) {
+          const from = startOfDay(dateRange.from);
+          if (d < from) return false;
+        }
+
+        if (dateRange.to) {
+          const to = endOfDay(dateRange.to);
+          if (d > to) return false;
+        }
+
+        return true;
+      });
     }
 
     setFilteredRequests(filtered);
     setCurrentPage(1);
-  }, [requests, searchTerm, statusFilter, userRole]);
+  }, [requests, searchTerm, statusFilter, dateRange, userRole]);
 
   const statuses: (WorkflowStatus | 'All')[] = [
     'All',
     'Draft',
-    'Submitted',
+    // 'Submitted',
     'With NOC',
     'Clarification Requested',
-    'Resources Added',
+    // 'Resources Added',
     'With Ingest',
     'Completed',
     'Not Done'
@@ -112,6 +163,7 @@ export const RequestList: React.FC<RequestListProps> = ({ requests, userRole, on
     <div className="space-y-6">
       {!selectedRequest ? (
         <>
+          {/* Top bar: view mode, filter icon, export, create */}
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2 bg-muted p-1 rounded-lg">
               <button
@@ -138,56 +190,15 @@ export const RequestList: React.FC<RequestListProps> = ({ requests, userRole, on
               </button>
             </div>
 
-            <button className="p-2 rounded-lg border border-border text-muted-foreground hover:text-card-foreground hover:bg-muted transition-colors">
+            {/* <button className="p-2 rounded-lg border border-border text-muted-foreground hover:text-card-foreground hover:bg-muted transition-colors">
               <Filter size={18} />
             </button>
 
-            <div className="relative" ref={statusDropdownRef}>
-              <button
-                onClick={() => setIsStatusDropdownOpen(!isStatusDropdownOpen)}
-                className="flex items-center gap-2 px-4 py-2 bg-card text-card-foreground border border-border rounded-lg hover:bg-muted transition-colors whitespace-nowrap"
-              >
-                <span className="text-sm font-medium">{statusFilter === 'All' ? 'All States' : statusFilter}</span>
-                <ChevronDown size={16} className={`transition-transform ${isStatusDropdownOpen ? 'rotate-180' : ''}`} />
-              </button>
-
-              {isStatusDropdownOpen && (
-                <div className="absolute z-50 top-full left-0 mt-2 w-56 bg-popover border border-border rounded-lg shadow-lg max-h-80 overflow-y-auto">
-                  {statuses.map((status) => (
-                    <button
-                      key={status}
-                      onClick={() => {
-                        setStatusFilter(status);
-                        setIsStatusDropdownOpen(false);
-                      }}
-                      className={`w-full flex items-center justify-between px-4 py-2.5 text-left text-sm hover:bg-accent transition-colors ${
-                        statusFilter === status
-                          ? 'bg-primary/10 text-primary font-medium'
-                          : 'text-popover-foreground'
-                      }`}
-                    >
-                      <span>{status === 'All' ? 'All States' : status}</span>
-                      {statusFilter === status && <Check size={16} className="text-primary" />}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
             <button className="p-2 rounded-lg border border-border text-muted-foreground hover:text-card-foreground hover:bg-muted transition-colors">
               <Download size={18} />
-            </button>
+            </button> */}
 
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={18} />
-              <input
-                type="text"
-                placeholder="Search..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 bg-card text-card-foreground border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
-              />
-            </div>
+            <div className="flex-1" />
 
             {userRole === 'Booking' && (
               <button
@@ -199,7 +210,54 @@ export const RequestList: React.FC<RequestListProps> = ({ requests, userRole, on
               </button>
             )}
           </div>
-  
+
+          {/* Filter bar – styled similar to CallSheetDashboard */}
+          <div className="bg-card rounded-lg border border-border p-4 space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+              {/* Search */}
+              <div className="md:col-span-5 relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search by title or program..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+
+              {/* Date range */}
+              <div className="md:col-span-4">
+                <DateRangePicker
+                  value={dateRange}
+                  onChange={setDateRange}
+                  className="w-full"
+                />
+              </div>
+
+              {/* Status filter */}
+              <div className="md:col-span-3">
+                <Select
+                  value={statusFilter}
+                  onValueChange={(value) => setStatusFilter(value as WorkflowStatus | 'All')}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="All States" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="All">All States</SelectItem>
+                    {statuses
+                      .filter((s) => s !== 'All')
+                      .map((status) => (
+                        <SelectItem key={status} value={status}>
+                          {status}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+
           {filteredRequests.length === 0 ? (
             <div className="text-center py-16">
               <p className="text-muted-foreground text-lg">No requests found</p>
@@ -216,59 +274,83 @@ export const RequestList: React.FC<RequestListProps> = ({ requests, userRole, on
             <>
               {viewMode === 'grid' ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {paginatedRequests.map(request => (
+                  {paginatedRequests.map((request) => (
                     <RequestCard
                       key={request.id}
                       request={request}
                       isNew={userRole === 'NOC' && request.__isNew}
                       onClick={() => navigate(`/${userRole.toLowerCase()}/request/${request.id}`)}
                     />
-                    
                   ))}
                 </div>
               ) : (
                 <div className="bg-card border border-border rounded-lg overflow-hidden">
-                  {/* Existing table code remains unchanged */}
                   <table className="w-full">
                     <thead>
                       <tr className="border-b border-border bg-muted/50">
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground">ID</th>
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground">Title</th>
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground">Program</th>
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground">Air Date</th>
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground">State</th>
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground">Priority</th>
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground">Actions</th>
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground">
+                          ID
+                        </th>
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground">
+                          Title
+                        </th>
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground">
+                          Program
+                        </th>
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground">
+                          Air Date
+                        </th>
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground">
+                          State
+                        </th>
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground">
+                          Priority
+                        </th>
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground">
+                          Actions
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
-                      {paginatedRequests.map(request => {
+                      {paginatedRequests.map((request) => {
                         const statusStyle = statusColors[request.status];
                         const priorityColor = priorityColors[request.priority];
                         return (
                           <tr
                             key={request.id}
                             className="border-b border-border hover:bg-muted/50 cursor-pointer transition-colors"
-                            onClick={() => navigate(`/${userRole.toLowerCase()}/request/${request.id}`)}
+                            onClick={() =>
+                              navigate(`/${userRole.toLowerCase()}/request/${request.id}`)
+                            }
                           >
-                            <td className="py-3 px-4 text-sm text-muted-foreground font-mono">{request.id}</td>
+                            <td className="py-3 px-4 text-sm text-muted-foreground font-mono">
+                              {request.id}
+                            </td>
                             <td className="py-3 px-4 text-sm font-medium text-card-foreground">
                               {request.title}
                               {request.__isNew && (
-                                <span className="ml-2 text-xs font-semibold text-red-600 animate-pulse">● New</span>
+                                <span className="ml-2 text-xs font-semibold text-red-600 animate-pulse">
+                                  ● New
+                                </span>
                               )}
                             </td>
-                            <td className="py-3 px-4 text-sm text-muted-foreground">{request.program}</td>
+                            <td className="py-3 px-4 text-sm text-muted-foreground">
+                              {request.program}
+                            </td>
                             <td className="py-3 px-4 text-sm text-muted-foreground">
                               {new Date(request.airDateTime).toLocaleDateString()}
                             </td>
                             <td className="py-3 px-4 text-sm">
-                              <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusStyle.bg} ${statusStyle.text}`}>
+                              <span
+                                className={`px-3 py-1 rounded-full text-xs font-medium ${statusStyle.bg} ${statusStyle.text}`}
+                              >
                                 {request.status}
                               </span>
                             </td>
                             <td className="py-3 px-4 text-sm">
-                              <span className={`px-3 py-1 rounded-full text-xs font-medium ${priorityColor}`}>
+                              <span
+                                className={`px-3 py-1 rounded-full text-xs font-medium ${priorityColor}`}
+                              >
                                 {request.priority}
                               </span>
                             </td>
@@ -277,7 +359,7 @@ export const RequestList: React.FC<RequestListProps> = ({ requests, userRole, on
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    navigate(`/${userRole.toLowerCase()}/request/${request.id}`)
+                                    navigate(`/${userRole.toLowerCase()}/request/${request.id}`);
                                   }}
                                   className="p-1.5 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-card-foreground"
                                   title="Edit"
@@ -302,7 +384,7 @@ export const RequestList: React.FC<RequestListProps> = ({ requests, userRole, on
                   </table>
                 </div>
               )}
-  
+
               {filteredRequests.length > 0 && (
                 <div className="flex items-center justify-between border-t border-border pt-4">
                   <div className="flex items-center gap-2">
@@ -318,10 +400,11 @@ export const RequestList: React.FC<RequestListProps> = ({ requests, userRole, on
                       <option value={50}>50</option>
                     </select>
                   </div>
-  
+
                   <div className="flex items-center gap-4">
                     <span className="text-sm text-muted-foreground">
-                      {startIndex + 1}-{Math.min(endIndex, filteredRequests.length)} of {filteredRequests.length}
+                      {startIndex + 1}-{Math.min(endIndex, filteredRequests.length)} of{' '}
+                      {filteredRequests.length}
                     </span>
                     <div className="flex items-center gap-1">
                       <button
@@ -358,5 +441,4 @@ export const RequestList: React.FC<RequestListProps> = ({ requests, userRole, on
       )}
     </div>
   );
-  
 };
