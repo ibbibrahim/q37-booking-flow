@@ -110,71 +110,43 @@ export const BookingDashboard: React.FC = () => {
           </div>
 
           <nav className="flex-1 p-4">
-            <div className="space-y-2">
-              <p className="text-xs font-semibold text-sidebar-foreground/60 uppercase tracking-wider px-3 mb-3">
-                Workflows
-              </p>
-              {roles.map(role => {
-                const Icon = roleConfig[role].icon;
-                const isActive = currentSection === role.toLowerCase() && location.pathname !== '/callsheet/analytics';
+            <div className="space-y-1">
+            {roles.map(role => {
+              const Icon = roleConfig[role].icon;
+              const isActive = currentSection === role.toLowerCase() && location.pathname !== '/callsheet/analytics';
 
-                return (
-                  <button
-                    key={role}
-                    onClick={() => navigate(roleConfig[role].path)}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-all duration-200 group ${
-                      isActive
-                        ? 'bg-sidebar-primary text-sidebar-primary-foreground shadow-sm'
-                        : 'text-sidebar-foreground hover:bg-sidebar-accent hover:translate-x-1'
-                    }`}
-                  >
-                    <div className={`p-1.5 rounded-md transition-colors ${
-                      isActive
-                        ? 'bg-sidebar-primary-foreground/10'
-                        : 'bg-sidebar-accent group-hover:bg-sidebar-primary/10'
-                    }`}>
-                      <Icon size={18} />
-                    </div>
-                    <div className="flex-1">
-                      <span className="font-medium text-sm block">{roleConfig[role].label}</span>
-                      <span className={`text-[10px] ${isActive ? 'text-sidebar-primary-foreground/70' : 'text-sidebar-foreground/50'}`}>
-                        {getRoleDescription(role).split(' ').slice(0, 3).join(' ')}
-                      </span>
-                    </div>
-                  </button>
-                );
-              })}
+              return (
+                <button
+                  key={role}
+                  onClick={() => navigate(roleConfig[role].path)}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
+                    isActive
+                      ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+                      : 'text-sidebar-foreground hover:bg-sidebar-accent'
+                  }`}
+                >
+                  <Icon size={20} />
+                  <span className="font-medium text-sm">{roleConfig[role].label}</span>
+                </button>
+              );
+            })}
 
-              {hasCallsheetAccess && (
-                <>
-                  <div className="my-4 border-t border-sidebar-border"></div>
-                  <p className="text-xs font-semibold text-sidebar-foreground/60 uppercase tracking-wider px-3 mb-3">
-                    Analytics
-                  </p>
-                  <button
-                    onClick={() => navigate('/callsheet/analytics')}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-all duration-200 group ${
-                      location.pathname === '/callsheet/analytics'
-                        ? 'bg-sidebar-primary text-sidebar-primary-foreground shadow-sm'
-                        : 'text-sidebar-foreground hover:bg-sidebar-accent hover:translate-x-1'
-                    }`}
-                  >
-                    <div className={`p-1.5 rounded-md transition-colors ${
-                      location.pathname === '/callsheet/analytics'
-                        ? 'bg-sidebar-primary-foreground/10'
-                        : 'bg-sidebar-accent group-hover:bg-sidebar-primary/10'
-                    }`}>
-                      <BarChart3 size={18} />
-                    </div>
-                    <div className="flex-1">
-                      <span className="font-medium text-sm block">Call Sheet Analytics</span>
-                      <span className={`text-[10px] ${location.pathname === '/callsheet/analytics' ? 'text-sidebar-primary-foreground/70' : 'text-sidebar-foreground/50'}`}>
-                        View reports & stats
-                      </span>
-                    </div>
-                  </button>
-                </>
-              )}
+            {hasCallsheetAccess && (
+              <>
+                <div className="my-2 border-t border-sidebar-border"></div>
+                <button
+                  onClick={() => navigate('/callsheet/analytics')}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
+                    location.pathname === '/callsheet/analytics'
+                      ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+                      : 'text-sidebar-foreground hover:bg-sidebar-accent'
+                  }`}
+                >
+                  <BarChart3 size={20} />
+                  <span className="font-medium text-sm">Call Sheet Analytics</span>
+                </button>
+              </>
+            )}
             </div>
           </nav>
 

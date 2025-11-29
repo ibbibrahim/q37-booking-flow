@@ -78,14 +78,14 @@ export const RequestCard: React.FC<RequestCardProps> = ({ request, isNew, onClic
           )}
 
           {request.nocAcknowledged === true && (
-            <div className="flex items-center gap-1.5 px-2.5 py-1 bg-green-50 text-green-700 text-[11px] font-semibold rounded-full border border-green-200">
+            <div className="flex items-center gap-1.5 px-2.5 py-1 bg-green-50 text-green-700 text-[13px] font-semibold rounded-full border border-green-200">
               <CheckCircle2 size={12} className="text-green-600" />
               <span>NOC</span>
             </div>
           )}
 
           {request.ingestAcknowledged === true && (
-            <div className="flex items-center gap-1.5 px-2.5 py-1 bg-cyan-50 text-cyan-700 text-[11px] font-semibold rounded-full border border-cyan-200">
+            <div className="flex items-center gap-1.5 px-2.5 py-1 bg-cyan-50 text-cyan-700 text-[13px] font-semibold rounded-full border border-cyan-200">
               <CheckCircle2 size={12} className="text-cyan-600" />
               <span>Ingest</span>
             </div>
