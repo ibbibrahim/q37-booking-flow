@@ -91,7 +91,7 @@ export const NOCActions: React.FC<NOCActionsProps> = ({ request, onAction }) => 
       return;
     }
     onAction('request_clarification', {
-      clarificationMessage: nocData.clarificationMessage,
+      nocClarification: nocData.clarificationMessage,
       newStatus: 'Clarification Requested'
     });
   };
@@ -113,7 +113,7 @@ export const NOCActions: React.FC<NOCActionsProps> = ({ request, onAction }) => 
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
         <CardTitle>NOC Actions</CardTitle>
-        <Button onClick={() => onAction("acknowledge", { changedBy: 10017 })}>
+        <Button onClick={() => onAction("acknowledge", { changedBy: 10017 })} disabled={request.nocAcknowledged === true}>
           <CheckCircle2 className="mr-2 h-4 w-4" />
           Acknowledge
         </Button>

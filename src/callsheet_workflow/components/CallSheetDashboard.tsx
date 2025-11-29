@@ -24,10 +24,7 @@ export const CallSheetDashboard: React.FC = () => {
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('All');
   const [driverFilter, setDriverFilter] = useState<string>('All');
-  const [dateRange, setDateRange] = useState<DateRange | undefined>({
-    from: startOfToday(),
-    to: endOfToday()
-  });
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
 
   const isTechnicalStore = user?.roles?.includes('TechnicalStore') || false;
 

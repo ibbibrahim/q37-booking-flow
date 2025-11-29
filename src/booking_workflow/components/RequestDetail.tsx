@@ -408,11 +408,11 @@ export const RequestDetail: React.FC = () => {
                       <div key={trans.id} className="relative pl-6">
                         <div className="absolute left-0 top-1.5 w-2 h-2 rounded-full bg-blue-500"></div>
                         {idx < transitions.length - 1 && (
-                          <div className="absolute left-[3px] top-4 w-0.5 h-16 bg-border"></div>
+                          <div className="absolute left-[3px] top-4 w-0.5 h-10 bg-border"></div>
                         )}
                         <div>
                           <div className="text-sm font-semibold text-card-foreground">
-                            {trans.toStatus}
+                            {trans.comment}
                           </div>
                           <div className="text-xs text-muted-foreground mt-1">
                             by {trans.changedBy || 'System'} •{' '}
@@ -425,9 +425,9 @@ export const RequestDetail: React.FC = () => {
                               minute: '2-digit',
                             })}
                           </div>
-                          {trans.comment && (
+                          {/* {trans.comment && (
                             <div className="text-xs text-muted-foreground mt-1 italic">{trans.comment}</div>
-                          )}
+                          )} */}
                         </div>
                       </div>
                     ))}
