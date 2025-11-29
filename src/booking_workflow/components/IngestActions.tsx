@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { WorkflowRequest } from '../types/workflow';
 
@@ -16,7 +17,9 @@ export const IngestActions: React.FC<IngestActionsProps> = ({ request, onAction 
   const [ingestData, setIngestData] = useState({
     ingestStatus: '',
     notDoneReason: '',
-    folderPath: ''
+    folderPath: '',
+    mediaId: '',
+    notes: ''
   });
 
   const handleStatusChange = () => {
@@ -25,11 +28,16 @@ export const IngestActions: React.FC<IngestActionsProps> = ({ request, onAction 
         alert('Please provide the folder path where content is stored');
         return;
       }
+      if (!ingestData.mediaId.trim()) {
+        alert('Please provide the Media ID');
+        return;
+      }
 
       onAction('mark_completed', {
         ingestStatus: 'Completed',
         ingestFolderPath: ingestData.folderPath,
-        ingestNotes: '',
+        mediaId: ingestData.mediaId,
+        ingestNotes: ingestData.notes,
         changedBy: 10017
       });
     } else if (ingestData.ingestStatus === 'Not Done') {
@@ -74,6 +82,7 @@ export const IngestActions: React.FC<IngestActionsProps> = ({ request, onAction 
         </div>
 
         {ingestData.ingestStatus === 'Completed' && (
+          <>
             <div className="space-y-2">
               <Label htmlFor="folderPath">
                 Folder Path <span className="text-red-500">*</span>
@@ -86,6 +95,33 @@ export const IngestActions: React.FC<IngestActionsProps> = ({ request, onAction 
                 placeholder="e.g., /storage/ingest/2025-10-28/content-001"
               />
             </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="mediaId">
+                Media ID <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="mediaId"
+                type="text"
+                value={ingestData.mediaId}
+                onChange={(e) => setIngestData({ ...ingestData, mediaId: e.target.value })}
+                placeholder="Enter media ID"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="ingestNotes">
+                Notes (Optional)
+              </Label>
+              <Textarea
+                id="ingestNotes"
+                value={ingestData.notes}
+                onChange={(e) => setIngestData({ ...ingestData, notes: e.target.value })}
+                placeholder="Add optional notes..."
+                rows={3}
+              />
+            </div>
+          </>
         )}
 
         {ingestData.ingestStatus === 'Not Done' && (

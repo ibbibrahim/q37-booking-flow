@@ -26,6 +26,8 @@ import type {
 interface WorkflowFormProps {
   onSubmit: (data: Partial<WorkflowRequest>, status: WorkflowStatus) => void;
   onCancel: () => void;
+  initialData?: WorkflowRequest | null;
+  isEditMode?: boolean;
 }
 
 type BookingMode = 'single' | 'bulk';
@@ -44,25 +46,52 @@ const DAYS_OF_WEEK = [
 export const WorkflowForm: React.FC<WorkflowFormProps> = ({
   onSubmit,
   onCancel,
+  initialData,
+  isEditMode = false,
 }) => {
   const [bookingMode, setBookingMode] = useState<BookingMode>('single');
-  const [formData, setFormData] = useState<Record<string, string>>({
-    bookingType: "",
-    title: "",
-    program: "",
-    airDateTime: "",
-    airTime: "", // Time only for bulk mode
-    feedStartTime: "",
-    feedEndTime: "",
-    feedStartTimeOnly: "", // Time only for bulk mode
-    feedEndTimeOnly: "", // Time only for bulk mode
-    language: "",
-    priority: "",
-    nocRequired: "",
-    resourcesNeeded: "",
-    newsroomTicket: "",
-    complianceTags: "",
-    notes: "",
+  const [formData, setFormData] = useState<Record<string, string>>(() => {
+    if (initialData) {
+      const typeSpecific = initialData.typeSpecificData ? JSON.parse(initialData.typeSpecificData) : {};
+      return {
+        bookingType: initialData.bookingType || "",
+        title: initialData.title || "",
+        program: initialData.program || "",
+        airDateTime: initialData.airDateTime || "",
+        airTime: "",
+        feedStartTime: initialData.feedStartTime || "",
+        feedEndTime: initialData.feedEndTime || "",
+        feedStartTimeOnly: "",
+        feedEndTimeOnly: "",
+        language: initialData.language || "",
+        priority: initialData.priority || "",
+        nocRequired: "",
+        resourcesNeeded: initialData.resourcesNeeded || "",
+        newsroomTicket: "",
+        complianceTags: "",
+        notes: initialData.notes || "",
+        studio: initialData.studio || "",
+        ...typeSpecific
+      };
+    }
+    return {
+      bookingType: "",
+      title: "",
+      program: "",
+      airDateTime: "",
+      airTime: "",
+      feedStartTime: "",
+      feedEndTime: "",
+      feedStartTimeOnly: "",
+      feedEndTimeOnly: "",
+      language: "",
+      priority: "",
+      nocRequired: "",
+      resourcesNeeded: "",
+      newsroomTicket: "",
+      complianceTags: "",
+      notes: "",
+    };
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -504,44 +533,46 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div className="flex-1">
-          <h1 className="text-2xl font-bold">New Workflow Request</h1>
+          <h1 className="text-2xl font-bold">{isEditMode ? 'Edit Workflow Request' : 'New Workflow Request'}</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            Create a new booking request for NOC and Ingest teams
+            {isEditMode ? 'Update the booking request details' : 'Create a new booking request for NOC and Ingest teams'}
           </p>
         </div>
       </div>
 
-      {/* Booking Mode Toggle */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5" />
-            Booking Mode
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex gap-2">
-            <Button
-              type="button"
-              variant={bookingMode === 'single' ? 'default' : 'outline'}
-              onClick={() => setBookingMode('single')}
-              className="flex-1"
-            >
-              <span className={`mr-2 ${bookingMode === 'single' ? '●' : '○'}`}></span>
-              Single Booking
-            </Button>
-            <Button
-              type="button"
-              variant={bookingMode === 'bulk' ? 'default' : 'outline'}
-              onClick={() => setBookingMode('bulk')}
-              className="flex-1"
-            >
-              <span className={`mr-2 ${bookingMode === 'bulk' ? '●' : '○'}`}></span>
-              Bulk / Series Booking
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Booking Mode Toggle - Hidden in edit mode */}
+      {!isEditMode && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Calendar className="h-5 w-5" />
+              Booking Mode
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant={bookingMode === 'single' ? 'default' : 'outline'}
+                onClick={() => setBookingMode('single')}
+                className="flex-1"
+              >
+                <span className={`mr-2 ${bookingMode === 'single' ? '●' : '○'}`}></span>
+                Single Booking
+              </Button>
+              <Button
+                type="button"
+                variant={bookingMode === 'bulk' ? 'default' : 'outline'}
+                onClick={() => setBookingMode('bulk')}
+                className="flex-1"
+              >
+                <span className={`mr-2 ${bookingMode === 'bulk' ? '●' : '○'}`}></span>
+                Bulk / Series Booking
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Info Banner for Bulk Mode */}
       {bookingMode === 'bulk' && (
@@ -1023,7 +1054,9 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
             }}
           >
             <Send className="mr-2 h-4 w-4" />
-            {bookingMode === 'bulk' && bulkDates.length > 1
+            {isEditMode
+              ? "Update Request"
+              : bookingMode === 'bulk' && bulkDates.length > 1
               ? `Create ${bulkDates.length} Bookings`
               : formData.bookingType === "Download and Ingest" ||
                 formData.bookingType === "Camera Card and Ingest"

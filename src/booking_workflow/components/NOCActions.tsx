@@ -34,7 +34,8 @@ export const NOCActions: React.FC<NOCActionsProps> = ({ request, onAction }) => 
     resolution: '',
     resourceType: 'Main' as 'Main' | 'Backup',
     clarificationMessage: '',
-    forwardToIngest: 'Yes'
+    forwardToIngest: 'Yes',
+    notes: ''
   });
 
   const [assignedResources, setAssignedResources] = useState<AssignedResource[]>([]);
@@ -87,11 +88,12 @@ export const NOCActions: React.FC<NOCActionsProps> = ({ request, onAction }) => 
   const handleRequestClarification = () => {
     if (!nocData.clarificationMessage.trim()) {
       alert('Please provide a clarification message');
-      
+
       return;
     }
     onAction('request_clarification', {
       nocClarification: nocData.clarificationMessage,
+      notes: nocData.notes,
       newStatus: 'Clarification Requested'
     });
   };
@@ -106,6 +108,7 @@ export const NOCActions: React.FC<NOCActionsProps> = ({ request, onAction }) => 
       nocAssignedResources: JSON.stringify(assignedResources),
       changedBy: 10017,
       comment: "Resources assigned by NOC",
+      notes: nocData.notes
     });
   };
 
@@ -276,6 +279,19 @@ export const NOCActions: React.FC<NOCActionsProps> = ({ request, onAction }) => 
                 onChange={(e) => setNocData({ ...nocData, clarificationMessage: e.target.value })}
                 placeholder="e.g., Need guest confirmed number and SRT pub key"
                 rows={4}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="nocNotes">
+                Notes (Optional)
+              </Label>
+              <Textarea
+                id="nocNotes"
+                value={nocData.notes}
+                onChange={(e) => setNocData({ ...nocData, notes: e.target.value })}
+                placeholder="Add optional notes..."
+                rows={3}
               />
             </div>
           </div>

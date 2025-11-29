@@ -235,19 +235,25 @@ export const mockApi = {
     const response = await apiClient.patch(`/api/booking/requests/${id}/acknowledge`, payload);
     return response.data;
   },
-  
+
   updateRequest: async (id: string, updates: Partial<WorkflowRequest>): Promise<WorkflowRequest> => {
-    await new Promise(resolve => setTimeout(resolve, 400));
-    const index = mockRequests.findIndex(req => req.id === id);
-    if (index !== -1) {
-      mockRequests[index] = {
-        ...mockRequests[index],
-        ...updates,
-        updatedAt: new Date().toISOString()
-      };
-      return mockRequests[index];
+    try {
+      const response = await apiClient.put(`/api/booking/requests/${id}`, updates);
+      return response.data;
+    } catch (error) {
+      console.warn(`API unavailable for update request ${id}, using mock:`, error);
+      await new Promise(resolve => setTimeout(resolve, 400));
+      const index = mockRequests.findIndex(req => req.id.toString() === id);
+      if (index !== -1) {
+        mockRequests[index] = {
+          ...mockRequests[index],
+          ...updates,
+          updatedAt: new Date().toISOString()
+        };
+        return mockRequests[index];
+      }
+      throw new Error('Request not found');
     }
-    throw new Error('Request not found');
   },
 
   getTransitions: async (requestId: string): Promise<WorkflowTransition[]> => {

@@ -90,6 +90,14 @@ function App() {
           }
         />
         <Route
+          path="booking/edit/:id"
+          element={
+            <ProtectedRoute allowedRoles={['Booking', 'Admin']}>
+              <RoleView role="Booking" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="booking/request/:id"
           element={
             <ProtectedRoute allowedRoles={['Booking', 'Admin']}>

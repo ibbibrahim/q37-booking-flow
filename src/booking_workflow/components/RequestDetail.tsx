@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Clock, User, FileText, CheckCircle2, AlertCircle, Send } from 'lucide-react';
+import { ArrowLeft, Clock, User, FileText, CheckCircle2, AlertCircle, Send, Edit } from 'lucide-react';
 import type {
   WorkflowRequest,
   WorkflowTransition,
@@ -13,6 +13,7 @@ import { IngestActions } from './IngestActions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export const RequestDetail: React.FC = () => {
   const { id } = useParams();
@@ -191,6 +192,20 @@ export const RequestDetail: React.FC = () => {
               )}
             </div>
           </div>
+
+          {/* Edit Button for Booking Users */}
+          {userRole === 'Booking' &&
+            request.status !== 'Completed' &&
+            request.status !== 'Cancelled' && (
+            <Button
+              variant="outline"
+              onClick={() => navigate(`/booking/edit/${request.id}`)}
+              className="flex items-center gap-2"
+            >
+              <Edit size={16} />
+              Edit Request
+            </Button>
+          )}
         </div>
       </div>
 
@@ -200,6 +215,33 @@ export const RequestDetail: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Content Column */}
           <div className={showActions && userRole === 'NOC' ? 'lg:col-span-2 space-y-6' : 'lg:col-span-2 space-y-6'}>
+            {/* Clarification Alert for Booking Users */}
+            {request.status === 'Clarification Requested' && userRole === 'Booking' && (
+              <Alert variant="destructive" className="border-orange-500 bg-orange-50 dark:bg-orange-900/20">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-start gap-3 flex-1">
+                    <AlertCircle className="h-5 w-5 mt-0.5 text-orange-600 dark:text-orange-400" />
+                    <div>
+                      <AlertTitle className="text-base font-semibold mb-2 text-orange-900 dark:text-orange-100">
+                        Clarification Requested by NOC
+                      </AlertTitle>
+                      <AlertDescription className="text-sm text-orange-800 dark:text-orange-200">
+                        {request.nocClarification || 'NOC has requested clarification on this request. Please review and update the request with the required information.'}
+                      </AlertDescription>
+                    </div>
+                  </div>
+                  <Button
+                    onClick={() => navigate(`/booking/edit/${request.id}`)}
+                    className="flex items-center gap-2 bg-orange-600 hover:bg-orange-700 text-white flex-shrink-0"
+                    size="sm"
+                  >
+                    <Edit size={16} />
+                    Edit Request
+                  </Button>
+                </div>
+              </Alert>
+            )}
+
             {/* Request Details Card */}
             <Card>
               <CardHeader>

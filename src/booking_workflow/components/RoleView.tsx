@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import { WorkflowForm } from './WorkflowForm';
 import { RequestList } from './RequestList';
 import { AdminDashboard } from './AdminDashboard';
@@ -14,10 +14,13 @@ interface RoleViewProps {
 export const RoleView: React.FC<RoleViewProps> = ({ role }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { id } = useParams();
   const { listen, invoke, isConnected } = useSignalR();
   const [requests, setRequests] = useState<WorkflowRequest[]>([]);
   const [loading, setLoading] = useState(true);
-  const showForm = location.pathname.includes('/new');
+  const showForm = location.pathname.includes('/new') || location.pathname.includes('/edit');
+  const isEditMode = location.pathname.includes('/edit') && !!id;
+  const [editRequest, setEditRequest] = useState<WorkflowRequest | null>(null);
 
   const loadRequests = useCallback(async () => {
     setLoading(true);
@@ -34,6 +37,22 @@ export const RoleView: React.FC<RoleViewProps> = ({ role }) => {
   useEffect(() => {
     loadRequests();
   }, [loadRequests]);
+
+  useEffect(() => {
+    const loadEditRequest = async () => {
+      if (isEditMode && id) {
+        try {
+          const request = await mockApi.getRequestById(id);
+          if (request) {
+            setEditRequest(request);
+          }
+        } catch (error) {
+          console.error('Failed to load request for editing:', error);
+        }
+      }
+    };
+    loadEditRequest();
+  }, [isEditMode, id]);
 
   useEffect(() => {
     // Don't subscribe if not connected
@@ -116,11 +135,31 @@ export const RoleView: React.FC<RoleViewProps> = ({ role }) => {
     }
   };
 
+  const handleUpdateRequest = async (data: Partial<WorkflowRequest>, status: WorkflowStatus) => {
+    if (!id) return;
+    try {
+      const updatedRequest = await mockApi.updateRequest(id, { ...data, status });
+      await loadRequests();
+      navigate(`/${role.toLowerCase()}/request/${id}`);
+    } catch (error) {
+      console.error('Failed to update request:', error);
+    }
+  };
+
   if (showForm) {
+    if (isEditMode && !editRequest) {
+      return (
+        <div className="flex items-center justify-center py-16">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        </div>
+      );
+    }
     return (
       <WorkflowForm
-        onSubmit={handleCreateRequest}
-        onCancel={() => navigate(`/${role.toLowerCase()}`)}
+        onSubmit={isEditMode ? handleUpdateRequest : handleCreateRequest}
+        onCancel={() => navigate(isEditMode && id ? `/${role.toLowerCase()}/request/${id}` : `/${role.toLowerCase()}`)}
+        initialData={isEditMode ? editRequest : undefined}
+        isEditMode={isEditMode}
       />
     );
   }
