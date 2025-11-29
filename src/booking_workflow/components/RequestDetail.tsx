@@ -200,9 +200,9 @@ export const RequestDetail: React.FC = () => {
           {/* Edit Button for Booking Users */}
           {userRole === 'Booking' &&
             request.status !== 'Completed' &&
-            request.status !== 'Cancelled' && (
+            request.status !== 'Cancelled' &&
+            request.status !== 'Clarification Requested' && (
             <Button
-              variant="outline"
               onClick={() => navigate(`/booking/edit/${request.id}`)}
               className="flex items-center gap-2"
             >

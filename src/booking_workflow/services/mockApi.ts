@@ -205,10 +205,7 @@ export const mockApi = {
   },
   
   
-  createRequest: async (
-    request: Partial<WorkflowRequest>,
-    status: WorkflowStatus
-  ): Promise<WorkflowRequest> => {
+  createRequest: async ( request: Partial<WorkflowRequest>, status: WorkflowStatus): Promise<WorkflowRequest> => {
     const response = await apiClient.post("/api/booking/requests", {
       ...request,
       status,
@@ -237,23 +234,8 @@ export const mockApi = {
   },
 
   updateRequest: async (id: string, updates: Partial<WorkflowRequest>): Promise<WorkflowRequest> => {
-    try {
-      const response = await apiClient.put(`/api/booking/requests/${id}`, updates);
-      return response.data;
-    } catch (error) {
-      console.warn(`API unavailable for update request ${id}, using mock:`, error);
-      await new Promise(resolve => setTimeout(resolve, 400));
-      const index = mockRequests.findIndex(req => req.id.toString() === id);
-      if (index !== -1) {
-        mockRequests[index] = {
-          ...mockRequests[index],
-          ...updates,
-          updatedAt: new Date().toISOString()
-        };
-        return mockRequests[index];
-      }
-      throw new Error('Request not found');
-    }
+    const response = await apiClient.put(`/api/booking/requests/${id}`, updates);
+    return response.data;
   },
 
   getTransitions: async (requestId: string): Promise<WorkflowTransition[]> => {
