@@ -172,7 +172,7 @@ export const RequestDetail: React.FC = () => {
       <div className="px-6">
         <div className="flex items-center gap-4">
           {/* Back button using shared Button */}
-          <Button variant="outline" size="icon" onClick={() => navigate(-1)}>
+          <Button variant="outline" size="icon" onClick={() => navigate(`/${userRole.toLowerCase()}`)}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
 
@@ -449,34 +449,54 @@ export const RequestDetail: React.FC = () => {
                 {transitions.length === 0 ? (
                   <div className="text-sm text-muted-foreground">No transitions yet</div>
                 ) : (
-                  <div className="space-y-4">
-                    {transitions.map((trans, idx) => (
-                      <div key={trans.id} className="relative pl-6">
-                        <div className="absolute left-0 top-1.5 w-2 h-2 rounded-full bg-blue-500"></div>
-                        {idx < transitions.length - 1 && (
-                          <div className="absolute left-[3px] top-4 w-0.5 h-10 bg-border"></div>
-                        )}
-                        <div>
-                          <div className="text-sm font-semibold text-card-foreground">
-                            {trans.comment}
+                  <div className="space-y-3">
+                    {transitions.map((trans, idx) => {
+                      const changedAt = new Date(trans.changedAt);
+
+                      const timeStr = changedAt.toLocaleTimeString('en-US', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      });
+
+                      const dateStr = changedAt.toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric',
+                      });
+
+                      return (
+                        <div
+                          key={trans.id}
+                          className="flex gap-3 text-sm"
+                        >
+                          {/* Time column */}
+                          <div className="w-20 pt-0.5 text-xs text-muted-foreground text-right">
+                            <div className="font-medium">{timeStr}</div>
+                            <div className="text-[11px] text-muted-foreground/80">
+                              {dateStr}
+                            </div>
                           </div>
-                          <div className="text-xs text-muted-foreground mt-1">
-                            by {trans.changedBy || 'System'} •{' '}
-                            {new Date(trans.changedAt).toLocaleDateString('en-US', {
-                              month: 'short',
-                              day: 'numeric',
-                            })},{' '}
-                            {new Date(trans.changedAt).toLocaleTimeString('en-US', {
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            })}
+
+                          {/* Timeline column: dot + vertical line that stretches */}
+                          <div className="flex flex-col items-center">
+                            <span className="mt-1 h-2 w-2 rounded-full border border-blue-500 bg-background" />
+                            {idx < transitions.length - 1 && (
+                              <span className="flex-1 w-px bg-border" />
+                            )}
                           </div>
-                          {/* {trans.comment && (
-                            <div className="text-xs text-muted-foreground mt-1 italic">{trans.comment}</div>
-                          )} */}
+
+                          {/* Content column */}
+                          <div className="flex-1 pb-4">
+                            <div className="text-sm font-semibold text-card-foreground">
+                              {trans.comment}
+                            </div>
+                            <div className="mt-1 text-xs text-muted-foreground">
+                              by {trans.changedBy || 'System'}
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </CardContent>
