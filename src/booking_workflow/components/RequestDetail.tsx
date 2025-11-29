@@ -95,7 +95,7 @@ export const RequestDetail: React.FC = () => {
       <div className="text-center py-16">
         <p className="text-muted-foreground">Request not found</p>
         <Button
-          onClick={() => navigate(-1)}
+          onClick={() => navigate(`/${userRole.toLowerCase()}`)}
           className="mt-4"
         >
           Go Back
@@ -172,7 +172,7 @@ export const RequestDetail: React.FC = () => {
       <div className="px-6">
         <div className="flex items-center gap-4">
           {/* Back button using shared Button */}
-          <Button variant="outline" size="icon" onClick={() => navigate(-1)}>
+          <Button variant="outline" size="icon" onClick={() => navigate(`/${userRole.toLowerCase()}`)}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
 
@@ -388,50 +388,57 @@ export const RequestDetail: React.FC = () => {
             {/* Metadata */}
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <User size={20} />
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/30">
+                    <User size={18} className="text-purple-600 dark:text-purple-400" />
+                  </div>
                   Metadata
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div>
-                  <div className="text-xs font-medium text-muted-foreground mb-1">Created by</div>
-                  <div className="text-sm font-medium text-card-foreground">
+                <div className="bg-muted/30 rounded-lg p-3">
+                  <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground mb-2">
+                    <User size={14} />
+                    Created by
+                  </div>
+                  <div className="text-sm font-semibold text-card-foreground">
                     {request.createdBy}
                   </div>
                 </div>
-                <div>
-                  <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground mb-1">
-                    <Clock size={14} />
-                    Created at
+                <div className="space-y-3">
+                  <div>
+                    <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground mb-1">
+                      <Clock size={14} className="text-green-600" />
+                      Created at
+                    </div>
+                    <div className="text-sm text-card-foreground pl-5">
+                      {new Date(request.createdAt).toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric',
+                      })}{' '}
+                      {new Date(request.createdAt).toLocaleTimeString('en-US', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </div>
                   </div>
-                  <div className="text-sm text-card-foreground">
-                    {new Date(request.createdAt).toLocaleDateString('en-US', {
-                      month: 'short',
-                      day: 'numeric',
-                      year: 'numeric',
-                    })}{' '}
-                    {new Date(request.createdAt).toLocaleTimeString('en-US', {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
-                  </div>
-                </div>
-                <div>
-                  <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground mb-1">
-                    <Clock size={14} />
-                    Last updated
-                  </div>
-                  <div className="text-sm text-card-foreground">
-                    {new Date(request.updatedAt).toLocaleDateString('en-US', {
-                      month: 'short',
-                      day: 'numeric',
-                      year: 'numeric',
-                    })}{' '}
-                    {new Date(request.updatedAt).toLocaleTimeString('en-US', {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
+                  <div>
+                    <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground mb-1">
+                      <Clock size={14} className="text-blue-600" />
+                      Last updated
+                    </div>
+                    <div className="text-sm text-card-foreground pl-5">
+                      {new Date(request.updatedAt).toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric',
+                      })}{' '}
+                      {new Date(request.updatedAt).toLocaleTimeString('en-US', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </div>
                   </div>
                 </div>
               </CardContent>
@@ -440,40 +447,51 @@ export const RequestDetail: React.FC = () => {
             {/* Workflow History */}
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <CheckCircle2 size={20} />
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30">
+                    <CheckCircle2 size={18} className="text-blue-600 dark:text-blue-400" />
+                  </div>
                   Workflow History
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 {transitions.length === 0 ? (
-                  <div className="text-sm text-muted-foreground">No transitions yet</div>
+                  <div className="flex flex-col items-center justify-center py-8 text-center">
+                    <div className="p-3 rounded-full bg-muted mb-3">
+                      <CheckCircle2 size={24} className="text-muted-foreground" />
+                    </div>
+                    <p className="text-sm text-muted-foreground">No activity yet</p>
+                    <p className="text-xs text-muted-foreground mt-1">History will appear here as actions are taken</p>
+                  </div>
                 ) : (
-                  <div className="space-y-4">
+                  <div className="space-y-1">
                     {transitions.map((trans, idx) => (
-                      <div key={trans.id} className="relative pl-6">
-                        <div className="absolute left-0 top-1.5 w-2 h-2 rounded-full bg-blue-500"></div>
+                      <div key={trans.id} className="relative pl-8 pb-4">
+                        <div className="absolute left-0 top-2 w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center ring-4 ring-background">
+                          <div className="w-2 h-2 rounded-full bg-white"></div>
+                        </div>
                         {idx < transitions.length - 1 && (
-                          <div className="absolute left-[3px] top-4 w-0.5 h-10 bg-border"></div>
+                          <div className="absolute left-[9px] top-7 w-0.5 h-[calc(100%-12px)] bg-gradient-to-b from-blue-500 to-border"></div>
                         )}
-                        <div>
-                          <div className="text-sm font-semibold text-card-foreground">
+
+                        <div className="bg-muted/50 rounded-lg p-3 hover:bg-muted/70 transition-colors">
+                          <div className="text-sm font-medium text-card-foreground mb-1">
                             {trans.comment}
                           </div>
-                          <div className="text-xs text-muted-foreground mt-1">
-                            by {trans.changedBy || 'System'} •{' '}
-                            {new Date(trans.changedAt).toLocaleDateString('en-US', {
-                              month: 'short',
-                              day: 'numeric',
-                            })},{' '}
-                            {new Date(trans.changedAt).toLocaleTimeString('en-US', {
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            })}
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <span className="font-medium">by {trans.changedBy || 'System'}</span>
+                            <span>•</span>
+                            <span>
+                              {new Date(trans.changedAt).toLocaleDateString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                              })},{' '}
+                              {new Date(trans.changedAt).toLocaleTimeString('en-US', {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
+                            </span>
                           </div>
-                          {/* {trans.comment && (
-                            <div className="text-xs text-muted-foreground mt-1 italic">{trans.comment}</div>
-                          )} */}
                         </div>
                       </div>
                     ))}
@@ -482,28 +500,35 @@ export const RequestDetail: React.FC = () => {
               </CardContent>
             </Card>
 
-            {/* Notifications */}
+            {/* Recent Updates */}
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <AlertCircle size={20} />
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <div className="p-2 rounded-lg bg-orange-100 dark:bg-orange-900/30">
+                    <AlertCircle size={18} className="text-orange-600 dark:text-orange-400" />
+                  </div>
                   Recent Updates
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 {transitions.length === 0 ? (
-                  <div className="text-sm text-muted-foreground">No notifications</div>
+                  <div className="flex flex-col items-center justify-center py-8 text-center">
+                    <div className="p-3 rounded-full bg-muted mb-3">
+                      <AlertCircle size={24} className="text-muted-foreground" />
+                    </div>
+                    <p className="text-sm text-muted-foreground">No updates yet</p>
+                  </div>
                 ) : (
-                  <div className="space-y-3">
+                  <div className="space-y-2">
                     {transitions.slice(0, 3).map((trans) => (
                       <div
                         key={trans.id}
-                        className="bg-muted rounded p-3 border border-border text-sm"
+                        className="bg-gradient-to-r from-muted/50 to-transparent rounded-lg p-3 border-l-2 border-blue-500 hover:from-muted transition-colors"
                       >
-                        <div className="font-medium text-card-foreground">
+                        <div className="font-medium text-card-foreground text-sm mb-1">
                           {trans.toStatus}
                         </div>
-                        <div className="text-xs text-muted-foreground mt-1">
+                        <div className="text-xs text-muted-foreground">
                           {trans.comment || `Status changed to ${trans.toStatus}`}
                         </div>
                       </div>

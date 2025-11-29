@@ -71,19 +71,25 @@ export const RequestCard: React.FC<RequestCardProps> = ({ request, isNew, onClic
           </span>
         </div>
         <div className="flex items-center gap-2">
-        {isNew && (
-          <span className="bg-red-100 text-red-600 text-[11px] font-semibold px-2 py-0.5 rounded-full border border-red-300 animate-pulse">
-            NEW
-          </span>
-        )}
+          {isNew && (
+            <span className="bg-red-100 text-red-600 text-[11px] font-semibold px-2 py-0.5 rounded-full border border-red-300 animate-pulse">
+              NEW
+            </span>
+          )}
 
-        {request.nocAcknowledged === true && (
-          <div className="flex items-center gap-2 px-3 py-1 bg-green-100 text-green-700 text-xs font-semibold rounded-full w-fit">
-            <CheckCircle2 size={14} className="text-green-600" />
-            <span>Acknowledged</span>
-          </div>
-        )}
- 
+          {request.nocAcknowledged === true && (
+            <div className="flex items-center gap-1.5 px-2.5 py-1 bg-green-50 text-green-700 text-[11px] font-semibold rounded-full border border-green-200">
+              <CheckCircle2 size={12} className="text-green-600" />
+              <span>NOC</span>
+            </div>
+          )}
+
+          {request.ingestAcknowledged === true && (
+            <div className="flex items-center gap-1.5 px-2.5 py-1 bg-cyan-50 text-cyan-700 text-[11px] font-semibold rounded-full border border-cyan-200">
+              <CheckCircle2 size={12} className="text-cyan-600" />
+              <span>Ingest</span>
+            </div>
+          )}
         </div>
       </div>
     </div>
