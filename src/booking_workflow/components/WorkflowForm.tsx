@@ -323,6 +323,21 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
     }
   };
 
+  // Remove empty date fields so backend doesn't get "" for DateTime?
+  const normalizePayload = (payload: any) => {
+    const cleaned = { ...payload };
+
+    if (!cleaned.feedStartTime) {
+      delete cleaned.feedStartTime;
+    }
+
+    if (!cleaned.feedEndTime) {
+      delete cleaned.feedEndTime;
+    }
+
+    return cleaned;
+  };
+
   const executeSubmit = (status: WorkflowStatus) => {
     let typeSpecific: Record<string, any> = {};
 
@@ -357,10 +372,12 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
     }
 
     if (bookingMode === 'single') {
-      const payload = {
+      const rawPayload = {
         ...formData,
         typeSpecificData: JSON.stringify(typeSpecific),
       };
+
+      const payload = normalizePayload(rawPayload);
       onSubmit(payload as any, status);
     } else {
       // Bulk submission - submit multiple bookings with proper date/time combinations
@@ -387,7 +404,7 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
           newFeedEndTime.setHours(endHours, endMinutes, 0, 0);
         }
 
-        const payload = {
+        const rawPayload = {
           ...formData,
           title: generateTitleForDate(date, index),
           airDateTime: newAirDateTime.toISOString(),
@@ -395,6 +412,8 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
           feedEndTime: newFeedEndTime ? newFeedEndTime.toISOString() : formData.feedEndTime,
           typeSpecificData: JSON.stringify(typeSpecific),
         };
+
+        const payload = normalizePayload(rawPayload);
 
         // Submit each booking individually
         onSubmit(payload as any, status);
@@ -404,6 +423,7 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
     setShowConfirmModal(false);
     setPendingSubmit(null);
   };
+
 
   const renderGuestRundownFields = () => (
     <>
