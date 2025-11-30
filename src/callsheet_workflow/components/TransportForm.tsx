@@ -283,6 +283,7 @@ export const TransportForm: React.FC<TransportFormProps> = ({
               <SelectContent>
                 <SelectItem value="Van">Van</SelectItem>
                 <SelectItem value="SUV">SUV</SelectItem>
+                <SelectItem value="SUV">Truck</SelectItem>
               </SelectContent>
             </Select>
             {isTechnicalStoreMode && (
