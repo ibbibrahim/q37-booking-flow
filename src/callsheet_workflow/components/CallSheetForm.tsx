@@ -364,7 +364,7 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
             </CardContent>
           </Card>
 
-          <Card>
+          {/* <Card>
             <CardHeader>
               <CardTitle>File Attachments</CardTitle>
             </CardHeader>
@@ -430,7 +430,7 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
                 </div>
               )}
             </CardContent>
-          </Card>
+          </Card> */}
 
           <Card>
             <CardHeader>
