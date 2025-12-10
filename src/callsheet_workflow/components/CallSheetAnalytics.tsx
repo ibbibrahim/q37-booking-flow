@@ -61,7 +61,8 @@ interface CrewAssignmentResult {
 interface CallSheetResult {
   id: number;
   title: string;
-  filmingDate: string;
+  startDateTime: string;
+  returnDateTime: string;
   location: string;
   department: string;
   status: string;
@@ -802,7 +803,7 @@ export const CallSheetAnalytics: React.FC = () => {
                                 Date
                               </div>
                               <div className="font-semibold text-[13px] text-foreground">
-                                {format(new Date(callSheet.filmingDate), 'MMM dd, yyyy')}
+                                {format(new Date(callSheet.startDateTime), 'MMM dd, yyyy')}
                               </div>
                             </div>
 

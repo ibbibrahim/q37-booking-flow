@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useSignalR } from '@/contexts/SignalRContext';
 import { CallSheetForm } from './CallSheetForm';
 import type { CallSheetRequest } from '../types/callsheet';
+import { formatQatarDateTime } from '../utils/timezone';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
@@ -199,9 +200,15 @@ export const CallSheetDetail: React.FC = () => {
                   <div className="text-card-foreground font-medium">{callSheet.department}</div>
                 </div>
                 <div>
-                  <div className="text-xs text-muted-foreground mb-1">Filming Date</div>
+                  <div className="text-xs text-muted-foreground mb-1">Start Date & Time</div>
                   <div className="text-card-foreground font-medium">
-                    {new Date(callSheet.filmingDate).toLocaleDateString()}
+                    {formatQatarDateTime(callSheet.startDateTime)}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xs text-muted-foreground mb-1">Return Date & Time</div>
+                  <div className="text-card-foreground font-medium">
+                    {formatQatarDateTime(callSheet.returnDateTime)}
                   </div>
                 </div>
                 <div>

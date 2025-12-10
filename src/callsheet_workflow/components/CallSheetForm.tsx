@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Plus, Trash2, Upload, X, MapPin } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Upload, X, MapPin, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,12 +9,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AcknowledgementPanel } from './AcknowledgementPanel';
 import { EquipmentForm } from './EquipmentForm';
 import { TransportForm } from './TransportForm';
 import { CallSheetPreview } from './CallSheetPreview';
 import type { CallSheetRequest, CrewAssignment, Equipment, DepartmentAcknowledgement, TransportRequest, Notification } from '../types/callsheet';
 import { DEPARTMENTS, DEFAULT_NOTIFICATIONS, DEPARTMENT_ACKNOWLEDGEMENTS, CALL_SHEET_ROLES  } from '../types/callsheet';
+import { utcToQatarTime, qatarTimeToUTC, getCurrentQatarDateTime } from '../utils/timezone';
 
 interface CallSheetFormProps {
   onSubmit: (data: Partial<CallSheetRequest>) => void;
@@ -30,7 +32,8 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
   const [formData, setFormData] = useState({
     department: '',
     title: '',
-    filmingDate: '',
+    startDateTime: '',
+    returnDateTime: '',
     callTime: '',
     wrapTime: '',
     location: '',
@@ -38,6 +41,10 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
     focalPointContact: '',
     driverNeeded: false
   });
+
+  const [startDateError, setStartDateError] = useState<string>('');
+  const [returnDateError, setReturnDateError] = useState<string>('');
+  const [showLocationSuggestions, setShowLocationSuggestions] = useState(false);
   const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
 
   const [crewAssignments, setCrewAssignments] = useState<CrewAssignment[]>([]);
@@ -67,10 +74,14 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
   // Initialize form with existing data if provided
   useEffect(() => {
     if (initialCallSheet) {
+      const startQatar = initialCallSheet.startDateTime ? utcToQatarTime(initialCallSheet.startDateTime) : '';
+      const returnQatar = initialCallSheet.returnDateTime ? utcToQatarTime(initialCallSheet.returnDateTime) : '';
+
       setFormData({
         department: initialCallSheet.department || '',
         title: initialCallSheet.title || '',
-        filmingDate: initialCallSheet.filmingDate ? initialCallSheet.filmingDate.slice(0, 10) : '',
+        startDateTime: startQatar,
+        returnDateTime: returnQatar,
         callTime: initialCallSheet.callTime || '',
         wrapTime: initialCallSheet.wrapTime || '',
         location: initialCallSheet.location || '',
@@ -94,10 +105,11 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
       if (initialCallSheet.transportRequest) {
         setTransportRequest({
           reason: initialCallSheet.transportRequest.reason || '',
-          startDateTime: initialCallSheet.transportRequest.startDateTime || '',
-          returnDateTime: initialCallSheet.transportRequest.returnDateTime || '',
+          startDateTime: utcToQatarTime(initialCallSheet.transportRequest.startDateTime || ''),
+          returnDateTime: utcToQatarTime(initialCallSheet.transportRequest.returnDateTime || ''),
           driverName: initialCallSheet.transportRequest.driverName || '',
-          vehicleNo: initialCallSheet.transportRequest.vehicleNo || '',
+          driverNo: initialCallSheet.transportRequest.driverNo || '',
+          carType: initialCallSheet.transportRequest.carType || '',
           requestedBy: initialCallSheet.transportRequest.requestedBy || 1
         });
       }
@@ -115,6 +127,72 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
       }
     }
   }, [initialCallSheet]);
+
+  const validateStartDate = (value: string) => {
+    if (!value) {
+      setStartDateError('');
+      return true;
+    }
+
+    const qatarDate = new Date(value);
+    const nowQatar = new Date(getCurrentQatarDateTime());
+
+    if (qatarDate < nowQatar) {
+      setStartDateError('Cannot select a past date and time');
+      return false;
+    }
+
+    setStartDateError('');
+    return true;
+  };
+
+  const validateReturnDate = (returnValue: string, startValue: string) => {
+    if (!returnValue) {
+      setReturnDateError('');
+      return true;
+    }
+
+    const returnDate = new Date(returnValue);
+    const nowQatar = new Date(getCurrentQatarDateTime());
+
+    if (returnDate < nowQatar) {
+      setReturnDateError('Cannot select a past date and time');
+      return false;
+    }
+
+    if (startValue) {
+      const startDate = new Date(startValue);
+      if (returnDate <= startDate) {
+        setReturnDateError('Return date must be after start date');
+        return false;
+      }
+    }
+
+    setReturnDateError('');
+    return true;
+  };
+
+  const handleStartDateChange = (value: string) => {
+    const isValid = validateStartDate(value);
+
+    if (isValid || !value) {
+      setFormData(prev => ({ ...prev, startDateTime: value }));
+      setTransportRequest(prev => ({ ...prev, startDateTime: value }));
+
+      if (formData.returnDateTime) {
+        validateReturnDate(formData.returnDateTime, value);
+      }
+    }
+  };
+
+  const handleReturnDateChange = (value: string) => {
+    const isValid = validateReturnDate(value, formData.startDateTime);
+
+    if (isValid || !value) {
+      setFormData(prev => ({ ...prev, returnDateTime: value }));
+      setTransportRequest(prev => ({ ...prev, returnDateTime: value }));
+    }
+  };
 
   const handleChange = (field: string, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -170,22 +248,39 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
   };
 
   const handleSubmit = () => {
-    if (!formData.department || !formData.title || !formData.filmingDate) {
-      alert('Please fill in required fields: Department, Title, and Filming Date');
+    if (!formData.department || !formData.title || !formData.startDateTime || !formData.returnDateTime) {
+      alert('Please fill in required fields: Department, Title, Start Date & Time, and Return Date & Time');
+      return;
+    }
+
+    if (startDateError || returnDateError) {
+      alert('Please fix validation errors before submitting');
       return;
     }
 
     const callSheetData: Partial<CallSheetRequest> = {
-      ...formData,
+      department: formData.department,
+      title: formData.title,
+      startDateTime: qatarTimeToUTC(formData.startDateTime),
+      returnDateTime: qatarTimeToUTC(formData.returnDateTime),
+      callTime: formData.callTime,
+      wrapTime: formData.wrapTime,
+      location: formData.location,
+      focalPoint: formData.focalPoint,
+      focalPointContact: formData.focalPointContact,
+      driverNeeded: formData.driverNeeded,
       crewAssignments,
       departmentAcknowledgements,
       equipment,
       departmentsToApprove,
       departmentsToNotify,
-      transportRequest,
+      transportRequest: formData.driverNeeded ? {
+        ...transportRequest,
+        startDateTime: qatarTimeToUTC(transportRequest.startDateTime),
+        returnDateTime: qatarTimeToUTC(transportRequest.returnDateTime)
+      } : null,
       notifications,
-      // status: 'Draft',
-      createdBy: 1, // TODO: replace with actual user context
+      createdBy: 1,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
@@ -267,18 +362,76 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
                   />
                 </div>
 
-                {/* Filming Date */}
+                {/* Start Date & Time */}
                 <div className="space-y-2">
-                  <Label htmlFor="filmingDate">
-                    Filming Date <span className="text-red-500">*</span>
+                  <Label htmlFor="startDateTime">
+                    Start Date & Time <span className="text-red-500">*</span>
                   </Label>
                   <Input
-                    id="filmingDate"
-                    type="date"
-                    value={formData.filmingDate}
-                    onChange={(e) => handleChange('filmingDate', e.target.value)}
-                    readOnly={isTechnicalStoreMode}
+                    id="startDateTime"
+                    type="datetime-local"
+                    value={formData.startDateTime}
+                    onChange={(e) => handleStartDateChange(e.target.value)}
+                    min={getCurrentQatarDateTime()}
+                    disabled={isTechnicalStoreMode}
+                    className={
+                      isTechnicalStoreMode
+                        ? 'bg-muted cursor-not-allowed'
+                        : startDateError
+                        ? 'border-red-500 focus-visible:ring-red-500'
+                        : ''
+                    }
                   />
+                  {isTechnicalStoreMode ? (
+                    <p className="text-xs text-muted-foreground">
+                      Only the requester can modify this field
+                    </p>
+                  ) : startDateError ? (
+                    <div className="flex items-center gap-1.5 text-xs text-red-600 dark:text-red-400">
+                      <AlertCircle className="w-3.5 h-3.5" />
+                      <span>{startDateError}</span>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      Qatar time (UTC+3) - Cannot select a past date and time
+                    </p>
+                  )}
+                </div>
+
+                {/* Return Date & Time */}
+                <div className="space-y-2">
+                  <Label htmlFor="returnDateTime">
+                    Return Date & Time <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="returnDateTime"
+                    type="datetime-local"
+                    value={formData.returnDateTime}
+                    onChange={(e) => handleReturnDateChange(e.target.value)}
+                    min={formData.startDateTime || getCurrentQatarDateTime()}
+                    disabled={isTechnicalStoreMode}
+                    className={
+                      isTechnicalStoreMode
+                        ? 'bg-muted cursor-not-allowed'
+                        : returnDateError
+                        ? 'border-red-500 focus-visible:ring-red-500'
+                        : ''
+                    }
+                  />
+                  {isTechnicalStoreMode ? (
+                    <p className="text-xs text-muted-foreground">
+                      Only the requester can modify this field
+                    </p>
+                  ) : returnDateError ? (
+                    <div className="flex items-center gap-1.5 text-xs text-red-600 dark:text-red-400">
+                      <AlertCircle className="w-3.5 h-3.5" />
+                      <span>{returnDateError}</span>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      Qatar time (UTC+3) - Must be after start date and time
+                    </p>
+                  )}
                 </div>
 
                 {/* Location */}

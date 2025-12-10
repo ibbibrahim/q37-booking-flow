@@ -60,7 +60,8 @@ export interface CallSheetRequest {
 
   department: string;
   title: string;
-  filmingDate: string;         // ISO Date (string is fine)
+  startDateTime: string;       // ISO DateTime in UTC
+  returnDateTime: string;      // ISO DateTime in UTC
   callTime: string | null;     // can be null
   wrapTime: string | null;
 
@@ -81,6 +82,7 @@ export interface CallSheetRequest {
   notifications: Notification[];
 
   status: CallSheetStatus;
+  lastComment?: string;
   createdBy:  string | number;           // always integer
   createdAt: string;
   updatedAt: string;

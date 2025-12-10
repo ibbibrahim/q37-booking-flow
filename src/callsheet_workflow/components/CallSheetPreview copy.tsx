@@ -1,6 +1,7 @@
 import React, { useRef } from 'react';
 import { Download, FileText } from 'lucide-react';
 import type { CallSheetRequest } from '../types/callsheet';
+import { formatQatarDateTime } from '../utils/timezone';
 
 interface CallSheetPreviewProps {
   callSheet: Partial<CallSheetRequest>;
@@ -91,8 +92,12 @@ export const CallSheetPreview: React.FC<CallSheetPreviewProps> = ({ callSheet })
                 <span className="ml-2 text-muted-foreground">{callSheet.title || 'N/A'}</span>
               </div>
               <div>
-                <span className="font-semibold text-card-foreground">Filming Date:</span>
-                <span className="ml-2 text-muted-foreground">{callSheet.filmingDate || 'N/A'}</span>
+                <span className="font-semibold text-card-foreground">Start Date & Time:</span>
+                <span className="ml-2 text-muted-foreground">{formatQatarDateTime(callSheet.startDateTime)}</span>
+              </div>
+              <div>
+                <span className="font-semibold text-card-foreground">Return Date & Time:</span>
+                <span className="ml-2 text-muted-foreground">{formatQatarDateTime(callSheet.returnDateTime)}</span>
               </div>
               <div>
                 <span className="font-semibold text-card-foreground">Location:</span>

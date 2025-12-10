@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DateRangePicker } from '@/components/DateRangePicker';
 import type { CallSheetRequest } from '../types/callsheet';
+import { formatQatarDateTime } from '../utils/timezone';
 
 export const CallSheetDashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -337,7 +338,7 @@ export const CallSheetDashboard: React.FC = () => {
               <div className="space-y-2 mb-4">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Calendar size={14} />
-                  <span>{new Date(callSheet.filmingDate).toLocaleDateString()}</span>
+                  <span>{formatQatarDateTime(callSheet.startDateTime)}</span>
                 </div>
                 {callSheet.location && (
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">

@@ -1,10 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { AlertCircle } from 'lucide-react';
 import type { TransportRequest, Notification } from '../types/callsheet';
 import { TRANSPORT_REASONS } from '../types/callsheet';
 
@@ -23,103 +22,7 @@ export const TransportForm: React.FC<TransportFormProps> = ({
   onToggleNotification,
   isTechnicalStoreMode = false
 }) => {
-  const [startDateError, setStartDateError] = useState<string>('');
-  const [returnDateError, setReturnDateError] = useState<string>('');
-
   if (!transportRequest) return null;
-
-  // Get current datetime in the required format for datetime-local input
-  const getCurrentDateTime = () => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-    const hours = String(now.getHours()).padStart(2, '0');
-    const minutes = String(now.getMinutes()).padStart(2, '0');
-    return `${year}-${month}-${day}T${hours}:${minutes}`;
-  };
-
-  const minDateTime = getCurrentDateTime();
-
-  // Validate start date is not in the past
-  const validateStartDate = (value: string) => {
-    if (!value) {
-      setStartDateError('');
-      return;
-    }
-
-    const selectedDate = new Date(value);
-    const now = new Date();
-
-    if (selectedDate < now) {
-      setStartDateError('Cannot select a past date and time');
-      return false;
-    }
-
-    setStartDateError('');
-    return true;
-  };
-
-  // Validate return date is after start date
-  const validateReturnDate = (returnValue: string, startValue: string) => {
-    if (!returnValue) {
-      setReturnDateError('');
-      return;
-    }
-
-    const returnDate = new Date(returnValue);
-    const now = new Date();
-
-    // Check if return date is in the past
-    if (returnDate < now) {
-      setReturnDateError('Cannot select a past date and time');
-      return false;
-    }
-
-    // Check if return date is after start date
-    if (startValue) {
-      const startDate = new Date(startValue);
-      if (returnDate <= startDate) {
-        setReturnDateError('Return date must be after start date');
-        return false;
-      }
-    }
-
-    setReturnDateError('');
-    return true;
-  };
-
-  // Validate on mount and when values change
-  useEffect(() => {
-    if (transportRequest.startDateTime) {
-      validateStartDate(transportRequest.startDateTime);
-    }
-    if (transportRequest.returnDateTime) {
-      validateReturnDate(transportRequest.returnDateTime, transportRequest.startDateTime);
-    }
-  }, [transportRequest.startDateTime, transportRequest.returnDateTime]);
-
-  const handleStartDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    const isValid = validateStartDate(value);
-
-    if (isValid || !value) {
-      onChange('startDateTime', value);
-      // Re-validate return date when start date changes
-      if (transportRequest.returnDateTime) {
-        validateReturnDate(transportRequest.returnDateTime, value);
-      }
-    }
-  };
-
-  const handleReturnDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    const isValid = validateReturnDate(value, transportRequest.startDateTime);
-
-    if (isValid || !value) {
-      onChange('returnDateTime', value);
-    }
-  };
 
   return (
     <div className="space-y-6">
@@ -186,31 +89,12 @@ export const TransportForm: React.FC<TransportFormProps> = ({
                 id="startDateTime"
                 type="datetime-local"
                 value={transportRequest.startDateTime}
-                onChange={handleStartDateChange}
-                min={minDateTime}
-                disabled={isTechnicalStoreMode}
-                className={
-                  isTechnicalStoreMode
-                    ? 'bg-muted cursor-not-allowed'
-                    : startDateError
-                    ? 'border-red-500 focus-visible:ring-red-500'
-                    : ''
-                }
+                disabled
+                className="bg-muted cursor-not-allowed"
               />
-              {isTechnicalStoreMode ? (
-                <p className="text-xs text-muted-foreground">
-                  Only the requester can modify this field
-                </p>
-              ) : startDateError ? (
-                <div className="flex items-center gap-1.5 text-xs text-red-600 dark:text-red-400">
-                  <AlertCircle className="w-3.5 h-3.5" />
-                  <span>{startDateError}</span>
-                </div>
-              ) : (
-                <p className="text-xs text-muted-foreground">
-                  Cannot select a past date and time
-                </p>
-              )}
+              <p className="text-xs text-muted-foreground">
+                Set in Call Sheet booking information (Qatar time UTC+3)
+              </p>
             </div>
 
             <div className="space-y-2">
@@ -221,31 +105,12 @@ export const TransportForm: React.FC<TransportFormProps> = ({
                 id="returnDateTime"
                 type="datetime-local"
                 value={transportRequest.returnDateTime}
-                onChange={handleReturnDateChange}
-                min={transportRequest.startDateTime || minDateTime}
-                disabled={isTechnicalStoreMode}
-                className={
-                  isTechnicalStoreMode
-                    ? 'bg-muted cursor-not-allowed'
-                    : returnDateError
-                    ? 'border-red-500 focus-visible:ring-red-500'
-                    : ''
-                }
+                disabled
+                className="bg-muted cursor-not-allowed"
               />
-              {isTechnicalStoreMode ? (
-                <p className="text-xs text-muted-foreground">
-                  Only the requester can modify this field
-                </p>
-              ) : returnDateError ? (
-                <div className="flex items-center gap-1.5 text-xs text-red-600 dark:text-red-400">
-                  <AlertCircle className="w-3.5 h-3.5" />
-                  <span>{returnDateError}</span>
-                </div>
-              ) : (
-                <p className="text-xs text-muted-foreground">
-                  Must be after start date and time
-                </p>
-              )}
+              <p className="text-xs text-muted-foreground">
+                Set in Call Sheet booking information (Qatar time UTC+3)
+              </p>
             </div>
 
             <div className="space-y-2">

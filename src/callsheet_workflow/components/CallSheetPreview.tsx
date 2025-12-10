@@ -1,6 +1,7 @@
 import React, { useRef } from 'react';
 import { Download, FileText } from 'lucide-react';
 import type { CallSheetRequest } from '../types/callsheet';
+import { formatQatarDateTime } from '../utils/timezone';
 import qBusinessLogo from '../../assets/Qbusiness_Logo_NEG_POS-02.png';
 
 interface CallSheetPreviewProps {
@@ -197,7 +198,7 @@ export const CallSheetPreview: React.FC<CallSheetPreviewProps> = ({ callSheet })
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: '60px', rowGap: '10px', marginBottom: '20px' }}>
             {[
               [['Department', callSheet.department || 'N/A'], ['Title', callSheet.title || 'N/A', true]],
-              [['Filming Date', callSheet.filmingDate || 'N/A'], ['Locations', callSheet.location || 'N/A']],
+              [['Start Date & Time', formatQatarDateTime(callSheet.startDateTime)], ['Return Date & Time', formatQatarDateTime(callSheet.returnDateTime)]],
               [['Call Time', callSheet.callTime || 'N/A'], ['Wrap Time', callSheet.wrapTime || 'N/A']],
               [['Focal Point', callSheet.focalPoint || 'N/A'], ['Contact', callSheet.focalPointContact || 'N/A']],
             ].map((pair, rowIdx) => (
