@@ -13,7 +13,7 @@ interface SignalRContextType {
 const SignalRContext = createContext<SignalRContextType | undefined>(undefined);
 
 export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, token } = useAuth();
   const [connectionState, setConnectionState] = useState<signalR.HubConnectionState>(
     signalR.HubConnectionState.Disconnected
   );
@@ -56,6 +56,7 @@ export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
     const connection = new signalR.HubConnectionBuilder()
       .withUrl(hubUrl, {
+        accessTokenFactory: () => token || "",
         skipNegotiation: false,
         transport: signalR.HttpTransportType.WebSockets | signalR.HttpTransportType.ServerSentEvents | signalR.HttpTransportType.LongPolling,
       })
@@ -100,7 +101,7 @@ export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
     connectionRef.current = connection;
     return connection;
-  }, [getPrimaryRole]);
+  }, [getPrimaryRole,token]);
 
   const reattachListeners = (connection: signalR.HubConnection) => {
     listenersRef.current.forEach((handlers, eventName) => {
