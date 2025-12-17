@@ -2,150 +2,190 @@ import React, { createContext, useContext, useState, useCallback, useEffect } fr
 import { useSignalR } from './SignalRContext';
 import { useToast } from './ToastContext';
 import type { WorkflowRequest } from '../booking_workflow/types/workflow';
+import { notificationsApi, type NotificationDTO } from '../api/notifications';
 
 export interface Notification {
-  id: string;
+  id: number;
   title: string;
-  message: string;
-  timestamp: Date;
-  type: 'request_created' | 'request_updated' | 'request_completed' | 'callsheet_created' | 'callsheet_updated';
-  read: boolean;
-  requestId?: string;
-  callSheetId?: number;
+  body?: string;
+  message?: string;
+  url: string;
+  isRead: boolean;
+  createdAt: string;
+  entityType: string;
+  entityId: number;
+  actorUserId?: number;
+  recipientUserId: number;
 }
 
 interface NotificationContextType {
   notifications: Notification[];
   unreadCount: number;
-  markAsRead: (id: string) => void;
+  isLoading: boolean;
+  hasMore: boolean;
+  markAsRead: (id: number) => void;
   markAllAsRead: () => void;
-  clearNotification: (id: string) => void;
-  clearAllNotifications: () => void;
+  loadNotifications: (page?: number) => Promise<void>;
+  loadMore: () => Promise<void>;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
 export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [unreadCount, setUnreadCount] = useState<number>(0);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [hasMore, setHasMore] = useState<boolean>(false);
+  const [currentPage, setCurrentPage] = useState<number>(1);
   const { listen, isConnected } = useSignalR();
   const { showToast } = useToast();
 
   useEffect(() => {
-    // Don't subscribe if not connected
+    const fetchUnreadCount = async () => {
+      try {
+        const count = await notificationsApi.fetchUnreadCount();
+        setUnreadCount(count);
+      } catch (error) {
+        console.error('Failed to fetch unread count:', error);
+      }
+    };
+
+    const loadInitialNotifications = async () => {
+      setIsLoading(true);
+      try {
+        const response = await notificationsApi.fetchNotifications({
+          unreadOnly: false,
+          page: 1,
+          pageSize: 20
+        });
+
+        const mappedNotifications: Notification[] = response.items.map(item => ({
+          id: item.id,
+          title: item.title,
+          body: item.body,
+          message: item.body,
+          url: item.url,
+          isRead: item.isRead,
+          createdAt: item.createdAt,
+          entityType: item.entityType,
+          entityId: item.entityId,
+          actorUserId: item.actorUserId,
+          recipientUserId: item.recipientUserId
+        }));
+
+        setNotifications(mappedNotifications);
+        setHasMore(response.hasMore);
+        setCurrentPage(1);
+      } catch (error) {
+        console.error('Failed to load notifications:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchUnreadCount();
+    loadInitialNotifications();
+  }, []);
+
+  const loadNotifications = useCallback(async (page: number = 1) => {
+    setIsLoading(true);
+    try {
+      const response = await notificationsApi.fetchNotifications({
+        unreadOnly: false,
+        page,
+        pageSize: 20
+      });
+
+      const mappedNotifications: Notification[] = response.items.map(item => ({
+        id: item.id,
+        title: item.title,
+        body: item.body,
+        message: item.body,
+        url: item.url,
+        isRead: item.isRead,
+        createdAt: item.createdAt,
+        entityType: item.entityType,
+        entityId: item.entityId,
+        actorUserId: item.actorUserId,
+        recipientUserId: item.recipientUserId
+      }));
+
+      if (page === 1) {
+        setNotifications(mappedNotifications);
+      } else {
+        setNotifications(prev => [...prev, ...mappedNotifications]);
+      }
+
+      setHasMore(response.hasMore);
+      setCurrentPage(page);
+    } catch (error) {
+      console.error('Failed to load notifications:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const loadMore = useCallback(async () => {
+    if (!isLoading && hasMore) {
+      await loadNotifications(currentPage + 1);
+    }
+  }, [isLoading, hasMore, currentPage, loadNotifications]);
+
+  useEffect(() => {
     if (!isConnected) {
       return;
     }
 
-    const unsubscribeCreated = listen('RequestCreated', (data: WorkflowRequest) => {
+    const unsubscribeNotificationCreated = listen('NotificationCreated', (data: NotificationDTO) => {
       const notification: Notification = {
-        id: `notif-${Date.now()}-${Math.random()}`,
-        title: 'New Request Created',
-        message: `${data.bookingType}: ${data.title}`,
-        timestamp: new Date(),
-        type: 'request_created',
-        read: false,
-        requestId: data.id,
+        id: data.id,
+        title: data.title,
+        body: data.body,
+        message: data.body,
+        url: data.url,
+        isRead: data.isRead,
+        createdAt: data.createdAt,
+        entityType: data.entityType,
+        entityId: data.entityId,
+        actorUserId: data.actorUserId,
+        recipientUserId: data.recipientUserId
       };
 
       setNotifications((prev) => [notification, ...prev]);
+      setUnreadCount(prev => prev + 1);
+      showToast(`📬 ${data.title}`, 'info');
+    });
+
+    const unsubscribeCreated = listen('RequestCreated', (data: WorkflowRequest) => {
       showToast(`📡 New booking request received: ${data.title}`, 'info');
     });
 
     const unsubscribeUpdated = listen('RequestUpdated', (data: WorkflowRequest) => {
-      const notification: Notification = {
-        id: `notif-${Date.now()}-${Math.random()}`,
-        title: 'Request Acknowledged',
-        message: `${data.bookingType}: ${data.title} - Request Acknowledged`,
-        timestamp: new Date(),
-        type: 'request_updated',
-        read: false,
-        requestId: data.id,
-      };
-
-      setNotifications((prev) => [notification, ...prev]);
       showToast(`✅ Request updated: ${data.title}`, 'success');
     });
 
-    // Completed
     const unsubscribeCompleted = listen('RequestCompleted', (data: WorkflowRequest) => {
-      const notification: Notification = {
-        id: `notif-${Date.now()}-${Math.random()}`,
-        title: 'Request Completed',
-        message: `${data.bookingType}: ${data.title}`,
-        timestamp: new Date(),
-        type: 'request_completed',
-        read: false,
-        requestId: data.id,
-      };
-
-      setNotifications((prev) => [notification, ...prev]);
       showToast(`✅ Request marked as completed: ${data.title}`, 'success');
     });
 
-    // Not Done
     const unsubscribeNotDone = listen('RequestNotDone', (data: WorkflowRequest) => {
-      const notification: Notification = {
-        id: `notif-${Date.now()}-${Math.random()}`,
-        title: 'Request Not Done',
-        message: `${data.bookingType}: ${data.title} - Reason: ${data.comment || 'No reason provided'}`,
-        timestamp: new Date(),
-        type: 'request_updated',
-        read: false,
-        requestId: data.id,
-      };
-
-      setNotifications((prev) => [notification, ...prev]);
       showToast(`⚠️ Request marked as NOT DONE: ${data.title}`, 'error');
     });
 
     const unsubscribeResourcesAssigned = listen('ResourcesAssigned', (data: WorkflowRequest) => {
-      const notification: Notification = {
-        id: `notif-${Date.now()}-${Math.random()}`,
-        title: 'Resources Assigned',
-        message: `${data.bookingType}: ${data.title} is now ready for Ingest`,
-        timestamp: new Date(),
-        type: 'request_updated', // or add a new type like 'resources_assigned'
-        read: false,
-        requestId: data.id,
-      };
-    
-      setNotifications((prev) => [notification, ...prev]);
       showToast(`🎬 Resources assigned: ${data.title}`, 'info');
     });
 
-    // CallSheet Created
     const unsubscribeCallSheetCreated = listen('CallSheetCreated', (data: any) => {
-      const notification: Notification = {
-        id: `notif-${Date.now()}-${Math.random()}`,
-        title: 'New Call Sheet Created',
-        message: `${data.department}: ${data.title}`,
-        timestamp: new Date(),
-        type: 'callsheet_created',
-        read: false,
-        callSheetId: data.id,
-      };
-
-      setNotifications((prev) => [notification, ...prev]);
       showToast(`📋 New call sheet created: ${data.title}`, 'info');
     });
 
-    // CallSheet Updated by Technical Store
     const unsubscribeCallSheetUpdated = listen('CallSheetUpdatedByTechnicalStore', (data: any) => {
-      const notification: Notification = {
-        id: `notif-${Date.now()}-${Math.random()}`,
-        title: 'Call Sheet Updated',
-        message: `${data.department}: ${data.title} - Driver assigned by Technical Store`,
-        timestamp: new Date(),
-        type: 'callsheet_updated',
-        read: false,
-        callSheetId: data.id,
-      };
-
-      setNotifications((prev) => [notification, ...prev]);
       showToast(`🚗 Driver assigned: ${data.title}`, 'success');
     });
 
     return () => {
+      unsubscribeNotificationCreated();
       unsubscribeCreated();
       unsubscribeUpdated();
       unsubscribeCompleted();
@@ -156,35 +196,56 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     };
   }, [isConnected, listen, showToast]);
 
-  const markAsRead = useCallback((id: string) => {
-    setNotifications((prev) =>
-      prev.map((notif) => (notif.id === id ? { ...notif, read: true } : notif))
-    );
-  }, []);
+  const markAsRead = useCallback(async (id: number) => {
+    try {
+      setNotifications((prev) =>
+        prev.map((notif) => (notif.id === id ? { ...notif, isRead: true } : notif))
+      );
 
-  const markAllAsRead = useCallback(() => {
-    setNotifications((prev) => prev.map((notif) => ({ ...notif, read: true })));
-  }, []);
+      const wasUnread = notifications.find(n => n.id === id && !n.isRead);
+      if (wasUnread) {
+        setUnreadCount(prev => Math.max(0, prev - 1));
+      }
 
-  const clearNotification = useCallback((id: string) => {
-    setNotifications((prev) => prev.filter((notif) => notif.id !== id));
-  }, []);
+      await notificationsApi.markNotificationRead(id);
+    } catch (error) {
+      console.error('Failed to mark notification as read:', error);
+      setNotifications((prev) =>
+        prev.map((notif) => (notif.id === id ? { ...notif, isRead: false } : notif))
+      );
+      if (notifications.find(n => n.id === id && !n.isRead)) {
+        setUnreadCount(prev => prev + 1);
+      }
+    }
+  }, [notifications]);
 
-  const clearAllNotifications = useCallback(() => {
-    setNotifications([]);
-  }, []);
+  const markAllAsRead = useCallback(async () => {
+    try {
+      const previousNotifications = [...notifications];
+      const previousUnreadCount = unreadCount;
 
-  const unreadCount = notifications.filter((n) => !n.read).length;
+      setNotifications((prev) => prev.map((notif) => ({ ...notif, isRead: true })));
+      setUnreadCount(0);
+
+      await notificationsApi.markAllRead();
+    } catch (error) {
+      console.error('Failed to mark all notifications as read:', error);
+      setNotifications(previousNotifications);
+      setUnreadCount(previousUnreadCount);
+    }
+  }, [notifications, unreadCount]);
 
   return (
     <NotificationContext.Provider
       value={{
         notifications,
         unreadCount,
+        isLoading,
+        hasMore,
         markAsRead,
         markAllAsRead,
-        clearNotification,
-        clearAllNotifications,
+        loadNotifications,
+        loadMore,
       }}
     >
       {children}
