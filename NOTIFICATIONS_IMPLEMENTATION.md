@@ -58,8 +58,33 @@ const [hasMore, setHasMore] = useState<boolean>(false);
 const [currentPage, setCurrentPage] = useState<number>(1);
 ```
 
+#### Authentication Guard
+**CRITICAL:** Notifications only load when user is authenticated:
+```typescript
+const { isAuthenticated, isLoading: authLoading } = useAuth();
+
+useEffect(() => {
+  if (authLoading) return;               // Wait for auth check
+
+  if (!isAuthenticated) {                // Clear notifications on logout
+    setNotifications([]);
+    setUnreadCount(0);
+    return;
+  }
+
+  // Load notifications only for authenticated users
+  fetchUnreadCount();
+  loadInitialNotifications();
+}, [authLoading, isAuthenticated]);
+```
+
+This prevents:
+- API calls on the login page (which would fail with 401)
+- Infinite redirect loops
+- Unnecessary network requests for unauthenticated users
+
 #### Initial Load
-On mount, fetches:
+On mount (for authenticated users), fetches:
 1. Unread count from API
 2. First page of notifications (20 items)
 
@@ -315,6 +340,43 @@ src/
 
 ---
 
+## Bug Fixes
+
+### Issue: Infinite Refresh Loop on Login Page
+**Problem:** After initial implementation, app would continuously refresh on the login page.
+
+**Root Cause:**
+- NotificationContext attempted to load notifications on every page, including login
+- When unauthenticated, API calls failed with 401
+- apiClient interceptor redirected to `/login`
+- This triggered a page reload, creating an infinite loop
+
+**Solution:**
+Added authentication guard to NotificationContext:
+```typescript
+const { isAuthenticated, isLoading: authLoading } = useAuth();
+
+useEffect(() => {
+  if (authLoading) return;              // Wait for auth to finish loading
+  if (!isAuthenticated) {               // Skip API calls if not logged in
+    setNotifications([]);
+    setUnreadCount(0);
+    return;
+  }
+  // Only fetch notifications for authenticated users
+  fetchUnreadCount();
+  loadInitialNotifications();
+}, [authLoading, isAuthenticated]);
+```
+
+**Result:**
+- ✅ No API calls on login page
+- ✅ No infinite redirect loops
+- ✅ Notifications clear on logout
+- ✅ Notifications load immediately after login
+
+---
+
 ## Summary
 
 Successfully implemented a production-ready notification system that:
@@ -326,3 +388,5 @@ Successfully implemented a production-ready notification system that:
 - ✅ Maintains backward compatibility with existing SignalR events
 - ✅ Follows best practices for error handling and loading states
 - ✅ Uses consistent styling with existing design system
+- ✅ Includes authentication guard to prevent unauthorized API calls
+- ✅ Handles login/logout state transitions gracefully

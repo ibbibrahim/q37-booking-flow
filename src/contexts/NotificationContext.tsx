@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { useSignalR } from './SignalRContext';
 import { useToast } from './ToastContext';
+import { useAuth } from './AuthContext';
 import type { WorkflowRequest } from '../booking_workflow/types/workflow';
 import { notificationsApi, type NotificationDTO } from '../api/notifications';
 
@@ -39,8 +40,21 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [currentPage, setCurrentPage] = useState<number>(1);
   const { listen, isConnected } = useSignalR();
   const { showToast } = useToast();
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
 
   useEffect(() => {
+    if (authLoading) {
+      return;
+    }
+
+    if (!isAuthenticated) {
+      setNotifications([]);
+      setUnreadCount(0);
+      setHasMore(false);
+      setCurrentPage(1);
+      return;
+    }
+
     const fetchUnreadCount = async () => {
       try {
         const count = await notificationsApi.fetchUnreadCount();
@@ -85,7 +99,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
     fetchUnreadCount();
     loadInitialNotifications();
-  }, []);
+  }, [authLoading, isAuthenticated]);
 
   const loadNotifications = useCallback(async (page: number = 1) => {
     setIsLoading(true);
