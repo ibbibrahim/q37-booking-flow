@@ -71,6 +71,7 @@ export const NotificationDropdown: React.FC = () => {
   const handleNotificationClick = async (notification: typeof notifications[0]) => {
     await markAsRead(notification.id);
 
+    console.log('Notification clicked:', notification.url);
     if (notification.url) {
       navigate(notification.url);
       setIsOpen(false);

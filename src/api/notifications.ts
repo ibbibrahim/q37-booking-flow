@@ -29,7 +29,7 @@ export interface FetchNotificationsParams {
 
 export const notificationsApi = {
   fetchNotifications: async (params: FetchNotificationsParams = {}): Promise<NotificationListResponse> => {
-    const { unreadOnly = false, page = 1, pageSize = 20 } = params;
+    const { unreadOnly = false, page = 1, pageSize = 2 } = params;
     const response = await apiClient.get<NotificationListResponse>('/api/notifications', {
       params: { unreadOnly, page, pageSize }
     });

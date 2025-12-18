@@ -70,7 +70,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         const response = await notificationsApi.fetchNotifications({
           unreadOnly: false,
           page: 1,
-          pageSize: 20
+          pageSize: 2
         });
 
         const mappedNotifications: Notification[] = response.items.map(item => ({
@@ -107,7 +107,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       const response = await notificationsApi.fetchNotifications({
         unreadOnly: false,
         page,
-        pageSize: 20
+        pageSize: 2
       });
 
       const mappedNotifications: Notification[] = response.items.map(item => ({

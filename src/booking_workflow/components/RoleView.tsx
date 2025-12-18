@@ -140,7 +140,7 @@ export const RoleView: React.FC<RoleViewProps> = ({ role }) => {
     try {
       const updatedRequest = await mockApi.updateRequest(id, { ...data, status });
       await loadRequests();
-      navigate(`/${role.toLowerCase()}/request/${id}`);
+      navigate(`/${role.toLowerCase()}/requests/${id}`);
     } catch (error) {
       console.error('Failed to update request:', error);
     }
@@ -157,7 +157,7 @@ export const RoleView: React.FC<RoleViewProps> = ({ role }) => {
     return (
       <WorkflowForm
         onSubmit={isEditMode ? handleUpdateRequest : handleCreateRequest}
-        onCancel={() => navigate(isEditMode && id ? `/${role.toLowerCase()}/request/${id}` : `/${role.toLowerCase()}`)}
+        onCancel={() => navigate(isEditMode && id ? `/${role.toLowerCase()}/requests/${id}` : `/${role.toLowerCase()}`)}
         initialData={isEditMode ? editRequest : undefined}
         isEditMode={isEditMode}
       />

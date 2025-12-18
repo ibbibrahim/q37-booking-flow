@@ -279,7 +279,7 @@ export const RequestList: React.FC<RequestListProps> = ({
                       key={request.id}
                       request={request}
                       isNew={userRole === 'NOC' && request.__isNew}
-                      onClick={() => navigate(`/${userRole.toLowerCase()}/request/${request.id}`)}
+                      onClick={() => navigate(`/${userRole.toLowerCase()}/requests/${request.id}`)}
                     />
                   ))}
                 </div>
@@ -320,7 +320,7 @@ export const RequestList: React.FC<RequestListProps> = ({
                             key={request.id}
                             className="border-b border-border hover:bg-muted/50 cursor-pointer transition-colors"
                             onClick={() =>
-                              navigate(`/${userRole.toLowerCase()}/request/${request.id}`)
+                              navigate(`/${userRole.toLowerCase()}/requests/${request.id}`)
                             }
                           >
                             <td className="py-3 px-4 text-sm text-muted-foreground font-mono">
@@ -359,7 +359,7 @@ export const RequestList: React.FC<RequestListProps> = ({
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    navigate(`/${userRole.toLowerCase()}/request/${request.id}`);
+                                    navigate(`/${userRole.toLowerCase()}/requests/${request.id}`);
                                   }}
                                   className="p-1.5 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-card-foreground"
                                   title="Edit"

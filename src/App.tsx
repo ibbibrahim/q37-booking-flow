@@ -98,7 +98,7 @@ function App() {
           }
         />
         <Route
-          path="booking/request/:id"
+          path="booking/requests/:id"
           element={
             <ProtectedRoute allowedRoles={['Booking', 'Admin']}>
               <RequestDetail />
@@ -116,7 +116,7 @@ function App() {
           }
         />
         <Route
-          path="noc/request/:id"
+          path="noc/requests/:id"
           element={
             <ProtectedRoute allowedRoles={['NOC', 'Admin']}>
               <RequestDetail />
@@ -134,7 +134,7 @@ function App() {
           }
         />
         <Route
-          path="ingest/request/:id"
+          path="ingest/requests/:id"
           element={
             <ProtectedRoute allowedRoles={['Ingest', 'Admin']}>
               <RequestDetail />
