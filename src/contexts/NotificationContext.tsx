@@ -70,7 +70,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         const response = await notificationsApi.fetchNotifications({
           unreadOnly: false,
           page: 1,
-          pageSize: 2
+          pageSize: 4
         });
 
         const mappedNotifications: Notification[] = response.items.map(item => ({
@@ -107,7 +107,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       const response = await notificationsApi.fetchNotifications({
         unreadOnly: false,
         page,
-        pageSize: 2
+        pageSize: 4
       });
 
       const mappedNotifications: Notification[] = response.items.map(item => ({
@@ -167,35 +167,35 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
       setNotifications((prev) => [notification, ...prev]);
       setUnreadCount(prev => prev + 1);
-      showToast(`📬 ${data.title}`, 'info');
+      //showToast(`📬 ${data.title}`, 'info');
     });
 
     const unsubscribeCreated = listen('RequestCreated', (data: WorkflowRequest) => {
-      showToast(`📡 New booking request received: ${data.title}`, 'info');
+      //showToast(`📡 New booking request received: ${data.title}`, 'info');
     });
 
     const unsubscribeUpdated = listen('RequestUpdated', (data: WorkflowRequest) => {
-      showToast(`✅ Request updated: ${data.title}`, 'success');
+      //showToast(`✅ Request updated: ${data.title}`, 'success');
     });
 
     const unsubscribeCompleted = listen('RequestCompleted', (data: WorkflowRequest) => {
-      showToast(`✅ Request marked as completed: ${data.title}`, 'success');
+      //showToast(`✅ Request marked as completed: ${data.title}`, 'success');
     });
 
     const unsubscribeNotDone = listen('RequestNotDone', (data: WorkflowRequest) => {
-      showToast(`⚠️ Request marked as NOT DONE: ${data.title}`, 'error');
+      //showToast(`⚠️ Request marked as NOT DONE: ${data.title}`, 'error');
     });
 
     const unsubscribeResourcesAssigned = listen('ResourcesAssigned', (data: WorkflowRequest) => {
-      showToast(`🎬 Resources assigned: ${data.title}`, 'info');
+      //showToast(`🎬 Resources assigned: ${data.title}`, 'info');
     });
 
     const unsubscribeCallSheetCreated = listen('CallSheetCreated', (data: any) => {
-      showToast(`📋 New call sheet created: ${data.title}`, 'info');
+      //showToast(`📋 New call sheet created: ${data.title}`, 'info');
     });
 
     const unsubscribeCallSheetUpdated = listen('CallSheetUpdatedByTechnicalStore', (data: any) => {
-      showToast(`🚗 Driver assigned: ${data.title}`, 'success');
+      //showToast(`🚗 Driver assigned: ${data.title}`, 'success');
     });
 
     return () => {

@@ -1032,7 +1032,7 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
             <CardTitle>Additional Information</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <Label htmlFor="resourcesNeeded">Resources Needed (Booking)</Label>
                 <Input
@@ -1041,10 +1041,10 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
                   onChange={(e) => handleChange("resourcesNeeded", e.target.value)}
                 />
               </div>
-            </div>
+            </div> */}
 
             <div className="space-y-2">
-              <Label htmlFor="notes">Notes</Label>
+              <Label htmlFor="notes">Comments</Label>
               <Textarea
                 id="notes"
                 value={formData.notes}
@@ -1055,7 +1055,7 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
           </CardContent>
         </Card>
 
-        <div className="flex justify-end gap-3 pt-4">
+        <div className="flex justify-end gap-3 pt-4 pb-0">
           <Button type="button" variant="outline" onClick={onCancel}>
             Cancel
           </Button>
