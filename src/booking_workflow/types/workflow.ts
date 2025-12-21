@@ -1,3 +1,5 @@
+import { User } from "@/contexts/AuthContext";
+
 export type BookingType = 'Incoming Feed' | 'Invite Guest for News' | 'Invite Guest for Program' | 'Download and Ingest' | 'Camera Card and Ingest';
 
 export type WorkflowStatus =
@@ -66,6 +68,7 @@ export interface BaseWorkflowRequest {
   notes?: string;
   status: WorkflowStatus;
   createdBy: string;
+  createdByUser?: User | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -113,6 +116,7 @@ export interface WorkflowTransition {
   fromStatus: WorkflowStatus;
   toStatus: WorkflowStatus;
   changedBy: string;
+  changedByUser?: User | null;
   changedAt: string;
   comment: string;
 }

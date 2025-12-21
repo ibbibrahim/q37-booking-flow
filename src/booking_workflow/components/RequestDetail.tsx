@@ -397,7 +397,9 @@ export const RequestDetail: React.FC = () => {
                 <div>
                   <div className="text-xs font-medium text-muted-foreground mb-1">Created by</div>
                   <div className="text-sm font-medium text-card-foreground">
-                    {request.createdBy}
+                    {request.createdByUser
+                        ? `${request.createdByUser.displayName}${request.createdByUser.extensionNumber ? ` (Ext ${request.createdByUser.extensionNumber})` : ''}`
+                        : request.createdBy}
                   </div>
                 </div>
                 <div>
@@ -491,7 +493,10 @@ export const RequestDetail: React.FC = () => {
                               {trans.comment}
                             </div>
                             <div className="mt-1 text-xs text-muted-foreground">
-                              by {trans.changedBy || 'System'}
+                            by {trans.changedByUser
+                                ? `${trans.changedByUser.displayName ?? trans.changedByUser.username}${trans.changedByUser.extensionNumber ? ` (Ext ${trans.changedByUser.extensionNumber})` : ''}`
+                                : (trans.changedBy || 'System')}
+
                             </div>
                           </div>
                         </div>

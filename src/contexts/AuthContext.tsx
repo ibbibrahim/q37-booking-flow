@@ -10,8 +10,18 @@ interface AuthContextType {
   isLoading: boolean;
 }
 
-interface User {
+// interface User {
+//   username: string;
+//   roles: string[];
+// }
+
+export interface User {
+  id: number;
   username: string;
+  displayName?: string | null;
+  email?: string | null;
+  extensionNumber?: string | null;
+  isActive?: boolean;
   roles: string[];
 }
 
