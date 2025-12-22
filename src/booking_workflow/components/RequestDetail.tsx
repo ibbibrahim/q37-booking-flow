@@ -4,10 +4,13 @@ import { ArrowLeft, Clock, User, FileText, CheckCircle2, AlertCircle, Edit, Copy
 import type {
   WorkflowRequest,
   UserRole,
+  DownloadLinkDto,
 } from '../types/workflow';
 import { mockApi } from '../services/mockApi';
 import { NOCActions } from './NOCActions';
 import { IngestActions } from './IngestActions';
+import { UpdateDownloadLinkModal } from './UpdateDownloadLinkModal';
+import { BookingApi } from '../services/booking';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -30,6 +33,8 @@ export const RequestDetail: React.FC = () => {
 
   const [request, setRequest] = useState<WorkflowRequest | null>(null);
   const [loading, setLoading] = useState(true);
+  const [selectedLink, setSelectedLink] = useState<DownloadLinkDto | null>(null);
+  const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
 
   // Detect current user role from path
   const path = location.pathname.split('/')[1];
@@ -93,6 +98,29 @@ export const RequestDetail: React.FC = () => {
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
     showToast('URL copied to clipboard', 'success');
+  };
+
+  const handleOpenUpdateModal = (link: DownloadLinkDto) => {
+    setSelectedLink(link);
+    setIsUpdateModalOpen(true);
+  };
+
+  const handleUpdateDownloadLink = async (linkId: number, ingestStatus: string, ingestNotes: string) => {
+    if (!request) return;
+
+    try {
+      const updatedRequest = await BookingApi.updateDownloadLink(
+        request.id,
+        linkId,
+        { ingestStatus, ingestNotes }
+      );
+      setRequest(updatedRequest);
+      showToast('Download link updated successfully', 'success');
+    } catch (error) {
+      console.error('Failed to update download link:', error);
+      showToast('Failed to update download link', 'error');
+      throw error;
+    }
   };
 
   if (loading) {
@@ -304,40 +332,98 @@ export const RequestDetail: React.FC = () => {
                         <Table>
                           <TableHeader>
                             <TableRow>
-                              <TableHead className="w-[150px]">Source</TableHead>
+                              <TableHead className="w-[120px]">Source</TableHead>
                               <TableHead>URL</TableHead>
-                              <TableHead className="w-[100px] text-right">Actions</TableHead>
+                              <TableHead className="w-[120px]">Status</TableHead>
+                              <TableHead className="w-[150px]">Notes</TableHead>
+                              <TableHead className="w-[100px]">Updated By</TableHead>
+                              <TableHead className="w-[140px]">Updated At</TableHead>
+                              <TableHead className="w-[120px] text-right">Actions</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {request.downloadLinks.map((link, index) => (
-                              <TableRow key={link.id || index}>
-                                <TableCell>
-                                  <Badge variant="secondary">{link.source}</Badge>
-                                </TableCell>
-                                <TableCell>
-                                  <a
-                                    href={link.url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-blue-600 hover:underline flex items-center gap-2 break-all"
-                                  >
-                                    {link.url}
-                                    <ExternalLink className="h-3 w-3 flex-shrink-0" />
-                                  </a>
-                                </TableCell>
-                                <TableCell className="text-right">
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => copyToClipboard(link.url)}
-                                    className="h-8 px-2"
-                                  >
-                                    <Copy className="h-4 w-4" />
-                                  </Button>
-                                </TableCell>
-                              </TableRow>
-                            ))}
+                            {request.downloadLinks.map((link, index) => {
+                              const getStatusColor = (status: string) => {
+                                switch (status) {
+                                  case 'Done':
+                                    return 'bg-green-100 text-green-700 border-green-200';
+                                  case 'In Progress':
+                                    return 'bg-blue-100 text-blue-700 border-blue-200';
+                                  case 'Failed':
+                                    return 'bg-red-100 text-red-700 border-red-200';
+                                  default:
+                                    return 'bg-gray-100 text-gray-700 border-gray-200';
+                                }
+                              };
+
+                              return (
+                                <TableRow key={link.id || index}>
+                                  <TableCell>
+                                    <Badge variant="secondary">{link.source}</Badge>
+                                  </TableCell>
+                                  <TableCell>
+                                    <a
+                                      href={link.url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-blue-600 hover:underline flex items-center gap-2 break-all"
+                                    >
+                                      <span className="truncate max-w-[200px]">{link.url}</span>
+                                      <ExternalLink className="h-3 w-3 flex-shrink-0" />
+                                    </a>
+                                  </TableCell>
+                                  <TableCell>
+                                    <Badge variant="outline" className={getStatusColor(link.ingestStatus)}>
+                                      {link.ingestStatus}
+                                    </Badge>
+                                  </TableCell>
+                                  <TableCell>
+                                    <span className="text-sm text-muted-foreground truncate block max-w-[150px]" title={link.ingestNotes || 'No notes'}>
+                                      {link.ingestNotes || '-'}
+                                    </span>
+                                  </TableCell>
+                                  <TableCell>
+                                    <span className="text-sm text-muted-foreground">
+                                      {link.updatedBy ? `#${link.updatedBy}` : '-'}
+                                    </span>
+                                  </TableCell>
+                                  <TableCell>
+                                    <span className="text-sm text-muted-foreground">
+                                      {link.updatedAt ? new Date(link.updatedAt).toLocaleString('en-US', {
+                                        month: 'short',
+                                        day: 'numeric',
+                                        hour: '2-digit',
+                                        minute: '2-digit'
+                                      }) : '-'}
+                                    </span>
+                                  </TableCell>
+                                  <TableCell className="text-right">
+                                    <div className="flex items-center justify-end gap-1">
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => copyToClipboard(link.url)}
+                                        className="h-8 px-2"
+                                        title="Copy URL"
+                                      >
+                                        <Copy className="h-4 w-4" />
+                                      </Button>
+                                      {userRole === 'Ingest' && (
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => handleOpenUpdateModal(link)}
+                                          className="h-8 px-2"
+                                          title="Update Status"
+                                        >
+                                          <Edit className="h-4 w-4" />
+                                        </Button>
+                                      )}
+                                    </div>
+                                  </TableCell>
+                                </TableRow>
+                              );
+                            })}
                           </TableBody>
                         </Table>
                       </div>
@@ -610,6 +696,19 @@ export const RequestDetail: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Update Download Link Modal */}
+      {selectedLink && (
+        <UpdateDownloadLinkModal
+          link={selectedLink}
+          isOpen={isUpdateModalOpen}
+          onClose={() => {
+            setIsUpdateModalOpen(false);
+            setSelectedLink(null);
+          }}
+          onSave={handleUpdateDownloadLink}
+        />
+      )}
     </div>
   );
 };
