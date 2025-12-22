@@ -6,7 +6,7 @@ import type {
   UserRole,
   DownloadLinkDto,
 } from '../types/workflow';
-import { mockApi } from '../services/mockApi';
+import { mockApi } from '../services/bookingApi';
 import { NOCActions } from './NOCActions';
 import { IngestActions } from './IngestActions';
 import { UpdateDownloadLinkModal } from './UpdateDownloadLinkModal';
