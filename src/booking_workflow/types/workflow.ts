@@ -88,6 +88,11 @@ export interface NocResourceDto {
   assignedAt: string;
 }
 
+export interface UpdateDownloadLinkDto {
+  ingestStatus?: string;
+  ingestNotes?: string;
+}
+
 export interface WorkflowRequest {
   id: string;
   bookingType: BookingType;

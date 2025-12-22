@@ -109,7 +109,7 @@ export const RequestDetail: React.FC = () => {
     if (!request) return;
 
     try {
-      const updatedRequest = await BookingApi.updateDownloadLink(
+      const updatedRequest = await mockApi.updateDownloadLink(
         request.id,
         linkId,
         { ingestStatus, ingestNotes }
