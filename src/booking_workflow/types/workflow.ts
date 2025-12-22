@@ -52,7 +52,43 @@ export type ReturnPath = 'Enabled' | 'Disabled';
 export type KeyFill = 'None' | 'Key' | 'Fill';
 export type YesNo = 'Yes' | 'No';
 
-export interface BaseWorkflowRequest {
+export interface DownloadLinkDto {
+  id: number;
+  requestId: number;
+  source: string;
+  url: string;
+  ingestStatus: string;
+  ingestNotes?: string;
+  updatedBy?: number;
+  updatedAt: string;
+}
+
+export interface CameraCardDetailDto {
+  id: number;
+  requestId: number;
+  videoQuantity: number;
+  audioQuantity: number;
+}
+
+export interface GuestDetailDto {
+  id: number;
+  requestId: number;
+  guestName: string;
+  guestContact: string;
+}
+
+export interface NocResourceDto {
+  id: number;
+  requestId: number;
+  sourceType: string;
+  source: string;
+  resolution?: string;
+  resourceType: string;
+  assignedBy?: number;
+  assignedAt: string;
+}
+
+export interface WorkflowRequest {
   id: string;
   bookingType: BookingType;
   title: string;
@@ -63,52 +99,27 @@ export interface BaseWorkflowRequest {
   feedEndTime?: string;
   language: Language;
   priority: Priority;
-  nocRequired: YesNo;
+  status: WorkflowStatus;
   resourcesNeeded?: string;
   notes?: string;
-  status: WorkflowStatus;
+  nocAcknowledged: boolean;
+  nocClarification?: string;
+  nocForwardToIngest: YesNo;
+  ingestStatus?: string;
+  ingestNotes?: string;
+  ingestNotDoneReason?: string;
+  ingestFolderPath?: string;
+  ingestAcknowledged: boolean;
   createdBy: string;
   createdByUser?: User | null;
   createdAt: string;
   updatedAt: string;
+  transitions?: WorkflowTransition[];
+  downloadLinks?: DownloadLinkDto[];
+  cameraCardDetail?: CameraCardDetailDto;
+  guestDetail?: GuestDetailDto;
+  nocResources?: NocResourceDto[];
 }
-
-export interface IncomingFeedRequest extends BaseWorkflowRequest {
-  bookingType: 'Incoming Feed';
-  sourceType?: SourceType;
-  qmcSource?: QMCSource;
-  vmixInputNumber?: string;
-  resourceAssignmentType?: ResourceAssignmentType;
-  resolution?: Resolution;
-  returnPath?: ReturnPath;
-  keyFill?: KeyFill;
-}
-
-export interface InviteGuestNewsRequest extends BaseWorkflowRequest {
-  bookingType: 'Invite Guest for News';
-  guestName: string;
-  guestContact: string;
-  inewsRundownId: string;
-  storySlug: string;
-  rundownPosition: string;
-}
-
-export interface InviteGuestProgramRequest extends BaseWorkflowRequest {
-  bookingType: 'Invite Guest for Program';
-  guestName: string;
-  guestContact: string;
-  inewsRundownId: string;
-  storySlug: string;
-  rundownPosition: string;
-}
-
-export interface DownloadIngestRequest extends BaseWorkflowRequest {
-  bookingType: 'Download and Ingest';
-  downloadSource: 'YouTube' | 'WeTransfer' | 'FTP' | 'Other';
-  downloadLink: string;
-}
-
-export type WorkflowRequest = IncomingFeedRequest | InviteGuestNewsRequest | InviteGuestProgramRequest | DownloadIngestRequest;
 
 export interface WorkflowTransition {
   id: string;
@@ -128,7 +139,6 @@ export interface ResourceAssignment {
   assignedBy?: string;
   assignedAt?: string;
 }
-
 
 export const SOURCE_MAP: Record<string, string[]> = {
   "Earth Stations": [

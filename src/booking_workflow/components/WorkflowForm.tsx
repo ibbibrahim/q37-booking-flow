@@ -57,31 +57,33 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
   const [bookingMode, setBookingMode] = useState<BookingMode>('single');
 
   const [downloadLinks, setDownloadLinks] = useState<DownloadLink[]>(() => {
-    if (initialData && initialData.bookingType === "Download and Ingest") {
-      const typeSpecific = initialData.typeSpecificData ? JSON.parse(initialData.typeSpecificData) : {};
-      if (typeSpecific.downloadLinks && Array.isArray(typeSpecific.downloadLinks)) {
-        return typeSpecific.downloadLinks;
-      } else if (typeSpecific.downloadSource && typeSpecific.downloadLink) {
-        return [{ source: typeSpecific.downloadSource, url: typeSpecific.downloadLink }];
-      }
+    if (initialData && initialData.bookingType === "Download and Ingest" && initialData.downloadLinks) {
+      return initialData.downloadLinks.map(link => ({
+        source: link.source,
+        url: link.url
+      }));
     }
     return [{ source: '', url: '' }];
   });
 
   const [formData, setFormData] = useState<Record<string, string>>(() => {
     if (initialData) {
-      const typeSpecific = initialData.typeSpecificData ? JSON.parse(initialData.typeSpecificData) : {};
-
       let cameraCardVideoQty = "";
       let cameraCardAudioQty = "";
-      if (initialData.bookingType === "Camera Card and Ingest") {
-        if (typeSpecific.cameraCardVideoQuantity !== undefined) {
-          cameraCardVideoQty = String(typeSpecific.cameraCardVideoQuantity);
-          cameraCardAudioQty = String(typeSpecific.cameraCardAudioQuantity || 0);
-        } else if (typeSpecific.cameraCardNumber !== undefined) {
-          cameraCardVideoQty = String(typeSpecific.cameraCardNumber);
-          cameraCardAudioQty = "0";
-        }
+      let guestName = "";
+      let guestContact = "";
+      let inewsRundownId = "";
+      let storySlug = "";
+      let rundownPosition = "";
+
+      if (initialData.bookingType === "Camera Card and Ingest" && initialData.cameraCardDetail) {
+        cameraCardVideoQty = String(initialData.cameraCardDetail.videoQuantity);
+        cameraCardAudioQty = String(initialData.cameraCardDetail.audioQuantity);
+      }
+
+      if ((initialData.bookingType === "Invite Guest for News" || initialData.bookingType === "Invite Guest for Program") && initialData.guestDetail) {
+        guestName = initialData.guestDetail.guestName;
+        guestContact = initialData.guestDetail.guestContact;
       }
 
       return {
@@ -104,7 +106,11 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
         studio: initialData.studio || "",
         cameraCardVideoQuantity: cameraCardVideoQty,
         cameraCardAudioQuantity: cameraCardAudioQty,
-        ...typeSpecific
+        guestName,
+        guestContact,
+        inewsRundownId,
+        storySlug,
+        rundownPosition,
       };
     }
     return {
@@ -126,6 +132,11 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
       notes: "",
       cameraCardVideoQuantity: "",
       cameraCardAudioQuantity: "",
+      guestName: "",
+      guestContact: "",
+      inewsRundownId: "",
+      storySlug: "",
+      rundownPosition: "",
     };
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -406,60 +417,44 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
   };
 
   const executeSubmit = (status: WorkflowStatus) => {
-    let typeSpecific: Record<string, any> = {};
+    const basePayload: any = {
+      ...formData,
+    };
 
     switch (formData.bookingType) {
       case "Invite Guest for News":
       case "Invite Guest for Program":
-        typeSpecific = {
+        basePayload.guestDetail = {
           guestName: formData.guestName,
           guestContact: formData.guestContact,
-          inewsRundownId: formData.inewsRundownId,
-          storySlug: formData.storySlug,
-          rundownPosition: formData.rundownPosition,
         };
         break;
 
       case "Download and Ingest":
-        typeSpecific = {
-          downloadLinks: downloadLinks.map(link => ({
-            source: link.source,
-            url: link.url
-          }))
-        };
+        basePayload.downloadLinks = downloadLinks.map(link => ({
+          source: link.source,
+          url: link.url,
+          ingestStatus: 'Pending'
+        }));
         break;
 
       case "Camera Card and Ingest":
-        typeSpecific = {
-          cameraCardVideoQuantity: Number(formData.cameraCardVideoQuantity),
-          cameraCardAudioQuantity: Number(formData.cameraCardAudioQuantity),
+        basePayload.cameraCardDetail = {
+          videoQuantity: Number(formData.cameraCardVideoQuantity),
+          audioQuantity: Number(formData.cameraCardAudioQuantity),
         };
-        break;
-
-      default:
-        typeSpecific = {};
         break;
     }
 
     if (bookingMode === 'single') {
-      const rawPayload = {
-        ...formData,
-        typeSpecificData: JSON.stringify(typeSpecific),
-      };
-
-      const payload = normalizePayload(rawPayload);
+      const payload = normalizePayload(basePayload);
       onSubmit(payload as any, status);
     } else {
-      // Bulk submission - submit multiple bookings with proper date/time combinations
       bulkDates.forEach((date, index) => {
-        // Parse the time from airTime (format: HH:mm)
         const [airHours, airMinutes] = formData.airTime.split(':').map(Number);
-
-        // Create air datetime by combining bulk date with template time
         const newAirDateTime = new Date(date);
         newAirDateTime.setHours(airHours, airMinutes, 0, 0);
 
-        // Handle feed times if applicable
         let newFeedStartTime = undefined;
         let newFeedEndTime = undefined;
 
@@ -474,18 +469,15 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
           newFeedEndTime.setHours(endHours, endMinutes, 0, 0);
         }
 
-        const rawPayload = {
-          ...formData,
+        const bulkPayload = {
+          ...basePayload,
           title: generateTitleForDate(date, index),
           airDateTime: newAirDateTime.toISOString(),
           feedStartTime: newFeedStartTime ? newFeedStartTime.toISOString() : formData.feedStartTime,
           feedEndTime: newFeedEndTime ? newFeedEndTime.toISOString() : formData.feedEndTime,
-          typeSpecificData: JSON.stringify(typeSpecific),
         };
 
-        const payload = normalizePayload(rawPayload);
-
-        // Submit each booking individually
+        const payload = normalizePayload(bulkPayload);
         onSubmit(payload as any, status);
       });
     }

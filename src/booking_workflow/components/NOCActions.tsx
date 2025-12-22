@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { CheckCircle2, AlertCircle, Send, Trash2, Plus, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
@@ -109,7 +108,14 @@ export const NOCActions: React.FC<NOCActionsProps> = ({ request, onAction }) => 
     }
 
     onAction('send_to_ingest', {
-      nocAssignedResources: JSON.stringify(assignedResources),
+      nocResources: assignedResources.map(res => ({
+        sourceType: nocData.sourceType,
+        source: res.resourceName,
+        resolution: nocData.resolution,
+        resourceType: res.type,
+        assignedBy: 10017,
+        assignedAt: new Date().toISOString()
+      })),
       changedBy: 10017,
       comment: "Resources assigned by NOC",
       notes: nocData.notes

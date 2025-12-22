@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Clock, User, FileText, CheckCircle2, AlertCircle, Send, Edit, Copy, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Clock, User, FileText, CheckCircle2, AlertCircle, Edit, Copy, ExternalLink } from 'lucide-react';
 import type {
   WorkflowRequest,
-  WorkflowTransition,
-  ResourceAssignment,
   UserRole,
 } from '../types/workflow';
 import { mockApi } from '../services/mockApi';
@@ -175,11 +173,7 @@ export const RequestDetail: React.FC = () => {
   };
 
   const transitions = request.transitions || [];
-  const parsedResources: ResourceAssignment[] = request.nocAssignedResources
-  ? JSON.parse(request.nocAssignedResources)
-  : [];
-  const parsedTypeSpecific =
-  request.typeSpecificData ? JSON.parse(request.typeSpecificData) : null;
+  const nocResources = request.nocResources || [];
 
   return (
     <div className="max-w-6xl mx-auto">
@@ -280,7 +274,9 @@ export const RequestDetail: React.FC = () => {
                   {renderField('Studio', request.studio)}
                 </div>
 
-                {parsedTypeSpecific && (
+                {((request.bookingType === "Invite Guest for News" || request.bookingType === "Invite Guest for Program") && request.guestDetail) ||
+                 (request.bookingType === "Download and Ingest" && request.downloadLinks && request.downloadLinks.length > 0) ||
+                 (request.bookingType === "Camera Card and Ingest" && request.cameraCardDetail) ? (
                   <div className="pt-6 border-t border-border">
                     <h3 className="text-sm font-semibold text-card-foreground mb-4">
                     {request.bookingType === "Invite Guest for News" ||
@@ -296,105 +292,83 @@ export const RequestDetail: React.FC = () => {
                     {request.bookingType === "Invite Guest for News" ||
                     request.bookingType === "Invite Guest for Program" ? (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {renderField("Guest Name", parsedTypeSpecific.guestName)}
-                        {renderField("Guest Contact", parsedTypeSpecific.guestContact)}
-                        {renderField("iNEWS Rundown ID", parsedTypeSpecific.inewsRundownId)}
-                        {renderField("Story Slug", parsedTypeSpecific.storySlug)}
-                        {renderField("Rundown Position", parsedTypeSpecific.rundownPosition)}
+                        {request.guestDetail && (
+                          <>
+                            {renderField("Guest Name", request.guestDetail.guestName)}
+                            {renderField("Guest Contact", request.guestDetail.guestContact)}
+                          </>
+                        )}
                       </div>
-                    ) : request.bookingType === "Download and Ingest" ? (
-                      <>
-                        {(() => {
-                          const downloadLinks = parsedTypeSpecific.downloadLinks ||
-                            (parsedTypeSpecific.downloadSource && parsedTypeSpecific.downloadLink
-                              ? [{ source: parsedTypeSpecific.downloadSource, url: parsedTypeSpecific.downloadLink }]
-                              : []);
-
-                          if (downloadLinks.length === 0) return null;
-
-                          return (
-                            <div className="rounded-md border">
-                              <Table>
-                                <TableHeader>
-                                  <TableRow>
-                                    <TableHead className="w-[150px]">Source</TableHead>
-                                    <TableHead>URL</TableHead>
-                                    <TableHead className="w-[100px] text-right">Actions</TableHead>
-                                  </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                  {downloadLinks.map((link: any, index: number) => (
-                                    <TableRow key={index}>
-                                      <TableCell>
-                                        <Badge variant="secondary">{link.source}</Badge>
-                                      </TableCell>
-                                      <TableCell>
-                                        <a
-                                          href={link.url}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                          className="text-blue-600 hover:underline flex items-center gap-2 break-all"
-                                        >
-                                          {link.url}
-                                          <ExternalLink className="h-3 w-3 flex-shrink-0" />
-                                        </a>
-                                      </TableCell>
-                                      <TableCell className="text-right">
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          onClick={() => copyToClipboard(link.url)}
-                                          className="h-8 px-2"
-                                        >
-                                          <Copy className="h-4 w-4" />
-                                        </Button>
-                                      </TableCell>
-                                    </TableRow>
-                                  ))}
-                                </TableBody>
-                              </Table>
-                            </div>
-                          );
-                        })()}
-                      </>
-                    ) : request.bookingType === "Camera Card and Ingest" ? (
-                      <>
-                        {(() => {
-                          const videoQty = parsedTypeSpecific.cameraCardVideoQuantity ??
-                            parsedTypeSpecific.cameraCardNumber ?? 0;
-                          const audioQty = parsedTypeSpecific.cameraCardAudioQuantity ?? 0;
-
-                          return (
-                            <div className="rounded-md border">
-                              <Table>
-                                <TableHeader>
-                                  <TableRow>
-                                    <TableHead>Type</TableHead>
-                                    <TableHead className="text-right">Quantity</TableHead>
-                                  </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                  <TableRow>
-                                    <TableCell className="font-medium">Video Quantity</TableCell>
-                                    <TableCell className="text-right">
-                                      <Badge variant="secondary">{videoQty}</Badge>
-                                    </TableCell>
-                                  </TableRow>
-                                  <TableRow>
-                                    <TableCell className="font-medium">Audio Quantity</TableCell>
-                                    <TableCell className="text-right">
-                                      <Badge variant="secondary">{audioQty}</Badge>
-                                    </TableCell>
-                                  </TableRow>
-                                </TableBody>
-                              </Table>
-                            </div>
-                          );
-                        })()}
-                      </>
+                    ) : request.bookingType === "Download and Ingest" && request.downloadLinks ? (
+                      <div className="rounded-md border">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead className="w-[150px]">Source</TableHead>
+                              <TableHead>URL</TableHead>
+                              <TableHead className="w-[100px] text-right">Actions</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {request.downloadLinks.map((link, index) => (
+                              <TableRow key={link.id || index}>
+                                <TableCell>
+                                  <Badge variant="secondary">{link.source}</Badge>
+                                </TableCell>
+                                <TableCell>
+                                  <a
+                                    href={link.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-600 hover:underline flex items-center gap-2 break-all"
+                                  >
+                                    {link.url}
+                                    <ExternalLink className="h-3 w-3 flex-shrink-0" />
+                                  </a>
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => copyToClipboard(link.url)}
+                                    className="h-8 px-2"
+                                  >
+                                    <Copy className="h-4 w-4" />
+                                  </Button>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    ) : request.bookingType === "Camera Card and Ingest" && request.cameraCardDetail ? (
+                      <div className="rounded-md border">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Type</TableHead>
+                              <TableHead className="text-right">Quantity</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            <TableRow>
+                              <TableCell className="font-medium">Video Quantity</TableCell>
+                              <TableCell className="text-right">
+                                <Badge variant="secondary">{request.cameraCardDetail.videoQuantity}</Badge>
+                              </TableCell>
+                            </TableRow>
+                            <TableRow>
+                              <TableCell className="font-medium">Audio Quantity</TableCell>
+                              <TableCell className="text-right">
+                                <Badge variant="secondary">{request.cameraCardDetail.audioQuantity}</Badge>
+                              </TableCell>
+                            </TableRow>
+                          </TableBody>
+                        </Table>
+                      </div>
                     ) : null}
                   </div>
-                )}
+                ) : null}
 
                 <div className="pt-6 border-t border-border">
                   <h3 className="text-sm font-semibold text-card-foreground mb-3">
@@ -428,14 +402,14 @@ export const RequestDetail: React.FC = () => {
             </Card>
 
             {/* Allocated Resources */}
-            {parsedResources.length > 0 && (
+            {nocResources.length > 0 && (
               <Card>
                 <CardHeader>
                   <CardTitle>Allocated Resources by NOC</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {parsedResources.map((res) => (
+                    {nocResources.map((res) => (
                       <div
                         key={res.id}
                         className="bg-blue-50 rounded-lg p-4 border border-blue-200"
@@ -444,13 +418,14 @@ export const RequestDetail: React.FC = () => {
                           <CheckCircle2 size={16} className="text-blue-600 mt-1 flex-shrink-0" />
                           <div className="flex-1">
                             <div className="font-semibold text-card-foreground text-sm">
-                              {res.resourceName}
+                              {res.source}
                             </div>
                             <div className="text-xs text-muted-foreground mt-1">
-                              {res.type}
+                              {res.sourceType} - {res.resourceType}
+                              {res.resolution && ` (${res.resolution})`}
                             </div>
                             <div className="text-xs text-blue-600 mt-2">
-                              Allocated by {res.assignedBy} •{' '}
+                              Allocated •{' '}
                               {new Date(res.assignedAt).toLocaleString('en-US', {
                                 month: 'short',
                                 day: 'numeric',
