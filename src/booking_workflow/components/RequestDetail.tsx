@@ -425,7 +425,7 @@ export const RequestDetail: React.FC = () => {
                               {res.resolution && ` (${res.resolution})`}
                             </div>
                             <div className="text-xs text-blue-600 mt-2">
-                              Allocated •{' '}
+                              Allocated by {res.assignedByUser?.displayName} •{' '}
                               {new Date(res.assignedAt).toLocaleString('en-US', {
                                 month: 'short',
                                 day: 'numeric',

@@ -84,7 +84,7 @@ export interface NocResourceDto {
   source: string;
   resolution?: string;
   resourceType: string;
-  assignedBy?: number;
+  assignedByUser?: User;
   assignedAt: string;
 }
 
