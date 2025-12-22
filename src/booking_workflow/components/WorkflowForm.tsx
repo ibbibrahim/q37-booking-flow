@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { Send, ArrowLeft, Calendar, Info, AlertCircle } from "lucide-react";
+import { Send, ArrowLeft, Calendar, Info, AlertCircle, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -33,6 +33,11 @@ interface WorkflowFormProps {
 type BookingMode = 'single' | 'bulk';
 type FrequencyType = 'everyday' | 'weekdays' | 'specific' | 'custom';
 
+interface DownloadLink {
+  source: string;
+  url: string;
+}
+
 const DAYS_OF_WEEK = [
   { key: 'sun', label: 'Su', full: 'Sunday' },
   { key: 'mon', label: 'Mo', full: 'Monday' },
@@ -50,9 +55,35 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
   isEditMode = false,
 }) => {
   const [bookingMode, setBookingMode] = useState<BookingMode>('single');
+
+  const [downloadLinks, setDownloadLinks] = useState<DownloadLink[]>(() => {
+    if (initialData && initialData.bookingType === "Download and Ingest") {
+      const typeSpecific = initialData.typeSpecificData ? JSON.parse(initialData.typeSpecificData) : {};
+      if (typeSpecific.downloadLinks && Array.isArray(typeSpecific.downloadLinks)) {
+        return typeSpecific.downloadLinks;
+      } else if (typeSpecific.downloadSource && typeSpecific.downloadLink) {
+        return [{ source: typeSpecific.downloadSource, url: typeSpecific.downloadLink }];
+      }
+    }
+    return [{ source: '', url: '' }];
+  });
+
   const [formData, setFormData] = useState<Record<string, string>>(() => {
     if (initialData) {
       const typeSpecific = initialData.typeSpecificData ? JSON.parse(initialData.typeSpecificData) : {};
+
+      let cameraCardVideoQty = "";
+      let cameraCardAudioQty = "";
+      if (initialData.bookingType === "Camera Card and Ingest") {
+        if (typeSpecific.cameraCardVideoQuantity !== undefined) {
+          cameraCardVideoQty = String(typeSpecific.cameraCardVideoQuantity);
+          cameraCardAudioQty = String(typeSpecific.cameraCardAudioQuantity || 0);
+        } else if (typeSpecific.cameraCardNumber !== undefined) {
+          cameraCardVideoQty = String(typeSpecific.cameraCardNumber);
+          cameraCardAudioQty = "0";
+        }
+      }
+
       return {
         bookingType: initialData.bookingType || "",
         title: initialData.title || "",
@@ -71,6 +102,8 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
         complianceTags: "",
         notes: initialData.notes || "",
         studio: initialData.studio || "",
+        cameraCardVideoQuantity: cameraCardVideoQty,
+        cameraCardAudioQuantity: cameraCardAudioQty,
         ...typeSpecific
       };
     }
@@ -91,6 +124,8 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
       newsroomTicket: "",
       complianceTags: "",
       notes: "",
+      cameraCardVideoQuantity: "",
+      cameraCardAudioQuantity: "",
     };
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -129,6 +164,31 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
         ? prev.selectedDays.filter(d => d !== day)
         : [...prev.selectedDays, day]
     }));
+  };
+
+  const addDownloadLink = () => {
+    setDownloadLinks([...downloadLinks, { source: '', url: '' }]);
+  };
+
+  const removeDownloadLink = (index: number) => {
+    if (downloadLinks.length > 1) {
+      setDownloadLinks(downloadLinks.filter((_, i) => i !== index));
+      const newErrors = { ...errors };
+      delete newErrors[`downloadLink_${index}_source`];
+      delete newErrors[`downloadLink_${index}_url`];
+      setErrors(newErrors);
+    }
+  };
+
+  const updateDownloadLink = (index: number, field: 'source' | 'url', value: string) => {
+    const updated = [...downloadLinks];
+    updated[index][field] = value;
+    setDownloadLinks(updated);
+    if (errors[`downloadLink_${index}_${field}`]) {
+      const newErrors = { ...errors };
+      delete newErrors[`downloadLink_${index}_${field}`];
+      setErrors(newErrors);
+    }
   };
 
   // Calculate bulk booking dates
@@ -289,22 +349,29 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
     }
 
     if (formData.bookingType === "Download and Ingest") {
-      if (!formData.downloadSource) {
-        newErrors.downloadSource = "Please select a download source";
-      }
-      if (!formData.downloadLink) {
-        newErrors.downloadLink = "Download link/URL is required";
+      if (downloadLinks.length === 0) {
+        newErrors.downloadLinks = "At least one download link is required";
       } else {
         const urlPattern = /^(https?:\/\/)([\w\-]+(\.[\w\-]+)+)([\w.,@?^=%&:/~+#-]*[\w@?^=%&/~+#-])?$/i;
-        if (!urlPattern.test(formData.downloadLink.trim())) {
-          newErrors.downloadLink = "Please enter a valid URL (must start with http or https)";
-        }
+        downloadLinks.forEach((link, index) => {
+          if (!link.source) {
+            newErrors[`downloadLink_${index}_source`] = "Source is required";
+          }
+          if (!link.url) {
+            newErrors[`downloadLink_${index}_url`] = "URL is required";
+          } else if (!urlPattern.test(link.url.trim())) {
+            newErrors[`downloadLink_${index}_url`] = "Please enter a valid URL (must start with http or https)";
+          }
+        });
       }
     }
 
     if (formData.bookingType === "Camera Card and Ingest") {
-      if (!formData.cameraCardNumber) {
-        newErrors.cameraCardNumber = "Camera Card Number is required";
+      if (!formData.cameraCardVideoQuantity || Number(formData.cameraCardVideoQuantity) < 0) {
+        newErrors.cameraCardVideoQuantity = "Camera Card Video Quantity is required";
+      }
+      if (!formData.cameraCardAudioQuantity || Number(formData.cameraCardAudioQuantity) < 0) {
+        newErrors.cameraCardAudioQuantity = "Camera Card Audio Quantity is required";
       }
     }
 
@@ -355,14 +422,17 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
 
       case "Download and Ingest":
         typeSpecific = {
-          downloadSource: formData.downloadSource,
-          downloadLink: formData.downloadLink,
+          downloadLinks: downloadLinks.map(link => ({
+            source: link.source,
+            url: link.url
+          }))
         };
         break;
 
       case "Camera Card and Ingest":
         typeSpecific = {
-          cameraCardNumber: formData.cameraCardNumber,
+          cameraCardVideoQuantity: Number(formData.cameraCardVideoQuantity),
+          cameraCardAudioQuantity: Number(formData.cameraCardAudioQuantity),
         };
         break;
 
@@ -483,61 +553,116 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
   );
 
   const renderDownloadAndIngestFields = () => (
-    <>
-      <div className="space-y-2">
-        <Label htmlFor="downloadSource">
-          Download Source <span className="text-red-500">*</span>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <Label>
+          Download Links <span className="text-red-500">*</span>
         </Label>
-        <Select
-          value={formData.downloadSource || ""}
-          onValueChange={(value) => handleChange("downloadSource", value)}
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={addDownloadLink}
+          className="flex items-center gap-2"
         >
-          <SelectTrigger id="downloadSource" className={errors.downloadSource ? "border-red-500" : ""}>
-            <SelectValue placeholder="Select download source" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="YouTube">YouTube</SelectItem>
-            <SelectItem value="WeTransfer">WeTransfer</SelectItem>
-            <SelectItem value="FTP">FTP</SelectItem>
-            <SelectItem value="Other">Other</SelectItem>
-          </SelectContent>
-        </Select>
-        {errors.downloadSource && (
-          <p className="text-sm text-red-500">{errors.downloadSource}</p>
-        )}
+          <Plus className="h-4 w-4" />
+          Add Link
+        </Button>
       </div>
-      <div className="space-y-2">
-        <Label htmlFor="downloadLink">
-          Download Link / URL <span className="text-red-500">*</span>
-        </Label>
-        <Input
-          id="downloadLink"
-          value={formData.downloadLink || ""}
-          onChange={(e) => handleChange("downloadLink", e.target.value)}
-          className={errors.downloadLink ? "border-red-500" : ""}
-        />
-        {errors.downloadLink && (
-          <p className="text-sm text-red-500">{errors.downloadLink}</p>
-        )}
+      {errors.downloadLinks && (
+        <p className="text-sm text-red-500">{errors.downloadLinks}</p>
+      )}
+      <div className="space-y-3">
+        {downloadLinks.map((link, index) => (
+          <div key={index} className="grid grid-cols-1 md:grid-cols-[1fr_2fr_auto] gap-3 p-4 border rounded-lg">
+            <div className="space-y-2">
+              <Label htmlFor={`downloadSource_${index}`}>Source</Label>
+              <Select
+                value={link.source}
+                onValueChange={(value) => updateDownloadLink(index, 'source', value)}
+              >
+                <SelectTrigger
+                  id={`downloadSource_${index}`}
+                  className={errors[`downloadLink_${index}_source`] ? "border-red-500" : ""}
+                >
+                  <SelectValue placeholder="Select source" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="YouTube">YouTube</SelectItem>
+                  <SelectItem value="WeTransfer">WeTransfer</SelectItem>
+                  <SelectItem value="FTP">FTP</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+              {errors[`downloadLink_${index}_source`] && (
+                <p className="text-sm text-red-500">{errors[`downloadLink_${index}_source`]}</p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor={`downloadUrl_${index}`}>URL</Label>
+              <Input
+                id={`downloadUrl_${index}`}
+                value={link.url}
+                onChange={(e) => updateDownloadLink(index, 'url', e.target.value)}
+                placeholder="https://..."
+                className={errors[`downloadLink_${index}_url`] ? "border-red-500" : ""}
+              />
+              {errors[`downloadLink_${index}_url`] && (
+                <p className="text-sm text-red-500">{errors[`downloadLink_${index}_url`]}</p>
+              )}
+            </div>
+            <div className="flex items-end">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={() => removeDownloadLink(index)}
+                disabled={downloadLinks.length === 1}
+                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        ))}
       </div>
-    </>
+    </div>
   );
 
   const renderCameraCardFields = () => (
-    <div className="space-y-2">
-      <Label htmlFor="cameraCardNumber">
-        Camera Card Quantity <span className="text-red-500">*</span>
-      </Label>
-      <Input
-        id="cameraCardNumber"
-        type="number"
-        value={formData.cameraCardNumber || ""}
-        onChange={(e) => handleChange("cameraCardNumber", e.target.value)}
-        className={errors.cameraCardNumber ? "border-red-500" : ""}
-      />
-      {errors.cameraCardNumber && (
-        <p className="text-sm text-red-500">{errors.cameraCardNumber}</p>
-      )}
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="space-y-2">
+        <Label htmlFor="cameraCardVideoQuantity">
+          Camera Card Video Quantity <span className="text-red-500">*</span>
+        </Label>
+        <Input
+          id="cameraCardVideoQuantity"
+          type="number"
+          min="0"
+          value={formData.cameraCardVideoQuantity || ""}
+          onChange={(e) => handleChange("cameraCardVideoQuantity", e.target.value)}
+          className={errors.cameraCardVideoQuantity ? "border-red-500" : ""}
+        />
+        {errors.cameraCardVideoQuantity && (
+          <p className="text-sm text-red-500">{errors.cameraCardVideoQuantity}</p>
+        )}
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="cameraCardAudioQuantity">
+          Camera Card Audio Quantity <span className="text-red-500">*</span>
+        </Label>
+        <Input
+          id="cameraCardAudioQuantity"
+          type="number"
+          min="0"
+          value={formData.cameraCardAudioQuantity || ""}
+          onChange={(e) => handleChange("cameraCardAudioQuantity", e.target.value)}
+          className={errors.cameraCardAudioQuantity ? "border-red-500" : ""}
+        />
+        {errors.cameraCardAudioQuantity && (
+          <p className="text-sm text-red-500">{errors.cameraCardAudioQuantity}</p>
+        )}
+      </div>
     </div>
   );
 
@@ -1020,9 +1145,7 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
               <CardTitle>Camera Card Details</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {renderCameraCardFields()}
-              </div>
+              {renderCameraCardFields()}
             </CardContent>
           </Card>
         )}

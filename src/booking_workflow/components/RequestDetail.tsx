@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Clock, User, FileText, CheckCircle2, AlertCircle, Send, Edit } from 'lucide-react';
+import { ArrowLeft, Clock, User, FileText, CheckCircle2, AlertCircle, Send, Edit, Copy, ExternalLink } from 'lucide-react';
 import type {
   WorkflowRequest,
   WorkflowTransition,
@@ -14,11 +14,21 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { useToast } from '@/contexts/ToastContext';
 
 export const RequestDetail: React.FC = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
+  const { showToast } = useToast();
 
   const [request, setRequest] = useState<WorkflowRequest | null>(null);
   const [loading, setLoading] = useState(true);
@@ -80,6 +90,11 @@ export const RequestDetail: React.FC = () => {
 
     const updated = await mockApi.getRequestById(request.id);
     if (updated) setRequest(updated);
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    showToast('URL copied to clipboard', 'success');
   };
 
   if (loading) {
@@ -277,27 +292,107 @@ export const RequestDetail: React.FC = () => {
                         ? "Camera Card Details"
                         : "Additional Details"}
                     </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {request.bookingType === "Invite Guest for News" ||
-                      request.bookingType === "Invite Guest for Program" ? (
-                        <>
-                          {renderField("Guest Name", parsedTypeSpecific.guestName)}
-                          {renderField("Guest Contact", parsedTypeSpecific.guestContact)}
-                          {renderField("iNEWS Rundown ID", parsedTypeSpecific.inewsRundownId)}
-                          {renderField("Story Slug", parsedTypeSpecific.storySlug)}
-                          {renderField("Rundown Position", parsedTypeSpecific.rundownPosition)}
-                        </>
-                      ) : request.bookingType === "Download and Ingest" ? (
-                        <>
-                          {renderField("Download Source", parsedTypeSpecific.downloadSource)}
-                          {renderField("Download Link", parsedTypeSpecific.downloadLink)}
-                        </>
-                      ) : request.bookingType === "Camera Card and Ingest" ? (
-                        <>
-                          {renderField("Camera Card Quantity", parsedTypeSpecific.cameraCardNumber)}
-                        </>
-                      ) : null}
-                    </div>
+
+                    {request.bookingType === "Invite Guest for News" ||
+                    request.bookingType === "Invite Guest for Program" ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {renderField("Guest Name", parsedTypeSpecific.guestName)}
+                        {renderField("Guest Contact", parsedTypeSpecific.guestContact)}
+                        {renderField("iNEWS Rundown ID", parsedTypeSpecific.inewsRundownId)}
+                        {renderField("Story Slug", parsedTypeSpecific.storySlug)}
+                        {renderField("Rundown Position", parsedTypeSpecific.rundownPosition)}
+                      </div>
+                    ) : request.bookingType === "Download and Ingest" ? (
+                      <>
+                        {(() => {
+                          const downloadLinks = parsedTypeSpecific.downloadLinks ||
+                            (parsedTypeSpecific.downloadSource && parsedTypeSpecific.downloadLink
+                              ? [{ source: parsedTypeSpecific.downloadSource, url: parsedTypeSpecific.downloadLink }]
+                              : []);
+
+                          if (downloadLinks.length === 0) return null;
+
+                          return (
+                            <div className="rounded-md border">
+                              <Table>
+                                <TableHeader>
+                                  <TableRow>
+                                    <TableHead className="w-[150px]">Source</TableHead>
+                                    <TableHead>URL</TableHead>
+                                    <TableHead className="w-[100px] text-right">Actions</TableHead>
+                                  </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                  {downloadLinks.map((link: any, index: number) => (
+                                    <TableRow key={index}>
+                                      <TableCell>
+                                        <Badge variant="secondary">{link.source}</Badge>
+                                      </TableCell>
+                                      <TableCell>
+                                        <a
+                                          href={link.url}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="text-blue-600 hover:underline flex items-center gap-2 break-all"
+                                        >
+                                          {link.url}
+                                          <ExternalLink className="h-3 w-3 flex-shrink-0" />
+                                        </a>
+                                      </TableCell>
+                                      <TableCell className="text-right">
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => copyToClipboard(link.url)}
+                                          className="h-8 px-2"
+                                        >
+                                          <Copy className="h-4 w-4" />
+                                        </Button>
+                                      </TableCell>
+                                    </TableRow>
+                                  ))}
+                                </TableBody>
+                              </Table>
+                            </div>
+                          );
+                        })()}
+                      </>
+                    ) : request.bookingType === "Camera Card and Ingest" ? (
+                      <>
+                        {(() => {
+                          const videoQty = parsedTypeSpecific.cameraCardVideoQuantity ??
+                            parsedTypeSpecific.cameraCardNumber ?? 0;
+                          const audioQty = parsedTypeSpecific.cameraCardAudioQuantity ?? 0;
+
+                          return (
+                            <div className="rounded-md border">
+                              <Table>
+                                <TableHeader>
+                                  <TableRow>
+                                    <TableHead>Type</TableHead>
+                                    <TableHead className="text-right">Quantity</TableHead>
+                                  </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                  <TableRow>
+                                    <TableCell className="font-medium">Video Quantity</TableCell>
+                                    <TableCell className="text-right">
+                                      <Badge variant="secondary">{videoQty}</Badge>
+                                    </TableCell>
+                                  </TableRow>
+                                  <TableRow>
+                                    <TableCell className="font-medium">Audio Quantity</TableCell>
+                                    <TableCell className="text-right">
+                                      <Badge variant="secondary">{audioQty}</Badge>
+                                    </TableCell>
+                                  </TableRow>
+                                </TableBody>
+                              </Table>
+                            </div>
+                          );
+                        })()}
+                      </>
+                    ) : null}
                   </div>
                 )}
 
