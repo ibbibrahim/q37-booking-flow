@@ -300,7 +300,8 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
       }
     }
 
-    if (!formData.priority) {
+    const hidePriorityTypes = ['Incoming Feed', 'Invite Guest for News', 'Invite Guest for Program'];
+    if (!hidePriorityTypes.includes(formData.bookingType) && !formData.priority) {
       newErrors.priority = "Please select a priority";
     }
 
@@ -412,8 +413,11 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
   };
 
   const executeSubmit = (status: WorkflowStatus) => {
+    const hidePriorityTypes = ['Incoming Feed', 'Invite Guest for News', 'Invite Guest for Program'];
+
     const basePayload: any = {
       ...formData,
+      priority: hidePriorityTypes.includes(formData.bookingType) ? 'Normal' : formData.priority,
     };
 
     switch (formData.bookingType) {
@@ -1081,29 +1085,33 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
               </div>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label htmlFor="priority">
-                  Priority <span className="text-red-500">*</span>
-                </Label>
-                <Select
-                  value={formData.priority}
-                  onValueChange={(value) => handleChange("priority", value)}
-                >
-                  <SelectTrigger id="priority" className={errors.priority ? "border-red-500" : ""}>
-                    <SelectValue placeholder="Select priority" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Normal">Normal</SelectItem>
-                    <SelectItem value="High">High</SelectItem>
-                    <SelectItem value="Urgent">Urgent</SelectItem>
-                  </SelectContent>
-                </Select>
-                {errors.priority && (
-                  <p className="text-sm text-red-500">{errors.priority}</p>
-                )}
+            {!(formData.bookingType === "Incoming Feed" ||
+              formData.bookingType === "Invite Guest for News" ||
+              formData.bookingType === "Invite Guest for Program") && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="priority">
+                    Priority <span className="text-red-500">*</span>
+                  </Label>
+                  <Select
+                    value={formData.priority}
+                    onValueChange={(value) => handleChange("priority", value)}
+                  >
+                    <SelectTrigger id="priority" className={errors.priority ? "border-red-500" : ""}>
+                      <SelectValue placeholder="Select priority" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Normal">Normal</SelectItem>
+                      <SelectItem value="High">High</SelectItem>
+                      <SelectItem value="Urgent">Urgent</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {errors.priority && (
+                    <p className="text-sm text-red-500">{errors.priority}</p>
+                  )}
+                </div>
               </div>
-            </div>
+            )}
           </CardContent>
         </Card>
 

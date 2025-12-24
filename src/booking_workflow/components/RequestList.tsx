@@ -60,6 +60,22 @@ const priorityColors = {
   Urgent: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
 };
 
+const bookingTypeColors: Record<string, string> = {
+  'Live Broadcast': 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400',
+  'Incoming Feed': 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400',
+  'Invite Guest for News': 'bg-teal-100 dark:bg-teal-900/30 text-teal-700 dark:text-teal-400',
+  'Invite Guest for Program': 'bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-400',
+  'Download and Ingest': 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400',
+  'Camera Card and Ingest': 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400',
+};
+
+const creatorColors = [
+  'bg-pink-100 dark:bg-pink-900/30 text-pink-700 dark:text-pink-400',
+  'bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-400',
+  'bg-fuchsia-100 dark:bg-fuchsia-900/30 text-fuchsia-700 dark:text-fuchsia-400',
+  'bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400',
+];
+
 export const RequestList: React.FC<RequestListProps> = ({
   requests,
   userRole,
@@ -71,10 +87,18 @@ export const RequestList: React.FC<RequestListProps> = ({
   const [statusFilter, setStatusFilter] = useState<WorkflowStatus | 'All'>('All');
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [filteredRequests, setFilteredRequests] = useState<WorkflowRequest[]>(requests);
-  const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  const [viewMode, setViewMode] = useState<ViewMode>(() => {
+    const saved = localStorage.getItem('booking-view-mode');
+    return (saved as ViewMode) || 'list';
+  });
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const navigate = useNavigate();
+
+  const handleViewModeChange = (mode: ViewMode) => {
+    setViewMode(mode);
+    localStorage.setItem('booking-view-mode', mode);
+  };
 
   useEffect(() => {
     let filtered = requests;
@@ -167,7 +191,7 @@ export const RequestList: React.FC<RequestListProps> = ({
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2 bg-muted p-1 rounded-lg">
               <button
-                onClick={() => setViewMode('grid')}
+                onClick={() => handleViewModeChange('grid')}
                 className={`p-2 rounded transition-colors ${
                   viewMode === 'grid'
                     ? 'bg-primary text-primary-foreground'
@@ -178,7 +202,7 @@ export const RequestList: React.FC<RequestListProps> = ({
                 <Grid3x3 size={18} />
               </button>
               <button
-                onClick={() => setViewMode('list')}
+                onClick={() => handleViewModeChange('list')}
                 className={`p-2 rounded transition-colors ${
                   viewMode === 'list'
                     ? 'bg-primary text-primary-foreground'
@@ -298,6 +322,9 @@ export const RequestList: React.FC<RequestListProps> = ({
                           Program
                         </th>
                         <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground">
+                          Booking Type
+                        </th>
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground">
                           Air Date
                         </th>
                         <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground">
@@ -307,14 +334,20 @@ export const RequestList: React.FC<RequestListProps> = ({
                           Priority
                         </th>
                         <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground">
+                          Created By
+                        </th>
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground">
                           Actions
                         </th>
                       </tr>
                     </thead>
                     <tbody>
-                      {paginatedRequests.map((request) => {
+                      {paginatedRequests.map((request, index) => {
                         const statusStyle = statusColors[request.status];
                         const priorityColor = priorityColors[request.priority];
+                        const bookingTypeColor = bookingTypeColors[request.bookingType] || 'bg-gray-100 dark:bg-gray-900/30 text-gray-700 dark:text-gray-400';
+                        const creatorColor = creatorColors[index % creatorColors.length];
+
                         return (
                           <tr
                             key={request.id}
@@ -337,6 +370,13 @@ export const RequestList: React.FC<RequestListProps> = ({
                             <td className="py-3 px-4 text-sm text-muted-foreground">
                               {request.program}
                             </td>
+                            <td className="py-3 px-4 text-sm">
+                              <span
+                                className={`px-3 py-1 rounded-full text-xs font-medium ${bookingTypeColor}`}
+                              >
+                                {request.bookingType}
+                              </span>
+                            </td>
                             <td className="py-3 px-4 text-sm text-muted-foreground">
                               {new Date(request.airDateTime).toLocaleDateString()}
                             </td>
@@ -352,6 +392,13 @@ export const RequestList: React.FC<RequestListProps> = ({
                                 className={`px-3 py-1 rounded-full text-xs font-medium ${priorityColor}`}
                               >
                                 {request.priority}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 text-sm">
+                              <span
+                                className={`px-3 py-1 rounded-full text-xs font-medium ${creatorColor}`}
+                              >
+                                {request.createdBy || 'System'}
                               </span>
                             </td>
                             <td className="py-3 px-4 text-sm">
