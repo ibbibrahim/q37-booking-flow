@@ -324,8 +324,8 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
       if (!formData.guestName) {
         newErrors.guestName = "Guest name is required";
       }
-      if (!formData.inewsRundownId) {
-        newErrors.inewsRundownId = "iNEWS Rundown ID is required";
+      if (!formData.guestContact) {
+        newErrors.guestContact = "Guest contact/email is required";
       }
       if (!formData.studio) {
         newErrors.studio = "Please select a studio";
@@ -505,14 +505,17 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
         )}
       </div>
       <div className="space-y-2">
-        <Label htmlFor="guestContact">Guest Contact</Label>
+        <Label htmlFor="guestContact">Guest Contact <span className="text-red-500">*</span> </Label>
         <Input
           id="guestContact"
           value={formData.guestContact || ""}
           onChange={(e) => handleChange("guestContact", e.target.value)}
         />
+        {errors.guestContact && (
+          <p className="text-sm text-red-500">{errors.guestContact}</p>
+        )}
       </div>
-      <div className="space-y-2">
+      {/* <div className="space-y-2">
         <Label htmlFor="inewsRundownId">
           iNEWS Rundown ID <span className="text-red-500">*</span>
         </Label>
@@ -525,23 +528,23 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
         {errors.inewsRundownId && (
           <p className="text-sm text-red-500">{errors.inewsRundownId}</p>
         )}
-      </div>
-      <div className="space-y-2">
+      </div> */}
+      {/* <div className="space-y-2">
         <Label htmlFor="storySlug">Story Slug</Label>
         <Input
           id="storySlug"
           value={formData.storySlug || ""}
           onChange={(e) => handleChange("storySlug", e.target.value)}
         />
-      </div>
-      <div className="space-y-2">
+      </div> */}
+      {/* <div className="space-y-2">
         <Label htmlFor="rundownPosition">Rundown Position</Label>
         <Input
           id="rundownPosition"
           value={formData.rundownPosition || ""}
           onChange={(e) => handleChange("rundownPosition", e.target.value)}
         />
-      </div>
+      </div> */}
     </>
   );
 
@@ -912,10 +915,25 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
               </div>
             </div>
 
-            {(formData.bookingType === "Incoming Feed" ||
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label htmlFor="program">
+                  Program / Segment <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="program"
+                  value={formData.program}
+                  onChange={(e) => handleChange("program", e.target.value)}
+                  placeholder="e.g., Evening News"
+                  className={errors.program ? "border-red-500" : ""}
+                />
+                {errors.program && (
+                  <p className="text-sm text-red-500">{errors.program}</p>
+                )}
+              </div>
+              {(formData.bookingType === "Incoming Feed" ||
               formData.bookingType === "Invite Guest for News" ||
               formData.bookingType === "Invite Guest for Program") && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <Label htmlFor="studio">
                     Studio <span className="text-red-500">*</span>
@@ -936,25 +954,10 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
                     <p className="text-sm text-red-500">{errors.studio}</p>
                   )}
                 </div>
-              </div>
-            )}
+              )}
+            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label htmlFor="program">
-                  Program / Segment <span className="text-red-500">*</span>
-                </Label>
-                <Input
-                  id="program"
-                  value={formData.program}
-                  onChange={(e) => handleChange("program", e.target.value)}
-                  placeholder="e.g., Evening News"
-                  className={errors.program ? "border-red-500" : ""}
-                />
-                {errors.program && (
-                  <p className="text-sm text-red-500">{errors.program}</p>
-                )}
-              </div>
               <div className="space-y-2">
                 <Label htmlFor={bookingMode === 'bulk' ? "airTime" : "airDateTime"}>
                   {formData.bookingType === "Download and Ingest" ||
