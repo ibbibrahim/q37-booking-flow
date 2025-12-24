@@ -48,6 +48,9 @@ export const RequestCard: React.FC<RequestCardProps> = ({ request, isNew, onClic
           <p className="text-sm text-muted-foreground">{request.program}</p>
         </div>
         <div className="flex items-center gap-2 text-muted-foreground">
+          <span className={`px-2 py-1 rounded text-xs font-medium ${priorityColor}`}>
+              {request.createdByUser?.displayName}
+          </span>
           {request.bookingType === 'Incoming Feed' ? <Radio size={20} /> : <User size={20} />}
         </div>
       </div>

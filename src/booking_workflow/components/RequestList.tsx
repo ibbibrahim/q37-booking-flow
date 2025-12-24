@@ -324,9 +324,7 @@ export const RequestList: React.FC<RequestListProps> = ({
                         <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground">
                           Booking Type
                         </th>
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground">
-                          Air Date
-                        </th>
+                        
                         <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground">
                           State
                         </th>
@@ -335,6 +333,9 @@ export const RequestList: React.FC<RequestListProps> = ({
                         </th>
                         <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground">
                           Created By
+                        </th>
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground">
+                          Created At
                         </th>
                         <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground">
                           Actions
@@ -377,9 +378,7 @@ export const RequestList: React.FC<RequestListProps> = ({
                                 {request.bookingType}
                               </span>
                             </td>
-                            <td className="py-3 px-4 text-sm text-muted-foreground">
-                              {new Date(request.airDateTime).toLocaleDateString()}
-                            </td>
+                           
                             <td className="py-3 px-4 text-sm">
                               <span
                                 className={`px-3 py-1 rounded-full text-xs font-medium ${statusStyle.bg} ${statusStyle.text}`}
@@ -398,8 +397,11 @@ export const RequestList: React.FC<RequestListProps> = ({
                               <span
                                 className={`px-3 py-1 rounded-full text-xs font-medium ${creatorColor}`}
                               >
-                                {request.createdBy || 'System'}
+                                {request.createdByUser?.displayName || 'System'}
                               </span>
+                            </td>
+                            <td className="py-3 px-4 text-sm text-muted-foreground">
+                              {new Date(request.createdAt).toDateString()}
                             </td>
                             <td className="py-3 px-4 text-sm">
                               <div className="flex items-center gap-2">
