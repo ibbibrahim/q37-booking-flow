@@ -17,6 +17,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { TimePickerInput } from "./TimePickerInput";
 import type {
   BookingType,
   WorkflowRequest,
@@ -94,9 +95,9 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
         airTime: "",
         feedStartTime: initialData.feedStartTime || "",
         feedEndTime: initialData.feedEndTime || "",
-        feedStartTimeOnly: "",
-        feedEndTimeOnly: "",
-        language: initialData.language || "",
+        feedStartTimeOnly: initialData.feedStartTime ? new Date(initialData.feedStartTime).toTimeString().slice(0, 5) : "",
+        feedEndTimeOnly: initialData.feedEndTime ? new Date(initialData.feedEndTime).toTimeString().slice(0, 5) : "",
+        language: initialData.language || "Arabic",
         priority: initialData.priority || "",
         nocRequired: "",
         resourcesNeeded: initialData.resourcesNeeded || "",
@@ -123,7 +124,7 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
       feedEndTime: "",
       feedStartTimeOnly: "",
       feedEndTimeOnly: "",
-      language: "",
+      language: "Arabic",
       priority: "",
       nocRequired: "",
       resourcesNeeded: "",
@@ -284,9 +285,6 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
       }
     }
 
-    if (!formData.language) {
-      newErrors.language = "Please select a language";
-    }
     if (!formData.priority) {
       newErrors.priority = "Please select a priority";
     }
@@ -308,20 +306,11 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
     }
 
     if (formData.bookingType === "Incoming Feed") {
-      if (bookingMode === 'bulk') {
-        if (!formData.feedStartTimeOnly) {
-          newErrors.feedStartTimeOnly = "Feed start time is required";
-        }
-        if (!formData.feedEndTimeOnly) {
-          newErrors.feedEndTimeOnly = "Feed end time is required";
-        }
-      } else {
-        if (!formData.feedStartTime) {
-          newErrors.feedStartTime = "Feed start time is required";
-        }
-        if (!formData.feedEndTime) {
-          newErrors.feedEndTime = "Feed end time is required";
-        }
+      if (!formData.feedStartTimeOnly) {
+        newErrors.feedStartTimeOnly = "Feed start time is required";
+      }
+      if (!formData.feedEndTimeOnly) {
+        newErrors.feedEndTimeOnly = "Feed end time is required";
       }
       if (!formData.studio) {
         newErrors.studio = "Please select a studio";
@@ -342,20 +331,11 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
         newErrors.studio = "Please select a studio";
       }
       // Feed times for guest bookings
-      if (bookingMode === 'bulk') {
-        if (!formData.feedStartTimeOnly) {
-          newErrors.feedStartTimeOnly = "Feed start time is required";
-        }
-        if (!formData.feedEndTimeOnly) {
-          newErrors.feedEndTimeOnly = "Feed end time is required";
-        }
-      } else {
-        if (!formData.feedStartTime) {
-          newErrors.feedStartTime = "Feed start time is required";
-        }
-        if (!formData.feedEndTime) {
-          newErrors.feedEndTime = "Feed end time is required";
-        }
+      if (!formData.feedStartTimeOnly) {
+        newErrors.feedStartTimeOnly = "Feed start time is required";
+      }
+      if (!formData.feedEndTimeOnly) {
+        newErrors.feedEndTimeOnly = "Feed end time is required";
       }
     }
 
@@ -447,7 +427,28 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
     }
 
     if (bookingMode === 'single') {
-      const payload = normalizePayload(basePayload);
+      let newFeedStartTime = undefined;
+      let newFeedEndTime = undefined;
+
+      if (formData.feedStartTimeOnly && formData.feedEndTimeOnly && formData.airDateTime) {
+        const airDate = new Date(formData.airDateTime);
+        const [startHours, startMinutes] = formData.feedStartTimeOnly.split(':').map(Number);
+        const [endHours, endMinutes] = formData.feedEndTimeOnly.split(':').map(Number);
+
+        newFeedStartTime = new Date(airDate);
+        newFeedStartTime.setHours(startHours, startMinutes, 0, 0);
+
+        newFeedEndTime = new Date(airDate);
+        newFeedEndTime.setHours(endHours, endMinutes, 0, 0);
+      }
+
+      const singlePayload = {
+        ...basePayload,
+        feedStartTime: newFeedStartTime ? newFeedStartTime.toISOString() : undefined,
+        feedEndTime: newFeedEndTime ? newFeedEndTime.toISOString() : undefined,
+      };
+
+      const payload = normalizePayload(singlePayload);
       onSubmit(payload as any, status);
     } else {
       bulkDates.forEach((date, index) => {
@@ -963,11 +964,10 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
                   <span className="text-red-500">*</span>
                 </Label>
                 {bookingMode === 'bulk' ? (
-                  <Input
+                  <TimePickerInput
                     id="airTime"
-                    type="time"
                     value={formData.airTime}
-                    onChange={(e) => handleChange("airTime", e.target.value)}
+                    onChange={(value) => handleChange("airTime", value)}
                     className={errors.airTime ? "border-red-500" : ""}
                   />
                 ) : (
@@ -998,59 +998,29 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
               formData.bookingType === "Invite Guest for Program") && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label htmlFor={bookingMode === 'bulk' ? "feedStartTimeOnly" : "feedStartTime"}>
-                    {bookingMode === 'bulk' ? "Feed Start Time (Time of day)" : "Feed Start Time"} <span className="text-red-500">*</span>
+                  <Label htmlFor="feedStartTimeOnly">
+                    Feed Start Time <span className="text-red-500">*</span>
                   </Label>
-                  {bookingMode === 'bulk' ? (
-                    <Input
-                      id="feedStartTimeOnly"
-                      type="time"
-                      value={formData.feedStartTimeOnly || ""}
-                      onChange={(e) => handleChange("feedStartTimeOnly", e.target.value)}
-                      className={errors.feedStartTimeOnly ? "border-red-500" : ""}
-                    />
-                  ) : (
-                    <Input
-                      id="feedStartTime"
-                      type="datetime-local"
-                      value={formData.feedStartTime || ""}
-                      onChange={(e) => handleChange("feedStartTime", e.target.value)}
-                      className={errors.feedStartTime ? "border-red-500" : ""}
-                    />
-                  )}
-                  {errors.feedStartTime && (
-                    <p className="text-sm text-red-500">{errors.feedStartTime}</p>
-                  )}
+                  <TimePickerInput
+                    id="feedStartTimeOnly"
+                    value={formData.feedStartTimeOnly || ""}
+                    onChange={(value) => handleChange("feedStartTimeOnly", value)}
+                    className={errors.feedStartTimeOnly ? "border-red-500" : ""}
+                  />
                   {errors.feedStartTimeOnly && (
                     <p className="text-sm text-red-500">{errors.feedStartTimeOnly}</p>
                   )}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor={bookingMode === 'bulk' ? "feedEndTimeOnly" : "feedEndTime"}>
-                    {bookingMode === 'bulk' ? "Feed End Time (Time of day)" : "Feed End Time"} <span className="text-red-500">*</span>
+                  <Label htmlFor="feedEndTimeOnly">
+                    Feed End Time <span className="text-red-500">*</span>
                   </Label>
-                  {bookingMode === 'bulk' ? (
-                    <Input
-                      id="feedEndTimeOnly"
-                      type="time"
-                      value={formData.feedEndTimeOnly || ""}
-                      onChange={(e) => handleChange("feedEndTimeOnly", e.target.value)}
-                      min={formData.feedStartTimeOnly || ""}
-                      className={errors.feedEndTimeOnly ? "border-red-500" : ""}
-                    />
-                  ) : (
-                    <Input
-                      id="feedEndTime"
-                      type="datetime-local"
-                      value={formData.feedEndTime || ""}
-                      onChange={(e) => handleChange("feedEndTime", e.target.value)}
-                      min={formData.feedStartTime || ""}
-                      className={errors.feedEndTime ? "border-red-500" : ""}
-                    />
-                  )}
-                  {errors.feedEndTime && (
-                    <p className="text-sm text-red-500">{errors.feedEndTime}</p>
-                  )}
+                  <TimePickerInput
+                    id="feedEndTimeOnly"
+                    value={formData.feedEndTimeOnly || ""}
+                    onChange={(value) => handleChange("feedEndTimeOnly", value)}
+                    className={errors.feedEndTimeOnly ? "border-red-500" : ""}
+                  />
                   {errors.feedEndTimeOnly && (
                     <p className="text-sm text-red-500">{errors.feedEndTimeOnly}</p>
                   )}
@@ -1059,26 +1029,6 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
             )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label htmlFor="language">
-                  Language <span className="text-red-500">*</span>
-                </Label>
-                <Select
-                  value={formData.language}
-                  onValueChange={(value) => handleChange("language", value)}
-                >
-                  <SelectTrigger id="language" className={errors.language ? "border-red-500" : ""}>
-                    <SelectValue placeholder="Select language" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="English">English</SelectItem>
-                    <SelectItem value="Arabic">Arabic</SelectItem>
-                  </SelectContent>
-                </Select>
-                {errors.language && (
-                  <p className="text-sm text-red-500">{errors.language}</p>
-                )}
-              </div>
               <div className="space-y-2">
                 <Label htmlFor="priority">
                   Priority <span className="text-red-500">*</span>
@@ -1124,9 +1074,7 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
               <CardTitle>Download Details</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {renderDownloadAndIngestFields()}
-              </div>
+              {renderDownloadAndIngestFields()}
             </CardContent>
           </Card>
         )}
