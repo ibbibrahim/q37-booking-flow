@@ -295,8 +295,8 @@ export const RequestDetail: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {renderField('Program / Segment', request.program)}
                   {renderField('Language', request.language)}
-                  {renderField(request.bookingType === "Download and Ingest" || request.bookingType === "Camera Card and Ingest" ? "Ingest Time" 
-                    : "Air Date / Time", new Date(request.airDateTime).toLocaleString())}
+                  {!(request.bookingType === "Download and Ingest" || request.bookingType === "Camera Card and Ingest") &&
+                    renderField("Air Date / Time", new Date(request.airDateTime).toLocaleString())}
                   {request.feedStartTime && renderField("Feed Start Time", new Date(request.feedStartTime).toLocaleString())}
                   {request.feedEndTime && renderField("Feed End Time", new Date(request.feedEndTime).toLocaleString())}
                   {renderField('Studio', request.studio)}

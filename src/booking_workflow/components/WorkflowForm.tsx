@@ -87,12 +87,17 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
         guestContact = initialData.guestDetail.guestContact;
       }
 
+      const airDate = initialData.airDateTime ? new Date(initialData.airDateTime).toISOString().split('T')[0] : "";
+      const airTimeSingle = initialData.airDateTime ? new Date(initialData.airDateTime).toTimeString().slice(0, 5) : "";
+
       return {
         bookingType: initialData.bookingType || "",
         title: initialData.title || "",
         program: initialData.program || "",
         airDateTime: initialData.airDateTime || "",
+        airDate,
         airTime: "",
+        airTimeSingle,
         feedStartTime: initialData.feedStartTime || "",
         feedEndTime: initialData.feedEndTime || "",
         feedStartTimeOnly: initialData.feedStartTime ? new Date(initialData.feedStartTime).toTimeString().slice(0, 5) : "",
@@ -119,7 +124,9 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
       title: "",
       program: "",
       airDateTime: "",
+      airDate: "",
       airTime: "",
+      airTimeSingle: "",
       feedStartTime: "",
       feedEndTime: "",
       feedStartTimeOnly: "",
@@ -274,14 +281,22 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
       newErrors.program = "Program/Segment is required";
     }
 
-    // In bulk mode, only validate time; in single mode, validate datetime
+    // In bulk mode, only validate time; in single mode, validate date and time
+    const isDownloadOrCameraCard = formData.bookingType === "Download and Ingest" ||
+                                    formData.bookingType === "Camera Card and Ingest";
+
     if (bookingMode === 'bulk') {
       if (!formData.airTime) {
         newErrors.airTime = "Air time is required";
       }
     } else {
-      if (!formData.airDateTime) {
-        newErrors.airDateTime = "Air date and time is required";
+      if (!isDownloadOrCameraCard) {
+        if (!formData.airDate) {
+          newErrors.airDate = "Air date is required";
+        }
+        if (!formData.airTimeSingle) {
+          newErrors.airTimeSingle = "Air time is required";
+        }
       }
     }
 
@@ -427,11 +442,24 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
     }
 
     if (bookingMode === 'single') {
+      const isDownloadOrCameraCard = formData.bookingType === "Download and Ingest" ||
+                                      formData.bookingType === "Camera Card and Ingest";
+
+      let finalAirDateTime;
+      if (isDownloadOrCameraCard) {
+        finalAirDateTime = new Date().toISOString();
+      } else if (formData.airDate && formData.airTimeSingle) {
+        const [hours, minutes] = formData.airTimeSingle.split(':').map(Number);
+        const airDateObj = new Date(formData.airDate);
+        airDateObj.setHours(hours, minutes, 0, 0);
+        finalAirDateTime = airDateObj.toISOString();
+      }
+
       let newFeedStartTime = undefined;
       let newFeedEndTime = undefined;
 
-      if (formData.feedStartTimeOnly && formData.feedEndTimeOnly && formData.airDateTime) {
-        const airDate = new Date(formData.airDateTime);
+      if (formData.feedStartTimeOnly && formData.feedEndTimeOnly && formData.airDate) {
+        const airDate = new Date(formData.airDate);
         const [startHours, startMinutes] = formData.feedStartTimeOnly.split(':').map(Number);
         const [endHours, endMinutes] = formData.feedEndTimeOnly.split(':').map(Number);
 
@@ -444,6 +472,7 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
 
       const singlePayload = {
         ...basePayload,
+        airDateTime: finalAirDateTime,
         feedStartTime: newFeedStartTime ? newFeedStartTime.toISOString() : undefined,
         feedEndTime: newFeedEndTime ? newFeedEndTime.toISOString() : undefined,
       };
@@ -957,44 +986,65 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
               )}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label htmlFor={bookingMode === 'bulk' ? "airTime" : "airDateTime"}>
-                  {formData.bookingType === "Download and Ingest" ||
-                  formData.bookingType === "Camera Card and Ingest"
-                    ? bookingMode === 'bulk' ? "Ingest Time (Time of day)" : "Ingest Time"
-                    : bookingMode === 'bulk' ? "Air Time (Time of day)" : "Air Date / Time (Local)"}{" "}
-                  <span className="text-red-500">*</span>
-                </Label>
+            {!(bookingMode === 'single' && (formData.bookingType === "Download and Ingest" || formData.bookingType === "Camera Card and Ingest")) && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {bookingMode === 'bulk' ? (
-                  <TimePickerInput
-                    id="airTime"
-                    value={formData.airTime}
-                    onChange={(value) => handleChange("airTime", value)}
-                    className={errors.airTime ? "border-red-500" : ""}
-                  />
+                  <div className="space-y-2">
+                    <Label htmlFor="airTime">
+                      {formData.bookingType === "Download and Ingest" ||
+                      formData.bookingType === "Camera Card and Ingest"
+                        ? "Ingest Time (Time of day)"
+                        : "Air Time (Time of day)"}{" "}
+                      <span className="text-red-500">*</span>
+                    </Label>
+                    <TimePickerInput
+                      id="airTime"
+                      value={formData.airTime}
+                      onChange={(value) => handleChange("airTime", value)}
+                      className={errors.airTime ? "border-red-500" : ""}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Time will be applied to all bookings. Dates come from Bulk Booking Options.
+                    </p>
+                    {errors.airTime && (
+                      <p className="text-sm text-red-500">{errors.airTime}</p>
+                    )}
+                  </div>
                 ) : (
-                  <Input
-                    id="airDateTime"
-                    type="datetime-local"
-                    value={formData.airDateTime}
-                    onChange={(e) => handleChange("airDateTime", e.target.value)}
-                    className={errors.airDateTime ? "border-red-500" : ""}
-                  />
-                )}
-                {bookingMode === 'bulk' && (
-                  <p className="text-xs text-muted-foreground">
-                    Time will be applied to all bookings. Dates come from Bulk Booking Options.
-                  </p>
-                )}
-                {errors.airDateTime && (
-                  <p className="text-sm text-red-500">{errors.airDateTime}</p>
-                )}
-                {errors.airTime && (
-                  <p className="text-sm text-red-500">{errors.airTime}</p>
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="airDate">
+                        Air Date <span className="text-red-500">*</span>
+                      </Label>
+                      <Input
+                        id="airDate"
+                        type="date"
+                        value={formData.airDate}
+                        onChange={(e) => handleChange("airDate", e.target.value)}
+                        className={errors.airDate ? "border-red-500" : ""}
+                      />
+                      {errors.airDate && (
+                        <p className="text-sm text-red-500">{errors.airDate}</p>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="airTimeSingle">
+                        Air Time <span className="text-red-500">*</span>
+                      </Label>
+                      <TimePickerInput
+                        id="airTimeSingle"
+                        value={formData.airTimeSingle}
+                        onChange={(value) => handleChange("airTimeSingle", value)}
+                        className={errors.airTimeSingle ? "border-red-500" : ""}
+                      />
+                      {errors.airTimeSingle && (
+                        <p className="text-sm text-red-500">{errors.airTimeSingle}</p>
+                      )}
+                    </div>
+                  </>
                 )}
               </div>
-            </div>
+            )}
 
             {(formData.bookingType === "Incoming Feed" ||
               formData.bookingType === "Invite Guest for News" ||
