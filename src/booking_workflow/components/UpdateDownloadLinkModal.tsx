@@ -73,7 +73,7 @@ export const UpdateDownloadLinkModal: React.FC<UpdateDownloadLinkModalProps> = (
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="Pending">Pending</SelectItem>
-                <SelectItem value="In Progress">In Progress</SelectItem>
+                <SelectItem value="In-Progress">In Progress</SelectItem>
                 <SelectItem value="Done">Done</SelectItem>
                 <SelectItem value="Failed">Failed</SelectItem>
               </SelectContent>
