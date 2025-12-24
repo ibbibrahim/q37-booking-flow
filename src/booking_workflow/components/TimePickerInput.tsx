@@ -47,7 +47,7 @@ export const TimePickerInput: React.FC<TimePickerInputProps> = ({
   const { hour, minute, period } = parseTime(value);
 
   const hours = Array.from({ length: 12 }, (_, i) => (i + 1).toString().padStart(2, '0'));
-  const minutes = Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, '0'));
+  const minutes = Array.from({ length: 12 }, (_, i) => (i * 5).toString().padStart(2, '0'));
 
   const handleHourChange = (newHour: string) => {
     onChange(formatTime(newHour, minute, period));
@@ -65,7 +65,7 @@ export const TimePickerInput: React.FC<TimePickerInputProps> = ({
     <div id={id} className={`flex gap-2 ${className}`}>
       <Select value={hour} onValueChange={handleHourChange}>
         <SelectTrigger className="w-[80px]">
-          <SelectValue placeholder="__" />
+          <SelectValue placeholder="hh" />
         </SelectTrigger>
         <SelectContent>
           {hours.map((h) => (
@@ -78,7 +78,7 @@ export const TimePickerInput: React.FC<TimePickerInputProps> = ({
 
       <Select value={minute} onValueChange={handleMinuteChange}>
         <SelectTrigger className="w-[80px]">
-          <SelectValue placeholder="__" />
+          <SelectValue placeholder="mm" />
         </SelectTrigger>
         <SelectContent className="max-h-[300px]">
           {minutes.map((m) => (
@@ -91,7 +91,7 @@ export const TimePickerInput: React.FC<TimePickerInputProps> = ({
 
       <Select value={period} onValueChange={handlePeriodChange}>
         <SelectTrigger className="w-[80px]">
-          <SelectValue placeholder="__" />
+          <SelectValue placeholder="AM" />
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="AM">AM</SelectItem>
