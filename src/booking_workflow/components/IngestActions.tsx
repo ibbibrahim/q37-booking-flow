@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CheckCircle2, XCircle, Lock } from 'lucide-react';
+import { CheckCircle2, XCircle, Lock, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,6 +8,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import type { WorkflowRequest } from '../types/workflow';
 
 interface IngestActionsProps {
@@ -23,6 +31,8 @@ export const IngestActions: React.FC<IngestActionsProps> = ({ request, onAction 
     mediaId: '',
     notes: ''
   });
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [pendingStatus, setPendingStatus] = useState<string>('');
 
   const isAcknowledged = request.ingestAcknowledged === true;
 
@@ -30,36 +40,47 @@ export const IngestActions: React.FC<IngestActionsProps> = ({ request, onAction 
     onAction('acknowledge', { changedBy: 10017 });
   };
 
-  const handleStatusChange = () => {
-    if (ingestData.ingestStatus === 'Completed') {
+  const handleStatusChangeRequest = () => {
+    if (ingestData.ingestStatus === 'Completed' || ingestData.ingestStatus === 'Partially Completed') {
       if (!ingestData.folderPath.trim()) {
         alert('Please provide the folder path where content is stored');
         return;
       }
-      if (!ingestData.mediaId.trim()) {
-        alert('Please provide the Media ID');
-        return;
-      }
-
-      onAction('mark_completed', {
-        ingestStatus: 'Completed',
-        ingestFolderPath: ingestData.folderPath,
-        mediaId: ingestData.mediaId,
-        ingestNotes: ingestData.notes,
-        changedBy: 10017
-      });
     } else if (ingestData.ingestStatus === 'Not Done') {
       if (!ingestData.notDoneReason.trim()) {
         alert('Please provide a reason for marking as Not Done');
         return;
       }
+    }
 
+    setPendingStatus(ingestData.ingestStatus);
+    setShowConfirmModal(true);
+  };
+
+  const handleConfirmStatusChange = () => {
+    if (pendingStatus === 'Completed' || pendingStatus === 'Partially Completed') {
+      onAction('mark_completed', {
+        ingestStatus: pendingStatus,
+        ingestFolderPath: ingestData.folderPath,
+        mediaId: ingestData.mediaId || null,
+        ingestNotes: ingestData.notes,
+        changedBy: 10017
+      });
+    } else if (pendingStatus === 'Not Done') {
       onAction('mark_not_done', {
         ingestStatus: 'Not Done',
         ingestNotDoneReason: ingestData.notDoneReason,
         changedBy: 10017
       });
     }
+
+    setShowConfirmModal(false);
+    setPendingStatus('');
+  };
+
+  const handleCancelConfirmation = () => {
+    setShowConfirmModal(false);
+    setPendingStatus('');
   };
 
   return (
@@ -113,13 +134,14 @@ export const IngestActions: React.FC<IngestActionsProps> = ({ request, onAction 
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Completed">Completed</SelectItem>
+                  <SelectItem value="Partially Completed">Partially Completed</SelectItem>
                   <SelectItem value="Not Done">Not Done</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
 
-          {ingestData.ingestStatus === 'Completed' && (
+          {(ingestData.ingestStatus === 'Completed' || ingestData.ingestStatus === 'Partially Completed') && (
             <>
               <div className="space-y-2">
                 <Label htmlFor="folderPath">
@@ -137,7 +159,7 @@ export const IngestActions: React.FC<IngestActionsProps> = ({ request, onAction 
 
               <div className="space-y-2">
                 <Label htmlFor="mediaId">
-                  Media ID <span className="text-red-500">*</span>
+                  Media ID (Optional)
                 </Label>
                 <Input
                   id="mediaId"
@@ -185,7 +207,7 @@ export const IngestActions: React.FC<IngestActionsProps> = ({ request, onAction 
         <div className="flex flex-wrap gap-3 pt-4 border-t">
           {ingestData.ingestStatus === 'Completed' && (
             <Button
-              onClick={handleStatusChange}
+              onClick={handleStatusChangeRequest}
               className="bg-green-600 text-white hover:bg-green-700"
               disabled={!isAcknowledged}
             >
@@ -193,9 +215,19 @@ export const IngestActions: React.FC<IngestActionsProps> = ({ request, onAction 
               Mark as Completed
             </Button>
           )}
+          {ingestData.ingestStatus === 'Partially Completed' && (
+            <Button
+              onClick={handleStatusChangeRequest}
+              className="bg-yellow-600 text-white hover:bg-yellow-700"
+              disabled={!isAcknowledged}
+            >
+              <AlertTriangle className="mr-2 h-4 w-4" />
+              Mark as Partially Completed
+            </Button>
+          )}
           {ingestData.ingestStatus === 'Not Done' && (
             <Button
-              onClick={handleStatusChange}
+              onClick={handleStatusChangeRequest}
               className="bg-red-600 text-white hover:bg-red-700"
               disabled={!isAcknowledged}
             >
@@ -205,6 +237,37 @@ export const IngestActions: React.FC<IngestActionsProps> = ({ request, onAction 
           )}
         </div>
       </CardContent>
+
+      <Dialog open={showConfirmModal} onOpenChange={setShowConfirmModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm Status Change</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to mark this request as <strong>{pendingStatus}</strong>?
+              {pendingStatus === 'Not Done' && ' This action will mark the ingest operation as unsuccessful.'}
+              {pendingStatus === 'Partially Completed' && ' This indicates the ingest was only partially successful.'}
+              {pendingStatus === 'Completed' && ' This will mark the ingest operation as successful.'}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={handleCancelConfirmation}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleConfirmStatusChange}
+              className={
+                pendingStatus === 'Completed'
+                  ? 'bg-green-600 hover:bg-green-700'
+                  : pendingStatus === 'Partially Completed'
+                  ? 'bg-yellow-600 hover:bg-yellow-700'
+                  : 'bg-red-600 hover:bg-red-700'
+              }
+            >
+              Confirm
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };

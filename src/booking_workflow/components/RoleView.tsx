@@ -60,67 +60,22 @@ export const RoleView: React.FC<RoleViewProps> = ({ role }) => {
       return;
     }
 
-    const unsubscribeCreated = listen('RequestCreated', (newRequest: WorkflowRequest) => {
-        newRequest.__isNew = true;
-        setRequests((prev) => {
-          const exists = prev.some((r) => r.id === newRequest.id);
-          if (exists) return prev;
-          return [newRequest, ...prev];
-        });
-    });
-
-    const unsubscribeUpdated = listen('RequestUpdated', (updatedRequest: WorkflowRequest) => {
-      setRequests((prev) =>
-        prev.map((r) => (r.id === updatedRequest.id ? updatedRequest : r))
-      );
-    });
-
-    // When Ingest marks a request as completed
-    const unsubscribeCompleted = listen('RequestCompleted', (completedRequest: WorkflowRequest) => {
-      completedRequest.__isNew = true;
+    const unsubscribeRequestChanged = listen('RequestChanged', (changedRequest: WorkflowRequest) => {
       setRequests((prev) => {
-        const exists = prev.some((r) => r.id === completedRequest.id);
+        const exists = prev.some((r) => r.id === changedRequest.id);
         if (exists) {
-          // Move to top and update
-          return [completedRequest, ...prev.filter((r) => r.id !== completedRequest.id)];
+          // Update existing request in place without changing position
+          return prev.map((r) => (r.id === changedRequest.id ? changedRequest : r));
+        } else {
+          // Add new request at the top
+          changedRequest.__isNew = true;
+          return [changedRequest, ...prev];
         }
-        return [completedRequest, ...prev];
       });
     });
-    
-    // When Ingest marks a request as NOT DONE
-    const unsubscribeNotDone = listen('RequestNotDone', (notDoneRequest: WorkflowRequest) => {
-      notDoneRequest.__isNew = true;
-      setRequests((prev) => {
-        const exists = prev.some((r) => r.id === notDoneRequest.id);
-        if (exists) {
-          return [notDoneRequest, ...prev.filter((r) => r.id !== notDoneRequest.id)];
-        }
-        return [notDoneRequest, ...prev];
-      });
-    });
-
-    const unsubscribeResourcesAssigned = listen('ResourcesAssigned', (assignedRequest: WorkflowRequest) => {
-      // Only Ingest should react to this event
-      assignedRequest.__isNew = true;
-      setRequests((prev) => {
-        const exists = prev.some((r) => r.id === assignedRequest.id);
-        if (exists) {
-          // Replace existing entry (maybe moved from NOC)
-          return prev.map((r) => (r.id === assignedRequest.id ? assignedRequest : r));
-        }
-        // Add new item at top
-        return [assignedRequest, ...prev];
-      });
-    });
-    
 
     return () => {
-      unsubscribeCreated();
-      unsubscribeUpdated();
-      unsubscribeCompleted();
-      unsubscribeResourcesAssigned();
-      unsubscribeNotDone();
+      unsubscribeRequestChanged();
     };
   }, [isConnected, listen]);
 

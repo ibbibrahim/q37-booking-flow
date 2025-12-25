@@ -24,12 +24,14 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { useToast } from '@/contexts/ToastContext';
+import { useSignalR } from '@/contexts/SignalRContext';
 
 export const RequestDetail: React.FC = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
   const { showToast } = useToast();
+  const { listen, isConnected } = useSignalR();
 
   const [request, setRequest] = useState<WorkflowRequest | null>(null);
   const [loading, setLoading] = useState(true);
@@ -63,6 +65,22 @@ export const RequestDetail: React.FC = () => {
     };
     loadRequest();
   }, [id]);
+
+  useEffect(() => {
+    if (!isConnected || !id) {
+      return;
+    }
+
+    const unsubscribeRequestChanged = listen('RequestChanged', (changedRequest: WorkflowRequest) => {
+      if (changedRequest.id === id) {
+        setRequest(changedRequest);
+      }
+    });
+
+    return () => {
+      unsubscribeRequestChanged();
+    };
+  }, [isConnected, listen, id]);
 
   const handleNOCAction = async (action: string, data: any) => {
     if (!request) return;
