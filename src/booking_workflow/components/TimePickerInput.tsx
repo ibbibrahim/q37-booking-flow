@@ -15,48 +15,87 @@ export const TimePickerInput: React.FC<TimePickerInputProps> = ({
   onChange,
   className = '',
 }) => {
-  const generateTimeOptions = () => {
-    const times: { value: string; label: string }[] = [];
+  const parseTime = (timeStr: string) => {
+    if (!timeStr) return { hour: '', minute: '', period: '' };
 
-    for (let hour = 0; hour < 24; hour++) {
-      for (let minute = 0; minute < 60; minute += 30) {
-        const hour24 = hour;
-        const hour12 = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
-        const period = hour < 12 ? 'AM' : 'PM';
-        const minuteStr = minute.toString().padStart(2, '0');
+    const [hours, minutes] = timeStr.split(':');
+    const hourNum = parseInt(hours, 10);
 
-        const value24 = `${hour24.toString().padStart(2, '0')}:${minuteStr}`;
-        const label = `${hour12}:${minuteStr} ${period}`;
-
-        times.push({ value: value24, label });
-      }
+    if (hourNum === 0) {
+      return { hour: '12', minute: minutes, period: 'AM' };
+    } else if (hourNum < 12) {
+      return { hour: hourNum.toString().padStart(2, '0'), minute: minutes, period: 'AM' };
+    } else if (hourNum === 12) {
+      return { hour: '12', minute: minutes, period: 'PM' };
+    } else {
+      return { hour: (hourNum - 12).toString().padStart(2, '0'), minute: minutes, period: 'PM' };
     }
-
-    return times;
   };
 
-  const timeOptions = generateTimeOptions();
+  const formatTime = (hour: string, minute: string, period: string) => {
+    let hourNum = parseInt(hour, 10);
 
-  const getDisplayLabel = (val: string) => {
-    if (!val) return '';
-    const option = timeOptions.find(opt => opt.value === val);
-    return option ? option.label : '';
+    if (period === 'AM') {
+      if (hourNum === 12) hourNum = 0;
+    } else {
+      if (hourNum !== 12) hourNum += 12;
+    }
+
+    return `${hourNum.toString().padStart(2, '0')}:${minute}`;
+  };
+
+  const { hour, minute, period } = parseTime(value);
+
+  const hours = Array.from({ length: 12 }, (_, i) => (i + 1).toString().padStart(2, '0'));
+  const minutes = Array.from({ length: 12 }, (_, i) => (i * 5).toString().padStart(2, '0'));
+
+  const handleHourChange = (newHour: string) => {
+    onChange(formatTime(newHour, minute, period));
+  };
+
+  const handleMinuteChange = (newMinute: string) => {
+    onChange(formatTime(hour, newMinute, period));
+  };
+
+  const handlePeriodChange = (newPeriod: string) => {
+    onChange(formatTime(hour, minute, newPeriod));
   };
 
   return (
-    <div id={id} className={className}>
-      <Select value={value} onValueChange={onChange}>
-        <SelectTrigger>
-          <SelectValue placeholder="--:-- --">
-            {getDisplayLabel(value)}
-          </SelectValue>
+    <div id={id} className={`flex gap-2 ${className}`}>
+      <Select value={hour} onValueChange={handleHourChange}>
+        <SelectTrigger className="w-[80px]">
+          <SelectValue placeholder="hh" />
         </SelectTrigger>
-        <SelectContent className="max-h-[300px]">
-          {timeOptions.map((time) => (
-            <SelectItem key={time.value} value={time.value}>
-              {time.label}
+        <SelectContent>
+          {hours.map((h) => (
+            <SelectItem key={h} value={h}>
+              {h}
             </SelectItem>
           ))}
+        </SelectContent>
+      </Select>
+
+      <Select value={minute} onValueChange={handleMinuteChange}>
+        <SelectTrigger className="w-[80px]">
+          <SelectValue placeholder="mm" />
+        </SelectTrigger>
+        <SelectContent className="max-h-[300px]">
+          {minutes.map((m) => (
+            <SelectItem key={m} value={m}>
+              {m}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
+      <Select value={period} onValueChange={handlePeriodChange}>
+        <SelectTrigger className="w-[80px]">
+          <SelectValue placeholder="AM" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="AM">AM</SelectItem>
+          <SelectItem value="PM">PM</SelectItem>
         </SelectContent>
       </Select>
     </div>
