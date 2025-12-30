@@ -9,6 +9,7 @@ import { RequestDetail } from './booking_workflow/components/RequestDetail';
 import { CallSheetRoleView } from './callsheet_workflow/components/CallSheetRoleView';
 import { CallSheetDetail } from './callsheet_workflow/components/CallSheetDetail';
 import { CallSheetAnalytics } from './callsheet_workflow/components/CallSheetAnalytics';
+import { InventoryList } from './inventory/components/InventoryList';
 
 function App() {
   const { isAuthenticated, user, isLoading } = useAuth();
@@ -190,6 +191,16 @@ function App() {
           element={
             <ProtectedRoute>
               <CallSheetDetail />
+            </ProtectedRoute>
+          }
+        />
+
+        {/** INVENTORY */}
+        <Route
+          path="inventory"
+          element={
+            <ProtectedRoute>
+              <InventoryList />
             </ProtectedRoute>
           }
         />

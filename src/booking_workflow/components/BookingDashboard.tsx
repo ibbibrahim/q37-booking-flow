@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import type { UserRole } from '../types/workflow';
-import { User, Radio, Package, Shield, Menu, X, Sun, Moon, FileText, LogOut, UserCircle, BarChart3 } from 'lucide-react';
+import { User, Radio, Package, Shield, Menu, X, Sun, Moon, FileText, LogOut, UserCircle, BarChart3, Boxes } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { NotificationDropdown } from '../../components/NotificationDropdown';
@@ -147,6 +147,19 @@ export const BookingDashboard: React.FC = () => {
                 </button>
               </>
             )}
+
+            <div className="my-2 border-t border-sidebar-border"></div>
+            <button
+              onClick={() => navigate('/inventory')}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
+                currentSection === 'inventory'
+                  ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+                  : 'text-sidebar-foreground hover:bg-sidebar-accent'
+              }`}
+            >
+              <Boxes size={20} />
+              <span className="font-medium text-sm">Inventory</span>
+            </button>
             </div>
           </nav>
 
@@ -183,11 +196,17 @@ export const BookingDashboard: React.FC = () => {
                 </button>
                 <div>
                   <h2 className="text-xl font-bold text-card-foreground">
-                    {currentSection === 'callsheet' ? 'Call Sheet Workflow' : currentRole}
+                    {currentSection === 'callsheet'
+                      ? 'Call Sheet Workflow'
+                      : currentSection === 'inventory'
+                      ? 'Inventory Management'
+                      : currentRole}
                   </h2>
                   <p className="text-sm text-muted-foreground mt-0.5">
                     {currentSection === 'callsheet'
                       ? 'Manage call sheets, equipment, and transportation requests'
+                      : currentSection === 'inventory'
+                      ? 'Manage technical store inventory items'
                       : getRoleDescription(currentRole)
                     }
                   </p>
