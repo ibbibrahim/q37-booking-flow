@@ -9,10 +9,11 @@ export interface Category {
 export interface InventoryItem {
   id: number;
   categoryId: number;
+  categoryName: string;
   itemName: string;
   model: string | null;
   totalQty: number;
-  unit: string | null;
+  qtyUnit: string | null;
   notes: string | null;
   isActive: boolean;
   updatedAt: string;
@@ -27,11 +28,16 @@ export interface CreateInventoryItemDto {
   itemName: string;
   model?: string;
   totalQty: number;
-  unit?: string;
+  qtyUnit?: string;
   notes?: string;
-  isActive: boolean;
 }
 
-export interface UpdateInventoryItemDto extends CreateInventoryItemDto {
-  id: number;
+export interface UpdateInventoryItemDto {
+  categoryId: number;
+  itemName: string;
+  model?: string;
+  totalQty: number;
+  qtyUnit?: string;
+  notes?: string;
+  isActive: boolean;
 }

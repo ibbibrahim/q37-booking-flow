@@ -12,11 +12,15 @@ class LocalCategoriesService implements CategoriesService {
     }
   }
 
-  async getAll(): Promise<Category[]> {
+  async getAll(includeInactive: boolean = false): Promise<Category[]> {
     this.initializeStorage();
     const data = localStorage.getItem(STORAGE_KEY);
     if (!data) return [];
-    return JSON.parse(data);
+    const categories: Category[] = JSON.parse(data);
+    if (includeInactive) {
+      return categories;
+    }
+    return categories.filter(cat => cat.isActive);
   }
 }
 

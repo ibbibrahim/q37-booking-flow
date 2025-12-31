@@ -4,10 +4,11 @@ export const inventorySeed: InventoryItem[] = [
   {
     "id": 1,
     "categoryId": 1,
+    "categoryName": "CAMERA DETAILS",
     "itemName": "SONY FS7 FULLKIT",
     "model": "SONY PXW-FS7M2K",
     "totalQty": 3,
-    "unit": null,
+    "qtyUnit": null,
     "notes": null,
     "isActive": true,
     "updatedAt": "2025-12-30T00:00:00Z"
@@ -15,10 +16,11 @@ export const inventorySeed: InventoryItem[] = [
   {
     "id": 2,
     "categoryId": 1,
+    "categoryName": "CAMERA DETAILS",
     "itemName": "SONY FX6V",
     "model": "ILME-FX6V",
     "totalQty": 6,
-    "unit": null,
+    "qtyUnit": null,
     "notes": null,
     "isActive": true,
     "updatedAt": "2025-12-30T00:00:00Z"
@@ -26,10 +28,11 @@ export const inventorySeed: InventoryItem[] = [
   {
     "id": 3,
     "categoryId": 1,
+    "categoryName": "CAMERA DETAILS",
     "itemName": "CAEMRA MIRRORLESS",
     "model": "SONY APLHA 7R3",
     "totalQty": 2,
-    "unit": null,
+    "qtyUnit": null,
     "notes": null,
     "isActive": true,
     "updatedAt": "2025-12-30T00:00:00Z"
@@ -37,10 +40,11 @@ export const inventorySeed: InventoryItem[] = [
   {
     "id": 4,
     "categoryId": 1,
+    "categoryName": "CAMERA DETAILS",
     "itemName": "CAMERA SONY PXWZ450",
     "model": "SONY PXW-Z450",
     "totalQty": 10,
-    "unit": null,
+    "qtyUnit": null,
     "notes": null,
     "isActive": true,
     "updatedAt": "2025-12-30T00:00:00Z"
@@ -48,10 +52,11 @@ export const inventorySeed: InventoryItem[] = [
   {
     "id": 5,
     "categoryId": 1,
+    "categoryName": "CAMERA DETAILS",
     "itemName": "SONY HANDHELD CAMCORDER",
     "model": "SONY Z90V",
     "totalQty": 6,
-    "unit": null,
+    "qtyUnit": null,
     "notes": null,
     "isActive": true,
     "updatedAt": "2025-12-30T00:00:00Z"
@@ -59,10 +64,11 @@ export const inventorySeed: InventoryItem[] = [
   {
     "id": 6,
     "categoryId": 1,
+    "categoryName": "CAMERA DETAILS",
     "itemName": "ARRI ALEXA MINI",
     "model": "ALEXA MINI",
     "totalQty": 1,
-    "unit": null,
+    "qtyUnit": null,
     "notes": null,
     "isActive": true,
     "updatedAt": "2025-12-30T00:00:00Z"
@@ -70,10 +76,11 @@ export const inventorySeed: InventoryItem[] = [
   {
     "id": 7,
     "categoryId": 1,
+    "categoryName": "CAMERA DETAILS",
     "itemName": "ARRI ALEXA 35",
     "model": "ALEXA 35",
     "totalQty": 3,
-    "unit": null,
+    "qtyUnit": null,
     "notes": null,
     "isActive": true,
     "updatedAt": "2025-12-30T00:00:00Z"
@@ -81,10 +88,11 @@ export const inventorySeed: InventoryItem[] = [
   {
     "id": 8,
     "categoryId": 1,
+    "categoryName": "CAMERA DETAILS",
     "itemName": "GOPRO CAMERA",
     "model": "GOPRO HERO 9",
     "totalQty": 4,
-    "unit": null,
+    "qtyUnit": null,
     "notes": null,
     "isActive": true,
     "updatedAt": "2025-12-30T00:00:00Z"
@@ -92,10 +100,11 @@ export const inventorySeed: InventoryItem[] = [
   {
     "id": 9,
     "categoryId": 1,
+    "categoryName": "CAMERA DETAILS",
     "itemName": "GOPRO CAMERA",
     "model": "GOPRO HERO 7 BLACK",
     "totalQty": 7,
-    "unit": null,
+    "qtyUnit": null,
     "notes": null,
     "isActive": true,
     "updatedAt": "2025-12-30T00:00:00Z"
@@ -103,10 +112,11 @@ export const inventorySeed: InventoryItem[] = [
   {
     "id": 10,
     "categoryId": 1,
+    "categoryName": "CAMERA DETAILS",
     "itemName": "GOPRO CAMERA",
     "model": "Go Pro Hero 13 Black",
     "totalQty": 8,
-    "unit": null,
+    "qtyUnit": null,
     "notes": null,
     "isActive": true,
     "updatedAt": "2025-12-30T00:00:00Z"
@@ -114,10 +124,11 @@ export const inventorySeed: InventoryItem[] = [
   {
     "id": 11,
     "categoryId": 1,
+    "categoryName": "CAMERA DETAILS",
     "itemName": "INSTA360 X4 8K",
     "model": "360 ACTION CAMERA",
     "totalQty": 4,
-    "unit": null,
+    "qtyUnit": null,
     "notes": null,
     "isActive": true,
     "updatedAt": "2025-12-30T00:00:00Z"
@@ -125,10 +136,11 @@ export const inventorySeed: InventoryItem[] = [
   {
     "id": 12,
     "categoryId": 1,
+    "categoryName": "CAMERA DETAILS",
     "itemName": "osmo pocket camera",
     "model": "osmo pocket",
     "totalQty": 1,
-    "unit": null,
+    "qtyUnit": null,
     "notes": null,
     "isActive": true,
     "updatedAt": "2025-12-30T00:00:00Z"
@@ -136,10 +148,11 @@ export const inventorySeed: InventoryItem[] = [
   {
     "id": 13,
     "categoryId": 1,
+    "categoryName": "CAMERA DETAILS",
     "itemName": "sony camera fx3",
     "model": "sony camera fx3",
     "totalQty": 2,
-    "unit": null,
+    "qtyUnit": null,
     "notes": null,
     "isActive": true,
     "updatedAt": "2025-12-30T00:00:00Z"
@@ -147,10 +160,11 @@ export const inventorySeed: InventoryItem[] = [
   {
     "id": 14,
     "categoryId": 2,
+    "categoryName": "CAMERA ACCESSORIES",
     "itemName": "GIMBAL",
     "model": "RONIN-S",
     "totalQty": 1,
-    "unit": null,
+    "qtyUnit": null,
     "notes": null,
     "isActive": true,
     "updatedAt": "2025-12-30T00:00:00Z"
@@ -158,10 +172,11 @@ export const inventorySeed: InventoryItem[] = [
   {
     "id": 15,
     "categoryId": 2,
+    "categoryName": "CAMERA ACCESSORIES",
     "itemName": "GIMBAL",
     "model": "RS 4 Pro Combo",
     "totalQty": 3,
-    "unit": null,
+    "qtyUnit": null,
     "notes": null,
     "isActive": true,
     "updatedAt": "2025-12-30T00:00:00Z"
@@ -169,10 +184,11 @@ export const inventorySeed: InventoryItem[] = [
   {
     "id": 16,
     "categoryId": 2,
+    "categoryName": "CAMERA ACCESSORIES",
     "itemName": "OSMO MOBILE  GIMBAL DJI",
     "model": "OM7",
     "totalQty": 4,
-    "unit": null,
+    "qtyUnit": null,
     "notes": null,
     "isActive": true,
     "updatedAt": "2025-12-30T00:00:00Z"
@@ -180,10 +196,11 @@ export const inventorySeed: InventoryItem[] = [
   {
     "id": 17,
     "categoryId": 2,
+    "categoryName": "CAMERA ACCESSORIES",
     "itemName": "OSMO MOBILE  GIMBAL DJI",
     "model": "OM6",
     "totalQty": 2,
-    "unit": null,
+    "qtyUnit": null,
     "notes": null,
     "isActive": true,
     "updatedAt": "2025-12-30T00:00:00Z"
@@ -191,10 +208,11 @@ export const inventorySeed: InventoryItem[] = [
   {
     "id": 18,
     "categoryId": 3,
+    "categoryName": "LENS DETAILS",
     "itemName": "ROKINON LENS",
     "model": "24MM",
     "totalQty": 2,
-    "unit": null,
+    "qtyUnit": null,
     "notes": null,
     "isActive": true,
     "updatedAt": "2025-12-30T00:00:00Z"
@@ -202,10 +220,11 @@ export const inventorySeed: InventoryItem[] = [
   {
     "id": 19,
     "categoryId": 3,
+    "categoryName": "LENS DETAILS",
     "itemName": "ROKINON LENS",
     "model": "35MM",
     "totalQty": 2,
-    "unit": null,
+    "qtyUnit": null,
     "notes": null,
     "isActive": true,
     "updatedAt": "2025-12-30T00:00:00Z"
@@ -213,10 +232,11 @@ export const inventorySeed: InventoryItem[] = [
   {
     "id": 20,
     "categoryId": 3,
+    "categoryName": "LENS DETAILS",
     "itemName": "ROKINON LENS",
     "model": "50MM",
     "totalQty": 2,
-    "unit": null,
+    "qtyUnit": null,
     "notes": null,
     "isActive": true,
     "updatedAt": "2025-12-30T00:00:00Z"

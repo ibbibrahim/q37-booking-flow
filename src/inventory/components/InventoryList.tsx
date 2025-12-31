@@ -5,8 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import type { InventoryItem, InventoryItemWithCategory, Category } from '../types/inventory';
-import { localInventoryService } from '../services/localInventoryService';
-import { localCategoriesService } from '../services/localCategoriesService';
+import { apiInventoryService } from '../services/apiInventoryService';
+import { apiCategoriesService } from '../services/apiCategoriesService';
 import { InventoryModal } from './InventoryModal';
 import { DeleteConfirmModal } from './DeleteConfirmModal';
 import { useToast } from '@/contexts/ToastContext';
@@ -38,14 +38,21 @@ export const InventoryList: React.FC = () => {
     setLoading(true);
     try {
       const [itemsData, categoriesData] = await Promise.all([
-        localInventoryService.getAll(),
-        localCategoriesService.getAll()
+        apiInventoryService.getAll(false),
+        apiCategoriesService.getAll(false)
       ]);
       setItems(itemsData);
       setCategories(categoriesData);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to load inventory data:', error);
-      showToast('Failed to load inventory data', 'error');
+      if (error.response?.status === 401) {
+        showToast('Unauthorized', 'error');
+      } else {
+        const errorMessage = error.response?.data?.message || 'Failed to load inventory data';
+        showToast(errorMessage, 'error');
+      }
+      setItems([]);
+      setCategories([]);
     } finally {
       setLoading(false);
     }
@@ -54,9 +61,9 @@ export const InventoryList: React.FC = () => {
   const itemsWithCategory = useMemo((): InventoryItemWithCategory[] => {
     return items.map(item => ({
       ...item,
-      categoryName: categories.find(c => c.id === item.categoryId)?.name || 'Unknown'
+      categoryName: item.categoryName || 'Unknown Category'
     }));
-  }, [items, categories]);
+  }, [items]);
 
   const filteredAndSortedItems = useMemo(() => {
     let filtered = itemsWithCategory;
@@ -135,27 +142,29 @@ export const InventoryList: React.FC = () => {
     if (!deletingItem) return;
 
     try {
-      await localInventoryService.remove(deletingItem.id);
+      await apiInventoryService.remove(deletingItem.id);
       await loadData();
       showToast('Item deleted successfully', 'success');
       setDeletingItem(null);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to delete item:', error);
-      showToast('Failed to delete item', 'error');
+      const errorMessage = error.response?.data?.message || 'Failed to delete item';
+      showToast(errorMessage, 'error');
     }
   };
 
   const handleToggleActive = async (item: InventoryItem) => {
     try {
-      await localInventoryService.toggleActive(item.id);
+      await apiInventoryService.toggleActive(item.id);
       await loadData();
       showToast(
         item.isActive ? 'Item deactivated successfully' : 'Item activated successfully',
         'success'
       );
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to toggle item status:', error);
-      showToast('Failed to update item status', 'error');
+      const errorMessage = error.response?.data?.message || 'Failed to update item status';
+      showToast(errorMessage, 'error');
     }
   };
 

@@ -23,8 +23,12 @@ class LocalInventoryService implements InventoryService {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
   }
 
-  async getAll(): Promise<InventoryItem[]> {
-    return this.getItems();
+  async getAll(includeInactive: boolean = false): Promise<InventoryItem[]> {
+    const items = this.getItems();
+    if (includeInactive) {
+      return items;
+    }
+    return items.filter(item => item.isActive);
   }
 
   async create(item: CreateInventoryItemDto): Promise<InventoryItem> {
@@ -34,12 +38,13 @@ class LocalInventoryService implements InventoryService {
     const newItem: InventoryItem = {
       id: newId,
       categoryId: item.categoryId,
+      categoryName: 'Unknown Category',
       itemName: item.itemName,
       model: item.model || null,
       totalQty: item.totalQty,
-      unit: item.unit || null,
+      qtyUnit: item.qtyUnit || null,
       notes: item.notes || null,
-      isActive: item.isActive,
+      isActive: true,
       updatedAt: new Date().toISOString()
     };
 
@@ -59,10 +64,11 @@ class LocalInventoryService implements InventoryService {
     const updatedItem: InventoryItem = {
       id,
       categoryId: item.categoryId,
+      categoryName: items[index].categoryName,
       itemName: item.itemName,
       model: item.model || null,
       totalQty: item.totalQty,
-      unit: item.unit || null,
+      qtyUnit: item.qtyUnit || null,
       notes: item.notes || null,
       isActive: item.isActive,
       updatedAt: new Date().toISOString()

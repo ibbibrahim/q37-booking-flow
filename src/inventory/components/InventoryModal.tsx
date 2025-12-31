@@ -6,8 +6,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import type { InventoryItem, Category, CreateInventoryItemDto } from '../types/inventory';
-import { localInventoryService } from '../services/localInventoryService';
+import type { InventoryItem, Category, CreateInventoryItemDto, UpdateInventoryItemDto } from '../types/inventory';
+import { apiInventoryService } from '../services/apiInventoryService';
 import { useToast } from '@/contexts/ToastContext';
 
 interface InventoryModalProps {
@@ -28,12 +28,12 @@ export const InventoryModal: React.FC<InventoryModalProps> = ({
   existingItems
 }) => {
   const { showToast } = useToast();
-  const [formData, setFormData] = useState<CreateInventoryItemDto>({
+  const [formData, setFormData] = useState<CreateInventoryItemDto & { isActive: boolean }>({
     categoryId: 0,
     itemName: '',
     model: '',
     totalQty: 0,
-    unit: '',
+    qtyUnit: '',
     notes: '',
     isActive: true
   });
@@ -46,7 +46,7 @@ export const InventoryModal: React.FC<InventoryModalProps> = ({
         itemName: editingItem.itemName,
         model: editingItem.model || '',
         totalQty: editingItem.totalQty,
-        unit: editingItem.unit || '',
+        qtyUnit: editingItem.qtyUnit || '',
         notes: editingItem.notes || '',
         isActive: editingItem.isActive
       });
@@ -56,7 +56,7 @@ export const InventoryModal: React.FC<InventoryModalProps> = ({
         itemName: '',
         model: '',
         totalQty: 0,
-        unit: '',
+        qtyUnit: '',
         notes: '',
         isActive: true
       });
@@ -105,19 +105,38 @@ export const InventoryModal: React.FC<InventoryModalProps> = ({
 
     try {
       if (editingItem) {
-        await localInventoryService.update(editingItem.id, {
-          ...formData,
-          id: editingItem.id
-        });
+        const updateDto: UpdateInventoryItemDto = {
+          categoryId: formData.categoryId,
+          itemName: formData.itemName,
+          model: formData.model,
+          totalQty: formData.totalQty,
+          qtyUnit: formData.qtyUnit,
+          notes: formData.notes,
+          isActive: formData.isActive
+        };
+        await apiInventoryService.update(editingItem.id, updateDto);
         showToast('Item updated successfully', 'success');
       } else {
-        await localInventoryService.create(formData);
+        const createDto: CreateInventoryItemDto = {
+          categoryId: formData.categoryId,
+          itemName: formData.itemName,
+          model: formData.model,
+          totalQty: formData.totalQty,
+          qtyUnit: formData.qtyUnit,
+          notes: formData.notes
+        };
+        await apiInventoryService.create(createDto);
         showToast('Item added successfully', 'success');
       }
       onSave();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to save item:', error);
-      showToast('Failed to save item', 'error');
+      const errorMessage = error.response?.data?.message || 'Failed to save item';
+      showToast(errorMessage, 'error');
+
+      if (error.response?.status === 400 && error.response?.data?.message) {
+        setErrors({ ...errors, apiError: error.response.data.message });
+      }
     }
   };
 
@@ -208,12 +227,12 @@ export const InventoryModal: React.FC<InventoryModalProps> = ({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="unit">Unit (Optional)</Label>
+            <Label htmlFor="qtyUnit">Unit (Optional)</Label>
             <Input
-              id="unit"
+              id="qtyUnit"
               type="text"
-              value={formData.unit}
-              onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
+              value={formData.qtyUnit}
+              onChange={(e) => setFormData({ ...formData, qtyUnit: e.target.value })}
               placeholder="e.g., pcs, set, etc."
             />
           </div>
@@ -246,6 +265,12 @@ export const InventoryModal: React.FC<InventoryModalProps> = ({
           {errors.duplicate && (
             <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
               <p className="text-sm text-red-700 dark:text-red-400">{errors.duplicate}</p>
+            </div>
+          )}
+
+          {errors.apiError && (
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
+              <p className="text-sm text-red-700 dark:text-red-400">{errors.apiError}</p>
             </div>
           )}
         </div>

@@ -1,5 +1,5 @@
 import type { Category } from '../types/inventory';
 
 export interface CategoriesService {
-  getAll(): Promise<Category[]>;
+  getAll(includeInactive?: boolean): Promise<Category[]>;
 }
