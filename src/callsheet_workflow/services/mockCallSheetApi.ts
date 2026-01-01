@@ -7,6 +7,31 @@ import type { CallSheetRequest } from "@/callsheet_workflow/types/callsheet";
 
 const API_BASE = "/api/callsheet/requests";
 
+export interface InventoryCategory {
+  id: number;
+  name: string;
+  isActive: boolean;
+  sortOrder: number;
+  updatedAt: string;
+}
+
+export interface InventoryAvailabilityItem {
+  inventoryItemId: number;
+  itemName: string;
+  model?: string | null;
+  totalOwned: number;
+  overlappingReservedQty: number;
+  overdueNotConfirmedQty: number;
+  availableQty: number;
+}
+
+export interface InventoryAvailabilityResponse {
+  start: string;
+  end: string;
+  endWithBuffer: string;
+  items: InventoryAvailabilityItem[];
+}
+
 export const callSheetApi = {
 
   getCallSheets: async (): Promise<CallSheetRequest[]> => {
@@ -67,5 +92,24 @@ export const callSheetApi = {
   ): Promise<CallSheetRequest> => {
     const { data: result } = await apiClient.put(`${API_BASE}/${id}/technical-store`, data);
     return result as CallSheetRequest;
+  },
+
+  getInventoryCategories: async (): Promise<InventoryCategory[]> => {
+    const { data } = await apiClient.get('/api/inventory/categories');
+    return data as InventoryCategory[];
+  },
+
+  getInventoryAvailability: async (
+    start: string,
+    end: string,
+    categoryId: number,
+    excludeCallsheetId?: number
+  ): Promise<InventoryAvailabilityResponse> => {
+    const params: any = { start, end, categoryId };
+    if (excludeCallsheetId) {
+      params.excludeCallsheetId = excludeCallsheetId;
+    }
+    const { data } = await apiClient.get('/api/inventory/items/availability', { params });
+    return data as InventoryAvailabilityResponse;
   },
 };

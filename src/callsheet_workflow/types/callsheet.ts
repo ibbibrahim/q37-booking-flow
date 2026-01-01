@@ -26,6 +26,8 @@ export interface Equipment {
   category: string;
   item: string;
   quantity: number;
+  categoryId?: number;    // Inventory category ID
+  inventoryItemId?: number; // Inventory item ID
 }
 
 // -----------------------------

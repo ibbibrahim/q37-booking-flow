@@ -673,6 +673,9 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
             departmentsToNotify={departmentsToNotify}
             onDepartmentsToApproveChange={setDepartmentsToApprove}
             onDepartmentsToNotifyChange={setDepartmentsToNotify}
+            startDateTime={formData.startDateTime}
+            returnDateTime={formData.returnDateTime}
+            callsheetId={initialCallSheet?.id}
           />
         </TabsContent>
 

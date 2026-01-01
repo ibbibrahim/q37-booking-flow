@@ -1,23 +1,40 @@
-import React, { useState } from 'react';
-import { Plus, Trash2 } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Plus, Trash2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import type { Equipment } from '../types/callsheet';
-import { EQUIPMENT_CATEGORIES, DEPARTMENTS } from '../types/callsheet';
+import { DEPARTMENTS } from '../types/callsheet';
+import {
+  callSheetApi,
+  type InventoryCategory,
+  type InventoryAvailabilityItem,
+  type InventoryAvailabilityResponse
+} from '../services/mockCallSheetApi';
+import { qatarTimeToUTC } from '../utils/timezone';
 
 interface EquipmentFormProps {
   equipment: Equipment[];
   onAddEquipment: (equipment: Equipment) => void;
-  onRemoveEquipment: (id: string) => void;
+  onRemoveEquipment: (id: number) => void;
   departmentsToApprove: string[];
   departmentsToNotify: string[];
   onDepartmentsToApproveChange: (departments: string[]) => void;
   onDepartmentsToNotifyChange: (departments: string[]) => void;
+  startDateTime?: string;
+  returnDateTime?: string;
+  callsheetId?: number;
+}
+
+interface EquipmentRow extends Equipment {
+  tempId: string;
+  availabilityLoading?: boolean;
+  availabilityError?: string;
+  exceedsAvailability?: boolean;
 }
 
 export const EquipmentForm: React.FC<EquipmentFormProps> = ({
@@ -27,40 +44,207 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({
   departmentsToApprove,
   departmentsToNotify,
   onDepartmentsToApproveChange,
-  onDepartmentsToNotifyChange
+  onDepartmentsToNotifyChange,
+  startDateTime,
+  returnDateTime,
+  callsheetId
 }) => {
-  const [category, setCategory] = useState('');
-  const [item, setItem] = useState('');
-  const [quantity, setQuantity] = useState(1);
-  const [customItem, setCustomItem] = useState('');
-  const [useCustomItem, setUseCustomItem] = useState(false);
+  const [categories, setCategories] = useState<InventoryCategory[]>([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
+  const [rows, setRows] = useState<EquipmentRow[]>([]);
 
-  const handleAddEquipment = () => {
-    if (!category) {
-      alert('Please select a category');
+  const availabilityCache = useRef<Map<string, InventoryAvailabilityResponse>>(new Map());
+  const debounceTimers = useRef<Map<string, NodeJS.Timeout>>(new Map());
+
+  useEffect(() => {
+    loadCategories();
+  }, []);
+
+  useEffect(() => {
+    const mappedRows: EquipmentRow[] = equipment.map(eq => ({
+      ...eq,
+      tempId: `temp-${eq.id || Date.now()}-${Math.random()}`
+    }));
+    setRows(mappedRows);
+  }, [equipment]);
+
+  useEffect(() => {
+    if (startDateTime && returnDateTime) {
+      rows.forEach(row => {
+        if (row.categoryId) {
+          fetchAvailabilityForRow(row.tempId, row.categoryId);
+        }
+      });
+    }
+  }, [startDateTime, returnDateTime]);
+
+  const loadCategories = async () => {
+    try {
+      const data = await callSheetApi.getInventoryCategories();
+      setCategories(data.filter(c => c.isActive));
+    } catch (error) {
+      console.error('Failed to load categories:', error);
+    } finally {
+      setCategoriesLoading(false);
+    }
+  };
+
+  const getCacheKey = (categoryId: number): string => {
+    const start = startDateTime ? qatarTimeToUTC(startDateTime) : '';
+    const end = returnDateTime ? qatarTimeToUTC(returnDateTime) : '';
+    return `${start}|${end}|${categoryId}|${callsheetId || ''}`;
+  };
+
+  const fetchAvailabilityForRow = useCallback((tempId: string, categoryId: number) => {
+    if (!startDateTime || !returnDateTime) return;
+
+    const cacheKey = getCacheKey(categoryId);
+    const cached = availabilityCache.current.get(cacheKey);
+
+    if (cached) {
       return;
     }
 
-    const finalItem = useCustomItem ? customItem.trim() : item;
+    const existingTimer = debounceTimers.current.get(tempId);
+    if (existingTimer) {
+      clearTimeout(existingTimer);
+    }
 
-    if (!finalItem) {
-      alert(useCustomItem ? 'Please enter a custom item name' : 'Please select an item');
+    const timer = setTimeout(async () => {
+      setRows(prev => prev.map(r =>
+        r.tempId === tempId ? { ...r, availabilityLoading: true, availabilityError: undefined } : r
+      ));
+
+      try {
+        const start = qatarTimeToUTC(startDateTime);
+        const end = qatarTimeToUTC(returnDateTime);
+        const result = await callSheetApi.getInventoryAvailability(start, end, categoryId, callsheetId);
+        availabilityCache.current.set(cacheKey, result);
+
+        setRows(prev => prev.map(r =>
+          r.tempId === tempId ? { ...r, availabilityLoading: false } : r
+        ));
+      } catch (error: any) {
+        console.error('Failed to fetch availability:', error);
+        setRows(prev => prev.map(r =>
+          r.tempId === tempId
+            ? { ...r, availabilityLoading: false, availabilityError: 'Failed to load availability' }
+            : r
+        ));
+      }
+    }, 300);
+
+    debounceTimers.current.set(tempId, timer);
+  }, [startDateTime, returnDateTime, callsheetId]);
+
+  const getAvailabilityForCategory = (categoryId: number): InventoryAvailabilityItem[] => {
+    const cacheKey = getCacheKey(categoryId);
+    const cached = availabilityCache.current.get(cacheKey);
+    return cached?.items || [];
+  };
+
+  const handleAddRow = () => {
+    const newRow: EquipmentRow = {
+      id: 0,
+      tempId: `new-${Date.now()}-${Math.random()}`,
+      category: '',
+      item: '',
+      quantity: 0,
+      categoryId: undefined,
+      inventoryItemId: undefined
+    };
+    setRows([...rows, newRow]);
+  };
+
+  const handleRemoveRow = (tempId: string) => {
+    const row = rows.find(r => r.tempId === tempId);
+    if (row && row.id) {
+      onRemoveEquipment(row.id);
+    }
+    setRows(rows.filter(r => r.tempId !== tempId));
+  };
+
+  const handleCategoryChange = (tempId: string, categoryId: number) => {
+    const category = categories.find(c => c.id === categoryId);
+    if (!category) return;
+
+    setRows(prev => prev.map(r =>
+      r.tempId === tempId
+        ? {
+            ...r,
+            categoryId,
+            category: category.name,
+            inventoryItemId: undefined,
+            item: '',
+            quantity: 0,
+            exceedsAvailability: false
+          }
+        : r
+    ));
+
+    if (startDateTime && returnDateTime) {
+      fetchAvailabilityForRow(tempId, categoryId);
+    }
+  };
+
+  const handleItemChange = (tempId: string, inventoryItemId: number) => {
+    const row = rows.find(r => r.tempId === tempId);
+    if (!row || !row.categoryId) return;
+
+    const availableItems = getAvailabilityForCategory(row.categoryId);
+    const selectedItem = availableItems.find(i => i.inventoryItemId === inventoryItemId);
+
+    if (!selectedItem) return;
+
+    const itemLabel = selectedItem.model
+      ? `${selectedItem.itemName} (${selectedItem.model})`
+      : selectedItem.itemName;
+
+    setRows(prev => prev.map(r =>
+      r.tempId === tempId
+        ? {
+            ...r,
+            inventoryItemId,
+            item: itemLabel,
+            quantity: 0,
+            exceedsAvailability: false
+          }
+        : r
+    ));
+  };
+
+  const handleQuantityChange = (tempId: string, quantity: number) => {
+    const row = rows.find(r => r.tempId === tempId);
+    if (!row || !row.categoryId || !row.inventoryItemId) return;
+
+    const availableItems = getAvailabilityForCategory(row.categoryId);
+    const selectedItem = availableItems.find(i => i.inventoryItemId === row.inventoryItemId);
+
+    const exceedsAvailability = selectedItem ? quantity > selectedItem.availableQty : false;
+
+    setRows(prev => prev.map(r =>
+      r.tempId === tempId ? { ...r, quantity, exceedsAvailability } : r
+    ));
+  };
+
+  const handleSaveRow = (tempId: string) => {
+    const row = rows.find(r => r.tempId === tempId);
+    if (!row || !row.categoryId || !row.inventoryItemId || row.quantity <= 0) {
+      alert('Please select category, item, and quantity');
       return;
     }
 
-    const newEquipment: Equipment = {
-      // id: Date.now().toString(),
-      category,
-      item: finalItem,
-      quantity
+    const equipmentData: Equipment = {
+      id: row.id || Date.now(),
+      category: row.category,
+      item: row.item,
+      quantity: row.quantity,
+      categoryId: row.categoryId,
+      inventoryItemId: row.inventoryItemId
     };
 
-    onAddEquipment(newEquipment);
-    //setCategory('');
-    //setItem('');
-    setCustomItem('');
-    setUseCustomItem(false);
-    setQuantity(1);
+    onAddEquipment(equipmentData);
+    setRows(rows.filter(r => r.tempId !== tempId));
   };
 
   const toggleDepartmentApprove = (dept: string) => {
@@ -79,162 +263,154 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({
     }
   };
 
-  const availableItems = category ? EQUIPMENT_CATEGORIES[category as keyof typeof EQUIPMENT_CATEGORIES] : [];
+  const canSelectEquipment = startDateTime && returnDateTime;
 
   return (
     <div className="space-y-6">
+      {!canSelectEquipment && (
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Please select start and end date/time to load equipment availability.
+          </AlertDescription>
+        </Alert>
+      )}
+
       <Card>
         <CardHeader>
-          <CardTitle>Add Equipment</CardTitle>
+          <CardTitle>Equipment List</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-        {/* Category */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="category" className="text-sm font-medium">Category <span className="text-red-500">*</span></Label>
-          </div>
-          <Select
-            value={category}
-            onValueChange={(value) => {
-              setCategory(value);
-              setItem('');
-              setCustomItem('');
-              setUseCustomItem(false);
-            }}
-          >
-            <SelectTrigger id="category" className="min-h-[40px]">
-              <SelectValue placeholder="Select category" />
-            </SelectTrigger>
-            <SelectContent>
-              {Object.keys(EQUIPMENT_CATEGORIES).map((cat) => (
-                <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Item */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="item" className="text-sm font-medium">Item <span className="text-red-500">*</span></Label>
-            {category && (
-              <button
-                type="button"
-                onClick={() => {
-                  setUseCustomItem(!useCustomItem);
-                  setItem('');
-                  setCustomItem('');
-                }}
-                className="text-xs text-blue-600 hover:text-blue-800 underline leading-none"
-              >
-                {useCustomItem ? 'Select from list' : 'Add custom'}
-              </button>
-            )}
-          </div>
-          {useCustomItem ? (
-            <Input id="custom-item" placeholder="Enter custom item name" value={customItem} onChange={(e) => setCustomItem(e.target.value)} disabled={!category} className="min-h-[40px]" />
+        <CardContent>
+          {rows.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              No equipment added yet
+            </div>
           ) : (
-            <Select value={item} onValueChange={setItem} disabled={!category}>
-              <SelectTrigger id="item" className="min-h-[40px]">
-                <SelectValue placeholder="Select item" />
-              </SelectTrigger>
-              <SelectContent>
-                {availableItems.map((itm) => (
-                  <SelectItem key={itm} value={itm}>{itm}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[200px]">Category</TableHead>
+                  <TableHead>Item</TableHead>
+                  <TableHead className="w-[120px]">Quantity</TableHead>
+                  <TableHead className="w-[100px] text-right">Action</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {rows.map((row) => {
+                  const availableItems = row.categoryId ? getAvailabilityForCategory(row.categoryId) : [];
+                  const selectedItem = availableItems.find(i => i.inventoryItemId === row.inventoryItemId);
+                  const maxQty = selectedItem?.availableQty || 0;
+
+                  return (
+                    <TableRow key={row.tempId}>
+                      <TableCell>
+                        <Select
+                          value={row.categoryId?.toString() || ''}
+                          onValueChange={(value) => handleCategoryChange(row.tempId, parseInt(value))}
+                          disabled={!canSelectEquipment || categoriesLoading}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select category" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {categories.map((cat) => (
+                              <SelectItem key={cat.id} value={cat.id.toString()}>
+                                {cat.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
+                      <TableCell>
+                        {row.availabilityLoading ? (
+                          <div className="text-sm text-muted-foreground">Loading...</div>
+                        ) : row.availabilityError ? (
+                          <div className="text-sm text-red-600">{row.availabilityError}</div>
+                        ) : (
+                          <Select
+                            value={row.inventoryItemId?.toString() || ''}
+                            onValueChange={(value) => handleItemChange(row.tempId, parseInt(value))}
+                            disabled={!row.categoryId || availableItems.length === 0}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select item" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {availableItems.map((item) => {
+                                const label = item.model
+                                  ? `${item.itemName} (${item.model}) - Available: ${item.availableQty}`
+                                  : `${item.itemName} - Available: ${item.availableQty}`;
+
+                                return (
+                                  <SelectItem
+                                    key={item.inventoryItemId}
+                                    value={item.inventoryItemId.toString()}
+                                    disabled={item.availableQty <= 0}
+                                  >
+                                    {label}
+                                  </SelectItem>
+                                );
+                              })}
+                            </SelectContent>
+                          </Select>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Select
+                          value={row.quantity > 0 ? row.quantity.toString() : ''}
+                          onValueChange={(value) => handleQuantityChange(row.tempId, parseInt(value))}
+                          disabled={!row.inventoryItemId || maxQty === 0}
+                        >
+                          <SelectTrigger className={row.exceedsAvailability ? 'border-yellow-500' : ''}>
+                            <SelectValue placeholder="Qty" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Array.from({ length: Math.max(maxQty, row.quantity) }, (_, i) => i + 1).map((num) => (
+                              <SelectItem key={num} value={num.toString()}>
+                                {num}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {row.exceedsAvailability && (
+                          <p className="text-xs text-yellow-600 mt-1">Exceeds current availability</p>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {!row.id || row.id === 0 ? (
+                          <Button
+                            size="sm"
+                            onClick={() => handleSaveRow(row.tempId)}
+                            disabled={!row.categoryId || !row.inventoryItemId || row.quantity === 0}
+                          >
+                            Save
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleRemoveRow(row.tempId)}
+                            className="text-red-600 hover:text-red-800 hover:bg-red-50"
+                          >
+                            <Trash2 size={16} />
+                          </Button>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
           )}
-        </div>
 
-        {/* Quantity */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="quantity" className="text-sm font-medium">Quantity</Label>
-          </div>
-          <Input id="quantity" type="number" min="1" value={quantity} onChange={(e) => setQuantity(parseInt(e.target.value) || 1)} className="min-h-[40px]" />
-        </div>
-      </div>
-
-
-          <Button onClick={handleAddEquipment}>
+          <Button onClick={handleAddRow} className="mt-4" disabled={!canSelectEquipment}>
             <Plus size={18} className="mr-2" />
-            Add Equipment
+            Add Equipment Row
           </Button>
         </CardContent>
       </Card>
 
-      {equipment.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Equipment List</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Category</TableHead>
-                  <TableHead>Item</TableHead>
-                  <TableHead>Qty</TableHead>
-                  <TableHead className="text-right">Action</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {equipment.map((eq) => (
-                  <TableRow key={eq.id}>
-                    <TableCell>{eq.category}</TableCell>
-                    <TableCell>{eq.item}</TableCell>
-                    <TableCell>{eq.quantity}</TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => onRemoveEquipment(eq.id)}
-                        className="text-red-600 hover:text-red-800 hover:bg-red-50"
-                      >
-                        <Trash2 size={16} />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      )}
-
-      {equipment.length === 0 && (
-        <Card>
-          <CardContent className="py-12">
-            <div className="text-center text-muted-foreground">
-              No equipment added yet
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* <Card>
-          <CardHeader>
-            <CardTitle>Departments to Approve</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {DEPARTMENTS.map((dept) => (
-              <div key={dept} className="flex items-center space-x-2">
-                <Checkbox
-                  id={`approve-${dept}`}
-                  checked={departmentsToApprove.includes(dept)}
-                  onCheckedChange={() => toggleDepartmentApprove(dept)}
-                />
-                <Label htmlFor={`approve-${dept}`} className="text-sm font-normal cursor-pointer">
-                  {dept}
-                </Label>
-              </div>
-            ))}
-          </CardContent>
-        </Card> */}
-
         <Card>
           <CardHeader>
             <CardTitle>Departments to Notify</CardTitle>
