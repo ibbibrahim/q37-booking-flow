@@ -10,7 +10,8 @@ export type WorkflowStatus =
   | 'Resources Added'
   | 'With Ingest'
   | 'Completed'
-  | 'Not Done';
+  | 'Not Done'
+  | 'Partially Completed';
 
 export type UserRole = 'Booking' | 'NOC' | 'Ingest' | 'Admin' | 'Callsheet' | 'TechnicalStore';
 
