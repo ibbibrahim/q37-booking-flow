@@ -401,7 +401,7 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({
                             <SelectValue placeholder="Qty" />
                           </SelectTrigger>
                           <SelectContent>
-                            {Array.from({ length: Math.max(maxQty, row.quantity, 10) }, (_, i) => i + 1).map((num) => (
+                            {Array.from({ length: Math.max(maxQty, row.quantity) }, (_, i) => i + 1).map((num) => (
                               <SelectItem key={num} value={num.toString()}>
                                 {num}
                               </SelectItem>
