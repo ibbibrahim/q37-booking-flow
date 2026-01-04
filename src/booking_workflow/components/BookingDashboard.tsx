@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import type { UserRole } from '../types/workflow';
-import { User, Radio, Package, Shield, Menu, X, Sun, Moon, FileText, LogOut, UserCircle, BarChart3, Boxes } from 'lucide-react';
+import { User, Radio, Package, Shield, Menu, X, Sun, Moon, FileText, LogOut, UserCircle, BarChart3, Boxes, Video } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { NotificationDropdown } from '../../components/NotificationDropdown';
@@ -160,6 +160,18 @@ export const BookingDashboard: React.FC = () => {
               <Boxes size={20} />
               <span className="font-medium text-sm">Inventory</span>
             </button>
+
+            <button
+              onClick={() => navigate('/studio-booking')}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
+                currentSection === 'studio-booking'
+                  ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+                  : 'text-sidebar-foreground hover:bg-sidebar-accent'
+              }`}
+            >
+              <Video size={20} />
+              <span className="font-medium text-sm">Studio Booking</span>
+            </button>
             </div>
           </nav>
 
@@ -200,6 +212,8 @@ export const BookingDashboard: React.FC = () => {
                       ? 'Call Sheet Workflow'
                       : currentSection === 'inventory'
                       ? 'Inventory Management'
+                      : currentSection === 'studio-booking'
+                      ? 'Studio Booking'
                       : currentRole}
                   </h2>
                   <p className="text-sm text-muted-foreground mt-0.5">
@@ -207,6 +221,8 @@ export const BookingDashboard: React.FC = () => {
                       ? 'Manage call sheets, equipment, and transportation requests'
                       : currentSection === 'inventory'
                       ? 'Manage technical store inventory items'
+                      : currentSection === 'studio-booking'
+                      ? 'Manage studio bookings and schedules'
                       : getRoleDescription(currentRole)
                     }
                   </p>

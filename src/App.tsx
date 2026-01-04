@@ -10,6 +10,7 @@ import { CallSheetRoleView } from './callsheet_workflow/components/CallSheetRole
 import { CallSheetDetail } from './callsheet_workflow/components/CallSheetDetail';
 import { CallSheetAnalytics } from './callsheet_workflow/components/CallSheetAnalytics';
 import { InventoryList } from './inventory/components/InventoryList';
+import { StudioBookingDashboard } from './studio_booking/components/StudioBookingDashboard';
 
 function App() {
   const { isAuthenticated, user, isLoading } = useAuth();
@@ -201,6 +202,16 @@ function App() {
           element={
             <ProtectedRoute>
               <InventoryList />
+            </ProtectedRoute>
+          }
+        />
+
+        {/** STUDIO BOOKING */}
+        <Route
+          path="studio-booking"
+          element={
+            <ProtectedRoute>
+              <StudioBookingDashboard />
             </ProtectedRoute>
           }
         />
