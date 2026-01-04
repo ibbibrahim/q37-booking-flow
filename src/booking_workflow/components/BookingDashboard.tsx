@@ -133,7 +133,7 @@ export const BookingDashboard: React.FC = () => {
 
             {hasCallsheetAccess && (
               <>
-                {/* <div className="my-2 border-t border-sidebar-border"></div> */}
+                <div className="my-2 border-t border-sidebar-border"></div>
                 <button
                   onClick={() => navigate('/callsheet/analytics')}
                   className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
@@ -148,7 +148,7 @@ export const BookingDashboard: React.FC = () => {
               </>
             )}
 
-            {/* <div className="my-2 border-t border-sidebar-border"></div> */}
+            <div className="my-2 border-t border-sidebar-border"></div>
             <button
               onClick={() => navigate('/inventory')}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${

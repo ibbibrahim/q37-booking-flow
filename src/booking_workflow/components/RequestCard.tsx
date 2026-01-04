@@ -16,8 +16,7 @@ const statusColors: Record<WorkflowStatus, { bg: string; text: string; border: s
   'Resources Added': { bg: 'bg-indigo-100', text: 'text-indigo-700', border: 'border-indigo-300' },
   'With Ingest': { bg: 'bg-cyan-100', text: 'text-cyan-700', border: 'border-cyan-300' },
   'Completed': { bg: 'bg-green-100', text: 'text-green-700', border: 'border-green-300' },
-  'Not Done': { bg: 'bg-red-100', text: 'text-red-700', border: 'border-red-300' },
-  'Partially Completed': { bg: 'bg-green-90', text: 'text-green-700', border: 'border-green-300' }
+  'Not Done': { bg: 'bg-red-100', text: 'text-red-700', border: 'border-red-300' }
 };
 
 const priorityColors = {

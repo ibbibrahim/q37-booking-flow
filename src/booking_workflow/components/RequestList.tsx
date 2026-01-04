@@ -51,8 +51,7 @@ const statusColors: Record<WorkflowStatus, { bg: string; text: string }> = {
   },
   'With Ingest': { bg: 'bg-cyan-100 dark:bg-cyan-900/30', text: 'text-cyan-700 dark:text-cyan-400' },
   Completed: { bg: 'bg-green-100 dark:bg-green-900/30', text: 'text-green-700 dark:text-green-400' },
-  'Not Done': { bg: 'bg-red-100 dark:bg-red-900/30', text: 'text-red-700 dark:text-red-400' },
-  'Partially Completed': { bg: 'bg-green-100 dark:bg-green-900/30', text: 'text-green-700 dark:text-green-400' }
+  'Not Done': { bg: 'bg-red-100 dark:bg-red-900/30', text: 'text-red-700 dark:text-red-400' }
 };
 
 const priorityColors = {
@@ -395,7 +394,11 @@ export const RequestList: React.FC<RequestListProps> = ({
                               </span>
                             </td>
                             <td className="py-3 px-4 text-sm">
-                              {request.createdByUser?.displayName}
+                              <span
+                                className={`px-3 py-1 rounded-full text-xs font-medium ${creatorColor}`}
+                              >
+                                {request.createdByUser?.displayName || 'System'}
+                              </span>
                             </td>
                             <td className="py-3 px-4 text-sm text-muted-foreground">
                               {new Date(request.createdAt).toDateString()}
