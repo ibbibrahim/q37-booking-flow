@@ -52,6 +52,7 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({
   const [categories, setCategories] = useState<InventoryCategory[]>([]);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
   const [rows, setRows] = useState<EquipmentRow[]>([]);
+  const hasInitializedRows = useRef(false);
 
   const availabilityCache = useRef<Map<string, InventoryAvailabilityResponse>>(new Map());
   const debounceTimers = useRef<Map<string, NodeJS.Timeout>>(new Map());
@@ -61,12 +62,31 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({
   }, []);
 
   useEffect(() => {
-    const mappedRows: EquipmentRow[] = equipment.map(eq => ({
-      ...eq,
-      tempId: `temp-${eq.id || Date.now()}-${Math.random()}`
-    }));
-    setRows(mappedRows);
+    if (!hasInitializedRows.current && equipment.length > 0) {
+      const mappedRows: EquipmentRow[] = equipment.map(eq => ({
+        ...eq,
+        tempId: `temp-${eq.id || Date.now()}-${Math.random()}`
+      }));
+      setRows(mappedRows);
+      hasInitializedRows.current = true;
+    }
   }, [equipment]);
+
+  useEffect(() => {
+    if (startDateTime && returnDateTime && !hasInitializedRows.current && equipment.length === 0 && rows.length === 0) {
+      const defaultRow: EquipmentRow = {
+        id: Date.now(),
+        tempId: `row-${Date.now()}-${Math.random()}`,
+        category: '',
+        item: '',
+        quantity: 1,
+        categoryId: undefined,
+        inventoryItemId: undefined
+      };
+      setRows([defaultRow]);
+      hasInitializedRows.current = true;
+    }
+  }, [startDateTime, returnDateTime, equipment.length, rows.length]);
 
   useEffect(() => {
     if (startDateTime && returnDateTime) {
@@ -147,7 +167,7 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({
     const newId = Date.now();
     const newRow: EquipmentRow = {
       id: newId,
-      tempId: `new-${newId}-${Math.random()}`,
+      tempId: `row-${newId}-${Math.random()}`,
       category: '',
       item: '',
       quantity: 1,
@@ -155,16 +175,6 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({
       inventoryItemId: undefined
     };
     setRows([...rows, newRow]);
-
-    const newEquipment: Equipment = {
-      id: newId,
-      category: '',
-      item: '',
-      quantity: 1,
-      categoryId: undefined,
-      inventoryItemId: undefined
-    };
-    onAddEquipment(newEquipment);
   };
 
   const handleRemoveRow = (tempId: string) => {
@@ -179,9 +189,6 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({
     const category = categories.find(c => c.id === categoryId);
     if (!category) return;
 
-    const row = rows.find(r => r.tempId === tempId);
-    if (!row) return;
-
     setRows(prev => prev.map(r =>
       r.tempId === tempId
         ? {
@@ -195,18 +202,6 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({
           }
         : r
     ));
-
-    if (row.id) {
-      const equipmentData: Equipment = {
-        id: row.id,
-        category: category.name,
-        item: '',
-        quantity: 1,
-        categoryId: categoryId,
-        inventoryItemId: undefined
-      };
-      onAddEquipment(equipmentData);
-    }
 
     if (startDateTime && returnDateTime) {
       fetchAvailabilityForRow(tempId, categoryId);
@@ -226,28 +221,19 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({
       ? `${selectedItem.itemName} (${selectedItem.model})`
       : selectedItem.itemName;
 
+    const updatedRow = {
+      ...row,
+      inventoryItemId,
+      item: itemLabel,
+      quantity: row.quantity || 1,
+      exceedsAvailability: false
+    };
+
     setRows(prev => prev.map(r =>
-      r.tempId === tempId
-        ? {
-            ...r,
-            inventoryItemId,
-            item: itemLabel,
-            exceedsAvailability: false
-          }
-        : r
+      r.tempId === tempId ? updatedRow : r
     ));
 
-    if (row.id) {
-      const equipmentData: Equipment = {
-        id: row.id,
-        category: row.category,
-        item: itemLabel,
-        quantity: row.quantity || 1,
-        categoryId: row.categoryId,
-        inventoryItemId: inventoryItemId
-      };
-      onAddEquipment(equipmentData);
-    }
+    syncRowToParent(updatedRow);
   };
 
   const handleQuantityChange = (tempId: string, quantity: number) => {
@@ -259,25 +245,35 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({
 
     const exceedsAvailability = selectedItem ? quantity > selectedItem.availableQty : false;
 
+    const updatedRow = {
+      ...row,
+      quantity,
+      exceedsAvailability
+    };
+
     setRows(prev => prev.map(r =>
-      r.tempId === tempId ? { ...r, quantity, exceedsAvailability } : r
+      r.tempId === tempId ? updatedRow : r
     ));
 
-    if (row.id) {
+    syncRowToParent(updatedRow);
+  };
+
+  const isItemSelectedInOtherRows = (inventoryItemId: number, currentTempId: string): boolean => {
+    return rows.some(r => r.tempId !== currentTempId && r.inventoryItemId === inventoryItemId);
+  };
+
+  const syncRowToParent = (row: EquipmentRow) => {
+    if (row.categoryId && row.inventoryItemId && row.quantity > 0) {
       const equipmentData: Equipment = {
         id: row.id,
         category: row.category,
         item: row.item,
-        quantity: quantity,
+        quantity: row.quantity,
         categoryId: row.categoryId,
         inventoryItemId: row.inventoryItemId
       };
       onAddEquipment(equipmentData);
     }
-  };
-
-  const isItemSelectedInOtherRows = (inventoryItemId: number, currentTempId: string): boolean => {
-    return rows.some(r => r.tempId !== currentTempId && r.inventoryItemId === inventoryItemId);
   };
 
   const toggleDepartmentApprove = (dept: string) => {
@@ -316,7 +312,7 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({
         <CardContent>
           {rows.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              No equipment added yet
+              {canSelectEquipment ? 'No equipment added yet' : 'Select start and return date/time first'}
             </div>
           ) : (
             <Table>
@@ -399,13 +395,13 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({
                         <Select
                           value={row.quantity > 0 ? row.quantity.toString() : ''}
                           onValueChange={(value) => handleQuantityChange(row.tempId, parseInt(value))}
-                          disabled={!row.inventoryItemId || maxQty === 0}
+                          disabled={!row.inventoryItemId}
                         >
                           <SelectTrigger className={row.exceedsAvailability ? 'border-yellow-500' : ''}>
                             <SelectValue placeholder="Qty" />
                           </SelectTrigger>
                           <SelectContent>
-                            {Array.from({ length: Math.max(maxQty, row.quantity) }, (_, i) => i + 1).map((num) => (
+                            {Array.from({ length: Math.max(maxQty, row.quantity, 10) }, (_, i) => i + 1).map((num) => (
                               <SelectItem key={num} value={num.toString()}>
                                 {num}
                               </SelectItem>
