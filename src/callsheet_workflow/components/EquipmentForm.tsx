@@ -144,16 +144,27 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({
   };
 
   const handleAddRow = () => {
+    const newId = Date.now();
     const newRow: EquipmentRow = {
-      id: 0,
-      tempId: `new-${Date.now()}-${Math.random()}`,
+      id: newId,
+      tempId: `new-${newId}-${Math.random()}`,
       category: '',
       item: '',
-      quantity: 0,
+      quantity: 1,
       categoryId: undefined,
       inventoryItemId: undefined
     };
     setRows([...rows, newRow]);
+
+    const newEquipment: Equipment = {
+      id: newId,
+      category: '',
+      item: '',
+      quantity: 1,
+      categoryId: undefined,
+      inventoryItemId: undefined
+    };
+    onAddEquipment(newEquipment);
   };
 
   const handleRemoveRow = (tempId: string) => {
@@ -168,6 +179,9 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({
     const category = categories.find(c => c.id === categoryId);
     if (!category) return;
 
+    const row = rows.find(r => r.tempId === tempId);
+    if (!row) return;
+
     setRows(prev => prev.map(r =>
       r.tempId === tempId
         ? {
@@ -176,11 +190,23 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({
             category: category.name,
             inventoryItemId: undefined,
             item: '',
-            quantity: 0,
+            quantity: 1,
             exceedsAvailability: false
           }
         : r
     ));
+
+    if (row.id) {
+      const equipmentData: Equipment = {
+        id: row.id,
+        category: category.name,
+        item: '',
+        quantity: 1,
+        categoryId: categoryId,
+        inventoryItemId: undefined
+      };
+      onAddEquipment(equipmentData);
+    }
 
     if (startDateTime && returnDateTime) {
       fetchAvailabilityForRow(tempId, categoryId);
@@ -206,11 +232,22 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({
             ...r,
             inventoryItemId,
             item: itemLabel,
-            quantity: 0,
             exceedsAvailability: false
           }
         : r
     ));
+
+    if (row.id) {
+      const equipmentData: Equipment = {
+        id: row.id,
+        category: row.category,
+        item: itemLabel,
+        quantity: row.quantity || 1,
+        categoryId: row.categoryId,
+        inventoryItemId: inventoryItemId
+      };
+      onAddEquipment(equipmentData);
+    }
   };
 
   const handleQuantityChange = (tempId: string, quantity: number) => {
@@ -225,26 +262,22 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({
     setRows(prev => prev.map(r =>
       r.tempId === tempId ? { ...r, quantity, exceedsAvailability } : r
     ));
+
+    if (row.id) {
+      const equipmentData: Equipment = {
+        id: row.id,
+        category: row.category,
+        item: row.item,
+        quantity: quantity,
+        categoryId: row.categoryId,
+        inventoryItemId: row.inventoryItemId
+      };
+      onAddEquipment(equipmentData);
+    }
   };
 
-  const handleSaveRow = (tempId: string) => {
-    const row = rows.find(r => r.tempId === tempId);
-    if (!row || !row.categoryId || !row.inventoryItemId || row.quantity <= 0) {
-      alert('Please select category, item, and quantity');
-      return;
-    }
-
-    const equipmentData: Equipment = {
-      id: row.id || Date.now(),
-      category: row.category,
-      item: row.item,
-      quantity: row.quantity,
-      categoryId: row.categoryId,
-      inventoryItemId: row.inventoryItemId
-    };
-
-    onAddEquipment(equipmentData);
-    setRows(rows.filter(r => r.tempId !== tempId));
+  const isItemSelectedInOtherRows = (inventoryItemId: number, currentTempId: string): boolean => {
+    return rows.some(r => r.tempId !== currentTempId && r.inventoryItemId === inventoryItemId);
   };
 
   const toggleDepartmentApprove = (dept: string) => {
@@ -337,15 +370,22 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({
                             </SelectTrigger>
                             <SelectContent>
                               {availableItems.map((item) => {
-                                const label = item.model
+                                const isSelectedElsewhere = isItemSelectedInOtherRows(item.inventoryItemId, row.tempId);
+                                const isDisabled = item.availableQty <= 0 || isSelectedElsewhere;
+
+                                let label = item.model
                                   ? `${item.itemName} (${item.model}) - Available: ${item.availableQty}`
                                   : `${item.itemName} - Available: ${item.availableQty}`;
+
+                                if (isSelectedElsewhere) {
+                                  label += ' (Already selected)';
+                                }
 
                                 return (
                                   <SelectItem
                                     key={item.inventoryItemId}
                                     value={item.inventoryItemId.toString()}
-                                    disabled={item.availableQty <= 0}
+                                    disabled={isDisabled}
                                   >
                                     {label}
                                   </SelectItem>
@@ -377,24 +417,14 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({
                         )}
                       </TableCell>
                       <TableCell className="text-right">
-                        {!row.id || row.id === 0 ? (
-                          <Button
-                            size="sm"
-                            onClick={() => handleSaveRow(row.tempId)}
-                            disabled={!row.categoryId || !row.inventoryItemId || row.quantity === 0}
-                          >
-                            Save
-                          </Button>
-                        ) : (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleRemoveRow(row.tempId)}
-                            className="text-red-600 hover:text-red-800 hover:bg-red-50"
-                          >
-                            <Trash2 size={16} />
-                          </Button>
-                        )}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleRemoveRow(row.tempId)}
+                          className="text-red-600 hover:text-red-800 hover:bg-red-50"
+                        >
+                          <Trash2 size={16} />
+                        </Button>
                       </TableCell>
                     </TableRow>
                   );

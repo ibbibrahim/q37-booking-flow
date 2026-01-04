@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AcknowledgementPanel } from './AcknowledgementPanel';
@@ -42,6 +43,7 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
     driverNeeded: false
   });
 
+  const [shootType, setShootType] = useState<'indoor' | 'outdoor'>('outdoor');
   const [startDateError, setStartDateError] = useState<string>('');
   const [returnDateError, setReturnDateError] = useState<string>('');
   const [showLocationSuggestions, setShowLocationSuggestions] = useState(false);
@@ -434,41 +436,43 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
                   )}
                 </div>
 
-                {/* Location */}
+                {/* Shoot Type */}
                 <div className="space-y-2">
-                  <Label htmlFor="location">Location</Label>
-                  <Input
-                    id="location"
-                    value={formData.location}
-                    onChange={(e) => handleChange('location', e.target.value)}
-                    placeholder="Filming location"
-                    readOnly={isTechnicalStoreMode}
-                  />
+                  <Label>Shoot Type</Label>
+                  <RadioGroup
+                    value={shootType}
+                    onValueChange={(value: 'indoor' | 'outdoor') => setShootType(value)}
+                    disabled={isTechnicalStoreMode}
+                    className="flex gap-4 mt-2"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="indoor" id="indoor" />
+                      <Label htmlFor="indoor" className="font-normal cursor-pointer">
+                        Indoor
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="outdoor" id="outdoor" />
+                      <Label htmlFor="outdoor" className="font-normal cursor-pointer">
+                        Outdoor
+                      </Label>
+                    </div>
+                  </RadioGroup>
                 </div>
 
-                {/* Call Time */}
-                <div className="space-y-2">
-                  <Label htmlFor="callTime">Call Time</Label>
-                  <Input
-                    id="callTime"
-                    type="time"
-                    value={formData.callTime}
-                    onChange={(e) => handleChange('callTime', e.target.value)}
-                    readOnly={isTechnicalStoreMode}
-                  />
-                </div>
-
-                {/* Wrap Time */}
-                <div className="space-y-2">
-                  <Label htmlFor="wrapTime">Wrap Time</Label>
-                  <Input
-                    id="wrapTime"
-                    type="time"
-                    value={formData.wrapTime}
-                    onChange={(e) => handleChange('wrapTime', e.target.value)}
-                    readOnly={isTechnicalStoreMode}
-                  />
-                </div>
+                {/* Location - Only show when Outdoor is selected */}
+                {shootType === 'outdoor' && (
+                  <div className="space-y-2">
+                    <Label htmlFor="location">Location</Label>
+                    <Input
+                      id="location"
+                      value={formData.location}
+                      onChange={(e) => handleChange('location', e.target.value)}
+                      placeholder="Filming location"
+                      readOnly={isTechnicalStoreMode}
+                    />
+                  </div>
+                )}
 
                 {/* Focal Point */}
                 <div className="space-y-2">
