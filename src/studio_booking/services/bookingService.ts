@@ -1,6 +1,9 @@
 import type { StudioBooking, CreateBookingDTO, UpdateBookingDTO } from '../types/booking';
 
-let bookings: StudioBooking[] = [
+const STORAGE_KEY = 'studio_bookings';
+const NEXT_ID_KEY = 'studio_bookings_next_id';
+
+const defaultBookings: StudioBooking[] = [
   {
     id: 1,
     code: 'SN-001',
@@ -135,7 +138,48 @@ let bookings: StudioBooking[] = [
   },
 ];
 
-let nextId = 15;
+const loadFromLocalStorage = (): StudioBooking[] => {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      return JSON.parse(stored);
+    }
+  } catch (error) {
+    console.error('Error loading bookings from localStorage:', error);
+  }
+  return defaultBookings;
+};
+
+const loadNextId = (): number => {
+  try {
+    const stored = localStorage.getItem(NEXT_ID_KEY);
+    if (stored) {
+      return parseInt(stored, 10);
+    }
+  } catch (error) {
+    console.error('Error loading next ID from localStorage:', error);
+  }
+  return 15;
+};
+
+const saveToLocalStorage = (data: StudioBooking[]): void => {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  } catch (error) {
+    console.error('Error saving bookings to localStorage:', error);
+  }
+};
+
+const saveNextId = (id: number): void => {
+  try {
+    localStorage.setItem(NEXT_ID_KEY, id.toString());
+  } catch (error) {
+    console.error('Error saving next ID to localStorage:', error);
+  }
+};
+
+let bookings: StudioBooking[] = loadFromLocalStorage();
+let nextId = loadNextId();
 
 export interface ConflictCheckResult {
   hasConflict: boolean;
@@ -211,6 +255,8 @@ export const bookingService = {
     };
 
     bookings.push(newBooking);
+    saveToLocalStorage(bookings);
+    saveNextId(nextId);
     return { success: true, booking: newBooking };
   },
 
@@ -245,6 +291,7 @@ export const bookingService = {
     }
 
     bookings[index] = updated;
+    saveToLocalStorage(bookings);
     return { success: true, booking: updated };
   },
 
@@ -255,6 +302,7 @@ export const bookingService = {
     }
 
     bookings.splice(index, 1);
+    saveToLocalStorage(bookings);
     return { success: true };
   }
 };
