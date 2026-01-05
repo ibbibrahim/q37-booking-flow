@@ -4,6 +4,10 @@ export type CallSheetStatus =
   | 'Submitted'
   | 'Completed'
   | 'Cancelled';
+
+export type ShootType = 'Indoor' | 'Outdoor';
+export type IndoorFacility = 'News Studio' | 'Program Studio' | 'Other Facilities';
+
 export interface CrewAssignment {
   id: number;             // DB PK → number, not string
   role: string;
@@ -67,7 +71,11 @@ export interface CallSheetRequest {
   callTime: string | null;     // can be null
   wrapTime: string | null;
 
-  location: string;
+  shootType: ShootType;
+  location: string | null;
+  indoorFacility: IndoorFacility | null;
+  equipmentNeeded: boolean;
+
   focalPoint: string;
   focalPointContact: string;
 
@@ -97,6 +105,12 @@ export const DEPARTMENTS = [
   'News and Digital Media',
   'QTV37 Production',
   'QBusiness',
+];
+
+export const INDOOR_FACILITIES: IndoorFacility[] = [
+  'News Studio',
+  'Program Studio',
+  'Other Facilities',
 ];
 
 export const CALL_SHEET_ROLES = [

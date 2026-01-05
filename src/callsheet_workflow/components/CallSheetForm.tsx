@@ -15,8 +15,8 @@ import { AcknowledgementPanel } from './AcknowledgementPanel';
 import { EquipmentForm } from './EquipmentForm';
 import { TransportForm } from './TransportForm';
 import { CallSheetPreview } from './CallSheetPreview';
-import type { CallSheetRequest, CrewAssignment, Equipment, DepartmentAcknowledgement, TransportRequest, Notification } from '../types/callsheet';
-import { DEPARTMENTS, DEFAULT_NOTIFICATIONS, DEPARTMENT_ACKNOWLEDGEMENTS, CALL_SHEET_ROLES  } from '../types/callsheet';
+import type { CallSheetRequest, CrewAssignment, Equipment, DepartmentAcknowledgement, TransportRequest, Notification, ShootType, IndoorFacility } from '../types/callsheet';
+import { DEPARTMENTS, DEFAULT_NOTIFICATIONS, DEPARTMENT_ACKNOWLEDGEMENTS, CALL_SHEET_ROLES, INDOOR_FACILITIES  } from '../types/callsheet';
 import { utcToQatarTime, qatarTimeToUTC, getCurrentQatarDateTime } from '../utils/timezone';
 
 interface CallSheetFormProps {
@@ -43,7 +43,9 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
     driverNeeded: false
   });
 
-  const [shootType, setShootType] = useState<'indoor' | 'outdoor'>('outdoor');
+  const [shootType, setShootType] = useState<ShootType>('Outdoor');
+  const [indoorFacility, setIndoorFacility] = useState<IndoorFacility | null>(null);
+  const [equipmentNeeded, setEquipmentNeeded] = useState<boolean>(false);
   const [startDateError, setStartDateError] = useState<string>('');
   const [returnDateError, setReturnDateError] = useState<string>('');
   const [showLocationSuggestions, setShowLocationSuggestions] = useState(false);
@@ -203,6 +205,16 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
     }
   };
 
+  const handleShootTypeChange = (value: ShootType) => {
+    setShootType(value);
+    if (value === 'Outdoor') {
+      setIndoorFacility(null);
+      setEquipmentNeeded(false);
+    } else {
+      setFormData(prev => ({ ...prev, location: '' }));
+    }
+  };
+
   const handleAddCrew = () => {
     if (!newCrew.role || !newCrew.name) {
       alert('Please fill in role and name');
@@ -267,7 +279,10 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
       returnDateTime: qatarTimeToUTC(formData.returnDateTime),
       callTime: formData.callTime,
       wrapTime: formData.wrapTime,
-      location: formData.location,
+      shootType: shootType,
+      location: shootType === 'Outdoor' ? formData.location : null,
+      indoorFacility: shootType === 'Indoor' ? indoorFacility : null,
+      equipmentNeeded: shootType === 'Indoor' ? equipmentNeeded : false,
       focalPoint: formData.focalPoint,
       focalPointContact: formData.focalPointContact,
       driverNeeded: formData.driverNeeded,
@@ -441,18 +456,18 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
                   <Label>Shoot Type</Label>
                   <RadioGroup
                     value={shootType}
-                    onValueChange={(value: 'indoor' | 'outdoor') => setShootType(value)}
+                    onValueChange={handleShootTypeChange}
                     disabled={isTechnicalStoreMode}
                     className="flex gap-4 mt-2"
                   >
                     <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="indoor" id="indoor" />
+                      <RadioGroupItem value="Indoor" id="indoor" />
                       <Label htmlFor="indoor" className="font-normal cursor-pointer">
                         Indoor
                       </Label>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="outdoor" id="outdoor" />
+                      <RadioGroupItem value="Outdoor" id="outdoor" />
                       <Label htmlFor="outdoor" className="font-normal cursor-pointer">
                         Outdoor
                       </Label>
@@ -461,7 +476,7 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
                 </div>
 
                 {/* Location - Only show when Outdoor is selected */}
-                {shootType === 'outdoor' && (
+                {shootType === 'Outdoor' && (
                   <div className="space-y-2">
                     <Label htmlFor="location">Location</Label>
                     <Input
@@ -471,6 +486,31 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
                       placeholder="Filming location"
                       readOnly={isTechnicalStoreMode}
                     />
+                  </div>
+                )}
+
+                {/* Indoor Facility - Only show when Indoor is selected */}
+                {shootType === 'Indoor' && (
+                  <div className="space-y-2">
+                    <Label>Indoor Facility</Label>
+                    <RadioGroup
+                      value={indoorFacility || ''}
+                      onValueChange={(value) => setIndoorFacility(value as IndoorFacility)}
+                      disabled={isTechnicalStoreMode}
+                      className="flex flex-col gap-2 mt-2"
+                    >
+                      {INDOOR_FACILITIES.map((facility) => (
+                        <div key={facility} className="flex items-center space-x-2">
+                          <RadioGroupItem value={facility} id={facility.toLowerCase().replace(/\s+/g, '-')} />
+                          <Label
+                            htmlFor={facility.toLowerCase().replace(/\s+/g, '-')}
+                            className="font-normal cursor-pointer"
+                          >
+                            {facility}
+                          </Label>
+                        </div>
+                      ))}
+                    </RadioGroup>
                   </div>
                 )}
 
@@ -497,6 +537,29 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
                     readOnly={isTechnicalStoreMode}
                   />
                 </div>
+
+                {/* Equipment Needed - Only show when Indoor is selected */}
+                {shootType === 'Indoor' && (
+                  <div className="md:col-span-2 space-y-2">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="equipmentNeeded"
+                        checked={equipmentNeeded}
+                        onCheckedChange={(checked) => setEquipmentNeeded(checked as boolean)}
+                        disabled={isTechnicalStoreMode}
+                      />
+                      <Label
+                        htmlFor="equipmentNeeded"
+                        className="text-sm font-normal cursor-pointer"
+                      >
+                        Equipment Needed
+                      </Label>
+                    </div>
+                    <p className="text-xs text-muted-foreground ml-6">
+                      If equipment is needed, this request will go to the Technical Store for confirmation. If no equipment is needed, it will be submitted directly and the announcement can be made without Technical Store approval.
+                    </p>
+                  </div>
+                )}
 
                 {/* Driver Needed */}
                 <div className="md:col-span-2">
