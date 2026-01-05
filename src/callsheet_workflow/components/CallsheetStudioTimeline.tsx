@@ -11,7 +11,7 @@ interface TimelineEvent {
   department: string;
   startDateTime: string;
   returnDateTime: string;
-  lane: 'Studio News' | 'Studio Program';
+  lane: 'News Studio' | 'Program Studio';
   color: string;
 }
 
@@ -27,7 +27,7 @@ const DUMMY_EVENTS: TimelineEvent[] = [
     department: 'News and Digital Media',
     startDateTime: new Date().setHours(8, 0, 0, 0).toString(),
     returnDateTime: new Date().setHours(10, 0, 0, 0).toString(),
-    lane: 'Studio News',
+    lane: 'News Studio',
     color: '#10b981',
   },
   {
@@ -36,7 +36,7 @@ const DUMMY_EVENTS: TimelineEvent[] = [
     department: 'News and Digital Media',
     startDateTime: new Date().setHours(11, 0, 0, 0).toString(),
     returnDateTime: new Date().setHours(12, 0, 0, 0).toString(),
-    lane: 'Studio News',
+    lane: 'News Studio',
     color: '#10b981',
   },
   {
@@ -45,7 +45,7 @@ const DUMMY_EVENTS: TimelineEvent[] = [
     department: 'News and Digital Media',
     startDateTime: new Date().setHours(16, 0, 0, 0).toString(),
     returnDateTime: new Date().setHours(18, 0, 0, 0).toString(),
-    lane: 'Studio News',
+    lane: 'News Studio',
     color: '#f97316',
   },
   {
@@ -54,7 +54,7 @@ const DUMMY_EVENTS: TimelineEvent[] = [
     department: 'QBusiness',
     startDateTime: new Date().setHours(9, 0, 0, 0).toString(),
     returnDateTime: new Date().setHours(11, 30, 0, 0).toString(),
-    lane: 'Studio Program',
+    lane: 'Program Studio',
     color: '#3b82f6',
   },
   {
@@ -63,7 +63,7 @@ const DUMMY_EVENTS: TimelineEvent[] = [
     department: 'QTV37 Production',
     startDateTime: new Date().setHours(13, 0, 0, 0).toString(),
     returnDateTime: new Date().setHours(15, 30, 0, 0).toString(),
-    lane: 'Studio Program',
+    lane: 'Program Studio',
     color: '#8b5cf6',
   },
   {
@@ -72,7 +72,7 @@ const DUMMY_EVENTS: TimelineEvent[] = [
     department: 'News and Digital Media',
     startDateTime: new Date().setHours(14, 0, 0, 0).toString(),
     returnDateTime: new Date().setHours(15, 0, 0, 0).toString(),
-    lane: 'Studio News',
+    lane: 'News Studio',
     color: '#ef4444',
   },
 ];
@@ -108,13 +108,13 @@ export const CallsheetStudioTimeline: React.FC<CallsheetStudioTimelineProps> = (
       department: cs.department,
       startDateTime: cs.startDateTime,
       returnDateTime: cs.returnDateTime,
-      lane: cs.indoorFacility === 'News Studio' ? 'Studio News' : 'Studio Program',
+      lane: cs.indoorFacility === 'News Studio' ? 'News Studio' : 'Program Studio',
       color: COLORS[index % COLORS.length],
     })) as TimelineEvent[];
   }, [callsheets, selectedDate]);
 
-  const newsEvents = events.filter((e) => e.lane === 'Studio News');
-  const programEvents = events.filter((e) => e.lane === 'Studio Program');
+  const newsEvents = events.filter((e) => e.lane === 'News Studio');
+  const programEvents = events.filter((e) => e.lane === 'Program Studio');
 
   const getEventPosition = (startDateTime: string, returnDateTime: string) => {
     const start = new Date(
@@ -211,114 +211,126 @@ export const CallsheetStudioTimeline: React.FC<CallsheetStudioTimelineProps> = (
         </div>
       </CardHeader>
       <CardContent>
-        <div className="relative overflow-x-auto">
-          <div className="min-w-[1000px]">
-            <div className="grid grid-cols-[150px_1fr] border border-border rounded-lg overflow-hidden">
-              <div className="bg-muted/30">
-                <div className="h-12 border-b border-border flex items-center px-4 font-semibold text-sm">
-                  Studio
+        <div className="border border-border rounded-lg overflow-hidden">
+          <div className="flex">
+            {/* Fixed Left Column - Studio Labels */}
+            <div className="w-[180px] flex-shrink-0 bg-muted/30">
+              <div className="h-12 border-b border-border flex items-center px-4 font-semibold text-sm">
+                Studio
+              </div>
+              <div>
+                <div className="h-20 flex flex-col justify-center px-4 border-b border-border">
+                  <div className="font-bold text-sm">News Studio</div>
+                  <div className="text-xs text-muted-foreground">{newsEvents.length} bookings</div>
                 </div>
-                <div className="border-b border-border">
-                  <div className="h-20 flex flex-col justify-center px-4 border-b border-border">
-                    <div className="font-medium text-sm">Studio News</div>
-                    <div className="text-xs text-muted-foreground">{newsEvents.length} bookings</div>
-                  </div>
-                  <div className="h-20 flex flex-col justify-center px-4">
-                    <div className="font-medium text-sm">Studio Program</div>
-                    <div className="text-xs text-muted-foreground">
-                      {programEvents.length} bookings
-                    </div>
+                <div className="h-20 flex flex-col justify-center px-4">
+                  <div className="font-bold text-sm">Program Studio</div>
+                  <div className="text-xs text-muted-foreground">
+                    {programEvents.length} bookings
                   </div>
                 </div>
               </div>
+            </div>
 
-              <div>
-                <div className="h-12 grid grid-cols-14 border-b border-border">
-                  {HOURS.map((hour) => (
+            {/* Scrollable Right Container - Time Grid */}
+            <div className="flex-1 overflow-x-auto">
+              <div style={{ minWidth: `${HOURS.length * 100}px` }}>
+                {/* Time Header Row */}
+                <div className="h-12 flex border-b border-border">
+                  {HOURS.map((hour, idx) => (
                     <div
                       key={hour}
-                      className="flex items-center justify-center text-xs font-medium border-l border-border first:border-l-0"
+                      className={`flex-1 flex items-center justify-center text-xs font-medium ${
+                        idx > 0 ? 'border-l border-border' : ''
+                      }`}
+                      style={{ minWidth: '100px' }}
                     >
                       {hour}:00
                     </div>
                   ))}
                 </div>
 
-                <div className="relative border-b border-border">
-                  <div className="h-20 relative border-b border-border">
-                    <div className="absolute inset-0 grid grid-cols-14">
-                      {HOURS.map((hour) => (
-                        <div
-                          key={hour}
-                          className="border-l border-border/50 first:border-l-0"
-                        />
-                      ))}
-                    </div>
-                    <div className="absolute inset-0 px-2 py-2">
-                      {newsEvents.map((event) => {
-                        const position = getEventPosition(event.startDateTime, event.returnDateTime);
-                        return (
-                          <div
-                            key={event.id}
-                            className="absolute h-16 rounded-md cursor-pointer transition-all hover:shadow-lg hover:z-10 hover:scale-[1.02] flex items-center justify-center text-white text-xs font-medium px-2"
-                            style={{
-                              left: position.left,
-                              width: position.width,
-                              backgroundColor: event.color,
-                            }}
-                            onClick={() => onOpenCallsheet(event.id)}
-                            onMouseEnter={(e) => handleEventHover(event, e)}
-                            onMouseLeave={() => setHoveredEvent(null)}
-                            onMouseMove={(e) => setHoverPosition({ x: e.clientX, y: e.clientY })}
-                          >
-                            <div className="text-center">
-                              <div className="font-semibold truncate">{event.title}</div>
-                              <div className="text-[10px] opacity-90">
-                                {formatTime(event.startDateTime)} - {formatTime(event.returnDateTime)}
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
+                {/* News Studio Lane */}
+                <div className="h-20 relative border-b border-border">
+                  {/* Grid Background */}
+                  <div className="absolute inset-0 flex">
+                    {HOURS.map((hour, idx) => (
+                      <div
+                        key={hour}
+                        className={`flex-1 ${idx > 0 ? 'border-l border-border/50' : ''}`}
+                        style={{ minWidth: '100px' }}
+                      />
+                    ))}
                   </div>
-
-                  <div className="h-20 relative">
-                    <div className="absolute inset-0 grid grid-cols-14">
-                      {HOURS.map((hour) => (
+                  {/* Events */}
+                  <div className="absolute inset-0 px-2 py-2">
+                    {newsEvents.map((event) => {
+                      const position = getEventPosition(event.startDateTime, event.returnDateTime);
+                      return (
                         <div
-                          key={hour}
-                          className="border-l border-border/50 first:border-l-0"
-                        />
-                      ))}
-                    </div>
-                    <div className="absolute inset-0 px-2 py-2">
-                      {programEvents.map((event) => {
-                        const position = getEventPosition(event.startDateTime, event.returnDateTime);
-                        return (
-                          <div
-                            key={event.id}
-                            className="absolute h-16 rounded-md cursor-pointer transition-all hover:shadow-lg hover:z-10 hover:scale-[1.02] flex items-center justify-center text-white text-xs font-medium px-2"
-                            style={{
-                              left: position.left,
-                              width: position.width,
-                              backgroundColor: event.color,
-                            }}
-                            onClick={() => onOpenCallsheet(event.id)}
-                            onMouseEnter={(e) => handleEventHover(event, e)}
-                            onMouseLeave={() => setHoveredEvent(null)}
-                            onMouseMove={(e) => setHoverPosition({ x: e.clientX, y: e.clientY })}
-                          >
-                            <div className="text-center">
-                              <div className="font-semibold truncate">{event.title}</div>
-                              <div className="text-[10px] opacity-90">
-                                {formatTime(event.startDateTime)} - {formatTime(event.returnDateTime)}
-                              </div>
+                          key={event.id}
+                          className="absolute h-16 rounded-md cursor-pointer transition-all hover:shadow-lg hover:z-10 hover:scale-[1.02] flex items-center justify-center text-white text-xs font-medium px-2"
+                          style={{
+                            left: position.left,
+                            width: position.width,
+                            backgroundColor: event.color,
+                          }}
+                          onClick={() => onOpenCallsheet(event.id)}
+                          onMouseEnter={(e) => handleEventHover(event, e)}
+                          onMouseLeave={() => setHoveredEvent(null)}
+                          onMouseMove={(e) => setHoverPosition({ x: e.clientX, y: e.clientY })}
+                        >
+                          <div className="text-center">
+                            <div className="font-semibold truncate">{event.title}</div>
+                            <div className="text-[10px] opacity-90">
+                              {formatTime(event.startDateTime)} - {formatTime(event.returnDateTime)}
                             </div>
                           </div>
-                        );
-                      })}
-                    </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Program Studio Lane */}
+                <div className="h-20 relative">
+                  {/* Grid Background */}
+                  <div className="absolute inset-0 flex">
+                    {HOURS.map((hour, idx) => (
+                      <div
+                        key={hour}
+                        className={`flex-1 ${idx > 0 ? 'border-l border-border/50' : ''}`}
+                        style={{ minWidth: '100px' }}
+                      />
+                    ))}
+                  </div>
+                  {/* Events */}
+                  <div className="absolute inset-0 px-2 py-2">
+                    {programEvents.map((event) => {
+                      const position = getEventPosition(event.startDateTime, event.returnDateTime);
+                      return (
+                        <div
+                          key={event.id}
+                          className="absolute h-16 rounded-md cursor-pointer transition-all hover:shadow-lg hover:z-10 hover:scale-[1.02] flex items-center justify-center text-white text-xs font-medium px-2"
+                          style={{
+                            left: position.left,
+                            width: position.width,
+                            backgroundColor: event.color,
+                          }}
+                          onClick={() => onOpenCallsheet(event.id)}
+                          onMouseEnter={(e) => handleEventHover(event, e)}
+                          onMouseLeave={() => setHoveredEvent(null)}
+                          onMouseMove={(e) => setHoverPosition({ x: e.clientX, y: e.clientY })}
+                        >
+                          <div className="text-center">
+                            <div className="font-semibold truncate">{event.title}</div>
+                            <div className="text-[10px] opacity-90">
+                              {formatTime(event.startDateTime)} - {formatTime(event.returnDateTime)}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               </div>
