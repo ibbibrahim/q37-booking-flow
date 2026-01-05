@@ -461,7 +461,7 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
                       type="button"
                       onClick={() => handleShootTypeChange('Outdoor')}
                       disabled={isTechnicalStoreMode}
-                      className={`flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 transition-all ${
+                      className={`flex items-center justify-center gap-2 px-2 py-2 rounded-lg border-2 transition-all ${
                         shootType === 'Outdoor'
                           ? 'border-primary bg-primary/5 text-primary'
                           : 'border-border hover:border-primary/50 text-muted-foreground'
@@ -474,7 +474,7 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
                       type="button"
                       onClick={() => handleShootTypeChange('Indoor')}
                       disabled={isTechnicalStoreMode}
-                      className={`flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 transition-all ${
+                      className={`flex items-center justify-center gap-2 px-2 py-2 rounded-lg border-2 transition-all ${
                         shootType === 'Indoor'
                           ? 'border-primary bg-primary/5 text-primary'
                           : 'border-border hover:border-primary/50 text-muted-foreground'
