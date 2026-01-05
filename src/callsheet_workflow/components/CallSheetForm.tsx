@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Plus, Trash2, Upload, X, MapPin, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Upload, X, MapPin, AlertCircle, Building2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -453,26 +453,37 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
 
                 {/* Shoot Type */}
                 <div className="space-y-2">
-                  <Label>Shoot Type</Label>
-                  <RadioGroup
-                    value={shootType}
-                    onValueChange={handleShootTypeChange}
-                    disabled={isTechnicalStoreMode}
-                    className="flex gap-4 mt-2"
-                  >
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="Indoor" id="indoor" />
-                      <Label htmlFor="indoor" className="font-normal cursor-pointer">
-                        Indoor
-                      </Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="Outdoor" id="outdoor" />
-                      <Label htmlFor="outdoor" className="font-normal cursor-pointer">
-                        Outdoor
-                      </Label>
-                    </div>
-                  </RadioGroup>
+                  <Label>
+                    Shoot Type <span className="text-red-500">*</span>
+                  </Label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => handleShootTypeChange('Outdoor')}
+                      disabled={isTechnicalStoreMode}
+                      className={`flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 transition-all ${
+                        shootType === 'Outdoor'
+                          ? 'border-primary bg-primary/5 text-primary'
+                          : 'border-border hover:border-primary/50 text-muted-foreground'
+                      } ${isTechnicalStoreMode ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                    >
+                      <MapPin className="w-5 h-5" />
+                      <span className="font-medium">Outdoor</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleShootTypeChange('Indoor')}
+                      disabled={isTechnicalStoreMode}
+                      className={`flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 transition-all ${
+                        shootType === 'Indoor'
+                          ? 'border-primary bg-primary/5 text-primary'
+                          : 'border-border hover:border-primary/50 text-muted-foreground'
+                      } ${isTechnicalStoreMode ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                    >
+                      <Building2 className="w-5 h-5" />
+                      <span className="font-medium">Indoor</span>
+                    </button>
+                  </div>
                 </div>
 
                 {/* Location - Only show when Outdoor is selected */}
@@ -492,23 +503,32 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
                 {/* Indoor Facility - Only show when Indoor is selected */}
                 {shootType === 'Indoor' && (
                   <div className="space-y-2">
-                    <Label>Indoor Facility</Label>
+                    <Label>
+                      Indoor Facility <span className="text-red-500">*</span>
+                    </Label>
                     <RadioGroup
                       value={indoorFacility || ''}
                       onValueChange={(value) => setIndoorFacility(value as IndoorFacility)}
                       disabled={isTechnicalStoreMode}
-                      className="flex flex-col gap-2 mt-2"
+                      className="flex flex-col gap-3"
                     >
                       {INDOOR_FACILITIES.map((facility) => (
-                        <div key={facility} className="flex items-center space-x-2">
-                          <RadioGroupItem value={facility} id={facility.toLowerCase().replace(/\s+/g, '-')} />
-                          <Label
-                            htmlFor={facility.toLowerCase().replace(/\s+/g, '-')}
-                            className="font-normal cursor-pointer"
-                          >
-                            {facility}
-                          </Label>
-                        </div>
+                        <label
+                          key={facility}
+                          htmlFor={facility.toLowerCase().replace(/\s+/g, '-')}
+                          className={`flex items-center gap-3 px-4 py-3 rounded-lg border-2 transition-all cursor-pointer ${
+                            indoorFacility === facility
+                              ? 'border-primary bg-primary/5'
+                              : 'border-border hover:border-primary/50'
+                          } ${isTechnicalStoreMode ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        >
+                          <RadioGroupItem
+                            value={facility}
+                            id={facility.toLowerCase().replace(/\s+/g, '-')}
+                            className="flex-shrink-0"
+                          />
+                          <span className="font-medium text-sm">{facility}</span>
+                        </label>
                       ))}
                     </RadioGroup>
                   </div>
