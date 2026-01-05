@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { DateRangePicker } from '@/components/DateRangePicker';
 import type { CallSheetRequest } from '../types/callsheet';
 import { formatQatarDateTime } from '../utils/timezone';
+import { CallsheetStudioTimeline } from './CallsheetStudioTimeline';
 
 export const CallSheetDashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -288,6 +289,12 @@ export const CallSheetDashboard: React.FC = () => {
           </Button>
         </div> */}
       </div>
+
+      {/* Studio Timeline */}
+      <CallsheetStudioTimeline
+        callsheets={callSheets}
+        onOpenCallsheet={(id) => navigate(`/callsheet/${id}`)}
+      />
 
       {/* Results Count */}
       <div className="text-sm text-muted-foreground">
