@@ -11,6 +11,7 @@ import { CallSheetDetail } from './callsheet_workflow/components/CallSheetDetail
 import { CallSheetAnalytics } from './callsheet_workflow/components/CallSheetAnalytics';
 import { InventoryList } from './inventory/components/InventoryList';
 import { StudioBookingDashboard } from './studio_booking/components/StudioBookingDashboard';
+import { UsersPage } from './admin/components/UsersPage';
 
 function App() {
   const { isAuthenticated, user, isLoading } = useAuth();
@@ -158,6 +159,14 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={['Admin']}>
               <RoleView role="Admin" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="admin/users"
+          element={
+            <ProtectedRoute allowedRoles={['Admin']}>
+              <UsersPage />
             </ProtectedRoute>
           }
         />

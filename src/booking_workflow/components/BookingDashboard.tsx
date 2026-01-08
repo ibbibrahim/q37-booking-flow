@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import type { UserRole } from '../types/workflow';
-import { User, Radio, Package, Shield, Menu, X, Sun, Moon, FileText, LogOut, UserCircle, BarChart3, Boxes, Video } from 'lucide-react';
+import { User, Radio, Package, Shield, Menu, X, Sun, Moon, FileText, LogOut, UserCircle, BarChart3, Boxes, Video, Users } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { NotificationDropdown } from '../../components/NotificationDropdown';
@@ -17,8 +17,11 @@ export const BookingDashboard: React.FC = () => {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
   const getCurrentSection = (): string => {
-    const path = location.pathname.split('/')[1];
-    return path || 'booking';
+    const pathParts = location.pathname.split('/').filter(Boolean);
+    if (pathParts[0] === 'admin' && pathParts[1] === 'users') {
+      return 'admin-users';
+    }
+    return pathParts[0] || 'booking';
   };
 
   const currentSection = getCurrentSection();
@@ -48,6 +51,7 @@ export const BookingDashboard: React.FC = () => {
   };
 
   const hasCallsheetAccess = user?.roles?.includes('Callsheet') || user?.roles?.includes('Admin');
+  const hasAdminAccess = user?.roles?.includes('Admin');
 
   const getAllowedRoles = (): UserRole[] => {
     if (!user || !user.roles || user.roles.length === 0) {
@@ -172,6 +176,23 @@ export const BookingDashboard: React.FC = () => {
               <Video size={20} />
               <span className="font-medium text-sm">Studio Booking</span>
             </button>
+
+            {hasAdminAccess && (
+              <>
+                <div className="my-2 border-t border-sidebar-border"></div>
+                <button
+                  onClick={() => navigate('/admin/users')}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
+                    location.pathname === '/admin/users'
+                      ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+                      : 'text-sidebar-foreground hover:bg-sidebar-accent'
+                  }`}
+                >
+                  <Users size={20} />
+                  <span className="font-medium text-sm">User Management</span>
+                </button>
+              </>
+            )}
             </div>
           </nav>
 
@@ -214,6 +235,8 @@ export const BookingDashboard: React.FC = () => {
                       ? 'Inventory Management'
                       : currentSection === 'studio-booking'
                       ? 'Studio Booking'
+                      : currentSection === 'admin-users'
+                      ? 'User Management'
                       : currentRole}
                   </h2>
                   <p className="text-sm text-muted-foreground mt-0.5">
@@ -223,6 +246,8 @@ export const BookingDashboard: React.FC = () => {
                       ? 'Manage technical store inventory items'
                       : currentSection === 'studio-booking'
                       ? 'Manage studio bookings and schedules'
+                      : currentSection === 'admin-users'
+                      ? 'Manage system users, roles, and permissions'
                       : getRoleDescription(currentRole)
                     }
                   </p>
