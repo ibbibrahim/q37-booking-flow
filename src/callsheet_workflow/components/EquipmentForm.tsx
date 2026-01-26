@@ -369,9 +369,13 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({
                                 const isSelectedElsewhere = isItemSelectedInOtherRows(item.inventoryItemId, row.tempId);
                                 const isDisabled = item.availableQty <= 0 || isSelectedElsewhere;
 
+                                // let label = item.model
+                                //   ? `${item.itemName} (${item.model}) - Available: ${item.availableQty}`
+                                //   : `${item.itemName} - Available: ${item.availableQty}`;
+
                                 let label = item.model
-                                  ? `${item.itemName} (${item.model}) - Available: ${item.availableQty}`
-                                  : `${item.itemName} - Available: ${item.availableQty}`;
+                                  ? `${item.itemName} (${item.model})`
+                                  : `${item.itemName}`;
 
                                 if (isSelectedElsewhere) {
                                   label += ' (Already selected)';

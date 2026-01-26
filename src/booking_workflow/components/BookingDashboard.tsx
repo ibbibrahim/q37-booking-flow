@@ -165,7 +165,7 @@ export const BookingDashboard: React.FC = () => {
               <span className="font-medium text-sm">Inventory</span>
             </button>
 
-            <button
+            {/* <button
               onClick={() => navigate('/studio-booking')}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
                 currentSection === 'studio-booking'
@@ -175,7 +175,7 @@ export const BookingDashboard: React.FC = () => {
             >
               <Video size={20} />
               <span className="font-medium text-sm">Studio Booking</span>
-            </button>
+            </button> */}
 
             {hasAdminAccess && (
               <>
