@@ -18,8 +18,6 @@ import { CallSheetPreview } from './CallSheetPreview';
 import type { CallSheetRequest, CrewAssignment, Equipment, DepartmentAcknowledgement, TransportRequest, Notification, ShootType, IndoorFacility } from '../types/callsheet';
 import { DEPARTMENTS, DEFAULT_NOTIFICATIONS, DEPARTMENT_ACKNOWLEDGEMENTS, CALL_SHEET_ROLES, INDOOR_FACILITIES  } from '../types/callsheet';
 import { utcToQatarTime, qatarTimeToUTC, getCurrentQatarDateTime } from '../utils/timezone';
-import type { EquipmentRow } from '../types/equipmentRow';
-import { createEmptyRow } from '../types/equipmentRow';
 
 interface CallSheetFormProps {
   onSubmit: (data: Partial<CallSheetRequest>) => void;
@@ -60,7 +58,7 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
     JSON.parse(JSON.stringify(DEPARTMENT_ACKNOWLEDGEMENTS))
   );
 
-  const [equipmentRows, setEquipmentRows] = useState<EquipmentRow[]>([createEmptyRow()]);
+  const [equipment, setEquipment] = useState<Equipment[]>([]);
   const [departmentsToApprove, setDepartmentsToApprove] = useState<string[]>([]);
   const [departmentsToNotify, setDepartmentsToNotify] = useState<string[]>([]);
 
@@ -104,16 +102,8 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
         setDepartmentAcknowledgements(initialCallSheet.departmentAcknowledgements);
       }
 
-      if (initialCallSheet.equipment && initialCallSheet.equipment.length > 0) {
-        const mappedRows: EquipmentRow[] = initialCallSheet.equipment.map(eq => ({
-          tempId: `temp-${Date.now()}-${Math.random()}`,
-          categoryId: eq.categoryId,
-          inventoryItemId: eq.inventoryItemId,
-          quantity: eq.quantity,
-          category: eq.category,
-          item: eq.item
-        }));
-        setEquipmentRows(mappedRows);
+      if (initialCallSheet.equipment) {
+        setEquipment(initialCallSheet.equipment);
       }
 
       if (initialCallSheet.transportRequest) {
@@ -282,33 +272,6 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
       return;
     }
 
-    const validEquipmentRows = equipmentRows.filter(r => r.categoryId && r.inventoryItemId && r.quantity > 0);
-
-    const uniqueEquipment = new Map<number, Equipment>();
-    validEquipmentRows.forEach(row => {
-      const existing = uniqueEquipment.get(row.inventoryItemId!);
-      if (existing) {
-        existing.quantity += row.quantity;
-      } else {
-        uniqueEquipment.set(row.inventoryItemId!, {
-          categoryId: row.categoryId!,
-          inventoryItemId: row.inventoryItemId!,
-          quantity: row.quantity,
-          category: row.category ?? "",
-          item: row.item ?? ""
-        } as Equipment);
-      }
-    });
-
-    const equipment = Array.from(uniqueEquipment.values());
-
-    let finalLocation = '';
-    if (shootType === 'Indoor') {
-      finalLocation = indoorFacility || '';
-    } else {
-      finalLocation = formData.location;
-    }
-
     const callSheetData: Partial<CallSheetRequest> = {
       department: formData.department,
       title: formData.title,
@@ -317,7 +280,8 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
       callTime: formData.callTime,
       wrapTime: formData.wrapTime,
       shootType: shootType,
-      location: finalLocation,
+      location: shootType === 'Outdoor' ? formData.location : null,
+      indoorFacility: shootType === 'Indoor' ? indoorFacility : null,
       equipmentNeeded: shootType === 'Indoor' ? equipmentNeeded : false,
       focalPoint: formData.focalPoint,
       focalPointContact: formData.focalPointContact,
@@ -370,7 +334,7 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
           <TabsTrigger value="preview">Transportation</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="request" forceMount className={activeTab !== 'request' ? 'hidden space-y-6' : 'space-y-6'}>
+        <TabsContent value="request" className="space-y-6">
           <Card>
             <CardHeader>
               <CardTitle>Booking Information</CardTitle>
@@ -787,10 +751,11 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
         </TabsContent>
 
 
-        <TabsContent value="equipment" forceMount className={activeTab !== 'equipment' ? 'hidden space-y-6' : 'space-y-6'}>
+        <TabsContent value="equipment" className="space-y-6">
           <EquipmentForm
-            equipmentRows={equipmentRows}
-            setEquipmentRows={setEquipmentRows}
+            equipment={equipment}
+            onAddEquipment={(eq) => setEquipment([...equipment, eq])}
+            onRemoveEquipment={(id) => setEquipment(equipment.filter(e => e.id !== id))}
             departmentsToApprove={departmentsToApprove}
             departmentsToNotify={departmentsToNotify}
             onDepartmentsToApproveChange={setDepartmentsToApprove}
@@ -801,7 +766,7 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
           />
         </TabsContent>
 
-        <TabsContent value="preview" forceMount className={activeTab !== 'preview' ? 'hidden space-y-6' : 'space-y-6'}>
+        <TabsContent value="preview" className="space-y-6">
           {formData.driverNeeded && (
             <TransportForm
               transportRequest={transportRequest}
@@ -818,15 +783,7 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
                 ...formData,
                 crewAssignments,
                 departmentAcknowledgements,
-                equipment: equipmentRows
-                  .filter(r => r.categoryId && r.inventoryItemId && r.quantity > 0)
-                  .map(r => ({
-                    category: r.category ?? "",
-                    item: r.item ?? "",
-                    quantity: r.quantity,
-                    categoryId: r.categoryId!,
-                    inventoryItemId: r.inventoryItemId!
-                  } as Equipment)),
+                equipment,
                 transportRequest,
                 departmentsToApprove,
                 departmentsToNotify
