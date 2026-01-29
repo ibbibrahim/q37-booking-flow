@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Calendar as CalendarIcon } from "lucide-react";
-import { format, subDays, subWeeks, subMonths, subYears, startOfWeek, startOfMonth, startOfYear } from "date-fns";
+import { format, subDays, addDays, subWeeks, subMonths, subYears, startOfWeek, startOfMonth, startOfYear, endOfDay } from "date-fns";
 import { DateRange } from "react-day-picker";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,7 @@ interface DateRangePickerProps {
 const presets = [
   { label: "Today", getValue: () => ({ from: new Date(), to: new Date() }) },
   { label: "Yesterday", getValue: () => ({ from: subDays(new Date(), 1), to: subDays(new Date(), 1) }) },
+  { label: "Tomorrow", getValue: () => ({ from: addDays(new Date(), 1), to: addDays(new Date(), 1) }) },
   { label: "This week", getValue: () => ({ from: startOfWeek(new Date()), to: new Date() }) },
   { label: "Last week", getValue: () => ({ from: startOfWeek(subWeeks(new Date(), 1)), to: subDays(startOfWeek(new Date()), 1) }) },
   { label: "This month", getValue: () => ({ from: startOfMonth(new Date()), to: new Date() }) },

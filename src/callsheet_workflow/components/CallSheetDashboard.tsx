@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, FileText, Calendar, User, Search, Filter } from 'lucide-react';
+import { Plus, FileText, Calendar, User, Search, Filter, Grid3x3, List } from 'lucide-react';
 import { addDays, startOfToday, endOfToday, startOfTomorrow, endOfTomorrow, endOfDay, startOfMonth, endOfMonth, format } from 'date-fns';
 import { DateRange } from 'react-day-picker';
 import { callSheetApi } from '../services/mockCallSheetApi';
@@ -13,6 +13,8 @@ import { DateRangePicker } from '@/components/DateRangePicker';
 import type { CallSheetRequest } from '../types/callsheet';
 import { formatQatarDateTime } from '../utils/timezone';
 import { CallsheetStudioTimeline } from './CallsheetStudioTimeline';
+
+type ViewMode = 'grid' | 'list';
 
 export const CallSheetDashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -27,8 +29,17 @@ export const CallSheetDashboard: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<string>('All');
   const [driverFilter, setDriverFilter] = useState<string>('All');
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
+  const [viewMode, setViewMode] = useState<ViewMode>(() => {
+    const saved = localStorage.getItem('callsheet_view_mode');
+    return (saved as ViewMode) || 'list';
+  });
 
   const isTechnicalStore = user?.roles?.includes('TechnicalStore') || false;
+
+  const handleViewModeChange = (mode: ViewMode) => {
+    setViewMode(mode);
+    localStorage.setItem('callsheet_view_mode', mode);
+  };
 
   // Debounce search query so we don't call API on every keystroke
   useEffect(() => {
@@ -200,6 +211,35 @@ export const CallSheetDashboard: React.FC = () => {
         )}
       </div>
 
+      {/* View Toggle */}
+      <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 bg-muted p-1 rounded-lg">
+          <button
+            onClick={() => handleViewModeChange('grid')}
+            className={`p-2 rounded transition-colors ${
+              viewMode === 'grid'
+                ? 'bg-primary text-primary-foreground'
+                : 'text-muted-foreground hover:text-card-foreground'
+            }`}
+            title="Grid view"
+          >
+            <Grid3x3 size={18} />
+          </button>
+          <button
+            onClick={() => handleViewModeChange('list')}
+            className={`p-2 rounded transition-colors ${
+              viewMode === 'list'
+                ? 'bg-primary text-primary-foreground'
+                : 'text-muted-foreground hover:text-card-foreground'
+            }`}
+            title="List view"
+          >
+            <List size={18} />
+          </button>
+        </div>
+        <div className="flex-1" />
+      </div>
+
       {/* Filter Bar */}
       <div className="bg-card rounded-lg border border-border p-4 space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
@@ -322,7 +362,7 @@ export const CallSheetDashboard: React.FC = () => {
             </Button>
           )}
         </div>
-      ) : (
+      ) : viewMode === 'grid' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {callSheets.map((callSheet) => (
             <div
@@ -379,6 +419,87 @@ export const CallSheetDashboard: React.FC = () => {
               </div>
             </div>
           ))}
+        </div>
+      ) : (
+        <div className="bg-card border border-border rounded-lg overflow-hidden">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-border bg-muted/50">
+                <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground">
+                  ID
+                </th>
+                <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground">
+                  Title
+                </th>
+                <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground">
+                  Department
+                </th>
+                <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground">
+                  Location
+                </th>
+                <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground">
+                  Shoot Type
+                </th>
+                <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground">
+                  Status
+                </th>
+                <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground">
+                  Start Date/Time
+                </th>
+                <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground">
+                  Crew
+                </th>
+                <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground">
+                  Equipment
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {callSheets.map((callSheet) => (
+                <tr
+                  key={callSheet.id}
+                  className="border-b border-border hover:bg-muted/50 cursor-pointer transition-colors"
+                  onClick={() => navigate(`/callsheet/${callSheet.id}`)}
+                >
+                  <td className="py-3 px-4 text-sm text-muted-foreground font-mono">
+                    {callSheet.id}
+                  </td>
+                  <td className="py-3 px-4 text-sm font-medium text-card-foreground">
+                    {callSheet.title}
+                  </td>
+                  <td className="py-3 px-4 text-sm text-muted-foreground">
+                    {callSheet.department}
+                  </td>
+                  <td className="py-3 px-4 text-sm text-muted-foreground">
+                    {callSheet.location || '-'}
+                  </td>
+                  <td className="py-3 px-4 text-sm">
+                    <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
+                      callSheet.shootType === 'Indoor'
+                        ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
+                        : 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
+                    }`}>
+                      {callSheet.shootType}
+                    </span>
+                  </td>
+                  <td className="py-3 px-4 text-sm">
+                    <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${statusColors[callSheet.status]}`}>
+                      {callSheet.status}
+                    </span>
+                  </td>
+                  <td className="py-3 px-4 text-sm text-muted-foreground">
+                    {callSheet.startDateTime ? formatQatarDateTime(callSheet.startDateTime) : '-'}
+                  </td>
+                  <td className="py-3 px-4 text-sm text-muted-foreground">
+                    {callSheet.crewAssignments.length}
+                  </td>
+                  <td className="py-3 px-4 text-sm text-muted-foreground">
+                    {callSheet.equipment.length}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </div>
