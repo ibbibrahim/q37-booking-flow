@@ -194,11 +194,32 @@ export const CallSheetDashboard: React.FC = () => {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-card-foreground">Call Sheets</h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            Manage call sheets, equipment requests, and transportation
-          </p>
+      <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 bg-muted p-1 rounded-lg">
+            <button
+              onClick={() => handleViewModeChange('grid')}
+              className={`p-2 rounded transition-colors ${
+                viewMode === 'grid'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-muted-foreground hover:text-card-foreground'
+              }`}
+              title="Grid view"
+            >
+              <Grid3x3 size={18} />
+            </button>
+            <button
+              onClick={() => handleViewModeChange('list')}
+              className={`p-2 rounded transition-colors ${
+                viewMode === 'list'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-muted-foreground hover:text-card-foreground'
+              }`}
+              title="List view"
+            >
+              <List size={18} />
+            </button>
+          </div>
+          <div className="flex-1" />
         </div>
         {!isTechnicalStore && (
           <Button
@@ -209,35 +230,6 @@ export const CallSheetDashboard: React.FC = () => {
             New Call Sheet
           </Button>
         )}
-      </div>
-
-      {/* View Toggle */}
-      <div className="flex items-center gap-3">
-        <div className="flex items-center gap-2 bg-muted p-1 rounded-lg">
-          <button
-            onClick={() => handleViewModeChange('grid')}
-            className={`p-2 rounded transition-colors ${
-              viewMode === 'grid'
-                ? 'bg-primary text-primary-foreground'
-                : 'text-muted-foreground hover:text-card-foreground'
-            }`}
-            title="Grid view"
-          >
-            <Grid3x3 size={18} />
-          </button>
-          <button
-            onClick={() => handleViewModeChange('list')}
-            className={`p-2 rounded transition-colors ${
-              viewMode === 'list'
-                ? 'bg-primary text-primary-foreground'
-                : 'text-muted-foreground hover:text-card-foreground'
-            }`}
-            title="List view"
-          >
-            <List size={18} />
-          </button>
-        </div>
-        <div className="flex-1" />
       </div>
 
       {/* Filter Bar */}
