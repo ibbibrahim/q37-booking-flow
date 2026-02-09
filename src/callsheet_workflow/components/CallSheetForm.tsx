@@ -235,7 +235,7 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
       setIndoorFacility(null);
       setEquipmentNeeded(false);
     } else {
-      setFormData(prev => ({ ...prev, location: '' }));
+      setFormData(prev => ({ ...prev, location: '', driverNeeded: false }));
     }
   };
 
@@ -626,7 +626,7 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
                 </div>
 
                 {/* Equipment Needed - Only show when Indoor is selected */}
-                {shootType === 'Indoor' && (
+                {/* {shootType === 'Indoor' && (
                   <div className="md:col-span-2 space-y-2">
                     <div className="flex items-center space-x-2">
                       <Checkbox
@@ -646,27 +646,30 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
                       If equipment is needed, this request will go to the Technical Store for confirmation. If no equipment is needed, it will be submitted directly and the announcement can be made without Technical Store approval.
                     </p>
                   </div>
+                )} */}
+
+                {/* Driver Needed - Hide when Indoor is selected */}
+                {shootType !== 'Indoor' && (
+                  <div className="md:col-span-2">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="driverNeeded"
+                        checked={formData.driverNeeded}
+                        onCheckedChange={(checked) =>
+                          handleChange('driverNeeded', checked as boolean)
+                        }
+                        disabled={isTechnicalStoreMode}
+                      />
+                      <Label
+                        htmlFor="driverNeeded"
+                        className="text-sm font-normal cursor-pointer"
+                      >
+                        Driver Needed
+                      </Label>
+                    </div>
+                  </div>
                 )}
 
-                {/* Driver Needed */}
-                <div className="md:col-span-2">
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="driverNeeded"
-                      checked={formData.driverNeeded}
-                      onCheckedChange={(checked) =>
-                        handleChange('driverNeeded', checked as boolean)
-                      }
-                      disabled={isTechnicalStoreMode}
-                    />
-                    <Label
-                      htmlFor="driverNeeded"
-                      className="text-sm font-normal cursor-pointer"
-                    >
-                      Driver Needed
-                    </Label>
-                  </div>
-                </div>
               </div>
             </CardContent>
           </Card>
