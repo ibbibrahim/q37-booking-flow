@@ -25,46 +25,45 @@ export const qatarTimeToUTC = (qatarDateString: string): string => {
   return utcDate.toISOString();
 };
 
-export const formatQatarDateTime = (utcDateString: string): string => {
-  if (!utcDateString) return 'N/A';
+export const formatQatarDateTime = (dateString: string): string => {
+  if (!dateString) return 'N/A';
 
-  const utcDate = new Date(utcDateString);
-  const qatarDate = new Date(utcDate.getTime() + QATAR_TIMEZONE_OFFSET * 60 * 1000);
+  // Just format the date string as-is, no timezone conversion
+  const date = new Date(dateString);
+  
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
 
-  return qatarDate.toLocaleString('en-GB', {
-    timeZone: 'UTC',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false
-  });
+  return `${day}/${month}/${year} ${hours}:${minutes}`;
 };
 
-export const formatQatarDate = (utcDateString: string): string => {
-  if (!utcDateString) return 'N/A';
+export const formatQatarDate = (dateString: string): string => {
+  if (!dateString) return 'N/A';
 
-  const utcDate = new Date(utcDateString);
-  const qatarDate = new Date(utcDate.getTime() + QATAR_TIMEZONE_OFFSET * 60 * 1000);
+  // Just format the date string as-is, no timezone conversion
+  const date = new Date(dateString);
+  const months = ['January', 'February', 'March', 'April', 'May', 'June', 
+                  'July', 'August', 'September', 'October', 'November', 'December'];
+  
+  const year = date.getFullYear();
+  const month = months[date.getMonth()];
+  const day = date.getDate();
 
-  return qatarDate.toLocaleDateString('en-GB', {
-    timeZone: 'UTC',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  });
+  return `${day} ${month} ${year}`;
 };
 
 export const getCurrentQatarDateTime = (): string => {
+  // Get current date/time in Qatar (just use local time, assuming user is in Qatar)
   const now = new Date();
-  const qatarNow = new Date(now.getTime() + QATAR_TIMEZONE_OFFSET * 60 * 1000);
 
-  const year = qatarNow.getUTCFullYear();
-  const month = String(qatarNow.getUTCMonth() + 1).padStart(2, '0');
-  const day = String(qatarNow.getUTCDate()).padStart(2, '0');
-  const hours = String(qatarNow.getUTCHours()).padStart(2, '0');
-  const minutes = String(qatarNow.getUTCMinutes()).padStart(2, '0');
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const hours = String(now.getHours()).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
 
   return `${year}-${month}-${day}T${hours}:${minutes}`;
 };

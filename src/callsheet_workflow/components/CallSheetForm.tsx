@@ -17,7 +17,7 @@ import { TransportForm } from './TransportForm';
 import { CallSheetPreview } from './CallSheetPreview';
 import type { CallSheetRequest, CrewAssignment, Equipment, DepartmentAcknowledgement, TransportRequest, Notification, ShootType, IndoorFacility } from '../types/callsheet';
 import { DEPARTMENTS, DEFAULT_NOTIFICATIONS, DEPARTMENT_ACKNOWLEDGEMENTS, CALL_SHEET_ROLES, INDOOR_FACILITIES  } from '../types/callsheet';
-import { utcToQatarTime, qatarTimeToUTC, getCurrentQatarDateTime } from '../utils/timezone';
+import { getCurrentQatarDateTime } from '../utils/timezone';
 import type { EquipmentRow } from '../types/equipmentRow';
 import { createEmptyRow } from '../types/equipmentRow';
 
@@ -80,14 +80,19 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
   // Initialize form with existing data if provided
   useEffect(() => {
     if (initialCallSheet) {
-      const startQatar = initialCallSheet.startDateTime ? utcToQatarTime(initialCallSheet.startDateTime) : '';
-      const returnQatar = initialCallSheet.returnDateTime ? utcToQatarTime(initialCallSheet.returnDateTime) : '';
+      // Convert ISO string to datetime-local format (YYYY-MM-DDTHH:mm) without timezone conversion
+      const startDateTime = initialCallSheet.startDateTime 
+        ? initialCallSheet.startDateTime.substring(0, 16) 
+        : '';
+      const returnDateTime = initialCallSheet.returnDateTime 
+        ? initialCallSheet.returnDateTime.substring(0, 16) 
+        : '';
 
       setFormData({
         department: initialCallSheet.department || '',
         title: initialCallSheet.title || '',
-        startDateTime: startQatar,
-        returnDateTime: returnQatar,
+        startDateTime: startDateTime,
+        returnDateTime: returnDateTime,
         callTime: initialCallSheet.callTime || '',
         wrapTime: initialCallSheet.wrapTime || '',
         location: initialCallSheet.location || '',
@@ -119,8 +124,12 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
       if (initialCallSheet.transportRequest) {
         setTransportRequest({
           reason: initialCallSheet.transportRequest.reason || '',
-          startDateTime: utcToQatarTime(initialCallSheet.transportRequest.startDateTime || ''),
-          returnDateTime: utcToQatarTime(initialCallSheet.transportRequest.returnDateTime || ''),
+          startDateTime: initialCallSheet.transportRequest.startDateTime 
+            ? initialCallSheet.transportRequest.startDateTime.substring(0, 16) 
+            : '',
+          returnDateTime: initialCallSheet.transportRequest.returnDateTime 
+            ? initialCallSheet.transportRequest.returnDateTime.substring(0, 16) 
+            : '',
           driverName: initialCallSheet.transportRequest.driverName || '',
           driverNo: initialCallSheet.transportRequest.driverNo || '',
           carType: initialCallSheet.transportRequest.carType || '',
@@ -309,11 +318,18 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
       finalLocation = formData.location;
     }
 
+    // Convert datetime-local format (YYYY-MM-DDTHH:mm) to ISO string format
+    // Just append ':00.000Z' to make it a valid ISO string, treating it as Qatar time
+    const formatToISO = (dateTimeLocal: string): string => {
+      if (!dateTimeLocal) return '';
+      return `${dateTimeLocal}:00.000Z`;
+    };
+
     const callSheetData: Partial<CallSheetRequest> = {
       department: formData.department,
       title: formData.title,
-      startDateTime: qatarTimeToUTC(formData.startDateTime),
-      returnDateTime: qatarTimeToUTC(formData.returnDateTime),
+      startDateTime: formatToISO(formData.startDateTime),
+      returnDateTime: formatToISO(formData.returnDateTime),
       callTime: formData.callTime,
       wrapTime: formData.wrapTime,
       shootType: shootType,
@@ -329,8 +345,8 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
       departmentsToNotify,
       transportRequest: formData.driverNeeded ? {
         ...transportRequest,
-        startDateTime: qatarTimeToUTC(transportRequest.startDateTime),
-        returnDateTime: qatarTimeToUTC(transportRequest.returnDateTime)
+        startDateTime: formatToISO(transportRequest.startDateTime),
+        returnDateTime: formatToISO(transportRequest.returnDateTime)
       } : null,
       notifications,
       createdBy: 1,

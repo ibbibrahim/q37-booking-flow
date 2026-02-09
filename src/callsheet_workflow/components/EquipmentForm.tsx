@@ -17,7 +17,6 @@ import {
   type InventoryAvailabilityItem,
   type InventoryAvailabilityResponse
 } from '../services/mockCallSheetApi';
-import { qatarTimeToUTC } from '../utils/timezone';
 
 interface EquipmentFormProps {
   equipmentRows: EquipmentRow[];
@@ -73,9 +72,15 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({
     }
   };
 
+  // Helper to convert datetime-local to ISO format (no timezone conversion)
+  const formatToISO = (dateTimeLocal: string): string => {
+    if (!dateTimeLocal) return '';
+    return `${dateTimeLocal}:00.000Z`;
+  };
+
   const getCacheKey = (categoryId: number): string => {
-    const start = startDateTime ? qatarTimeToUTC(startDateTime) : '';
-    const end = returnDateTime ? qatarTimeToUTC(returnDateTime) : '';
+    const start = startDateTime ? formatToISO(startDateTime) : '';
+    const end = returnDateTime ? formatToISO(returnDateTime) : '';
     return `${start}|${end}|${categoryId}|${callsheetId || ''}`;
   };
 
@@ -100,8 +105,8 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({
       ));
 
       try {
-        const start = qatarTimeToUTC(startDateTime);
-        const end = qatarTimeToUTC(returnDateTime);
+        const start = formatToISO(startDateTime);
+        const end = formatToISO(returnDateTime);
         const result = await callSheetApi.getInventoryAvailability(start, end, categoryId, callsheetId);
         availabilityCache.current.set(cacheKey, result);
 
