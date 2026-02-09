@@ -112,4 +112,11 @@ export const callSheetApi = {
     const { data } = await apiClient.get('/api/inventory/items/availability', { params });
     return data as InventoryAvailabilityResponse;
   },
+
+  announceCallSheet: async (
+    id: number,
+    payload: { to: string[]; cc: string[]; noteHtml: string }
+  ): Promise<void> => {
+    await apiClient.post(`${API_BASE}/${id}/announce`, payload);
+  },
 };

@@ -1,10 +1,11 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Download, Clock, User, FileText } from 'lucide-react';
+import { ArrowLeft, Download, Clock, User, FileText, Mail } from 'lucide-react';
 import { callSheetApi } from '../services/mockCallSheetApi';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSignalR } from '@/contexts/SignalRContext';
 import { CallSheetForm } from './CallSheetForm';
+import { CallSheetEmailModal } from './CallSheetEmailModal';
 import type { CallSheetRequest } from '../types/callsheet';
 import { formatQatarDateTime } from '../utils/timezone';
 import { Button } from '@/components/ui/button';
@@ -17,10 +18,14 @@ export const CallSheetDetail: React.FC = () => {
   const { listen, isConnected } = useSignalR();
   const [callSheet, setCallSheet] = useState<CallSheetRequest | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showEmailModal, setShowEmailModal] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
 
   // Check if user has TechnicalStore role
   const isTechnicalStore = user?.roles?.includes('TechnicalStore') || false;
+
+  // Check if user has CallSheet role
+  const hasCallSheetRole = user?.roles?.includes('CallSheet') || false;
 
   useEffect(() => {
     const loadCallSheet = async () => {
@@ -177,10 +182,22 @@ export const CallSheetDetail: React.FC = () => {
             </div>
           </div>
 
-          <Button onClick={handlePrint} className="gap-2">
-            <Download className="h-4 w-4" />
-            Download PDF
-          </Button>
+          <div className="flex gap-2">
+            {hasCallSheetRole && (
+              <Button
+                onClick={() => setShowEmailModal(true)}
+                variant="outline"
+                className="gap-2"
+              >
+                <Mail className="h-4 w-4" />
+                Announce / Send Email
+              </Button>
+            )}
+            <Button onClick={handlePrint} className="gap-2">
+              <Download className="h-4 w-4" />
+              Download PDF
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -383,6 +400,17 @@ export const CallSheetDetail: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {callSheet && (
+        <CallSheetEmailModal
+          open={showEmailModal}
+          onClose={() => setShowEmailModal(false)}
+          callSheet={callSheet}
+          onSuccess={() => {
+            setShowEmailModal(false);
+          }}
+        />
+      )}
     </div>
   );
 };

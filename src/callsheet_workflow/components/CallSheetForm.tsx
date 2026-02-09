@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Plus, Trash2, Upload, X, MapPin, AlertCircle, Building2 } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Upload, X, MapPin, AlertCircle, Building2, Mail } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,6 +15,8 @@ import { AcknowledgementPanel } from './AcknowledgementPanel';
 import { EquipmentForm } from './EquipmentForm';
 import { TransportForm } from './TransportForm';
 import { CallSheetPreview } from './CallSheetPreview';
+import { CallSheetEmailModal } from './CallSheetEmailModal';
+import { useAuth } from '@/contexts/AuthContext';
 import type { CallSheetRequest, CrewAssignment, Equipment, DepartmentAcknowledgement, TransportRequest, Notification, ShootType, IndoorFacility } from '../types/callsheet';
 import { DEPARTMENTS, DEFAULT_NOTIFICATIONS, DEPARTMENT_ACKNOWLEDGEMENTS, CALL_SHEET_ROLES, INDOOR_FACILITIES  } from '../types/callsheet';
 import { getCurrentQatarDateTime } from '../utils/timezone';
@@ -29,8 +31,11 @@ interface CallSheetFormProps {
 
 export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialCallSheet, mode = 'create' }) => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('request');
+  const [showEmailModal, setShowEmailModal] = useState(false);
   const isTechnicalStoreMode = mode === 'technicalStore';
+  const hasCallSheetRole = user?.roles?.includes('CallSheet') || false;
 
   const [formData, setFormData] = useState({
     department: '',
@@ -367,7 +372,7 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
         >
           <ArrowLeft size={20} />
         </Button>
-        <div>
+        <div className="flex-1">
           <h1 className="text-2xl font-bold text-card-foreground">
             {isTechnicalStoreMode ? 'Assign Driver & Equipment' : 'New Call Sheet'}
           </h1>
@@ -377,6 +382,16 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
               : 'Create a new call sheet with equipment and transportation requests'}
           </p>
         </div>
+        {hasCallSheetRole && initialCallSheet?.id && (
+          <Button
+            onClick={() => setShowEmailModal(true)}
+            variant="outline"
+            className="gap-2"
+          >
+            <Mail className="h-4 w-4" />
+            Announce / Send Email
+          </Button>
+        )}
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -888,6 +903,17 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
           )}
         </div>
       </div>
+
+      {initialCallSheet && (
+        <CallSheetEmailModal
+          open={showEmailModal}
+          onClose={() => setShowEmailModal(false)}
+          callSheet={initialCallSheet}
+          onSuccess={() => {
+            setShowEmailModal(false);
+          }}
+        />
+      )}
     </div>
   );
 };
