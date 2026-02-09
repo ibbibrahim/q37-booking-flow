@@ -143,12 +143,41 @@ export const CallSheetPreview: React.FC<CallSheetPreviewProps> = ({ callSheet })
     }, 250);
   };
 
-  // Group equipment by category
+  // Map actual category names to preview section names
+  const mapCategoryToSection = (categoryName: string): string => {
+    if (!categoryName) return 'Other';
+    const normalized = categoryName.toUpperCase();
+    
+    // Map camera-related categories to "Camera"
+    if (normalized.includes('CAMERA') || normalized.includes('LENS') || normalized.includes('TRIPOD') || normalized.includes('DRONE')) {
+      return 'Camera';
+    }
+    
+    // Map lighting-related categories to "Lighting"
+    if (normalized.includes('LIGHTING') || normalized.includes('LIGHT')) {
+      return 'Lighting';
+    }
+    
+    // Map sound-related categories to "Sound"
+    if (normalized.includes('SOUND') || normalized.includes('AUDIO') || normalized.includes('MICROPHONE') || normalized.includes('MIC')) {
+      return 'Sound';
+    }
+    
+    // Map SD card categories to "SD Cards"
+    if (normalized.includes('SD CARD') || normalized.includes('MEMORY CARD') || normalized.includes('STORAGE')) {
+      return 'SD Cards';
+    }
+    
+    // Default to "Camera" for unknown categories to ensure they're displayed
+    return 'Camera';
+  };
+
+  // Group equipment by mapped category sections
   const equipmentByCategory = callSheet.equipment
     ? callSheet.equipment.reduce((acc, item) => {
-        const cat = item.category || 'Other';
-        if (!acc[cat]) acc[cat] = [];
-        acc[cat].push(item);
+        const section = mapCategoryToSection(item.category || '');
+        if (!acc[section]) acc[section] = [];
+        acc[section].push(item);
         return acc;
       }, {} as Record<string, typeof callSheet.equipment>)
     : {};
