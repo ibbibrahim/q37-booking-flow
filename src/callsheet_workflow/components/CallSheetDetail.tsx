@@ -25,7 +25,7 @@ export const CallSheetDetail: React.FC = () => {
   const isTechnicalStore = user?.roles?.includes('TechnicalStore') || false;
 
   // Check if user has CallSheet role
-  const hasCallSheetRole = user?.roles?.includes('CallSheet') || false;
+  const hasCallSheetRole = user?.roles?.includes('Callsheet') || false;
 
   useEffect(() => {
     const loadCallSheet = async () => {
@@ -343,7 +343,7 @@ export const CallSheetDetail: React.FC = () => {
               </div>
             )}
 
-            {callSheet.departmentAcknowledgements.length > 0 && (
+            {/* {callSheet.departmentAcknowledgements.length > 0 && (
               <div className="bg-card rounded-lg border border-border p-6">
                 <h2 className="text-lg font-semibold text-card-foreground mb-4">Department Acknowledgements</h2>
                 <div className="space-y-3">
@@ -363,7 +363,7 @@ export const CallSheetDetail: React.FC = () => {
                   ))}
                 </div>
               </div>
-            )}
+            )} */}
           </div>
 
           <div className="space-y-6">

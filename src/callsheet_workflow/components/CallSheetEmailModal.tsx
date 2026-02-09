@@ -272,7 +272,7 @@ export const CallSheetEmailModal: React.FC<CallSheetEmailModalProps> = ({
               </Label>
               <div className="border border-border rounded-lg overflow-hidden">
                 <Editor
-                  apiKey="no-api-key"
+                  apiKey="i2gpcq7lxdbrg4kzs6ega1mgefbl5p4l8thhtinym0pn1dpo"
                   onInit={(evt, editor) => (editorRef.current = editor)}
                   value={noteHtml}
                   onEditorChange={(content) => setNoteHtml(content)}
@@ -294,7 +294,7 @@ export const CallSheetEmailModal: React.FC<CallSheetEmailModalProps> = ({
               </div>
             </div>
 
-            <div>
+            {/* <div>
               <Label className="text-sm font-semibold mb-2 block">
                 Email Preview
               </Label>
@@ -303,7 +303,7 @@ export const CallSheetEmailModal: React.FC<CallSheetEmailModalProps> = ({
                   dangerouslySetInnerHTML={{ __html: generateEmailPreview() }}
                 />
               </div>
-            </div>
+            </div> */}
           </div>
 
           <div className="flex items-center justify-end gap-3 pt-4 border-t">
