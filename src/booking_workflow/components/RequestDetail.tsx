@@ -361,7 +361,7 @@ export const RequestDetail: React.FC = () => {
                                 <TableHead>URL</TableHead>
                                 <TableHead className="w-[120px]">Status</TableHead>
                                 <TableHead className="w-[200px]">Notes</TableHead>
-                                <TableHead className="w-[120px]">Updated By</TableHead>
+                                {/* <TableHead className="w-[120px]">Updated By</TableHead> */}
                                 <TableHead className="w-[100px] text-right">Actions</TableHead>
                               </TableRow>
                             </TableHeader>
@@ -420,11 +420,11 @@ export const RequestDetail: React.FC = () => {
                                       </span>
                                     )}
                                   </TableCell>
-                                  <TableCell>
+                                  {/* <TableCell>
                                     <span className="text-sm text-muted-foreground">
                                       {link.updatedBy ? `#${link.updatedBy}` : '-'}
                                     </span>
-                                  </TableCell>
+                                  </TableCell> */}
                                   <TableCell className="text-right">
                                     <div className="flex items-center justify-end gap-1">
                                       <Button
