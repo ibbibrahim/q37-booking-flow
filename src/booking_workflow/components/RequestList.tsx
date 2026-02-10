@@ -111,10 +111,17 @@ export const RequestList: React.FC<RequestListProps> = ({
           req.status === 'Submitted' ||
           req.status === 'With NOC' ||
           req.status === 'Clarification Requested' ||
-          req.status === 'Resources Added'
+          req.status === 'Resources Added' ||
+          req.status === 'Completed' ||
+          req.status === 'Partially Completed'
       );
     } else if (userRole === 'Ingest') {
-      filtered = filtered.filter((req) => req.status === 'With Ingest');
+      filtered = filtered.filter(
+        (req) =>
+          req.status === 'With Ingest' ||
+          req.status === 'Completed' ||
+          req.status === 'Partially Completed'
+      );
     }
 
     // Search filter (title, program)
