@@ -5,7 +5,7 @@ export const formatTime = (dateTimeString: string): string => {
 };
 
 export const formatDateTime = (dateTimeString: string): string => {
-  return format(parseISO(dateTimeString), 'MMM d, yyyy h:mm a');
+  return format(parseISO(dateTimeString), 'd MMM yyyy, h:mm a');
 };
 
 export const calculateDuration = (start: string, end: string): string => {

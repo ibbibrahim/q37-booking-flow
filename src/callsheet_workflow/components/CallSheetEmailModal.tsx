@@ -266,7 +266,7 @@ export const CallSheetEmailModal: React.FC<CallSheetEmailModalProps> = ({
               </p>
             </div>
 
-            <div>
+            {/* <div>
               <Label className="text-sm font-semibold mb-2 block">
                 Additional Note (Optional)
               </Label>
@@ -292,7 +292,7 @@ export const CallSheetEmailModal: React.FC<CallSheetEmailModalProps> = ({
                   }}
                 />
               </div>
-            </div>
+            </div> */}
 
             {/* <div>
               <Label className="text-sm font-semibold mb-2 block">

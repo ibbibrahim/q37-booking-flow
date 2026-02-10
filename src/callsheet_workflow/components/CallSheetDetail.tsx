@@ -11,6 +11,7 @@ import type { CallSheetRequest } from '../types/callsheet';
 import { formatQatarDateTime } from '../utils/timezone';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { formatDateTime, formatTime } from '@/studio_booking/utils/timeUtils';
 
 export const CallSheetDetail: React.FC = () => {
   const { id } = useParams();
@@ -213,13 +214,13 @@ export const CallSheetDetail: React.FC = () => {
                 <div>
                   <div className="text-xs text-muted-foreground mb-1">Start Date & Time</div>
                   <div className="text-card-foreground font-medium">
-                    {formatQatarDateTime(callSheet.startDateTime)}
+                    {formatDateTime(callSheet.startDateTime)}
                   </div>
                 </div>
                 <div>
                   <div className="text-xs text-muted-foreground mb-1">Return Date & Time</div>
                   <div className="text-card-foreground font-medium">
-                    {formatQatarDateTime(callSheet.returnDateTime)}
+                    {formatDateTime(callSheet.returnDateTime)}
                   </div>
                 </div>
                 <div>
@@ -231,17 +232,22 @@ export const CallSheetDetail: React.FC = () => {
                   <div className="text-card-foreground font-medium">{callSheet.focalPoint || 'N/A'}</div>
                 </div>
                 <div>
-                  <div className="text-xs text-muted-foreground mb-1">Call Time</div>
-                  <div className="text-card-foreground font-medium">{callSheet.callTime || 'N/A'}</div>
-                </div>
-                <div>
-                  <div className="text-xs text-muted-foreground mb-1">Wrap Time</div>
-                  <div className="text-card-foreground font-medium">{callSheet.wrapTime || 'N/A'}</div>
-                </div>
-                <div>
                   <div className="text-xs text-muted-foreground mb-1">Contact</div>
                   <div className="text-card-foreground font-medium">{callSheet.focalPointContact || 'N/A'}</div>
                 </div>
+                <div>
+                  <div className="text-xs text-muted-foreground mb-1">Call Time</div>
+                  <div className="text-card-foreground font-medium">
+                    {formatTime(callSheet.startDateTime)}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xs text-muted-foreground mb-1">Wrap Time</div>
+                  <div className="text-card-foreground font-medium">
+                    {formatTime(callSheet.returnDateTime)}
+                  </div>
+                </div>
+                
                 <div>
                   <div className="text-xs text-muted-foreground mb-1">Driver Needed</div>
                   <div className="text-card-foreground font-medium">{callSheet.driverNeeded ? 'Yes' : 'No'}</div>
