@@ -323,10 +323,10 @@ export const CallSheetDetail: React.FC = () => {
                     <div className="text-xs text-muted-foreground mb-1">Driver Number</div>
                     <div className="text-card-foreground font-medium">{callSheet.transportRequest.driverNo}</div>
                   </div>
-                  <div>
+                  {/* <div>
                     <div className="text-xs text-muted-foreground mb-1">Requested By</div>
                     <div className="text-card-foreground font-medium">{callSheet.transportRequest.requestedBy}</div>
-                  </div>
+                  </div> */}
                   <div>
                     <div className="text-xs text-muted-foreground mb-1">Start Time</div>
                     <div className="text-card-foreground font-medium">
@@ -370,13 +370,13 @@ export const CallSheetDetail: React.FC = () => {
             <div className="bg-card rounded-lg border border-border p-6">
               <h2 className="text-lg font-semibold text-card-foreground mb-4">Metadata</h2>
               <div className="space-y-4">
-                <div>
+                {/* <div>
                   <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
                     <User size={14} />
                     <span>Created by</span>
                   </div>
                   <div className="text-sm font-medium text-card-foreground">{callSheet.createdBy}</div>
-                </div>
+                </div> */}
                 <div>
                   <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
                     <Clock size={14} />
@@ -386,7 +386,7 @@ export const CallSheetDetail: React.FC = () => {
                     {new Date(callSheet.createdAt).toLocaleString()}
                   </div>
                 </div>
-                <div>
+                {/* <div>
                   <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
                     <Clock size={14} />
                     <span>Last updated</span>
@@ -394,7 +394,7 @@ export const CallSheetDetail: React.FC = () => {
                   <div className="text-sm text-card-foreground">
                     {new Date(callSheet.updatedAt).toLocaleString()}
                   </div>
-                </div>
+                </div> */}
               </div>
             </div>
           </div>
