@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Clock, User, FileText, CheckCircle2, AlertCircle, Edit, Copy, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Clock, User, FileText, CheckCircle2, AlertCircle, Edit, Copy, ExternalLink, FolderOpen } from 'lucide-react';
 import type {
   WorkflowRequest,
   UserRole,
@@ -23,6 +23,12 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { useToast } from '@/contexts/ToastContext';
 import { useSignalR } from '@/contexts/SignalRContext';
 
@@ -347,19 +353,19 @@ export const RequestDetail: React.FC = () => {
                       </div>
                     ) : request.bookingType === "Download and Ingest" && request.downloadLinks ? (
                       <div className="rounded-md border">
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead className="w-[120px]">Source</TableHead>
-                              <TableHead>URL</TableHead>
-                              <TableHead className="w-[120px]">Status</TableHead>
-                              <TableHead className="w-[150px]">Notes</TableHead>
-                              <TableHead className="w-[100px]">Updated By</TableHead>
-                              <TableHead className="w-[140px]">Updated At</TableHead>
-                              <TableHead className="w-[120px] text-right">Actions</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
+                        <TooltipProvider>
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead className="w-[100px]">Source</TableHead>
+                                <TableHead>URL</TableHead>
+                                <TableHead className="w-[120px]">Status</TableHead>
+                                <TableHead className="w-[200px]">Notes</TableHead>
+                                <TableHead className="w-[120px]">Updated By</TableHead>
+                                <TableHead className="w-[100px] text-right">Actions</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
                             {request.downloadLinks.map((link, index) => {
                               const getStatusColor = (status: string) => {
                                 switch (status) {
@@ -397,23 +403,26 @@ export const RequestDetail: React.FC = () => {
                                     </Badge>
                                   </TableCell>
                                   <TableCell>
-                                    <span className="text-sm text-muted-foreground truncate block max-w-[150px]" title={link.ingestNotes || 'No notes'}>
-                                      {link.ingestNotes || '-'}
-                                    </span>
+                                    {link.ingestNotes && link.ingestNotes.length > 50 ? (
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <span className="text-sm text-muted-foreground cursor-help hover:text-foreground transition-colors">
+                                            {link.ingestNotes.substring(0, 50)}...
+                                          </span>
+                                        </TooltipTrigger>
+                                        <TooltipContent className="max-w-md">
+                                          <p>{link.ingestNotes}</p>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    ) : (
+                                      <span className="text-sm text-muted-foreground">
+                                        {link.ingestNotes || '-'}
+                                      </span>
+                                    )}
                                   </TableCell>
                                   <TableCell>
                                     <span className="text-sm text-muted-foreground">
                                       {link.updatedBy ? `#${link.updatedBy}` : '-'}
-                                    </span>
-                                  </TableCell>
-                                  <TableCell>
-                                    <span className="text-sm text-muted-foreground">
-                                      {link.updatedAt ? new Date(link.updatedAt).toLocaleString('en-US', {
-                                        month: 'short',
-                                        day: 'numeric',
-                                        hour: '2-digit',
-                                        minute: '2-digit'
-                                      }) : '-'}
                                     </span>
                                   </TableCell>
                                   <TableCell className="text-right">
@@ -443,8 +452,9 @@ export const RequestDetail: React.FC = () => {
                                 </TableRow>
                               );
                             })}
-                          </TableBody>
-                        </Table>
+                            </TableBody>
+                          </Table>
+                        </TooltipProvider>
                       </div>
                     ) : request.bookingType === "Camera Card and Ingest" && request.cameraCardDetail ? (
                       <div className="rounded-md border">
@@ -495,11 +505,46 @@ export const RequestDetail: React.FC = () => {
 
                 {request.ingestFolderPath && (
                   <div className="pt-6 border-t border-border">
-                    <h3 className="text-sm font-semibold text-card-foreground mb-3">
+                    <h3 className="text-sm font-semibold text-card-foreground mb-3 flex items-center gap-2">
+                      <FolderOpen className="h-4 w-4 text-blue-600" />
                       Ingest Folder Path
                     </h3>
-                    <div className="text-sm font-mono text-muted-foreground bg-muted p-3 rounded">
-                      {request.ingestFolderPath}
+                    <div className="relative group">
+                      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border-2 border-blue-200 dark:border-blue-800 rounded-lg p-4 transition-all hover:shadow-md">
+                        <div className="flex items-start gap-3">
+                          <div className="flex-shrink-0 mt-0.5">
+                            <div className="h-8 w-8 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
+                              <FolderOpen className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                            </div>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-xs font-medium text-blue-600 dark:text-blue-400 mb-1.5 uppercase tracking-wide">
+                              Storage Location
+                            </div>
+                            <div className="font-mono text-sm text-gray-900 dark:text-gray-100 break-all leading-relaxed">
+                              {request.ingestFolderPath.split('/').map((segment, index, array) => (
+                                <React.Fragment key={index}>
+                                  <span className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                                    {segment}
+                                  </span>
+                                  {index < array.length - 1 && (
+                                    <span className="text-blue-400 dark:text-blue-600 mx-0.5">/</span>
+                                  )}
+                                </React.Fragment>
+                              ))}
+                            </div>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => copyToClipboard(request.ingestFolderPath!)}
+                            className="h-8 px-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                            title="Copy path"
+                          >
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 )}
