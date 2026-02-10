@@ -52,6 +52,7 @@ export const BookingDashboard: React.FC = () => {
 
   const hasCallsheetAccess = user?.roles?.includes('Callsheet') || user?.roles?.includes('Admin');
   const hasAdminAccess = user?.roles?.includes('Admin');
+  const hasTechnicalStoreAccess = user?.roles?.includes('TechnicalStore') || user?.roles?.includes('Admin');
 
   const getAllowedRoles = (): UserRole[] => {
     if (!user || !user.roles || user.roles.length === 0) {
@@ -152,18 +153,22 @@ export const BookingDashboard: React.FC = () => {
               </>
             )}
 
-            {/* <div className="my-2 border-t border-sidebar-border"></div> */}
-            <button
-              onClick={() => navigate('/inventory')}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
-                currentSection === 'inventory'
-                  ? 'bg-sidebar-primary text-sidebar-primary-foreground'
-                  : 'text-sidebar-foreground hover:bg-sidebar-accent'
-              }`}
-            >
-              <Boxes size={20} />
-              <span className="font-medium text-sm">Inventory</span>
-            </button>
+            {hasTechnicalStoreAccess && (
+              <>
+                {/* <div className="my-2 border-t border-sidebar-border"></div> */}
+                <button
+                  onClick={() => navigate('/inventory')}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
+                    currentSection === 'inventory'
+                      ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+                      : 'text-sidebar-foreground hover:bg-sidebar-accent'
+                  }`}
+                >
+                  <Boxes size={20} />
+                  <span className="font-medium text-sm">Inventory</span>
+                </button>
+              </>
+            )}
 
             {/* <button
               onClick={() => navigate('/studio-booking')}

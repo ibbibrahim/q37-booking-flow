@@ -24,7 +24,7 @@ function App() {
     if (user.roles.includes("NOC")) return "/noc";
     if (user.roles.includes("Ingest")) return "/ingest";
     if (user.roles.includes("Booking")) return "/booking";
-    if (user.roles.includes("TechnicalStore")) return "/callsheet";
+    if (user.roles.includes("TechnicalStore")) return "/inventory";
     if (user.roles.includes("Callsheet")) return "/callsheet";
 
     return "/unauthorized";
@@ -209,7 +209,7 @@ function App() {
         <Route
           path="inventory"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={['TechnicalStore', 'Admin']}>
               <InventoryList />
             </ProtectedRoute>
           }
