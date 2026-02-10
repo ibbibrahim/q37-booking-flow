@@ -1,12 +1,25 @@
 import { format, differenceInMinutes, parseISO } from 'date-fns';
 
-export const formatTime = (dateTimeString: string): string => {
-  return format(parseISO(dateTimeString), 'h:mm a');
+import { isValid } from "date-fns";
+
+export const formatTime = (dateTimeString?: string | null): string => {
+  if (!dateTimeString) return "N/A";
+
+  const d = parseISO(dateTimeString);
+  if (!isValid(d)) return "N/A";
+
+  return format(d, "h:mm a");
 };
 
-export const formatDateTime = (dateTimeString: string): string => {
-  return format(parseISO(dateTimeString), 'd MMM yyyy, h:mm a');
+export const formatDateTime = (dateTimeString?: string | null): string => {
+  if (!dateTimeString) return "N/A";
+
+  const d = parseISO(dateTimeString);
+  if (!isValid(d)) return "N/A";
+
+  return format(d, "d MMM yyyy, h:mm a");
 };
+
 
 export const calculateDuration = (start: string, end: string): string => {
   const minutes = differenceInMinutes(parseISO(end), parseISO(start));
