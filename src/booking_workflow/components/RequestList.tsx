@@ -419,7 +419,7 @@ export const RequestList: React.FC<RequestListProps> = ({
                                 >
                                   <Edit size={16} />
                                 </button>
-                                <button
+                                {/* <button
                                   onClick={(e) => {
                                     e.stopPropagation();
                                   }}
@@ -427,7 +427,7 @@ export const RequestList: React.FC<RequestListProps> = ({
                                   title="Delete"
                                 >
                                   <Trash2 size={16} />
-                                </button>
+                                </button> */}
                               </div>
                             </td>
                           </tr>
