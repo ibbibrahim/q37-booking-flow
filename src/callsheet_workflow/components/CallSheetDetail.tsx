@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useSignalR } from '@/contexts/SignalRContext';
 import { CallSheetForm } from './CallSheetForm';
 import { CallSheetEmailModal } from './CallSheetEmailModal';
+import { UnifiedWorkflowDocument, getPrintStyles } from './UnifiedWorkflowDocument';
 import type { CallSheetRequest } from '../types/callsheet';
 import { formatQatarDateTime } from '../utils/timezone';
 import { Button } from '@/components/ui/button';
@@ -73,30 +74,23 @@ export const CallSheetDetail: React.FC = () => {
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
 
-    printWindow.document.write(`
+    const printHTML = `
+      <!DOCTYPE html>
       <html>
         <head>
-          <title>Call Sheet - ${callSheet?.title}</title>
+          <meta charset="UTF-8">
+          <title>QMC Workflow - Unified Forms</title>
           <style>
-            body { font-family: Arial, sans-serif; padding: 20px; color: #000; }
-            h1 { font-size: 24px; margin-bottom: 10px; }
-            h2 { font-size: 18px; margin-top: 20px; margin-bottom: 10px; border-bottom: 2px solid #000; padding-bottom: 5px; }
-            h3 { font-size: 16px; margin-top: 15px; margin-bottom: 8px; }
-            table { width: 100%; border-collapse: collapse; margin-top: 10px; margin-bottom: 15px; }
-            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-            th { background-color: #f0f0f0; font-weight: bold; }
-            .info-row { display: flex; margin-bottom: 8px; }
-            .info-label { font-weight: bold; width: 150px; }
-            .section { margin-bottom: 20px; page-break-inside: avoid; }
-            .status-badge { display: inline-block; padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: bold; }
+            ${getPrintStyles()}
           </style>
         </head>
         <body>
           ${printContent.innerHTML}
         </body>
       </html>
-    `);
+    `;
 
+    printWindow.document.write(printHTML);
     printWindow.document.close();
     printWindow.focus();
     setTimeout(() => {
@@ -202,7 +196,7 @@ export const CallSheetDetail: React.FC = () => {
       </div>
 
 
-      <div ref={printRef} className="px-6 space-y-6">
+      <div className="px-6 space-y-6">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
             <div className="bg-card rounded-lg border border-border p-6">
@@ -410,6 +404,12 @@ export const CallSheetDetail: React.FC = () => {
             setShowEmailModal(false);
           }}
         />
+      )}
+
+      {callSheet && (
+        <div ref={printRef} style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
+          <UnifiedWorkflowDocument callSheet={callSheet} />
+        </div>
       )}
     </div>
   );
