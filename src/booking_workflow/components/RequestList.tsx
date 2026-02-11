@@ -120,6 +120,7 @@ export const RequestList: React.FC<RequestListProps> = ({
         (req) =>
           req.status === 'With Ingest' ||
           req.status === 'Completed' ||
+          req.status === 'Not Done' ||
           req.status === 'Partially Completed'
       );
     }
