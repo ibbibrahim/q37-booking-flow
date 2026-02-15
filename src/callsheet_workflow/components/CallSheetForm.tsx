@@ -896,11 +896,15 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
                   value={newCrew.name}
                   onChange={(e) => setNewCrew({ ...newCrew, name: e.target.value })}
                   placeholder="Name"
+                  name="crew-name"
+                  autoComplete="name"
                 />
                 <Input
                   value={newCrew.phone}
                   onChange={(e) => setNewCrew({ ...newCrew, phone: e.target.value })}
                   placeholder="Phone"
+                  name="crew-phone"
+                  autoComplete="tel"
                 />
               </div>
 
