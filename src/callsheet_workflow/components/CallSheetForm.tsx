@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Plus, Trash2, Upload, X, MapPin, AlertCircle, Building2, Mail } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -26,14 +26,20 @@ import { createEmptyRow } from '../types/equipmentRow';
 interface CallSheetFormProps {
   onSubmit: (data: Partial<CallSheetRequest>) => void;
   initialCallSheet?: CallSheetRequest;
-  mode?: 'create' | 'technicalStore';
+  mode?: 'create' | 'edit' | 'technicalStore';
 }
 
 export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialCallSheet, mode = 'create' }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('request');
   const [showEmailModal, setShowEmailModal] = useState(false);
+
+  const editData = location.state?.editData;
+  const duplicateData = location.state?.duplicateData;
+  const isEditMode = mode === 'edit';
+  const isDuplicateMode = !!duplicateData;
   const isTechnicalStoreMode = mode === 'technicalStore';
   const hasCallSheetRole = user?.roles?.includes('CallSheet') || false;
 
@@ -84,13 +90,114 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
 
   // Initialize form with existing data if provided
   useEffect(() => {
-    if (initialCallSheet) {
-      // Convert ISO string to datetime-local format (YYYY-MM-DDTHH:mm) without timezone conversion
-      const startDateTime = initialCallSheet.startDateTime 
-        ? initialCallSheet.startDateTime.substring(0, 16) 
+    // Priority: editData > duplicateData > initialCallSheet
+    if (editData && isEditMode) {
+      // EDIT MODE: Keep ALL data including id, createdAt, updatedAt
+      const startDateTime = editData.startDateTime ? editData.startDateTime.substring(0, 16) : '';
+      const returnDateTime = editData.returnDateTime ? editData.returnDateTime.substring(0, 16) : '';
+
+      setFormData({
+        department: editData.department || '',
+        title: editData.title || '',
+        startDateTime: startDateTime,
+        returnDateTime: returnDateTime,
+        callTime: editData.callTime || '',
+        wrapTime: editData.wrapTime || '',
+        location: editData.location || '',
+        focalPoint: editData.focalPoint || '',
+        focalPointContact: editData.focalPointContact || '',
+        driverNeeded: editData.driverNeeded || false
+      });
+
+      if (editData.shootType) setShootType(editData.shootType);
+      if (editData.equipmentNeeded !== undefined) setEquipmentNeeded(editData.equipmentNeeded);
+      if (editData.crewAssignments) setCrewAssignments(editData.crewAssignments);
+      if (editData.departmentAcknowledgements) setDepartmentAcknowledgements(editData.departmentAcknowledgements);
+      if (editData.equipment && editData.equipment.length > 0) {
+        const mappedRows = editData.equipment.map((eq: Equipment) => ({
+          tempId: `temp-${Date.now()}-${Math.random()}`,
+          categoryId: eq.categoryId,
+          inventoryItemId: eq.inventoryItemId,
+          quantity: eq.quantity,
+          category: eq.category,
+          item: eq.item
+        }));
+        setEquipmentRows(mappedRows);
+      }
+      if (editData.transportRequest) setTransportRequest({
+        reason: editData.transportRequest.reason || '',
+        startDateTime: editData.transportRequest.startDateTime
+          ? editData.transportRequest.startDateTime.substring(0, 16)
+          : '',
+        returnDateTime: editData.transportRequest.returnDateTime
+          ? editData.transportRequest.returnDateTime.substring(0, 16)
+          : '',
+        driverName: editData.transportRequest.driverName || '',
+        driverNo: editData.transportRequest.driverNo || '',
+        carType: editData.transportRequest.carType || '',
+        requestedBy: editData.transportRequest.requestedBy || 1
+      });
+      if (editData.departmentsToApprove) setDepartmentsToApprove(editData.departmentsToApprove);
+      if (editData.departmentsToNotify) setDepartmentsToNotify(editData.departmentsToNotify);
+      if (editData.notifications) setNotifications(editData.notifications);
+
+    } else if (duplicateData) {
+      // DUPLICATE MODE: Remove id, createdAt, updatedAt (create new call sheet)
+      const startDateTime = duplicateData.startDateTime ? duplicateData.startDateTime.substring(0, 16) : '';
+      const returnDateTime = duplicateData.returnDateTime ? duplicateData.returnDateTime.substring(0, 16) : '';
+
+      setFormData({
+        department: duplicateData.department || '',
+        title: duplicateData.title || '',
+        startDateTime: startDateTime,
+        returnDateTime: returnDateTime,
+        callTime: duplicateData.callTime || '',
+        wrapTime: duplicateData.wrapTime || '',
+        location: duplicateData.location || '',
+        focalPoint: duplicateData.focalPoint || '',
+        focalPointContact: duplicateData.focalPointContact || '',
+        driverNeeded: duplicateData.driverNeeded || false
+      });
+
+      if (duplicateData.shootType) setShootType(duplicateData.shootType);
+      if (duplicateData.equipmentNeeded !== undefined) setEquipmentNeeded(duplicateData.equipmentNeeded);
+      if (duplicateData.crewAssignments) setCrewAssignments(duplicateData.crewAssignments);
+      if (duplicateData.departmentAcknowledgements) setDepartmentAcknowledgements(duplicateData.departmentAcknowledgements);
+      if (duplicateData.equipment && duplicateData.equipment.length > 0) {
+        const mappedRows = duplicateData.equipment.map((eq: Equipment) => ({
+          tempId: `temp-${Date.now()}-${Math.random()}`,
+          categoryId: eq.categoryId,
+          inventoryItemId: eq.inventoryItemId,
+          quantity: eq.quantity,
+          category: eq.category,
+          item: eq.item
+        }));
+        setEquipmentRows(mappedRows);
+      }
+      if (duplicateData.transportRequest) setTransportRequest({
+        reason: duplicateData.transportRequest.reason || '',
+        startDateTime: duplicateData.transportRequest.startDateTime
+          ? duplicateData.transportRequest.startDateTime.substring(0, 16)
+          : '',
+        returnDateTime: duplicateData.transportRequest.returnDateTime
+          ? duplicateData.transportRequest.returnDateTime.substring(0, 16)
+          : '',
+        driverName: duplicateData.transportRequest.driverName || '',
+        driverNo: duplicateData.transportRequest.driverNo || '',
+        carType: duplicateData.transportRequest.carType || '',
+        requestedBy: duplicateData.transportRequest.requestedBy || 1
+      });
+      if (duplicateData.departmentsToApprove) setDepartmentsToApprove(duplicateData.departmentsToApprove);
+      if (duplicateData.departmentsToNotify) setDepartmentsToNotify(duplicateData.departmentsToNotify);
+      if (duplicateData.notifications) setNotifications(duplicateData.notifications);
+
+    } else if (initialCallSheet) {
+      // EXISTING LOGIC: Keep as is (for technicalStore mode or other uses)
+      const startDateTime = initialCallSheet.startDateTime
+        ? initialCallSheet.startDateTime.substring(0, 16)
         : '';
-      const returnDateTime = initialCallSheet.returnDateTime 
-        ? initialCallSheet.returnDateTime.substring(0, 16) 
+      const returnDateTime = initialCallSheet.returnDateTime
+        ? initialCallSheet.returnDateTime.substring(0, 16)
         : '';
 
       setFormData({
@@ -129,11 +236,11 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
       if (initialCallSheet.transportRequest) {
         setTransportRequest({
           reason: initialCallSheet.transportRequest.reason || '',
-          startDateTime: initialCallSheet.transportRequest.startDateTime 
-            ? initialCallSheet.transportRequest.startDateTime.substring(0, 16) 
+          startDateTime: initialCallSheet.transportRequest.startDateTime
+            ? initialCallSheet.transportRequest.startDateTime.substring(0, 16)
             : '',
-          returnDateTime: initialCallSheet.transportRequest.returnDateTime 
-            ? initialCallSheet.transportRequest.returnDateTime.substring(0, 16) 
+          returnDateTime: initialCallSheet.transportRequest.returnDateTime
+            ? initialCallSheet.transportRequest.returnDateTime.substring(0, 16)
             : '',
           driverName: initialCallSheet.transportRequest.driverName || '',
           driverNo: initialCallSheet.transportRequest.driverNo || '',
@@ -154,7 +261,7 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
         setNotifications(initialCallSheet.notifications);
       }
     }
-  }, [initialCallSheet]);
+  }, [editData, duplicateData, initialCallSheet, isEditMode]);
 
   const validateStartDate = (value: string) => {
     if (!value) {
@@ -359,6 +466,11 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
       updatedAt: new Date().toISOString()
     };
 
+    // Add id when editing
+    if (isEditMode && editData?.id) {
+      callSheetData.id = editData.id;
+    }
+
     onSubmit(callSheetData);
   };
 
@@ -374,10 +486,17 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
         </Button>
         <div className="flex-1">
           <h1 className="text-2xl font-bold text-card-foreground">
-            {isTechnicalStoreMode ? 'Assign Driver & Equipment' : 'New Call Sheet'}
+            {isEditMode ? 'Edit Call Sheet' :
+             isDuplicateMode ? 'Duplicate Call Sheet' :
+             isTechnicalStoreMode ? 'Assign Driver & Equipment' :
+             'New Call Sheet'}
           </h1>
           <p className="text-muted-foreground text-sm mt-0.5">
-            {isTechnicalStoreMode
+            {isEditMode
+              ? 'Update the call sheet details'
+              : isDuplicateMode
+              ? 'Creating a copy of an existing call sheet'
+              : isTechnicalStoreMode
               ? 'Update driver assignment and equipment details'
               : 'Create a new call sheet with equipment and transportation requests'}
           </p>
@@ -402,6 +521,15 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
         </TabsList>
 
         <TabsContent value="request" forceMount className={activeTab !== 'request' ? 'hidden space-y-6' : 'space-y-6'}>
+          {isDuplicateMode && duplicateData && (
+            <Alert className="mb-4">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Duplicating Call Sheet</AlertTitle>
+              <AlertDescription>
+                Creating a copy from: {duplicateData.title} ({new Date(duplicateData.startDateTime).toLocaleDateString()})
+              </AlertDescription>
+            </Alert>
+          )}
           <Card>
             <CardHeader>
               <CardTitle>Booking Information</CardTitle>
@@ -901,7 +1029,9 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
             </Button>
           ) : (
             <Button onClick={handleSubmit}>
-              {isTechnicalStoreMode ? 'Update Driver & Equipment' : 'Submit Call Sheet'}
+              {isEditMode ? 'Update Call Sheet' :
+               isTechnicalStoreMode ? 'Update Driver & Equipment' :
+               'Submit Call Sheet'}
             </Button>
           )}
         </div>

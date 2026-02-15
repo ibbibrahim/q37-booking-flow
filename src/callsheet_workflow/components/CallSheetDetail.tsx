@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Download, Clock, User, FileText, Mail } from 'lucide-react';
+import { ArrowLeft, Download, Clock, User, FileText, Mail, Edit, Copy } from 'lucide-react';
 import { callSheetApi } from '../services/mockCallSheetApi';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSignalR } from '@/contexts/SignalRContext';
@@ -178,6 +178,26 @@ export const CallSheetDetail: React.FC = () => {
           </div>
 
           <div className="flex gap-2">
+            <Button
+              onClick={() => navigate(`/callsheet/edit/${callSheet.id}`, {
+                state: { editData: callSheet }
+              })}
+              variant="default"
+              className="gap-2"
+            >
+              <Edit className="h-4 w-4" />
+              Edit
+            </Button>
+            <Button
+              onClick={() => navigate('/callsheet/new', {
+                state: { duplicateData: callSheet }
+              })}
+              variant="outline"
+              className="gap-2"
+            >
+              <Copy className="h-4 w-4" />
+              Duplicate
+            </Button>
             {hasCallSheetRole && (
               <Button
                 onClick={() => setShowEmailModal(true)}

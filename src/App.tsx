@@ -197,6 +197,14 @@ function App() {
           }
         />
         <Route
+          path="callsheet/edit/:id"
+          element={
+            <ProtectedRoute allowedRoles={['Callsheet', 'Admin']}>
+              <CallSheetRoleView view="edit" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="callsheet/:id"
           element={
             <ProtectedRoute>
