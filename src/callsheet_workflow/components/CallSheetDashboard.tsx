@@ -449,7 +449,7 @@ export const CallSheetDashboard: React.FC = () => {
                   Status
                 </th>
                 <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground">
-                  Email Sent
+                  Announcement  
                 </th>
                 <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground">
                   Start Date/Time
