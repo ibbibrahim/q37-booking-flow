@@ -116,7 +116,8 @@ export const callSheetApi = {
   announceCallSheet: async (
     id: number,
     payload: { to: string[]; cc: string[]; noteHtml: string }
-  ): Promise<void> => {
-    await apiClient.post(`${API_BASE}/${id}/announce`, payload);
+  ): Promise<CallSheetRequest> => {
+    const { data } = await apiClient.post(`${API_BASE}/${id}/announce`, payload);
+    return data as CallSheetRequest;
   },
 };

@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Download, Clock, User, FileText, Mail, Edit, Copy } from 'lucide-react';
+import { ArrowLeft, Download, Clock, User, FileText, Mail, Edit, Copy, Check, Minus } from 'lucide-react';
 import { callSheetApi } from '../services/mockCallSheetApi';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSignalR } from '@/contexts/SignalRContext';
@@ -168,6 +168,17 @@ export const CallSheetDetail: React.FC = () => {
             <div className="flex items-center gap-3 mb-2">
               <h1 className="text-3xl font-bold text-foreground">{callSheet.title}</h1>
               <Badge className={statusColors[callSheet.status]}>{callSheet.status}</Badge>
+              {callSheet.alreadyAnnouncedEmail ? (
+                <Badge className="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 flex items-center gap-1.5">
+                  <Check className="h-3 w-3" />
+                  Email Sent
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="flex items-center gap-1.5">
+                  <Minus className="h-3 w-3" />
+                  Email Not Sent
+                </Badge>
+              )}
             </div>
 
             <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
@@ -271,6 +282,22 @@ export const CallSheetDetail: React.FC = () => {
                 <div>
                   <div className="text-xs text-muted-foreground mb-1">Driver Needed</div>
                   <div className="text-card-foreground font-medium">{callSheet.driverNeeded ? 'Yes' : 'No'}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-muted-foreground mb-1">Email Sent</div>
+                  <div className="text-card-foreground font-medium">
+                    {callSheet.alreadyAnnouncedEmail ? (
+                      <span className="inline-flex items-center gap-1.5 text-green-700 dark:text-green-400">
+                        <Check className="h-4 w-4" />
+                        Yes
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+                        <Minus className="h-4 w-4" />
+                        No
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -426,7 +453,8 @@ export const CallSheetDetail: React.FC = () => {
           open={showEmailModal}
           onClose={() => setShowEmailModal(false)}
           callSheet={callSheet}
-          onSuccess={() => {
+          onSuccess={(updatedCallSheet) => {
+            setCallSheet(updatedCallSheet);
             setShowEmailModal(false);
           }}
         />

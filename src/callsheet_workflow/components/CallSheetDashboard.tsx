@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, FileText, Calendar, User, Search, Filter, Grid3x3, List } from 'lucide-react';
+import { Plus, FileText, Calendar, User, Search, Filter, Grid3x3, List, Check, Mail, Minus } from 'lucide-react';
 import { addDays, startOfToday, endOfToday, startOfTomorrow, endOfTomorrow, endOfDay, startOfMonth, endOfMonth, format } from 'date-fns';
 import { DateRange } from 'react-day-picker';
 import { callSheetApi } from '../services/mockCallSheetApi';
@@ -369,9 +369,22 @@ export const CallSheetDashboard: React.FC = () => {
                   </h3>
                   <p className="text-sm text-muted-foreground">{callSheet.department}</p>
                 </div>
-                <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${statusColors[callSheet.status]}`}>
-                  {callSheet.status}
-                </span>
+                <div className="flex flex-col items-end gap-2">
+                  <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${statusColors[callSheet.status]}`}>
+                    {callSheet.status}
+                  </span>
+                  {callSheet.alreadyAnnouncedEmail ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
+                      <Check className="h-3 w-3" />
+                      Email Sent
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground">
+                      <Minus className="h-3 w-3" />
+                      Not Sent
+                    </span>
+                  )}
+                </div>
               </div>
 
               <div className="space-y-2 mb-4">
@@ -436,6 +449,9 @@ export const CallSheetDashboard: React.FC = () => {
                   Status
                 </th>
                 <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground">
+                  Email Sent
+                </th>
+                <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground">
                   Start Date/Time
                 </th>
                 <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground">
@@ -478,6 +494,19 @@ export const CallSheetDashboard: React.FC = () => {
                     <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${statusColors[callSheet.status]}`}>
                       {callSheet.status}
                     </span>
+                  </td>
+                  <td className="py-3 px-4 text-sm">
+                    {callSheet.alreadyAnnouncedEmail ? (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
+                        <Check className="h-3 w-3" />
+                        Email Sent
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-muted text-muted-foreground">
+                        <Minus className="h-3 w-3" />
+                        Not Sent
+                      </span>
+                    )}
                   </td>
                   <td className="py-3 px-4 text-sm text-muted-foreground">
                     {callSheet.startDateTime ? formatQatarDateTime(callSheet.startDateTime) : '-'}

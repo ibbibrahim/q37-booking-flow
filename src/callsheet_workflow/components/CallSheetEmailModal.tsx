@@ -16,7 +16,7 @@ interface CallSheetEmailModalProps {
   open: boolean;
   onClose: () => void;
   callSheet: CallSheetRequest;
-  onSuccess?: () => void;
+  onSuccess?: (updatedCallSheet: CallSheetRequest) => void;
 }
 
 export const CallSheetEmailModal: React.FC<CallSheetEmailModalProps> = ({
@@ -94,14 +94,14 @@ export const CallSheetEmailModal: React.FC<CallSheetEmailModalProps> = ({
     setSending(true);
 
     try {
-      await callSheetApi.announceCallSheet(callSheet.id!, {
+      const updatedCallSheet = await callSheetApi.announceCallSheet(callSheet.id!, {
         to: allToEmails,
         cc: ccEmails,
         noteHtml: noteHtml,
       });
 
       alert('Email sent successfully');
-      onSuccess?.();
+      onSuccess?.(updatedCallSheet);
       onClose();
     } catch (error) {
       console.error('Failed to send email:', error);

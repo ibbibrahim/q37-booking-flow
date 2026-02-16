@@ -92,6 +92,7 @@ export interface CallSheetRequest {
   notifications: Notification[];
 
   status: CallSheetStatus;
+  alreadyAnnouncedEmail: boolean;
   lastComment?: string;
   createdBy:  string | number;           // always integer
   createdAt: string;
