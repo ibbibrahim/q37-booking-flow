@@ -94,6 +94,9 @@ export interface CallSheetRequest {
   status: CallSheetStatus;
   alreadyAnnouncedEmail: boolean;
   lastComment?: string;
+  cancellationReason?: string;
+  cancelledBy?: number;
+  cancelledAt?: string;
   createdBy:  string | number;           // always integer
   createdAt: string;
   updatedAt: string;
@@ -156,3 +159,8 @@ export const DEPARTMENT_ACKNOWLEDGEMENTS: DepartmentAcknowledgement[] = [
   { department: 'Technical Support', acknowledged: false, approved: false, comment: '' },
   { department: 'Storekeeper', acknowledged: false, approved: false, comment: '' },
 ];
+
+export interface CancelCallSheetDto {
+  cancellationReason: string;
+  cancelledBy?: number;
+}

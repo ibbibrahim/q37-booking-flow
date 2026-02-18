@@ -356,36 +356,42 @@ export const CallSheetDashboard: React.FC = () => {
         </div>
       ) : viewMode === 'grid' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {callSheets.map((callSheet) => (
-            <div
-              key={callSheet.id}
-              onClick={() => navigate(`/callsheet/${callSheet.id}`)}
-              className="bg-card rounded-lg border border-border p-6 hover:shadow-lg transition-all cursor-pointer group"
-            >
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-card-foreground group-hover:text-primary transition-colors mb-1">
-                    {callSheet.title}
-                  </h3>
-                  <p className="text-sm text-muted-foreground">{callSheet.department}</p>
-                </div>
-                <div className="flex flex-col items-end gap-2">
-                  <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${statusColors[callSheet.status]}`}>
-                    {callSheet.status}
-                  </span>
-                  {callSheet.alreadyAnnouncedEmail ? (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
-                      <Check className="h-3 w-3" />
-                      Email Sent
+          {callSheets.map((callSheet) => {
+            const isCancelled = callSheet.status === 'Cancelled';
+            return (
+              <div
+                key={callSheet.id}
+                onClick={() => navigate(`/callsheet/${callSheet.id}`)}
+                className={`bg-card rounded-lg border border-border p-6 hover:shadow-lg transition-all cursor-pointer group ${
+                  isCancelled ? 'opacity-60' : ''
+                }`}
+              >
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex-1">
+                    <h3 className={`text-lg font-semibold text-card-foreground group-hover:text-primary transition-colors mb-1 ${
+                      isCancelled ? 'line-through' : ''
+                    }`}>
+                      {callSheet.title}
+                    </h3>
+                    <p className="text-sm text-muted-foreground">{callSheet.department}</p>
+                  </div>
+                  <div className="flex flex-col items-end gap-2">
+                    <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${statusColors[callSheet.status]}`}>
+                      {callSheet.status}
                     </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground">
-                      <Minus className="h-3 w-3" />
-                      Not Sent
-                    </span>
-                  )}
+                    {callSheet.alreadyAnnouncedEmail ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
+                        <Check className="h-3 w-3" />
+                        Email Sent
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground">
+                        <Minus className="h-3 w-3" />
+                        Not Sent
+                      </span>
+                    )}
+                  </div>
                 </div>
-              </div>
 
               <div className="space-y-2 mb-4">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -423,7 +429,8 @@ export const CallSheetDashboard: React.FC = () => {
                 </div>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       ) : (
         <div className="bg-card border border-border rounded-lg overflow-hidden">
@@ -463,18 +470,24 @@ export const CallSheetDashboard: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {callSheets.map((callSheet) => (
-                <tr
-                  key={callSheet.id}
-                  className="border-b border-border hover:bg-muted/50 cursor-pointer transition-colors"
-                  onClick={() => navigate(`/callsheet/${callSheet.id}`)}
-                >
-                  <td className="py-3 px-4 text-sm text-muted-foreground font-mono">
-                    {callSheet.id}
-                  </td>
-                  <td className="py-3 px-4 text-sm font-medium text-card-foreground">
-                    {callSheet.title}
-                  </td>
+              {callSheets.map((callSheet) => {
+                const isCancelled = callSheet.status === 'Cancelled';
+                return (
+                  <tr
+                    key={callSheet.id}
+                    className={`border-b border-border hover:bg-muted/50 cursor-pointer transition-colors ${
+                      isCancelled ? 'opacity-60' : ''
+                    }`}
+                    onClick={() => navigate(`/callsheet/${callSheet.id}`)}
+                  >
+                    <td className="py-3 px-4 text-sm text-muted-foreground font-mono">
+                      {callSheet.id}
+                    </td>
+                    <td className={`py-3 px-4 text-sm font-medium text-card-foreground ${
+                      isCancelled ? 'line-through' : ''
+                    }`}>
+                      {callSheet.title}
+                    </td>
                   <td className="py-3 px-4 text-sm text-muted-foreground">
                     {callSheet.department}
                   </td>
@@ -518,7 +531,8 @@ export const CallSheetDashboard: React.FC = () => {
                     {callSheet.equipment.length}
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>

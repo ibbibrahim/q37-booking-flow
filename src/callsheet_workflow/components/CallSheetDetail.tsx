@@ -1,26 +1,30 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Download, Clock, User, FileText, Mail, Edit, Copy, Check, Minus } from 'lucide-react';
+import { ArrowLeft, Download, Clock, User, FileText, Mail, Edit, Copy, Check, Minus, XCircle, AlertTriangle } from 'lucide-react';
 import { callSheetApi } from '../services/mockCallSheetApi';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSignalR } from '@/contexts/SignalRContext';
 import { CallSheetForm } from './CallSheetForm';
 import { CallSheetEmailModal } from './CallSheetEmailModal';
+import { CancelCallSheetModal } from './CancelCallSheetModal';
 import { UnifiedWorkflowDocument, getPrintStyles } from './UnifiedWorkflowDocument';
 import type { CallSheetRequest } from '../types/callsheet';
 import { formatQatarDateTime } from '../utils/timezone';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { formatDateTime, formatTime } from '@/studio_booking/utils/timeUtils';
+import { useToast } from '@/hooks/use-toast';
 
 export const CallSheetDetail: React.FC = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
   const { listen, isConnected } = useSignalR();
+  const { toast } = useToast();
   const [callSheet, setCallSheet] = useState<CallSheetRequest | null>(null);
   const [loading, setLoading] = useState(true);
   const [showEmailModal, setShowEmailModal] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
 
   // Check if user has TechnicalStore role
@@ -156,8 +160,34 @@ export const CallSheetDetail: React.FC = () => {
     );
   }
 
+  const isCancelled = callSheet.status === 'Cancelled';
+
   return (
     <div className="max-w-6xl mx-auto">
+      {isCancelled && (
+        <div className="px-6 mb-4">
+          <div className="bg-destructive/10 border-2 border-destructive rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="h-6 w-6 text-destructive mt-0.5 flex-shrink-0" />
+              <div className="flex-1">
+                <h2 className="text-lg font-bold text-destructive mb-1">CALL SHEET CANCELLED</h2>
+                {callSheet.cancellationReason && (
+                  <div className="mt-2">
+                    <p className="text-sm font-semibold text-foreground mb-1">Cancellation Reason:</p>
+                    <p className="text-sm text-muted-foreground">{callSheet.cancellationReason}</p>
+                  </div>
+                )}
+                {callSheet.cancelledAt && (
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Cancelled on: {new Date(callSheet.cancelledAt).toLocaleString()}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="px-6 mb-6">
         <div className="flex items-center gap-4">
           <Button variant="outline" size="icon" onClick={() => navigate('/callsheet')}>
@@ -195,6 +225,7 @@ export const CallSheetDetail: React.FC = () => {
               })}
               variant="default"
               className="gap-2"
+              disabled={isCancelled}
             >
               <Edit className="h-4 w-4" />
               Edit
@@ -205,6 +236,7 @@ export const CallSheetDetail: React.FC = () => {
               })}
               variant="outline"
               className="gap-2"
+              disabled={isCancelled}
             >
               <Copy className="h-4 w-4" />
               Duplicate
@@ -214,9 +246,20 @@ export const CallSheetDetail: React.FC = () => {
                 onClick={() => setShowEmailModal(true)}
                 variant="outline"
                 className="gap-2"
+                disabled={isCancelled}
               >
                 <Mail className="h-4 w-4" />
                 Announce / Send Email
+              </Button>
+            )}
+            {hasCallSheetRole && !isCancelled && (
+              <Button
+                onClick={() => setShowCancelModal(true)}
+                variant="destructive"
+                className="gap-2"
+              >
+                <XCircle className="h-4 w-4" />
+                Cancel Call Sheet
               </Button>
             )}
             <Button onClick={handlePrint} className="gap-2">
@@ -456,6 +499,22 @@ export const CallSheetDetail: React.FC = () => {
           onSuccess={(updatedCallSheet) => {
             setCallSheet(updatedCallSheet);
             setShowEmailModal(false);
+          }}
+        />
+      )}
+
+      {callSheet && (
+        <CancelCallSheetModal
+          open={showCancelModal}
+          onClose={() => setShowCancelModal(false)}
+          callSheet={callSheet}
+          onSuccess={(updatedCallSheet) => {
+            setCallSheet(updatedCallSheet);
+            setShowCancelModal(false);
+            toast({
+              title: 'Call Sheet Cancelled',
+              description: 'The call sheet has been successfully cancelled.',
+            });
           }}
         />
       )}

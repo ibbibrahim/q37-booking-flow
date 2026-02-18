@@ -120,4 +120,14 @@ export const callSheetApi = {
     const { data } = await apiClient.post(`${API_BASE}/${id}/announce`, payload);
     return data as CallSheetRequest;
   },
+
+  cancelCallSheet: async (
+    id: number,
+    cancellationReason: string
+  ): Promise<CallSheetRequest> => {
+    const { data } = await apiClient.post(`${API_BASE}/${id}/cancel`, {
+      cancellationReason
+    });
+    return data as CallSheetRequest;
+  },
 };
