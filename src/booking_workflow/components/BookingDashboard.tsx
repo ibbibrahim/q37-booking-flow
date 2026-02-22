@@ -5,6 +5,7 @@ import { User, Radio, Package, Shield, Menu, X, Sun, Moon, FileText, LogOut, Use
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { NotificationDropdown } from '../../components/NotificationDropdown';
+import { NotificationPermissionBanner } from '../../components/NotificationPermissionBanner';
 import qBusinessLogoDark from '../../assets/Qbusiness_Logo_NEG_POS-01.png';
 import qBusinessLogoLight from '../../assets/Qbusiness_Logo_NEG_POS-02.png';
 
@@ -314,6 +315,8 @@ export const BookingDashboard: React.FC = () => {
           <Outlet />
         </main>
       </div>
+
+      <NotificationPermissionBanner />
     </div>
   );
 };

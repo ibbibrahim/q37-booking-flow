@@ -2,6 +2,8 @@ import React, { createContext, useContext, useEffect, useState, useCallback, use
 import * as signalR from '@microsoft/signalr';
 import { UserRole } from '../booking_workflow/types/workflow';
 import { useAuth } from './AuthContext';
+import { showBrowserNotification, shouldShowBrowserNotification } from '@/utils/browserNotifications';
+import { useNavigate } from 'react-router-dom';
 
 interface SignalRContextType {
   invoke: (eventName: string, payload?: any) => Promise<void>;
@@ -14,6 +16,7 @@ const SignalRContext = createContext<SignalRContextType | undefined>(undefined);
 
 export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated, user, token } = useAuth();
+  const navigate = useNavigate();
   const [connectionState, setConnectionState] = useState<signalR.HubConnectionState>(
     signalR.HubConnectionState.Disconnected
   );
@@ -129,6 +132,56 @@ export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ child
       }, 5000);
     }
   };
+
+  // Setup browser notifications for Ingest users
+  useEffect(() => {
+    if (!isAuthenticated || !user) {
+      return;
+    }
+
+    // Only setup browser notifications for Ingest users
+    const isIngestUser = user.roles?.includes('Ingest') || false;
+    if (!isIngestUser) {
+      return;
+    }
+
+    // Check if we should show browser notifications
+    if (!shouldShowBrowserNotification()) {
+      return;
+    }
+
+    // Listen for new booking requests
+    const handleNewRequest = (data: any) => {
+      // Don't show notification if user is already on the booking page
+      const isOnBookingPage = window.location.pathname.includes('/booking');
+      if (isOnBookingPage && document.hasFocus()) {
+        return;
+      }
+
+      // Show browser notification
+      showBrowserNotification({
+        title: 'New Booking Request',
+        body: data.title || data.programSegment || 'A new booking request has arrived',
+        tag: `booking-${data.id}`,
+        data: data,
+        onClick: () => {
+          // Navigate to booking dashboard or detail page
+          if (data.id) {
+            navigate(`/booking/${data.id}`);
+          } else {
+            navigate('/booking');
+          }
+        },
+      });
+    };
+
+    // Add listener
+    const unsubscribe = listen('RequestCreated', handleNewRequest);
+
+    return () => {
+      unsubscribe();
+    };
+  }, [isAuthenticated, user, listen, navigate]);
 
   useEffect(() => {
     const isOnLoginPage = window.location.pathname === '/login';
