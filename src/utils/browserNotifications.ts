@@ -93,7 +93,45 @@ interface BrowserNotificationOptions {
   tag?: string;
   data?: unknown;
   onClick?: () => void;
+  playSound?: boolean;
 }
+
+/**
+ * Play notification sound
+ */
+const playNotificationSound = (): void => {
+  try {
+    // Create an audio context for the notification sound
+    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+
+    // Create oscillator for a pleasant notification sound
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+
+    // Configure sound: two-tone beep
+    oscillator.frequency.setValueAtTime(800, audioContext.currentTime); // First tone: 800Hz
+    oscillator.frequency.setValueAtTime(1000, audioContext.currentTime + 0.1); // Second tone: 1000Hz
+
+    // Fade in and out for smooth sound
+    gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+    gainNode.gain.linearRampToValueAtTime(0.3, audioContext.currentTime + 0.05);
+    gainNode.gain.linearRampToValueAtTime(0.3, audioContext.currentTime + 0.15);
+    gainNode.gain.linearRampToValueAtTime(0, audioContext.currentTime + 0.25);
+
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.25);
+
+    // Clean up
+    oscillator.onended = () => {
+      audioContext.close();
+    };
+  } catch (error) {
+    console.error('Error playing notification sound:', error);
+  }
+};
 
 /**
  * Show a browser notification
@@ -104,6 +142,11 @@ export const showBrowserNotification = (options: BrowserNotificationOptions): No
   }
 
   try {
+    // Play sound if requested
+    if (options.playSound) {
+      playNotificationSound();
+    }
+
     const notification = new Notification(options.title, {
       body: options.body,
       icon: options.icon || '/Qbusiness_Logo_NEG_POS-02.png',
@@ -111,6 +154,7 @@ export const showBrowserNotification = (options: BrowserNotificationOptions): No
       badge: options.icon || '/Qbusiness_Logo_NEG_POS-02.png',
       requireInteraction: false,
       data: options.data,
+      silent: false, // Enable browser's default sound
     });
 
     // Handle notification click

@@ -177,18 +177,14 @@ export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
     // Listen for new booking requests
     const handleNewRequest = (data: any) => {
-      // Don't show notification if user is already on the booking page
-      const isOnBookingPage = window.location.pathname.includes('/booking');
-      if (isOnBookingPage && document.hasFocus()) {
-        return;
-      }
-
-      // Show browser notification
+      // Always show browser notification with sound, even if user is on the booking page
+      // This ensures notifications work across different PCs or browser tabs
       showBrowserNotification({
         title: 'New Booking Request',
         body: data.title || data.programSegment || 'A new booking request has arrived',
         tag: `booking-${data.id}`,
         data: data,
+        playSound: true, // Always play sound for new requests
         onClick: () => {
           // Navigate to booking dashboard or detail page
           if (data.id) {
