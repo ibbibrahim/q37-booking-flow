@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Plus, Trash2, Upload, X, MapPin, AlertCircle, Building2, Mail } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Upload, X, MapPin, AlertCircle, Building2, Mail, Loader2 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -35,6 +35,7 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('request');
   const [showEmailModal, setShowEmailModal] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const editData = location.state?.editData;
   const duplicateData = location.state?.duplicateData;
@@ -392,7 +393,11 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
     setAttachedFiles(prev => prev.filter((_, i) => i !== index));
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    if (isSubmitting) {
+      return;
+    }
+
     if (!formData.department || !formData.title || !formData.startDateTime || !formData.returnDateTime) {
       alert('Please fill in required fields: Department, Title, Start Date & Time, and Return Date & Time');
       return;
@@ -403,84 +408,110 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
       return;
     }
 
-    const validEquipmentRows = equipmentRows.filter(r => r.categoryId && r.inventoryItemId && r.quantity > 0);
+    setIsSubmitting(true);
 
-    const uniqueEquipment = new Map<number, Equipment>();
-    validEquipmentRows.forEach(row => {
-      const existing = uniqueEquipment.get(row.inventoryItemId!);
-      if (existing) {
-        existing.quantity += row.quantity;
+    try {
+      const validEquipmentRows = equipmentRows.filter(r => r.categoryId && r.inventoryItemId && r.quantity > 0);
+
+      const uniqueEquipment = new Map<number, Equipment>();
+      validEquipmentRows.forEach(row => {
+        const existing = uniqueEquipment.get(row.inventoryItemId!);
+        if (existing) {
+          existing.quantity += row.quantity;
+        } else {
+          uniqueEquipment.set(row.inventoryItemId!, {
+            categoryId: row.categoryId!,
+            inventoryItemId: row.inventoryItemId!,
+            quantity: row.quantity,
+            category: row.category ?? "",
+            item: row.item ?? ""
+          } as Equipment);
+        }
+      });
+
+      const equipment = Array.from(uniqueEquipment.values());
+
+      let finalLocation = '';
+      if (shootType === 'Indoor') {
+        finalLocation = indoorFacility || '';
       } else {
-        uniqueEquipment.set(row.inventoryItemId!, {
-          categoryId: row.categoryId!,
-          inventoryItemId: row.inventoryItemId!,
-          quantity: row.quantity,
-          category: row.category ?? "",
-          item: row.item ?? ""
-        } as Equipment);
+        finalLocation = formData.location;
       }
-    });
 
-    const equipment = Array.from(uniqueEquipment.values());
+      // Convert datetime-local format (YYYY-MM-DDTHH:mm) to ISO string format
+      // Just append ':00.000Z' to make it a valid ISO string, treating it as Qatar time
+      const formatToISO = (dateTimeLocal: string): string => {
+        if (!dateTimeLocal) return '';
+        return `${dateTimeLocal}:00.000Z`;
+      };
 
-    let finalLocation = '';
-    if (shootType === 'Indoor') {
-      finalLocation = indoorFacility || '';
-    } else {
-      finalLocation = formData.location;
+      const callSheetData: Partial<CallSheetRequest> = {
+        department: formData.department,
+        title: formData.title,
+        startDateTime: formatToISO(formData.startDateTime),
+        returnDateTime: formatToISO(formData.returnDateTime),
+        callTime: formData.callTime,
+        wrapTime: formData.wrapTime,
+        shootType: shootType,
+        location: finalLocation,
+        equipmentNeeded: shootType === 'Indoor' ? equipmentNeeded : false,
+        focalPoint: formData.focalPoint,
+        focalPointContact: formData.focalPointContact,
+        driverNeeded: formData.driverNeeded,
+        crewAssignments,
+        departmentAcknowledgements,
+        equipment,
+        departmentsToApprove,
+        departmentsToNotify,
+        transportRequest: formData.driverNeeded ? {
+          ...transportRequest,
+          startDateTime: formatToISO(transportRequest.startDateTime),
+          returnDateTime: formatToISO(transportRequest.returnDateTime)
+        } : null,
+        notifications,
+        createdBy: 1,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+
+      // Add id when editing
+      if (isEditMode && editData?.id) {
+        callSheetData.id = editData.id;
+      }
+
+      await onSubmit(callSheetData);
+    } catch (error) {
+      console.error('Submission error:', error);
+      setIsSubmitting(false);
     }
-
-    // Convert datetime-local format (YYYY-MM-DDTHH:mm) to ISO string format
-    // Just append ':00.000Z' to make it a valid ISO string, treating it as Qatar time
-    const formatToISO = (dateTimeLocal: string): string => {
-      if (!dateTimeLocal) return '';
-      return `${dateTimeLocal}:00.000Z`;
-    };
-
-    const callSheetData: Partial<CallSheetRequest> = {
-      department: formData.department,
-      title: formData.title,
-      startDateTime: formatToISO(formData.startDateTime),
-      returnDateTime: formatToISO(formData.returnDateTime),
-      callTime: formData.callTime,
-      wrapTime: formData.wrapTime,
-      shootType: shootType,
-      location: finalLocation,
-      equipmentNeeded: shootType === 'Indoor' ? equipmentNeeded : false,
-      focalPoint: formData.focalPoint,
-      focalPointContact: formData.focalPointContact,
-      driverNeeded: formData.driverNeeded,
-      crewAssignments,
-      departmentAcknowledgements,
-      equipment,
-      departmentsToApprove,
-      departmentsToNotify,
-      transportRequest: formData.driverNeeded ? {
-        ...transportRequest,
-        startDateTime: formatToISO(transportRequest.startDateTime),
-        returnDateTime: formatToISO(transportRequest.returnDateTime)
-      } : null,
-      notifications,
-      createdBy: 1,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-
-    // Add id when editing
-    if (isEditMode && editData?.id) {
-      callSheetData.id = editData.id;
-    }
-
-    onSubmit(callSheetData);
   };
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
+    <div className="max-w-5xl mx-auto space-y-6 relative">
+      {isSubmitting && (
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
+          <div className="bg-card p-8 rounded-lg shadow-lg border border-border flex flex-col items-center gap-4">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+            <div className="text-center">
+              <h3 className="text-lg font-semibold text-card-foreground mb-1">
+                {isEditMode ? 'Updating Call Sheet...' :
+                 isTechnicalStoreMode ? 'Updating Information...' :
+                 'Submitting Call Sheet...'}
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                Please wait while we process your request
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="mb-6 flex items-center gap-3">
         <Button
           variant="outline"
           size="icon"
           onClick={() => navigate('/callsheet')}
+          disabled={isSubmitting}
         >
           <ArrowLeft size={20} />
         </Button>
@@ -513,11 +544,11 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
         )}
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+      <Tabs value={activeTab} onValueChange={isSubmitting ? undefined : setActiveTab} className="w-full">
         <TabsList className="w-full mb-6 flex flex-wrap gap-2 sm:gap-4 sm:grid sm:grid-cols-3">
-          <TabsTrigger value="request">Call Sheet</TabsTrigger>
-          <TabsTrigger value="equipment">Equipment Request</TabsTrigger>
-          <TabsTrigger value="preview">Transportation</TabsTrigger>
+          <TabsTrigger value="request" disabled={isSubmitting}>Call Sheet</TabsTrigger>
+          <TabsTrigger value="equipment" disabled={isSubmitting}>Equipment Request</TabsTrigger>
+          <TabsTrigger value="preview" disabled={isSubmitting}>Transportation</TabsTrigger>
         </TabsList>
 
         <TabsContent value="request" forceMount className={activeTab !== 'request' ? 'hidden space-y-6' : 'space-y-6'}>
@@ -1003,7 +1034,7 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
       </Tabs>
 
       <div className="mt-6 flex items-center justify-between">
-        <Button variant="outline" onClick={() => navigate('/callsheet')}>
+        <Button variant="outline" onClick={() => navigate('/callsheet')} disabled={isSubmitting}>
           Cancel
         </Button>
 
@@ -1011,6 +1042,7 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
           {activeTab !== 'request' && (
             <Button
               variant="outline"
+              disabled={isSubmitting}
               onClick={() => {
                 const tabs = ['request', 'equipment', 'preview'];
                 const currentIndex = tabs.indexOf(activeTab);
@@ -1023,6 +1055,7 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
 
           {activeTab !== 'preview' ? (
             <Button
+              disabled={isSubmitting}
               onClick={() => {
                 const tabs = ['request', 'equipment', 'preview'];
                 const currentIndex = tabs.indexOf(activeTab);
@@ -1032,10 +1065,21 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
               Next
             </Button>
           ) : (
-            <Button onClick={handleSubmit}>
-              {isEditMode ? 'Update Call Sheet' :
-               isTechnicalStoreMode ? 'Update Driver & Equipment' :
-               'Submit Call Sheet'}
+            <Button onClick={handleSubmit} disabled={isSubmitting}>
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  {isEditMode ? 'Updating...' :
+                   isTechnicalStoreMode ? 'Updating...' :
+                   'Submitting...'}
+                </>
+              ) : (
+                <>
+                  {isEditMode ? 'Update Call Sheet' :
+                   isTechnicalStoreMode ? 'Update Driver & Equipment' :
+                   'Submit Call Sheet'}
+                </>
+              )}
             </Button>
           )}
         </div>
