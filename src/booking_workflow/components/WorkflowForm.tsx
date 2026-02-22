@@ -724,23 +724,21 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex gap-2">
+            <div className="grid grid-cols-2 gap-2">
               <Button
                 type="button"
                 variant={bookingMode === 'single' ? 'default' : 'outline'}
                 onClick={() => setBookingMode('single')}
-                className="flex-1"
+                className="w-full"
               >
-                <span className={`mr-2 ${bookingMode === 'single' ? '●' : '○'}`}></span>
                 Single Booking
               </Button>
               <Button
                 type="button"
                 variant={bookingMode === 'bulk' ? 'default' : 'outline'}
                 onClick={() => setBookingMode('bulk')}
-                className="flex-1"
+                className="w-full"
               >
-                <span className={`mr-2 ${bookingMode === 'bulk' ? '●' : '○'}`}></span>
                 Bulk / Series Booking
               </Button>
             </div>
@@ -1179,13 +1177,14 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
           </CardContent>
         </Card>
 
-        <div className="flex justify-end gap-3 pt-4 pb-0">
-          <Button type="button" variant="outline" onClick={onCancel}>
+        <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 pt-4 pb-0">
+          <Button type="button" variant="outline" onClick={onCancel} className="w-full sm:w-auto">
             Cancel
           </Button>
 
           <Button
             type="button"
+            className="w-full sm:w-auto"
             onClick={() => {
               if (
                 formData.bookingType === "Download and Ingest" ||

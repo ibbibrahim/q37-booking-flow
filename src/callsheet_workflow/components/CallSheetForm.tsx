@@ -506,37 +506,40 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
         </div>
       )}
 
-      <div className="mb-6 flex items-center gap-3">
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => navigate('/callsheet')}
-          disabled={isSubmitting}
-        >
-          <ArrowLeft size={20} />
-        </Button>
-        <div className="flex-1">
-          <h1 className="text-2xl font-bold text-card-foreground">
-            {isEditMode ? 'Edit Call Sheet' :
-             isDuplicateMode ? 'Duplicate Call Sheet' :
-             isTechnicalStoreMode ? 'Assign Driver & Equipment' :
-             'New Call Sheet'}
-          </h1>
-          <p className="text-muted-foreground text-sm mt-0.5">
-            {isEditMode
-              ? 'Update the call sheet details'
-              : isDuplicateMode
-              ? 'Creating a copy of an existing call sheet'
-              : isTechnicalStoreMode
-              ? 'Update driver assignment and equipment details'
-              : 'Create a new call sheet with equipment and transportation requests'}
-          </p>
+      <div className="mb-6 flex flex-col sm:flex-row sm:items-center gap-3">
+        <div className="flex items-center gap-3 flex-1 min-w-0">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => navigate('/callsheet')}
+            disabled={isSubmitting}
+            className="shrink-0"
+          >
+            <ArrowLeft size={20} />
+          </Button>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold text-card-foreground truncate">
+              {isEditMode ? 'Edit Call Sheet' :
+               isDuplicateMode ? 'Duplicate Call Sheet' :
+               isTechnicalStoreMode ? 'Assign Driver & Equipment' :
+               'New Call Sheet'}
+            </h1>
+            <p className="text-muted-foreground text-sm mt-0.5 truncate">
+              {isEditMode
+                ? 'Update the call sheet details'
+                : isDuplicateMode
+                ? 'Creating a copy of an existing call sheet'
+                : isTechnicalStoreMode
+                ? 'Update driver assignment and equipment details'
+                : 'Create a new call sheet with equipment and transportation requests'}
+            </p>
+          </div>
         </div>
         {hasCallSheetRole && initialCallSheet?.id && (
           <Button
             onClick={() => setShowEmailModal(true)}
             variant="outline"
-            className="gap-2"
+            className="gap-2 w-full sm:w-auto shrink-0"
           >
             <Mail className="h-4 w-4" />
             Announce / Send Email
@@ -545,7 +548,25 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
       </div>
 
       <Tabs value={activeTab} onValueChange={isSubmitting ? undefined : setActiveTab} className="w-full">
-        <TabsList className="w-full mb-6 flex flex-wrap gap-2 sm:gap-4 sm:grid sm:grid-cols-3">
+        <div className="sm:hidden mb-6">
+          <Select
+            value={activeTab}
+            onValueChange={(val) => !isSubmitting && setActiveTab(val)}
+            disabled={isSubmitting}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue>
+                {activeTab === 'request' ? 'Call Sheet' : activeTab === 'equipment' ? 'Equipment Request' : 'Transportation'}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="request">Call Sheet</SelectItem>
+              <SelectItem value="equipment">Equipment Request</SelectItem>
+              <SelectItem value="preview">Transportation</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <TabsList className="w-full mb-6 hidden sm:grid sm:grid-cols-3">
           <TabsTrigger value="request" disabled={isSubmitting}>Call Sheet</TabsTrigger>
           <TabsTrigger value="equipment" disabled={isSubmitting}>Equipment Request</TabsTrigger>
           <TabsTrigger value="preview" disabled={isSubmitting}>Transportation</TabsTrigger>
@@ -946,37 +967,39 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
 
               {crewAssignments.length > 0 && (
                 <Card className="border border-border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Role</TableHead>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Phone</TableHead>
-                        <TableHead className="text-right">Action</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {crewAssignments.map((crew) => (
-                        <TableRow key={crew.id}>
-                          <TableCell>{crew.role}</TableCell>
-                          <TableCell>{crew.name}</TableCell>
-                          <TableCell className="text-muted-foreground">
-                            {crew.phone}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleRemoveCrew(crew.id)}
-                              className="text-red-600 hover:text-red-800 hover:bg-red-50"
-                            >
-                              <Trash2 size={16} />
-                            </Button>
-                          </TableCell>
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Role</TableHead>
+                          <TableHead>Name</TableHead>
+                          <TableHead>Phone</TableHead>
+                          <TableHead className="text-right">Action</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                      </TableHeader>
+                      <TableBody>
+                        {crewAssignments.map((crew) => (
+                          <TableRow key={crew.id}>
+                            <TableCell>{crew.role}</TableCell>
+                            <TableCell>{crew.name}</TableCell>
+                            <TableCell className="text-muted-foreground">
+                              {crew.phone}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleRemoveCrew(crew.id)}
+                                className="text-red-600 hover:text-red-800 hover:bg-red-50"
+                              >
+                                <Trash2 size={16} />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
                 </Card>
               )}
             </CardContent>
@@ -1033,8 +1056,8 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
         </TabsContent>
       </Tabs>
 
-      <div className="mt-6 flex items-center justify-between">
-        <Button variant="outline" onClick={() => navigate('/callsheet')} disabled={isSubmitting}>
+      <div className="mt-6 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-3">
+        <Button variant="outline" onClick={() => navigate('/callsheet')} disabled={isSubmitting} className="w-full sm:w-auto">
           Cancel
         </Button>
 
@@ -1043,6 +1066,7 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
             <Button
               variant="outline"
               disabled={isSubmitting}
+              className="flex-1 sm:flex-none"
               onClick={() => {
                 const tabs = ['request', 'equipment', 'preview'];
                 const currentIndex = tabs.indexOf(activeTab);
@@ -1056,6 +1080,7 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
           {activeTab !== 'preview' ? (
             <Button
               disabled={isSubmitting}
+              className="flex-1 sm:flex-none"
               onClick={() => {
                 const tabs = ['request', 'equipment', 'preview'];
                 const currentIndex = tabs.indexOf(activeTab);
@@ -1065,7 +1090,7 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
               Next
             </Button>
           ) : (
-            <Button onClick={handleSubmit} disabled={isSubmitting}>
+            <Button onClick={handleSubmit} disabled={isSubmitting} className="flex-1 sm:flex-none">
               {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

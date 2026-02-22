@@ -318,35 +318,36 @@ export const RequestList: React.FC<RequestListProps> = ({
                 </div>
               ) : (
                 <div className="bg-card border border-border rounded-lg overflow-hidden">
-                  <table className="w-full">
+                  <div className="overflow-x-auto">
+                  <table className="w-full min-w-[800px]">
                     <thead>
                       <tr className="border-b border-border bg-muted/50">
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground">
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground whitespace-nowrap">
                           ID
                         </th>
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground">
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground whitespace-nowrap">
                           Title
                         </th>
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground">
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground whitespace-nowrap">
                           Program
                         </th>
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground">
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground whitespace-nowrap">
                           Booking Type
                         </th>
-                        
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground">
+
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground whitespace-nowrap">
                           State
                         </th>
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground">
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground whitespace-nowrap">
                           Priority
                         </th>
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground">
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground whitespace-nowrap">
                           Created By
                         </th>
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground">
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground whitespace-nowrap">
                           Created At
                         </th>
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground">
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground whitespace-nowrap">
                           Actions
                         </th>
                       </tr>
@@ -436,11 +437,12 @@ export const RequestList: React.FC<RequestListProps> = ({
                       })}
                     </tbody>
                   </table>
+                  </div>
                 </div>
               )}
 
               {filteredRequests.length > 0 && (
-                <div className="flex items-center justify-between border-t border-border pt-4">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-border pt-4">
                   <div className="flex items-center gap-2">
                     <span className="text-sm text-muted-foreground">Rows per page:</span>
                     <select

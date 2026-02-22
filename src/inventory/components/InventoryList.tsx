@@ -184,14 +184,15 @@ export const InventoryList: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-card-foreground">Inventory Management</h1>
-          <p className="text-muted-foreground mt-1">Manage technical store inventory items</p>
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="text-2xl sm:text-3xl font-bold text-card-foreground">Inventory Management</h1>
+          <p className="text-muted-foreground mt-1 text-sm">Manage technical store inventory items</p>
         </div>
-        <Button onClick={handleAddItem} className="bg-primary hover:bg-primary/90">
+        <Button onClick={handleAddItem} className="bg-primary hover:bg-primary/90 shrink-0">
           <Plus className="mr-2 h-4 w-4" />
-          Add Item
+          <span className="hidden sm:inline">Add Item</span>
+          <span className="sm:hidden">Add</span>
         </Button>
       </div>
 
@@ -238,37 +239,37 @@ export const InventoryList: React.FC = () => {
 
       <div className="bg-card border border-border rounded-lg overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full min-w-[700px]">
             <thead>
               <tr className="border-b border-border bg-muted/50">
                 <th
-                  className="text-left py-3 px-4 text-sm font-semibold text-card-foreground cursor-pointer hover:bg-muted/70"
+                  className="text-left py-3 px-4 text-sm font-semibold text-card-foreground cursor-pointer hover:bg-muted/70 whitespace-nowrap"
                   onClick={() => handleSort('categoryName')}
                 >
                   Category {sortField === 'categoryName' && (sortDirection === 'asc' ? '↑' : '↓')}
                 </th>
                 <th
-                  className="text-left py-3 px-4 text-sm font-semibold text-card-foreground cursor-pointer hover:bg-muted/70"
+                  className="text-left py-3 px-4 text-sm font-semibold text-card-foreground cursor-pointer hover:bg-muted/70 whitespace-nowrap"
                   onClick={() => handleSort('itemName')}
                 >
                   Item Name {sortField === 'itemName' && (sortDirection === 'asc' ? '↑' : '↓')}
                 </th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground">
+                <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground whitespace-nowrap">
                   Model
                 </th>
                 <th
-                  className="text-left py-3 px-4 text-sm font-semibold text-card-foreground cursor-pointer hover:bg-muted/70"
+                  className="text-left py-3 px-4 text-sm font-semibold text-card-foreground cursor-pointer hover:bg-muted/70 whitespace-nowrap"
                   onClick={() => handleSort('totalQty')}
                 >
                   Total Qty {sortField === 'totalQty' && (sortDirection === 'asc' ? '↑' : '↓')}
                 </th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground">
+                <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground whitespace-nowrap">
                   Active
                 </th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground">
+                <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground whitespace-nowrap">
                   Last Updated
                 </th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground">
+                <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground whitespace-nowrap">
                   Actions
                 </th>
               </tr>
@@ -346,7 +347,7 @@ export const InventoryList: React.FC = () => {
         </div>
 
         {filteredAndSortedItems.length > 0 && (
-          <div className="flex items-center justify-between border-t border-border px-4 py-3">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-border px-4 py-3">
             <div className="text-sm text-muted-foreground">
               Showing {startIndex + 1} to {Math.min(endIndex, filteredAndSortedItems.length)} of{' '}
               {filteredAndSortedItems.length} items

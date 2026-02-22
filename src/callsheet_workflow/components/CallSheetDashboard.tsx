@@ -193,41 +193,40 @@ export const CallSheetDashboard: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-      <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 bg-muted p-1 rounded-lg">
-            <button
-              onClick={() => handleViewModeChange('grid')}
-              className={`p-2 rounded transition-colors ${
-                viewMode === 'grid'
-                  ? 'bg-primary text-primary-foreground'
-                  : 'text-muted-foreground hover:text-card-foreground'
-              }`}
-              title="Grid view"
-            >
-              <Grid3x3 size={18} />
-            </button>
-            <button
-              onClick={() => handleViewModeChange('list')}
-              className={`p-2 rounded transition-colors ${
-                viewMode === 'list'
-                  ? 'bg-primary text-primary-foreground'
-                  : 'text-muted-foreground hover:text-card-foreground'
-              }`}
-              title="List view"
-            >
-              <List size={18} />
-            </button>
-          </div>
-          <div className="flex-1" />
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2 bg-muted p-1 rounded-lg">
+          <button
+            onClick={() => handleViewModeChange('grid')}
+            className={`p-2 rounded transition-colors ${
+              viewMode === 'grid'
+                ? 'bg-primary text-primary-foreground'
+                : 'text-muted-foreground hover:text-card-foreground'
+            }`}
+            title="Grid view"
+          >
+            <Grid3x3 size={18} />
+          </button>
+          <button
+            onClick={() => handleViewModeChange('list')}
+            className={`p-2 rounded transition-colors ${
+              viewMode === 'list'
+                ? 'bg-primary text-primary-foreground'
+                : 'text-muted-foreground hover:text-card-foreground'
+            }`}
+            title="List view"
+          >
+            <List size={18} />
+          </button>
         </div>
+        <div className="flex-1" />
         {!isTechnicalStore && (
           <Button
             onClick={() => navigate('/callsheet/new')}
             className="flex items-center gap-2"
           >
             <Plus size={18} />
-            New Call Sheet
+            <span className="hidden sm:inline">New Call Sheet</span>
+            <span className="sm:hidden">New</span>
           </Button>
         )}
       </div>
@@ -434,37 +433,38 @@ export const CallSheetDashboard: React.FC = () => {
         </div>
       ) : (
         <div className="bg-card border border-border rounded-lg overflow-hidden">
-          <table className="w-full">
+          <div className="overflow-x-auto">
+          <table className="w-full min-w-[900px]">
             <thead>
               <tr className="border-b border-border bg-muted/50">
-                <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground">
+                <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground whitespace-nowrap">
                   ID
                 </th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground">
+                <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground whitespace-nowrap">
                   Title
                 </th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground">
+                <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground whitespace-nowrap">
                   Department
                 </th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground">
+                <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground whitespace-nowrap">
                   Location
                 </th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground">
+                <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground whitespace-nowrap">
                   Shoot Type
                 </th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground">
+                <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground whitespace-nowrap">
                   Status
                 </th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground">
-                  Announcement  
+                <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground whitespace-nowrap">
+                  Announcement
                 </th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground">
+                <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground whitespace-nowrap">
                   Start Date/Time
                 </th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground">
+                <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground whitespace-nowrap">
                   Crew
                 </th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground">
+                <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground whitespace-nowrap">
                   Equipment
                 </th>
               </tr>
@@ -535,6 +535,7 @@ export const CallSheetDashboard: React.FC = () => {
               })}
             </tbody>
           </table>
+          </div>
         </div>
       )}
     </div>
