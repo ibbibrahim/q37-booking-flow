@@ -186,11 +186,11 @@ export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ child
         data: data,
         playSound: true, // Always play sound for new requests
         onClick: () => {
-          // Navigate to booking dashboard or detail page
+          // Navigate to ingest request detail page
           if (data.id) {
-            navigate(`/booking/${data.id}`);
+            navigate(`/ingest/requests/${data.id}`);
           } else {
-            navigate('/booking');
+            navigate('/ingest');
           }
         },
       });
