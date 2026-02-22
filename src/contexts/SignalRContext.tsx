@@ -30,6 +30,31 @@ export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ child
     isAuthenticatedRef.current = isAuthenticated;
   }, [isAuthenticated]);
 
+  // Define listen function early so it can be used in other hooks
+  const listen = useCallback((eventName: string, handler: (data: any) => void) => {
+    if (!listenersRef.current.has(eventName)) {
+      listenersRef.current.set(eventName, new Set());
+    }
+
+    const handlers = listenersRef.current.get(eventName)!;
+    handlers.add(handler);
+
+    if (connectionRef.current && connectionRef.current.state === signalR.HubConnectionState.Connected) {
+      connectionRef.current.on(eventName, handler);
+    }
+
+    return () => {
+      handlers.delete(handler);
+      if (handlers.size === 0) {
+        listenersRef.current.delete(eventName);
+      }
+
+      if (connectionRef.current) {
+        connectionRef.current.off(eventName, handler);
+      }
+    };
+  }, []);
+
   const getPrimaryRole = useCallback((): UserRole => {
     if (!user || !user.roles || user.roles.length === 0) {
       return 'Booking';
@@ -232,30 +257,6 @@ export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ child
       console.error(`SignalR invoke failed: ${eventName}`, error);
       throw error;
     }
-  }, []);
-
-  const listen = useCallback((eventName: string, handler: (data: any) => void) => {
-    if (!listenersRef.current.has(eventName)) {
-      listenersRef.current.set(eventName, new Set());
-    }
-
-    const handlers = listenersRef.current.get(eventName)!;
-    handlers.add(handler);
-
-    if (connectionRef.current && connectionRef.current.state === signalR.HubConnectionState.Connected) {
-      connectionRef.current.on(eventName, handler);
-    }
-
-    return () => {
-      handlers.delete(handler);
-      if (handlers.size === 0) {
-        listenersRef.current.delete(eventName);
-      }
-
-      if (connectionRef.current) {
-        connectionRef.current.off(eventName, handler);
-      }
-    };
   }, []);
 
   const isConnected = connectionState === signalR.HubConnectionState.Connected;
