@@ -2,8 +2,6 @@ import React, { createContext, useContext, useEffect, useState, useCallback, use
 import * as signalR from '@microsoft/signalr';
 import { UserRole } from '../booking_workflow/types/workflow';
 import { useAuth } from './AuthContext';
-import { showBrowserNotification, shouldShowBrowserNotification } from '@/utils/browserNotifications';
-import { useNavigate } from 'react-router-dom';
 
 interface SignalRContextType {
   invoke: (eventName: string, payload?: any) => Promise<void>;
@@ -16,7 +14,6 @@ const SignalRContext = createContext<SignalRContextType | undefined>(undefined);
 
 export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated, user, token } = useAuth();
-  const navigate = useNavigate();
   const [connectionState, setConnectionState] = useState<signalR.HubConnectionState>(
     signalR.HubConnectionState.Disconnected
   );
@@ -157,52 +154,6 @@ export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ child
       }, 5000);
     }
   };
-
-  // Setup browser notifications for Ingest users
-  useEffect(() => {
-    if (!isAuthenticated || !user) {
-      return;
-    }
-
-    // Only setup browser notifications for Ingest users
-    const isIngestUser = user.roles?.includes('Ingest') || false;
-    if (!isIngestUser) {
-      return;
-    }
-
-    // Check if we should show browser notifications
-    if (!shouldShowBrowserNotification()) {
-      return;
-    }
-
-    // Listen for new booking requests
-    const handleNewRequest = (data: any) => {
-      // Always show browser notification with sound, even if user is on the booking page
-      // This ensures notifications work across different PCs or browser tabs
-      showBrowserNotification({
-        title: 'New Booking Request',
-        body: data.title || data.programSegment || 'A new booking request has arrived',
-        tag: `booking-${data.id}`,
-        data: data,
-        playSound: true, // Always play sound for new requests
-        onClick: () => {
-          // Navigate to ingest request detail page
-          if (data.id) {
-            navigate(`/ingest/requests/${data.id}`);
-          } else {
-            navigate('/ingest');
-          }
-        },
-      });
-    };
-
-    // Add listener
-    const unsubscribe = listen('RequestCreated', handleNewRequest);
-
-    return () => {
-      unsubscribe();
-    };
-  }, [isAuthenticated, user, listen, navigate]);
 
   useEffect(() => {
     const isOnLoginPage = window.location.pathname === '/login';

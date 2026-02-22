@@ -1,9 +1,11 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useSignalR } from './SignalRContext';
 import { useToast } from './ToastContext';
 import { useAuth } from './AuthContext';
 import type { WorkflowRequest } from '../booking_workflow/types/workflow';
 import { notificationsApi, type NotificationDTO } from '../api/notifications';
+import { shouldShowBrowserNotification, showBrowserNotification } from '../utils/browserNotifications';
 
 export interface Notification {
   id: number;
@@ -40,7 +42,8 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [currentPage, setCurrentPage] = useState<number>(1);
   const { listen, isConnected } = useSignalR();
   const { showToast } = useToast();
-  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const { isAuthenticated, isLoading: authLoading, user } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (authLoading) {
@@ -168,6 +171,27 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       setNotifications((prev) => [notification, ...prev]);
       setUnreadCount(prev => prev + 1);
       //showToast(`📬 ${data.title}`, 'info');
+
+      // Browser notification for Ingest users
+      const isIngestUser = user?.roles?.includes('Ingest') || false;
+
+      if (isIngestUser && shouldShowBrowserNotification()) {
+        showBrowserNotification({
+          title: data.title,
+          body: data.body || 'You have a new notification',
+          icon: '/Qbusiness_Logo_NEG_POS-02.png',
+          tag: `notification-${data.id}`,
+          playSound: true,
+          onClick: () => {
+            window.focus();
+            if (data.url) {
+              navigate(data.url);
+            } else {
+              navigate('/ingest');
+            }
+          }
+        });
+      }
     });
 
     const unsubscribeCreated = listen('RequestCreated', (data: WorkflowRequest) => {
@@ -208,7 +232,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       unsubscribeCallSheetCreated();
       unsubscribeCallSheetUpdated();
     };
-  }, [isConnected, listen, showToast]);
+  }, [isConnected, listen, showToast, user, navigate]);
 
   const markAsRead = useCallback(async (id: number) => {
     try {
