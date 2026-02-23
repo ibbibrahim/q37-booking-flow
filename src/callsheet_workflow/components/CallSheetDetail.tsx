@@ -397,7 +397,7 @@ export const CallSheetDetail: React.FC = () => {
               </div>
             )}
 
-            {callSheet.transportRequest && (
+            {callSheet.driverNeeded && callSheet.transportRequest && (
               <div className="bg-card rounded-lg border border-border p-6">
                 <h2 className="text-lg font-semibold text-card-foreground mb-4">Transportation</h2>
                 <div className="grid grid-cols-2 gap-4 text-sm">
