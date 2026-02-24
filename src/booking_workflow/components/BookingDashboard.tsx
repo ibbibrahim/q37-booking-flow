@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import type { UserRole } from '../types/workflow';
-import { User, Radio, Package, Shield, Menu, X, Sun, Moon, FileText, LogOut, UserCircle, BarChart3, Boxes, Video, Users } from 'lucide-react';
+import { User, Radio, Package, Shield, Menu, X, Sun, Moon, FileText, LogOut, UserCircle, BarChart3, Boxes, Video, Users, KeyRound } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { NotificationDropdown } from '../../components/NotificationDropdown';
 import { NotificationPermissionBanner } from '../../components/NotificationPermissionBanner';
 import qBusinessLogoDark from '../../assets/Qbusiness_Logo_NEG_POS-01.png';
 import qBusinessLogoLight from '../../assets/Qbusiness_Logo_NEG_POS-02.png';
+import { ChangePasswordModal } from './ChangePasswordModal';
 
 export const BookingDashboard: React.FC = () => {
   const { theme, toggleTheme } = useTheme();
@@ -16,6 +17,7 @@ export const BookingDashboard: React.FC = () => {
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [changePasswordOpen, setChangePasswordOpen] = useState(false);
 
   const getCurrentSection = (): string => {
     const pathParts = location.pathname.split('/').filter(Boolean);
@@ -293,6 +295,16 @@ export const BookingDashboard: React.FC = () => {
                         </div>
                         <button
                           onClick={() => {
+                            setChangePasswordOpen(true);
+                            setUserMenuOpen(false);
+                          }}
+                          className="w-full flex items-center gap-2 px-3 py-2 text-left text-sm text-card-foreground hover:bg-muted transition-colors"
+                        >
+                          <KeyRound size={16} />
+                          Change Password
+                        </button>
+                        <button
+                          onClick={() => {
                             logout();
                             navigate('/login');
                             setUserMenuOpen(false);
@@ -317,6 +329,15 @@ export const BookingDashboard: React.FC = () => {
       </div>
 
       <NotificationPermissionBanner />
+
+      {user && (
+        <ChangePasswordModal
+          open={changePasswordOpen}
+          onOpenChange={setChangePasswordOpen}
+          userId={user.id}
+          username={user.username}
+        />
+      )}
     </div>
   );
 };

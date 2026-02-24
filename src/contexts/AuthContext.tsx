@@ -91,9 +91,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         userRoles = Array.isArray(role) ? role : [role];
       }
 
+      const userId =
+        payload.sub ||
+        payload.nameid ||
+        payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier'] ||
+        payload.userId ||
+        payload.id;
+
       const userData: User = {
+        id: parseInt(userId, 10),
         username: payload.unique_name || payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'] || username,
-        roles: userRoles
+        roles: userRoles,
       };
 
       localStorage.setItem('auth_token', receivedToken);
