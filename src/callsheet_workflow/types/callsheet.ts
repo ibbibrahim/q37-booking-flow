@@ -97,7 +97,13 @@ export interface CallSheetRequest {
   cancellationReason?: string;
   cancelledBy?: number;
   cancelledAt?: string;
-  createdBy:  string | number;           // always integer
+  createdBy: string | number;
+  createdByUser?: {
+    id: number;
+    username: string;
+    displayName: string | null;
+    email: string | null;
+  };
   createdAt: string;
   updatedAt: string;
 }

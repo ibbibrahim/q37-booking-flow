@@ -405,18 +405,12 @@ export const CallSheetDashboard: React.FC = () => {
                 )}
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <User size={14} />
-                  <span>{callSheet.createdBy}</span>
+                  <span>{callSheet.createdByUser?.displayName || callSheet.createdByUser?.username || callSheet.createdBy}</span>
                 </div>
               </div>
 
               <div className="pt-4 border-t border-border">
                 <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                  {callSheet.crewAssignments.length > 0 && (
-                    <span>{callSheet.crewAssignments.length} crew</span>
-                  )}
-                  {callSheet.equipment.length > 0 && (
-                    <span>{callSheet.equipment.length} equipment</span>
-                  )}
                   {callSheet.transportRequest && (
                     <span>Transport requested</span>
                   )}
@@ -462,10 +456,7 @@ export const CallSheetDashboard: React.FC = () => {
                   Start Date/Time
                 </th>
                 <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground whitespace-nowrap">
-                  Crew
-                </th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground whitespace-nowrap">
-                  Equipment
+                  Created By
                 </th>
               </tr>
             </thead>
@@ -525,10 +516,7 @@ export const CallSheetDashboard: React.FC = () => {
                     {callSheet.startDateTime ? formatQatarDateTime(callSheet.startDateTime) : '-'}
                   </td>
                   <td className="py-3 px-4 text-sm text-muted-foreground">
-                    {callSheet.crewAssignments.length}
-                  </td>
-                  <td className="py-3 px-4 text-sm text-muted-foreground">
-                    {callSheet.equipment.length}
+                    {callSheet.createdByUser?.displayName || callSheet.createdByUser?.username || '-'}
                   </td>
                 </tr>
                 );

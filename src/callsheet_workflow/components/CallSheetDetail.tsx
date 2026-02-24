@@ -460,13 +460,22 @@ export const CallSheetDetail: React.FC = () => {
             <div className="bg-card rounded-lg border border-border p-6">
               <h2 className="text-lg font-semibold text-card-foreground mb-4">Metadata</h2>
               <div className="space-y-4">
-                {/* <div>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
-                    <User size={14} />
-                    <span>Created by</span>
+                {callSheet.createdByUser && (
+                  <div>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
+                      <User size={14} />
+                      <span>Created by</span>
+                    </div>
+                    <div className="text-sm font-medium text-card-foreground">
+                      {callSheet.createdByUser.displayName || callSheet.createdByUser.username}
+                    </div>
+                    {callSheet.createdByUser.email && (
+                      <div className="text-xs text-muted-foreground mt-0.5">
+                        {callSheet.createdByUser.email}
+                      </div>
+                    )}
                   </div>
-                  <div className="text-sm font-medium text-card-foreground">{callSheet.createdBy}</div>
-                </div> */}
+                )}
                 <div>
                   <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
                     <Clock size={14} />
