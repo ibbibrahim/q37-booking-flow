@@ -81,7 +81,7 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
     startDateTime: '',
     returnDateTime: '',
     driverName: '',
-    vehicleNo: '',
+    driverNo: '',
     requestedBy: 1 // TODO: replace with actual user context
   });
 
@@ -183,8 +183,8 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
         returnDateTime: duplicateData.transportRequest.returnDateTime
           ? duplicateData.transportRequest.returnDateTime.substring(0, 16)
           : '',
-        driverName: duplicateData.transportRequest.driverName || '',
-        driverNo: duplicateData.transportRequest.driverNo || '',
+        driverName: '', // Do not duplicate - can be different per callsheet
+        driverNo: '',   // Do not duplicate - can be different per callsheet
         carType: duplicateData.transportRequest.carType || '',
         requestedBy: duplicateData.transportRequest.requestedBy || 1
       });
@@ -353,17 +353,19 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
       return;
     }
 
-    const crew: CrewAssignment = {
-      // id: Date.now().toString(),
-      ...newCrew
-    };
+    // Use _clientId only for list key and delete; never sent to API (avoids sending fake ids)
+    const crew = {
+      ...newCrew,
+      _clientId: `crew-${Date.now()}-${Math.random().toString(36).slice(2)}`
+    } as CrewAssignment & { _clientId?: string };
 
     setCrewAssignments([...crewAssignments, crew]);
     setNewCrew({ role: '', name: '', phone: '' });
   };
 
-  const handleRemoveCrew = (id: string) => {
-    setCrewAssignments(crewAssignments.filter(c => c.id !== id));
+  const getCrewKey = (c: CrewAssignment & { _clientId?: string }) => c._clientId ?? c.id;
+  const handleRemoveCrew = (key: number | string) => {
+    setCrewAssignments(crewAssignments.filter(c => getCrewKey(c as CrewAssignment & { _clientId?: string }) !== key));
   };
 
   const handleAcknowledgementChange = (index: number, field: keyof DepartmentAcknowledgement, value: boolean | string) => {
@@ -458,7 +460,10 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
         focalPoint: formData.focalPoint,
         focalPointContact: formData.focalPointContact,
         driverNeeded: formData.driverNeeded,
-        crewAssignments,
+        crewAssignments: crewAssignments.map((c) => {
+          const { _clientId, ...rest } = c as CrewAssignment & { _clientId?: string };
+          return rest;
+        }),
         departmentAcknowledgements,
         equipment,
         departmentsToApprove,
@@ -979,7 +984,7 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
                       </TableHeader>
                       <TableBody>
                         {crewAssignments.map((crew) => (
-                          <TableRow key={crew.id}>
+                          <TableRow key={getCrewKey(crew as CrewAssignment & { _clientId?: string })}>
                             <TableCell>{crew.role}</TableCell>
                             <TableCell>{crew.name}</TableCell>
                             <TableCell className="text-muted-foreground">
@@ -989,7 +994,7 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                onClick={() => handleRemoveCrew(crew.id)}
+                                onClick={() => handleRemoveCrew(getCrewKey(crew as CrewAssignment & { _clientId?: string }))}
                                 className="text-red-600 hover:text-red-800 hover:bg-red-50"
                               >
                                 <Trash2 size={16} />
