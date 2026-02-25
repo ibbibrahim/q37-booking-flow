@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { DateRangePicker } from '@/components/DateRangePicker';
 import type { CallSheetRequest } from '../types/callsheet';
 import { formatQatarDateTime } from '../utils/timezone';
-import { CallsheetStudioTimeline } from './CallsheetStudioTimeline';
+import { CallsheetWeeklyCalendar } from './CallsheetWeeklyCalendar';
 
 type ViewMode = 'grid' | 'list';
 
@@ -321,8 +321,8 @@ export const CallSheetDashboard: React.FC = () => {
         </div> */}
       </div>
 
-      {/* Studio Timeline */}
-      <CallsheetStudioTimeline
+      {/* Studio Timeline - Weekly View (Outlook style) */}
+      <CallsheetWeeklyCalendar
         callsheets={callSheets}
         onOpenCallsheet={(id) => navigate(`/callsheet/${id}`)}
       />
