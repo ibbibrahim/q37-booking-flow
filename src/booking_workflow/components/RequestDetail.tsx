@@ -280,6 +280,66 @@ export const RequestDetail: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Content Column */}
           <div className={showActions && userRole === 'NOC' ? 'lg:col-span-2 space-y-6' : 'lg:col-span-2 space-y-6'}>
+            {/* Prominent Ingest Info Banner */}
+            {(request.ingestFolderPath || request.ingestNotes) && (
+              <Card className="border-2 border-blue-200 dark:border-blue-800 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 shadow-sm">
+                <CardContent className="pt-5 space-y-4">
+                  {request.ingestFolderPath && (
+                    <div>
+                      <div className="flex items-center gap-2 text-xs font-semibold text-blue-600 dark:text-blue-400 tracking-wide mb-2">
+                        <FolderOpen className="h-4 w-4" />
+                        Avid MediaCentral Path
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <AlertCircle className="h-3.5 w-3.5 text-blue-400 cursor-help" />
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-xs">
+                              <p>Your requested videos have been ingested and are available at this path in Avid MediaCentral.</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
+                      <div className="relative group flex items-start gap-3">
+                        <div className="font-mono text-sm text-gray-900 dark:text-gray-100 break-all leading-relaxed flex-1">
+                          {request.ingestFolderPath.split('/').map((segment, index, array) => (
+                            <React.Fragment key={index}>
+                              <span className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                                {segment}
+                              </span>
+                              {index < array.length - 1 && (
+                                <span className="text-blue-400 dark:text-blue-600 mx-0.5">/</span>
+                              )}
+                            </React.Fragment>
+                          ))}
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => copyToClipboard(request.ingestFolderPath!)}
+                          className="h-8 px-2 flex-shrink-0"
+                          title="Copy path"
+                        >
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  {request.ingestNotes && (
+                    <div className={request.ingestFolderPath ? 'pt-4 border-t border-blue-200 dark:border-blue-700' : ''}>
+                      <div className="flex items-center gap-2 text-xs font-semibold text-blue-600 dark:text-blue-400 tracking-wide mb-2">
+                        <FileText className="h-4 w-4" />
+                        Notes from MCR Team
+                      </div>
+                      <div className="text-sm text-gray-900 dark:text-gray-100">{request.ingestNotes}</div>
+                    </div>
+                  )}
+
+                </CardContent>
+              </Card>
+            )}
+
             {/* Clarification Alert for Booking Users */}
             {request.status === 'Clarification Requested' && userRole === 'Booking' && (
               <Alert variant="destructive" className="border-orange-500 bg-orange-50 dark:bg-orange-900/20">
@@ -496,58 +556,16 @@ export const RequestDetail: React.FC = () => {
 
                 {request.notes && (
                   <div className="pt-6 border-t border-border">
-                    <h3 className="text-sm font-semibold text-card-foreground mb-3">Notes</h3>
-                    <div className="bg-muted rounded p-3 text-sm text-muted-foreground">
+                    <h3 className="text-sm font-semibold text-card-foreground mb-3 flex items-center gap-2">
+                      <FileText className="h-4 w-4 text-amber-500" />
+                      Notes from Requester
+                    </h3>
+                    <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3 text-sm text-amber-900 dark:text-amber-100">
                       {request.notes}
                     </div>
                   </div>
                 )}
 
-                {request.ingestFolderPath && (
-                  <div className="pt-6 border-t border-border">
-                    <h3 className="text-sm font-semibold text-card-foreground mb-3 flex items-center gap-2">
-                      <FolderOpen className="h-4 w-4 text-blue-600" />
-                      Ingest Folder Path
-                    </h3>
-                    <div className="relative group">
-                      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border-2 border-blue-200 dark:border-blue-800 rounded-lg p-4 transition-all hover:shadow-md">
-                        <div className="flex items-start gap-3">
-                          <div className="flex-shrink-0 mt-0.5">
-                            <div className="h-8 w-8 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
-                              <FolderOpen className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                            </div>
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="text-xs font-medium text-blue-600 dark:text-blue-400 mb-1.5 uppercase tracking-wide">
-                              Storage Location
-                            </div>
-                            <div className="font-mono text-sm text-gray-900 dark:text-gray-100 break-all leading-relaxed">
-                              {request.ingestFolderPath.split('/').map((segment, index, array) => (
-                                <React.Fragment key={index}>
-                                  <span className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-                                    {segment}
-                                  </span>
-                                  {index < array.length - 1 && (
-                                    <span className="text-blue-400 dark:text-blue-600 mx-0.5">/</span>
-                                  )}
-                                </React.Fragment>
-                              ))}
-                            </div>
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => copyToClipboard(request.ingestFolderPath!)}
-                            className="h-8 px-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                            title="Copy path"
-                          >
-                            <Copy className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
               </CardContent>
             </Card>
 
