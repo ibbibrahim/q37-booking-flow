@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Download, Clock, User, FileText, Mail, Edit, Copy, Check, Minus, XCircle, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Download, Clock, User, FileText, Mail, Edit, Copy, Check, Minus, XCircle, AlertTriangle, Info } from 'lucide-react';
 import { callSheetApi } from '../services/mockCallSheetApi';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSignalR } from '@/contexts/SignalRContext';
@@ -12,6 +12,7 @@ import type { CallSheetRequest } from '../types/callsheet';
 import { formatQatarDateTime } from '../utils/timezone';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { formatDateTime, formatTime } from '@/studio_booking/utils/timeUtils';
 import { useToast } from '@/hooks/use-toast';
 
@@ -161,6 +162,7 @@ export const CallSheetDetail: React.FC = () => {
   }
 
   const isCancelled = callSheet.status === 'Cancelled';
+  const isStoreCompleted = callSheet.status === 'Completed';
 
   return (
     <div className="max-w-6xl mx-auto">
@@ -242,15 +244,31 @@ export const CallSheetDetail: React.FC = () => {
               Duplicate
             </Button>
             {hasCallSheetRole && (
-              <Button
-                onClick={() => setShowEmailModal(true)}
-                variant="outline"
-                className="gap-2"
-                disabled={isCancelled}
-              >
-                <Mail className="h-4 w-4" />
-                Announce / Send Email
-              </Button>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className={(!isStoreCompleted || isCancelled) ? 'cursor-not-allowed' : undefined}>
+                      <Button
+                        onClick={() => setShowEmailModal(true)}
+                        variant="outline"
+                        className="gap-2"
+                        disabled={isCancelled || !isStoreCompleted}
+                      >
+                        <Mail className="h-4 w-4" />
+                        Announce / Send Email
+                      </Button>
+                    </span>
+                  </TooltipTrigger>
+                  {!isStoreCompleted && !isCancelled && (
+                    <TooltipContent side="bottom" className="max-w-xs text-center">
+                      <div className="flex items-start gap-1.5">
+                        <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                        <p>Announcement emails can only be sent once the Technical Store has confirmed the call sheet. Current status: <strong>{callSheet.status}</strong></p>
+                      </div>
+                    </TooltipContent>
+                  )}
+                </Tooltip>
+              </TooltipProvider>
             )}
             {hasCallSheetRole && !isCancelled && (
               <Button

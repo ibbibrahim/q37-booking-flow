@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Plus, Trash2, Upload, X, MapPin, AlertCircle, Building2, Mail, Loader2 } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Upload, X, MapPin, AlertCircle, Building2, Mail, Loader2, Info } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,6 +11,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { AcknowledgementPanel } from './AcknowledgementPanel';
 import { EquipmentForm } from './EquipmentForm';
 import { TransportForm } from './TransportForm';
@@ -540,16 +541,37 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
             </p>
           </div>
         </div>
-        {hasCallSheetRole && initialCallSheet?.id && (
-          <Button
-            onClick={() => setShowEmailModal(true)}
-            variant="outline"
-            className="gap-2 w-full sm:w-auto shrink-0"
-          >
-            <Mail className="h-4 w-4" />
-            Announce / Send Email
-          </Button>
-        )}
+        {hasCallSheetRole && initialCallSheet?.id && (() => {
+          const isStoreCompleted = initialCallSheet?.status === 'Completed';
+          const isCancelled = initialCallSheet?.status === 'Cancelled';
+          return (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className={(!isStoreCompleted || isCancelled) ? 'cursor-not-allowed' : undefined}>
+                    <Button
+                      onClick={() => setShowEmailModal(true)}
+                      variant="outline"
+                      className="gap-2 w-full sm:w-auto shrink-0"
+                      disabled={isCancelled || !isStoreCompleted}
+                    >
+                      <Mail className="h-4 w-4" />
+                      Announce / Send Email
+                    </Button>
+                  </span>
+                </TooltipTrigger>
+                {!isStoreCompleted && !isCancelled && (
+                  <TooltipContent side="bottom" className="max-w-xs text-center">
+                    <div className="flex items-start gap-1.5">
+                      <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                      <p>Announcement emails can only be sent once the Technical Store has completed the call sheet. Current status: <strong>{initialCallSheet?.status}</strong></p>
+                    </div>
+                  </TooltipContent>
+                )}
+              </Tooltip>
+            </TooltipProvider>
+          );
+        })()}
       </div>
 
       <Tabs value={activeTab} onValueChange={isSubmitting ? undefined : setActiveTab} className="w-full">

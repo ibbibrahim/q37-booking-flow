@@ -91,36 +91,54 @@ export const UnifiedWorkflowDocument: React.FC<UnifiedWorkflowDocumentProps> = (
             </tr>
           </thead>
           <tbody>
-            {[
-              'Director',
-              'Producer',
-              'Presenter',
-              'Assistant Director',
-              'Camera 1',
-              'Camera 2',
-              'Camera 3',
-              'Camera Assistant',
-              'Sound Technician',
-              'Studio Operator',
-              'Driver Needed',
-            ].map((role, index) => {
-              const assignment = callSheet.crewAssignments?.find((c) => c.role === role);
-              const isDriver = role === 'Driver Needed';
-              return (
-                <tr key={index}>
-                  <td style={{ border: '1px solid #000', padding: '5px 6px', textAlign: 'center' }}>{index + 1}</td>
-                  <td style={{ border: '1px solid #000', padding: '5px 6px', fontWeight: 'bold' }}>{role}</td>
-                  {isDriver ? (
-                    <td colSpan={2} style={{ border: '1px solid #000', padding: '5px 6px' }}>{callSheet.driverNeeded ? '✓ Yes' : '✗ No'}</td>
-                  ) : (
-                    <>
-                      <td style={{ border: '1px solid #000', padding: '5px 6px' }}>{assignment?.name || ''}</td>
-                      <td style={{ border: '1px solid #000', padding: '5px 6px' }}>{assignment?.phone || ''}</td>
-                    </>
-                  )}
-                </tr>
-              );
-            })}
+            {(() => {
+              const roles = [
+                'Director',
+                'Producer',
+                'Presenter',
+                'Assistant Director',
+                'Camera 1',
+                'Camera 2',
+                'Camera 3',
+                'Camera Assistant',
+                'Sound Technician',
+                'Studio Operator',
+                'Driver Needed',
+              ];
+              let rowNumber = 1;
+              return roles.flatMap((role) => {
+                const isDriver = role === 'Driver Needed';
+                const currentNumber = rowNumber++;
+                if (isDriver) {
+                  return [
+                    <tr key={`${role}-0`}>
+                      <td style={{ border: '1px solid #000', padding: '5px 6px', textAlign: 'center' }}>{currentNumber}</td>
+                      <td style={{ border: '1px solid #000', padding: '5px 6px', fontWeight: 'bold' }}>{role}</td>
+                      <td colSpan={2} style={{ border: '1px solid #000', padding: '5px 6px' }}>{callSheet.driverNeeded ? '✓ Yes' : '✗ No'}</td>
+                    </tr>,
+                  ];
+                }
+                const assignments = callSheet.crewAssignments?.filter((c) => c.role === role) || [];
+                if (assignments.length === 0) {
+                  return [
+                    <tr key={`${role}-empty`}>
+                      <td style={{ border: '1px solid #000', padding: '5px 6px', textAlign: 'center' }}>{currentNumber}</td>
+                      <td style={{ border: '1px solid #000', padding: '5px 6px', fontWeight: 'bold' }}>{role}</td>
+                      <td style={{ border: '1px solid #000', padding: '5px 6px' }}></td>
+                      <td style={{ border: '1px solid #000', padding: '5px 6px' }}></td>
+                    </tr>,
+                  ];
+                }
+                return assignments.map((assignment, i) => (
+                  <tr key={`${role}-${i}`}>
+                    <td style={{ border: '1px solid #000', padding: '5px 6px', textAlign: 'center' }}>{i === 0 ? currentNumber : ''}</td>
+                    <td style={{ border: '1px solid #000', padding: '5px 6px', fontWeight: 'bold' }}>{role}</td>
+                    <td style={{ border: '1px solid #000', padding: '5px 6px' }}>{assignment.name || ''}</td>
+                    <td style={{ border: '1px solid #000', padding: '5px 6px' }}>{assignment.phone || ''}</td>
+                  </tr>
+                ));
+              });
+            })()}
           </tbody>
         </table>
       </div>
