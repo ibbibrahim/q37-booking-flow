@@ -42,11 +42,11 @@ const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'
 
 // Grid constants – every slot = 30 min
 const START_HOUR = 0;   // 12 AM (midnight)
-const END_HOUR = 23;    // 11 PM
+const END_HOUR = 24;    // end of day — gives 24 hour-labels: 12 AM → 11 PM
 const SLOT_MINUTES = 30;
 const SLOT_HEIGHT = 40; // px per 30-min slot
 const HOUR_HEIGHT = SLOT_HEIGHT * 2; // px per hour
-const HOURS = Array.from({ length: END_HOUR - START_HOUR }, (_, i) => i + START_HOUR);
+const HOURS = Array.from({ length: END_HOUR - START_HOUR }, (_, i) => i + START_HOUR); // 0–23
 const TOTAL_MINUTES = (END_HOUR - START_HOUR) * 60;
 const GRID_HEIGHT = (TOTAL_MINUTES / SLOT_MINUTES) * SLOT_HEIGHT;
 
@@ -305,7 +305,7 @@ export const CallsheetWeeklyCalendar: React.FC<CallsheetWeeklyCalendarProps> = (
                         <div
                           key={hour}
                           className="absolute right-2 text-[10px] text-muted-foreground select-none"
-                          style={{ top: i * HOUR_HEIGHT - 7 }}
+                          style={{ top: i === 0 ? 4 : i * HOUR_HEIGHT - 7 }}
                         >
                           {format(setHours(new Date(), hour), 'h a')}
                         </div>
