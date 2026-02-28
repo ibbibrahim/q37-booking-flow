@@ -579,7 +579,7 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
             const isStoreCompleted = initialCallSheet?.status === 'Completed';
             const isCancelled = initialCallSheet?.status === 'Cancelled';
             return (
-              <TooltipProvider>
+              <TooltipProvider delayDuration={0}>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <span className={(!isStoreCompleted || isCancelled) ? 'cursor-not-allowed' : undefined}>

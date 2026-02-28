@@ -278,10 +278,10 @@ export const CallSheetDetail: React.FC = () => {
                   <Copy className="h-3.5 w-3.5" />
                   Duplicate
                 </Button>
-                {hasCallSheetRole && (
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
+              {hasCallSheetRole && (
+                <TooltipProvider delayDuration={0}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
                         <span className={(!isStoreCompleted || isCancelled) ? 'cursor-not-allowed' : undefined}>
                           <Button
                             onClick={() => setShowEmailModal(true)}
