@@ -27,7 +27,6 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/select';
-import { NotificationSettings } from '@/components/NotificationSettings';
 
 interface RequestListProps {
   requests: WorkflowRequest[];
@@ -197,10 +196,6 @@ export const RequestList: React.FC<RequestListProps> = ({
     <div className="space-y-6">
       {!selectedRequest ? (
         <>
-          {userRole === 'Ingest' && (
-            <NotificationSettings />
-          )}
-
           {/* Top bar: view mode, filter icon, export, create */}
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2 bg-muted p-1 rounded-lg">
