@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, ChevronDown } from 'lucide-react';
 import {
   format,
@@ -61,6 +61,52 @@ export const CallsheetWeeklyCalendar: React.FC<CallsheetWeeklyCalendarProps> = (
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
   const [hoveredEvent, setHoveredEvent] = useState<CalendarEvent | null>(null);
   const [hoverPosition, setHoverPosition] = useState({ x: 0, y: 0 });
+  const hasAutoNavigated = useRef(false);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // On first load with data, jump to the week of the nearest non-cancelled call sheet
+  useEffect(() => {
+    if (hasAutoNavigated.current || callsheets.length === 0) return;
+
+    const active = callsheets
+      .filter((cs) => cs.status !== 'Cancelled' && cs.startDateTime)
+      .sort((a, b) => new Date(a.startDateTime).getTime() - new Date(b.startDateTime).getTime());
+
+    if (active.length === 0) return;
+
+    const now = new Date();
+    const upcoming = active.find((cs) => new Date(cs.startDateTime) >= now);
+    const target = upcoming ?? active[active.length - 1];
+
+    setWeekStart(startOfWeek(new Date(target.startDateTime), { weekStartsOn: 1 }));
+    hasAutoNavigated.current = true;
+  }, [callsheets]);
+
+  // Auto-scroll to the first event (or current time) when the calendar opens
+  useEffect(() => {
+    if (!isOpen) return;
+    const el = scrollContainerRef.current;
+    if (!el) return;
+
+    // Small delay to let the DOM render first
+    const timer = setTimeout(() => {
+      // Find the earliest event top in the current week
+      const allEvents = Array.from(el.querySelectorAll<HTMLElement>('[data-event-top]'));
+      if (allEvents.length > 0) {
+        const tops = allEvents.map((e) => parseInt(e.dataset.eventTop ?? '0', 10));
+        const minTop = Math.min(...tops);
+        // Scroll to slightly above the first event, accounting for sticky header (~48px)
+        el.scrollTo({ top: Math.max(0, minTop - 64), behavior: 'smooth' });
+      } else {
+        // No events — scroll to current time or 8 AM
+        const scrollTo = currentTimeTop !== null
+          ? Math.max(0, currentTimeTop - 64)
+          : 8 * HOUR_HEIGHT;
+        el.scrollTo({ top: scrollTo, behavior: 'smooth' });
+      }
+    }, 50);
+    return () => clearTimeout(timer);
+  }, [isOpen, weekStart]);
 
   const weekEnd = useMemo(() => endOfWeek(weekStart, { weekStartsOn: 1 }), [weekStart]);
 
@@ -251,6 +297,10 @@ export const CallsheetWeeklyCalendar: React.FC<CallsheetWeeklyCalendarProps> = (
                       <span className="h-3 w-3 rounded border border-border bg-muted/40 shrink-0" />
                       <span className="text-xs text-muted-foreground">Outdoor shoot</span>
                     </div>
+                    <div className="flex items-center gap-2">
+                      <span className="h-3 w-3 rounded border-l-2 border-border bg-muted/20 opacity-50 shrink-0" />
+                      <span className="text-xs text-muted-foreground line-through">Cancelled</span>
+                    </div>
                   </div>
                 </div>
               )}
@@ -262,7 +312,7 @@ export const CallsheetWeeklyCalendar: React.FC<CallsheetWeeklyCalendarProps> = (
                 Single scroll container: sticky day-header row + time grid share
                 the SAME CSS grid columns so vertical lines are always pixel-perfect.
               */}
-              <div className="overflow-y-auto" style={{ maxHeight: '600px' }}>
+              <div ref={scrollContainerRef} className="overflow-y-auto" style={{ maxHeight: '600px' }}>
                 <div style={{ minWidth: '560px' }}>
 
                   {/* ── STICKY DAY HEADERS (inside scroll so column widths match exactly) ── */}
@@ -366,34 +416,47 @@ export const CallsheetWeeklyCalendar: React.FC<CallsheetWeeklyCalendarProps> = (
                             const box = getEventBox(event.startDateTime, event.returnDateTime, day);
                             if (!box) return null;
                             const layout = getOverlapLayout(dayKey, idx);
+                            const isCancelled = event.status === 'Cancelled';
                             return (
                               <div
                                 key={event.id}
-                                className="absolute rounded-sm cursor-pointer overflow-hidden text-white text-xs shadow-sm hover:shadow-md hover:brightness-110 transition-all z-10"
+                                data-event-top={box.top + 1}
+                                className={cn(
+                                  'absolute rounded-sm overflow-hidden text-white text-xs shadow-sm transition-all z-10',
+                                  isCancelled
+                                    ? 'cursor-default'
+                                    : 'cursor-pointer hover:shadow-md hover:brightness-110'
+                                )}
                                 style={{
                                   top: box.top + 1,
                                   height: box.height - 2,
                                   left: `${layout.left}%`,
                                   width: `${layout.width}%`,
                                   backgroundColor: event.color,
-                                  opacity: event.shootType === 'Outdoor' ? 0.85 : 1,
-                                  borderLeft: event.shootType === 'Outdoor' ? '3px dashed rgba(255,255,255,0.5)' : undefined,
+                                  opacity: isCancelled ? 0.45 : event.shootType === 'Outdoor' ? 0.85 : 1,
+                                  borderLeft: isCancelled
+                                    ? '3px solid rgba(255,255,255,0.6)'
+                                    : event.shootType === 'Outdoor'
+                                    ? '3px dashed rgba(255,255,255,0.5)'
+                                    : undefined,
                                 }}
-                                onClick={() => onOpenCallsheet(event.id)}
+                                onClick={() => !isCancelled && onOpenCallsheet(event.id)}
                                 onMouseEnter={(e) => { setHoveredEvent(event); setHoverPosition({ x: e.clientX, y: e.clientY }); }}
                                 onMouseLeave={() => setHoveredEvent(null)}
                                 onMouseMove={(e) => setHoverPosition({ x: e.clientX, y: e.clientY })}
                               >
                                 <div className="px-1.5 py-1 h-full overflow-hidden">
-                                  <div className="font-semibold leading-tight truncate">{event.title}</div>
+                                  <div className={cn('font-semibold leading-tight truncate', isCancelled && 'line-through')}>
+                                    {event.title}
+                                  </div>
                                   {box.height >= SLOT_HEIGHT && (
-                                    <div className="opacity-90 truncate mt-0.5">
+                                    <div className={cn('opacity-90 truncate mt-0.5', isCancelled && 'line-through')}>
                                       {format(parseDate(event.startDateTime), 'h:mm a')} – {format(parseDate(event.returnDateTime), 'h:mm a')}
                                     </div>
                                   )}
                                   {box.height >= SLOT_HEIGHT * 2 && (
                                     <div className="opacity-75 truncate text-[10px] mt-0.5">
-                                      {event.shootType}{event.location ? ` · ${event.location}` : ''}
+                                      {isCancelled ? 'Cancelled' : `${event.shootType}${event.location ? ` · ${event.location}` : ''}`}
                                     </div>
                                   )}
                                 </div>

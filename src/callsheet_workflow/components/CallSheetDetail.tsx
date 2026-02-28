@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Download, Clock, User, FileText, Mail, Edit, Copy, Check, Minus, XCircle, AlertTriangle, Info } from 'lucide-react';
+import { ArrowLeft, Download, Clock, User, FileText, Mail, Edit, Copy, Check, Minus, XCircle, AlertTriangle, Info, Users, Package, DatabaseIcon } from 'lucide-react';
 import { callSheetApi } from '../services/mockCallSheetApi';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSignalR } from '@/contexts/SignalRContext';
@@ -12,6 +12,7 @@ import type { CallSheetRequest } from '../types/callsheet';
 import { formatQatarDateTime } from '../utils/timezone';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { formatDateTime, formatTime } from '@/studio_booking/utils/timeUtils';
 import { useToast } from '@/hooks/use-toast';
@@ -150,8 +151,8 @@ export const CallSheetDetail: React.FC = () => {
     }
   };
 
-  // If TechnicalStore user, render the form instead
-  if (isTechnicalStore) {
+  // If TechnicalStore user and the call sheet is not yet completed, render the editable form
+  if (isTechnicalStore && callSheet.status !== 'Completed') {
     return (
       <CallSheetForm
         initialCallSheet={callSheet || undefined}
@@ -191,99 +192,123 @@ export const CallSheetDetail: React.FC = () => {
       )}
 
       <div className="px-6 mb-6">
-        <div className="flex items-center gap-4">
-          <Button variant="outline" size="icon" onClick={() => navigate('/callsheet')}>
+        <div className="flex gap-4">
+          {/* Back button */}
+          <Button
+            variant="outline"
+            size="icon"
+            className="shrink-0 mt-1"
+            onClick={() => navigate('/callsheet')}
+          >
             <ArrowLeft className="h-4 w-4" />
           </Button>
 
-          <div className="flex-1">
-            <div className="flex items-center gap-3 mb-2">
-              <h1 className="text-3xl font-bold text-foreground">{callSheet.title}</h1>
-              <Badge className={statusColors[callSheet.status]}>{callSheet.status}</Badge>
-              {callSheet.alreadyAnnouncedEmail ? (
-                <Badge className="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 flex items-center gap-1.5">
-                  <Check className="h-3 w-3" />
-                  Email Sent
-                </Badge>
-              ) : (
-                <Badge variant="outline" className="flex items-center gap-1.5">
-                  <Minus className="h-3 w-3" />
-                  Email Not Sent
-                </Badge>
-              )}
-            </div>
+          {/* Title block + all actions */}
+          <div className="flex-1 min-w-0">
 
-            <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-              <span className="font-mono">{callSheet.id}</span>
-              <span>·</span>
-              <Badge variant="outline">{callSheet.department}</Badge>
-            </div>
-          </div>
-
-          <div className="flex gap-2">
-            <Button
-              onClick={() => navigate(`/callsheet/edit/${callSheet.id}`, {
-                state: { editData: callSheet }
-              })}
-              variant="default"
-              className="gap-2"
-              disabled={isCancelled}
-            >
-              <Edit className="h-4 w-4" />
-              Edit
-            </Button>
-            <Button
-              onClick={() => navigate('/callsheet/new', {
-                state: { duplicateData: callSheet }
-              })}
-              variant="outline"
-              className="gap-2"
-              disabled={isCancelled}
-            >
-              <Copy className="h-4 w-4" />
-              Duplicate
-            </Button>
-            {hasCallSheetRole && (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className={(!isStoreCompleted || isCancelled) ? 'cursor-not-allowed' : undefined}>
-                      <Button
-                        onClick={() => setShowEmailModal(true)}
-                        variant="outline"
-                        className="gap-2"
-                        disabled={isCancelled || !isStoreCompleted}
-                      >
-                        <Mail className="h-4 w-4" />
-                        Announce / Send Email
-                      </Button>
-                    </span>
-                  </TooltipTrigger>
-                  {!isStoreCompleted && !isCancelled && (
-                    <TooltipContent side="bottom" className="max-w-xs text-center">
-                      <div className="flex items-start gap-1.5">
-                        <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-                        <p>Announcement emails can only be sent once the Technical Store has confirmed the call sheet. Current status: <strong>{callSheet.status}</strong></p>
-                      </div>
-                    </TooltipContent>
+            {/* Top: title/badges left, destructive/export actions right */}
+            <div className="flex flex-col sm:flex-row sm:items-start gap-3">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2.5 flex-wrap mb-1">
+                  <h1 className="text-2xl sm:text-3xl font-bold text-foreground">{callSheet.title}</h1>
+                  <Badge className={statusColors[callSheet.status]}>{callSheet.status}</Badge>
+                  {callSheet.alreadyAnnouncedEmail ? (
+                    <Badge className="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 flex items-center gap-1.5">
+                      <Check className="h-3 w-3" />
+                      Email Sent
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="flex items-center gap-1.5">
+                      <Minus className="h-3 w-3" />
+                      Email Not Sent
+                    </Badge>
                   )}
-                </Tooltip>
-              </TooltipProvider>
+                </div>
+                <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                  <span className="font-mono">{callSheet.id}</span>
+                  <span>·</span>
+                  <Badge variant="outline">{callSheet.department}</Badge>
+                </div>
+              </div>
+
+              {/* Cancel + Download — top-right on desktop, full-width row on mobile */}
+              <div className="flex items-center gap-2 shrink-0 flex-wrap">
+                {!isTechnicalStore && hasCallSheetRole && !isCancelled && (
+                  <Button
+                    onClick={() => setShowCancelModal(true)}
+                    variant="destructive"
+                    size="sm"
+                    className="gap-1.5 flex-1 sm:flex-none"
+                  >
+                    <XCircle className="h-3.5 w-3.5" />
+                    Cancel Call Sheet
+                  </Button>
+                )}
+                <Button onClick={handlePrint} size="sm" className="gap-1.5 flex-1 sm:flex-none">
+                  <Download className="h-3.5 w-3.5" />
+                  Download PDF
+                </Button>
+              </div>
+            </div>
+
+            {/* Bottom: secondary actions — hidden for Technical Store users */}
+            {!isTechnicalStore && (
+              <div className="flex flex-wrap items-center gap-2 mt-3">
+                <Button
+                  onClick={() => navigate(`/callsheet/edit/${callSheet.id}`, {
+                    state: { editData: callSheet }
+                  })}
+                  variant="default"
+                  size="sm"
+                  className="gap-1.5"
+                  disabled={isCancelled}
+                >
+                  <Edit className="h-3.5 w-3.5" />
+                  Edit
+                </Button>
+                <Button
+                  onClick={() => navigate('/callsheet/new', {
+                    state: { duplicateData: callSheet }
+                  })}
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5"
+                  disabled={isCancelled}
+                >
+                  <Copy className="h-3.5 w-3.5" />
+                  Duplicate
+                </Button>
+                {hasCallSheetRole && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className={(!isStoreCompleted || isCancelled) ? 'cursor-not-allowed' : undefined}>
+                          <Button
+                            onClick={() => setShowEmailModal(true)}
+                            variant="outline"
+                            size="sm"
+                            className="gap-1.5"
+                            disabled={isCancelled || !isStoreCompleted}
+                          >
+                            <Mail className="h-3.5 w-3.5" />
+                            Announce / Send Email
+                          </Button>
+                        </span>
+                      </TooltipTrigger>
+                      {!isStoreCompleted && !isCancelled && (
+                        <TooltipContent side="bottom" className="max-w-xs text-center">
+                          <div className="flex items-start gap-1.5">
+                            <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                            <p>Announcement emails can only be sent once the Technical Store has confirmed the call sheet. Current status: <strong>{callSheet.status}</strong></p>
+                          </div>
+                        </TooltipContent>
+                      )}
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
+              </div>
             )}
-            {hasCallSheetRole && !isCancelled && (
-              <Button
-                onClick={() => setShowCancelModal(true)}
-                variant="destructive"
-                className="gap-2"
-              >
-                <XCircle className="h-4 w-4" />
-                Cancel Call Sheet
-              </Button>
-            )}
-            <Button onClick={handlePrint} className="gap-2">
-              <Download className="h-4 w-4" />
-              Download PDF
-            </Button>
+
           </div>
         </div>
       </div>
@@ -292,13 +317,15 @@ export const CallSheetDetail: React.FC = () => {
       <div className="px-6 space-y-6">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
-            <div className="bg-card rounded-lg border border-border p-6">
-              <h2 className="text-lg font-semibold text-card-foreground mb-4 flex items-center gap-2">
-                <FileText size={20} />
-                Call Sheet Details
-              </h2>
+            <div className="bg-card rounded-lg border border-border overflow-hidden">
+              <div className="flex items-center gap-2 px-6 py-4 border-b border-border bg-muted/30">
+                <div className="flex items-center justify-center w-7 h-7 rounded-md bg-primary/10">
+                  <FileText className="h-4 w-4 text-primary" />
+                </div>
+                <h2 className="text-base font-semibold text-card-foreground">Call Sheet Details</h2>
+              </div>
 
-              <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="p-6 grid grid-cols-2 gap-4 text-sm">
                 <div>
                   <div className="text-xs text-muted-foreground mb-1">Department</div>
                   <div className="text-card-foreground font-medium">{callSheet.department}</div>
@@ -364,61 +391,86 @@ export const CallSheetDetail: React.FC = () => {
             </div>
 
             {callSheet.crewAssignments.length > 0 && (
-              <div className="bg-card rounded-lg border border-border p-6">
-                <h2 className="text-lg font-semibold text-card-foreground mb-4">Crew Assignments</h2>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-border">
-                        <th className="px-4 py-2 text-left text-card-foreground">Role</th>
-                        <th className="px-4 py-2 text-left text-card-foreground">Name</th>
-                        <th className="px-4 py-2 text-left text-card-foreground">Phone</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {callSheet.crewAssignments.map((crew) => (
-                        <tr key={crew.id} className="border-b border-border">
-                          <td className="px-4 py-2 text-card-foreground">{crew.role}</td>
-                          <td className="px-4 py-2 text-card-foreground">{crew.name}</td>
-                          <td className="px-4 py-2 text-muted-foreground">{crew.phone}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+              <div className="bg-card rounded-lg border border-border overflow-hidden">
+                <div className="flex items-center gap-2 px-6 py-4 border-b border-border bg-muted/30">
+                  <div className="flex items-center justify-center w-7 h-7 rounded-md bg-primary/10">
+                    <Users className="h-4 w-4 text-primary" />
+                  </div>
+                  <h2 className="text-base font-semibold text-card-foreground">Crew Assignments</h2>
+                  <Badge variant="secondary" className="ml-auto text-xs">{callSheet.crewAssignments.length}</Badge>
                 </div>
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/20 hover:bg-muted/20">
+                      <TableHead className="w-[200px] font-semibold text-card-foreground">Role</TableHead>
+                      <TableHead className="font-semibold text-card-foreground">Name</TableHead>
+                      <TableHead className="font-semibold text-card-foreground">Phone</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {callSheet.crewAssignments.map((crew) => (
+                      <TableRow key={crew.id} className="hover:bg-muted/30 transition-colors">
+                        <TableCell>
+                          <Badge variant="outline" className="text-xs font-medium border-primary/30 text-primary bg-primary/5">
+                            {crew.role}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="font-medium text-card-foreground">{crew.name}</TableCell>
+                        <TableCell className="text-muted-foreground">{crew.phone || '—'}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               </div>
             )}
 
             {callSheet.equipment.length > 0 && (
-              <div className="bg-card rounded-lg border border-border p-6">
-                <h2 className="text-lg font-semibold text-card-foreground mb-4">Equipment List</h2>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-border">
-                        <th className="px-4 py-2 text-left text-card-foreground">Category</th>
-                        <th className="px-4 py-2 text-left text-card-foreground">Item</th>
-                        <th className="px-4 py-2 text-left text-card-foreground">Quantity</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {callSheet.equipment.map((eq) => (
-                        <tr key={eq.id} className="border-b border-border">
-                          <td className="px-4 py-2 text-card-foreground">{eq.category}</td>
-                          <td className="px-4 py-2 text-card-foreground">{eq.item}</td>
-                          <td className="px-4 py-2 text-muted-foreground">{eq.quantity}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+              <div className="bg-card rounded-lg border border-border overflow-hidden">
+                <div className="flex items-center gap-2 px-6 py-4 border-b border-border bg-muted/30">
+                  <div className="flex items-center justify-center w-7 h-7 rounded-md bg-primary/10">
+                    <Package className="h-4 w-4 text-primary" />
+                  </div>
+                  <h2 className="text-base font-semibold text-card-foreground">Equipment List</h2>
+                  <Badge variant="secondary" className="ml-auto text-xs">{callSheet.equipment.length} items</Badge>
                 </div>
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/20 hover:bg-muted/20">
+                      <TableHead className="w-[180px] font-semibold text-card-foreground">Category</TableHead>
+                      <TableHead className="font-semibold text-card-foreground">Item</TableHead>
+                      <TableHead className="w-[100px] text-center font-semibold text-card-foreground">Qty</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {callSheet.equipment.map((eq) => (
+                      <TableRow key={eq.id} className="hover:bg-muted/30 transition-colors">
+                        <TableCell>
+                          <Badge variant="secondary" className="text-xs font-medium uppercase tracking-wide">
+                            {eq.category}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-card-foreground">{eq.item}</TableCell>
+                        <TableCell className="text-center">
+                          <span className="inline-flex items-center justify-center min-w-[28px] h-7 px-2 rounded-md bg-primary/10 text-primary text-sm font-semibold">
+                            {eq.quantity}
+                          </span>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               </div>
             )}
 
             {callSheet.driverNeeded && callSheet.transportRequest && (
-              <div className="bg-card rounded-lg border border-border p-6">
-                <h2 className="text-lg font-semibold text-card-foreground mb-4">Transportation</h2>
-                <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="bg-card rounded-lg border border-border overflow-hidden">
+                <div className="flex items-center gap-2 px-6 py-4 border-b border-border bg-muted/30">
+                  <div className="flex items-center justify-center w-7 h-7 rounded-md bg-primary/10">
+                    <Clock className="h-4 w-4 text-primary" />
+                  </div>
+                  <h2 className="text-base font-semibold text-card-foreground">Transportation</h2>
+                </div>
+                <div className="p-6 grid grid-cols-2 gap-4 text-sm">
                   <div>
                     <div className="text-xs text-muted-foreground mb-1">Reason</div>
                     <div className="text-card-foreground font-medium">{callSheet.transportRequest.reason}</div>
@@ -475,32 +527,41 @@ export const CallSheetDetail: React.FC = () => {
           </div>
 
           <div className="space-y-6">
-            <div className="bg-card rounded-lg border border-border p-6">
-              <h2 className="text-lg font-semibold text-card-foreground mb-4">Metadata</h2>
-              <div className="space-y-4">
+            <div className="bg-card rounded-lg border border-border overflow-hidden">
+              <div className="flex items-center gap-2 px-6 py-4 border-b border-border bg-muted/30">
+                <div className="flex items-center justify-center w-7 h-7 rounded-md bg-primary/10">
+                  <DatabaseIcon className="h-4 w-4 text-primary" />
+                </div>
+                <h2 className="text-base font-semibold text-card-foreground">Metadata</h2>
+              </div>
+              <div className="p-6 space-y-4">
                 {callSheet.createdByUser && (
-                  <div>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
-                      <User size={14} />
-                      <span>Created by</span>
+                  <div className="flex items-start gap-3">
+                    <div className="flex items-center justify-center w-7 h-7 rounded-full bg-muted shrink-0 mt-0.5">
+                      <User className="h-3.5 w-3.5 text-muted-foreground" />
                     </div>
-                    <div className="text-sm font-medium text-card-foreground">
-                      {callSheet.createdByUser.displayName || callSheet.createdByUser.username}
-                    </div>
-                    {callSheet.createdByUser.email && (
-                      <div className="text-xs text-muted-foreground mt-0.5">
-                        {callSheet.createdByUser.email}
+                    <div>
+                      <div className="text-xs text-muted-foreground mb-0.5">Created by</div>
+                      <div className="text-sm font-medium text-card-foreground">
+                        {callSheet.createdByUser.displayName || callSheet.createdByUser.username}
                       </div>
-                    )}
+                      {callSheet.createdByUser.email && (
+                        <div className="text-xs text-muted-foreground mt-0.5">
+                          {callSheet.createdByUser.email}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
-                <div>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
-                    <Clock size={14} />
-                    <span>Created at</span>
+                <div className="flex items-start gap-3">
+                  <div className="flex items-center justify-center w-7 h-7 rounded-full bg-muted shrink-0 mt-0.5">
+                    <Clock className="h-3.5 w-3.5 text-muted-foreground" />
                   </div>
-                  <div className="text-sm text-card-foreground">
-                    {new Date(callSheet.createdAt).toLocaleString()}
+                  <div>
+                    <div className="text-xs text-muted-foreground mb-0.5">Created at</div>
+                    <div className="text-sm text-card-foreground">
+                      {new Date(callSheet.createdAt).toLocaleString()}
+                    </div>
                   </div>
                 </div>
                 {/* <div>

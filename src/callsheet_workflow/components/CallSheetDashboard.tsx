@@ -13,6 +13,7 @@ import { DateRangePicker } from '@/components/DateRangePicker';
 import type { CallSheetRequest } from '../types/callsheet';
 import { formatQatarDateTime } from '../utils/timezone';
 import { CallsheetWeeklyCalendar } from './CallsheetWeeklyCalendar';
+import { formatDateTime } from '@/studio_booking/utils/timeUtils';
 
 type ViewMode = 'grid' | 'list';
 
@@ -456,6 +457,9 @@ export const CallSheetDashboard: React.FC = () => {
                   Start Date/Time
                 </th>
                 <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground whitespace-nowrap">
+                  End Date/Time
+                </th>
+                <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground whitespace-nowrap">
                   Created By
                 </th>
               </tr>
@@ -513,7 +517,10 @@ export const CallSheetDashboard: React.FC = () => {
                     )}
                   </td>
                   <td className="py-3 px-4 text-sm text-muted-foreground">
-                    {callSheet.startDateTime ? formatQatarDateTime(callSheet.startDateTime) : '-'}
+                    {callSheet.startDateTime ? formatDateTime(callSheet.startDateTime) : '-'}
+                  </td>
+                  <td className="py-3 px-4 text-sm text-muted-foreground">
+                    {callSheet.returnDateTime ? formatDateTime(callSheet.returnDateTime) : '-'}
                   </td>
                   <td className="py-3 px-4 text-sm text-muted-foreground">
                     {callSheet.createdByUser?.displayName || callSheet.createdByUser?.username || '-'}

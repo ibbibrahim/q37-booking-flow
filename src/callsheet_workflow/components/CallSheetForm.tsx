@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Plus, Trash2, Upload, X, MapPin, AlertCircle, Building2, Mail, Loader2, Info } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Upload, X, MapPin, AlertCircle, Building2, Mail, Loader2, Info, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,6 +18,7 @@ import { TransportForm } from './TransportForm';
 import { CallSheetPreview } from './CallSheetPreview';
 import { CallSheetEmailModal } from './CallSheetEmailModal';
 import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/contexts/ToastContext';
 import type { CallSheetRequest, CrewAssignment, Equipment, DepartmentAcknowledgement, TransportRequest, Notification, ShootType, IndoorFacility } from '../types/callsheet';
 import { DEPARTMENTS, DEFAULT_NOTIFICATIONS, DEPARTMENT_ACKNOWLEDGEMENTS, CALL_SHEET_ROLES, INDOOR_FACILITIES  } from '../types/callsheet';
 import { getCurrentQatarDateTime } from '../utils/timezone';
@@ -34,6 +35,7 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
+  const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState('request');
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -112,6 +114,7 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
       });
 
       if (editData.shootType) setShootType(editData.shootType);
+      if (editData.shootType === 'Indoor' && editData.location) setIndoorFacility(editData.location as IndoorFacility);
       if (editData.equipmentNeeded !== undefined) setEquipmentNeeded(editData.equipmentNeeded);
       if (editData.crewAssignments) setCrewAssignments(editData.crewAssignments);
       if (editData.departmentAcknowledgements) setDepartmentAcknowledgements(editData.departmentAcknowledgements);
@@ -162,6 +165,7 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
       });
 
       if (duplicateData.shootType) setShootType(duplicateData.shootType);
+      if (duplicateData.shootType === 'Indoor' && duplicateData.location) setIndoorFacility(duplicateData.location as IndoorFacility);
       if (duplicateData.equipmentNeeded !== undefined) setEquipmentNeeded(duplicateData.equipmentNeeded);
       if (duplicateData.crewAssignments) setCrewAssignments(duplicateData.crewAssignments);
       if (duplicateData.departmentAcknowledgements) setDepartmentAcknowledgements(duplicateData.departmentAcknowledgements);
@@ -396,18 +400,45 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
     setAttachedFiles(prev => prev.filter((_, i) => i !== index));
   };
 
+  const validateStep1 = (): boolean => {
+    const missing: string[] = [];
+
+    if (!formData.department) missing.push('Department');
+    if (!formData.title.trim()) missing.push('Title');
+    if (!formData.startDateTime) missing.push('Start Date & Time');
+    if (!formData.returnDateTime) missing.push('Return Date & Time');
+    if (shootType === 'Outdoor' && !formData.location.trim()) missing.push('Location');
+    if (shootType === 'Indoor' && !indoorFacility) missing.push('Indoor Facility');
+
+    if (startDateError) {
+      showToast(startDateError, 'warning', 6000);
+      return false;
+    }
+    if (returnDateError) {
+      showToast(returnDateError, 'warning', 6000);
+      return false;
+    }
+
+    if (missing.length > 0) {
+      const fieldList = missing.join(', ');
+      showToast(
+        `The following required fields must be filled in before continuing: ${fieldList}.`,
+        'warning',
+        7000
+      );
+      return false;
+    }
+
+    return true;
+  };
+
   const handleSubmit = async () => {
     if (isSubmitting) {
       return;
     }
 
-    if (!formData.department || !formData.title || !formData.startDateTime || !formData.returnDateTime) {
-      alert('Please fill in required fields: Department, Title, Start Date & Time, and Return Date & Time');
-      return;
-    }
-
-    if (startDateError || returnDateError) {
-      alert('Please fix validation errors before submitting');
+    if (!validateStep1()) {
+      setActiveTab('request');
       return;
     }
 
@@ -541,37 +572,105 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
             </p>
           </div>
         </div>
-        {hasCallSheetRole && initialCallSheet?.id && (() => {
-          const isStoreCompleted = initialCallSheet?.status === 'Completed';
-          const isCancelled = initialCallSheet?.status === 'Cancelled';
-          return (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span className={(!isStoreCompleted || isCancelled) ? 'cursor-not-allowed' : undefined}>
-                    <Button
-                      onClick={() => setShowEmailModal(true)}
-                      variant="outline"
-                      className="gap-2 w-full sm:w-auto shrink-0"
-                      disabled={isCancelled || !isStoreCompleted}
-                    >
-                      <Mail className="h-4 w-4" />
-                      Announce / Send Email
-                    </Button>
-                  </span>
-                </TooltipTrigger>
-                {!isStoreCompleted && !isCancelled && (
-                  <TooltipContent side="bottom" className="max-w-xs text-center">
-                    <div className="flex items-start gap-1.5">
-                      <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-                      <p>Announcement emails can only be sent once the Technical Store has completed the call sheet. Current status: <strong>{initialCallSheet?.status}</strong></p>
-                    </div>
-                  </TooltipContent>
-                )}
-              </Tooltip>
-            </TooltipProvider>
-          );
-        })()}
+
+        <div className="flex items-center gap-2 shrink-0">
+          {/* Announce email button for edit mode */}
+          {hasCallSheetRole && initialCallSheet?.id && (() => {
+            const isStoreCompleted = initialCallSheet?.status === 'Completed';
+            const isCancelled = initialCallSheet?.status === 'Cancelled';
+            return (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className={(!isStoreCompleted || isCancelled) ? 'cursor-not-allowed' : undefined}>
+                      <Button
+                        onClick={() => setShowEmailModal(true)}
+                        variant="outline"
+                        size="sm"
+                        className="gap-1.5"
+                        disabled={isCancelled || !isStoreCompleted}
+                      >
+                        <Mail className="h-3.5 w-3.5" />
+                        Announce / Send Email
+                      </Button>
+                    </span>
+                  </TooltipTrigger>
+                  {!isStoreCompleted && !isCancelled && (
+                    <TooltipContent side="bottom" className="max-w-xs text-center">
+                      <div className="flex items-start gap-1.5">
+                        <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                        <p>Announcement emails can only be sent once the Technical Store has completed the call sheet. Current status: <strong>{initialCallSheet?.status}</strong></p>
+                      </div>
+                    </TooltipContent>
+                  )}
+                </Tooltip>
+              </TooltipProvider>
+            );
+          })()}
+
+          {/* Cancel */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate('/callsheet')}
+            disabled={isSubmitting}
+          >
+            Cancel
+          </Button>
+
+          {/* Previous */}
+          {!isTechnicalStoreMode && activeTab !== 'request' && (
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={isSubmitting}
+              className="gap-1.5"
+              onClick={() => {
+                const tabs = ['request', 'equipment', 'preview'];
+                const currentIndex = tabs.indexOf(activeTab);
+                setActiveTab(tabs[currentIndex - 1]);
+              }}
+            >
+              <ChevronLeft className="h-3.5 w-3.5" />
+              Previous
+            </Button>
+          )}
+
+          {/* Next / Submit */}
+          {isTechnicalStoreMode ? (
+            <Button size="sm" onClick={handleSubmit} disabled={isSubmitting} className="gap-1.5">
+              {isSubmitting ? (
+                <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Updating...</>
+              ) : (
+                'Update Driver & Equipment'
+              )}
+            </Button>
+          ) : activeTab !== 'preview' ? (
+            <Button
+              size="sm"
+              disabled={isSubmitting}
+              className="gap-1.5"
+              onClick={() => {
+                const tabs = ['request', 'equipment', 'preview'];
+                const currentIndex = tabs.indexOf(activeTab);
+                setActiveTab(tabs[currentIndex + 1]);
+              }}
+            >
+              Next
+              <ChevronRight className="h-3.5 w-3.5" />
+            </Button>
+          ) : (
+            <Button size="sm" onClick={handleSubmit} disabled={isSubmitting} className="gap-1.5">
+              {isSubmitting ? (
+                <><Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  {isEditMode ? 'Updating...' : 'Submitting...'}
+                </>
+              ) : (
+                <>{isEditMode ? 'Update Call Sheet' : 'Submit Call Sheet'}</>
+              )}
+            </Button>
+          )}
+        </div>
       </div>
 
       <Tabs value={activeTab} onValueChange={isSubmitting ? undefined : setActiveTab} className="w-full">
@@ -1083,59 +1182,6 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
         </TabsContent>
       </Tabs>
 
-      <div className="mt-6 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-3">
-        <Button variant="outline" onClick={() => navigate('/callsheet')} disabled={isSubmitting} className="w-full sm:w-auto">
-          Cancel
-        </Button>
-
-        <div className="flex items-center gap-3">
-          {activeTab !== 'request' && (
-            <Button
-              variant="outline"
-              disabled={isSubmitting}
-              className="flex-1 sm:flex-none"
-              onClick={() => {
-                const tabs = ['request', 'equipment', 'preview'];
-                const currentIndex = tabs.indexOf(activeTab);
-                setActiveTab(tabs[currentIndex - 1]);
-              }}
-            >
-              Previous
-            </Button>
-          )}
-
-          {activeTab !== 'preview' ? (
-            <Button
-              disabled={isSubmitting}
-              className="flex-1 sm:flex-none"
-              onClick={() => {
-                const tabs = ['request', 'equipment', 'preview'];
-                const currentIndex = tabs.indexOf(activeTab);
-                setActiveTab(tabs[currentIndex + 1]);
-              }}
-            >
-              Next
-            </Button>
-          ) : (
-            <Button onClick={handleSubmit} disabled={isSubmitting} className="flex-1 sm:flex-none">
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {isEditMode ? 'Updating...' :
-                   isTechnicalStoreMode ? 'Updating...' :
-                   'Submitting...'}
-                </>
-              ) : (
-                <>
-                  {isEditMode ? 'Update Call Sheet' :
-                   isTechnicalStoreMode ? 'Update Driver & Equipment' :
-                   'Submit Call Sheet'}
-                </>
-              )}
-            </Button>
-          )}
-        </div>
-      </div>
 
       {initialCallSheet && (
         <CallSheetEmailModal
