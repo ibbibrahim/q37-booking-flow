@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { usersApi } from '@/admin/services/usersApi';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from '@/contexts/ToastContext';
 
 interface ChangePasswordModalProps {
   open: boolean;
@@ -23,42 +23,33 @@ interface ChangePasswordModalProps {
 export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
   open,
   onOpenChange,
-  userId,
   username,
 }) => {
+  const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const { toast } = useToast();
+  const { showToast } = useToast();
 
-  const passwordsMatch = newPassword.length > 0 && newPassword === confirmPassword;
-  const isSubmitDisabled = !passwordsMatch || loading;
+  const isSubmitDisabled = !currentPassword || !newPassword || loading;
 
   useEffect(() => {
     if (!open) {
+      setCurrentPassword('');
       setNewPassword('');
-      setConfirmPassword('');
     }
   }, [open]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!passwordsMatch) return;
+    if (!currentPassword || !newPassword) return;
 
     try {
       setLoading(true);
-      await usersApi.resetPassword(userId, { newPassword });
-      toast({
-        title: 'Success',
-        description: 'Password changed successfully',
-      });
+      await usersApi.changePassword({ currentPassword, newPassword });
+      showToast('Password changed successfully', 'success');
       onOpenChange(false);
     } catch (error: any) {
-      toast({
-        title: 'Error',
-        description: error.response?.data?.message || 'Failed to change password',
-        variant: 'destructive',
-      });
+      showToast(error.response?.data?.message || 'Failed to change password', 'error');
     } finally {
       setLoading(false);
     }
@@ -77,6 +68,18 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
         <form onSubmit={handleSubmit}>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
+              <Label htmlFor="change-current-password">Current Password</Label>
+              <Input
+                id="change-current-password"
+                type="password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                disabled={loading}
+                placeholder="Enter current password"
+                autoComplete="current-password"
+              />
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="change-new-password">New Password</Label>
               <Input
                 id="change-new-password"
@@ -87,21 +90,6 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
                 placeholder="Enter new password"
                 autoComplete="new-password"
               />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="change-confirm-password">Confirm Password</Label>
-              <Input
-                id="change-confirm-password"
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                disabled={loading}
-                placeholder="Confirm new password"
-                autoComplete="new-password"
-              />
-              {confirmPassword.length > 0 && !passwordsMatch && (
-                <p className="text-xs text-destructive">Passwords do not match</p>
-              )}
             </div>
           </div>
           <DialogFooter>

@@ -33,6 +33,15 @@ export interface ResetPasswordDto {
   newPassword?: string;
 }
 
+export interface ChangePasswordDto {
+  currentPassword: string;
+  newPassword: string;
+}
+
+export interface ChangePasswordResponse {
+  message: string;
+}
+
 export interface ResetPasswordResponse {
   message: string;
   temporaryPassword?: string;

@@ -6,6 +6,8 @@ import type {
   AssignRolesDto,
   ResetPasswordDto,
   ResetPasswordResponse,
+  ChangePasswordDto,
+  ChangePasswordResponse,
   RoleDto,
   UsersListParams,
   UsersListResponse,
@@ -68,6 +70,14 @@ export const usersApi = {
   async resetPassword(userId: number, dto: ResetPasswordDto): Promise<ResetPasswordResponse> {
     const response = await apiClient.post<ResetPasswordResponse>(
       `/api/users/${userId}/reset-password`,
+      dto
+    );
+    return response.data;
+  },
+
+  async changePassword(dto: ChangePasswordDto): Promise<ChangePasswordResponse> {
+    const response = await apiClient.post<ChangePasswordResponse>(
+      '/api/users/me/change-password',
       dto
     );
     return response.data;

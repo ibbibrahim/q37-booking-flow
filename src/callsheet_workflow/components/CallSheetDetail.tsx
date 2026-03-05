@@ -231,20 +231,20 @@ export const CallSheetDetail: React.FC = () => {
                 </div>
               </div>
 
-              {/* Cancel + Download — top-right on desktop, full-width row on mobile */}
-              <div className="flex items-center gap-2 shrink-0 flex-wrap">
+              {/* Cancel + Download — top-right on desktop only; hidden on mobile (moved below) */}
+              <div className="hidden sm:flex items-center gap-2 shrink-0 flex-wrap">
                 {!isTechnicalStore && hasCallSheetRole && !isCancelled && (
                   <Button
                     onClick={() => setShowCancelModal(true)}
                     variant="destructive"
                     size="sm"
-                    className="gap-1.5 flex-1 sm:flex-none"
+                    className="gap-1.5"
                   >
                     <XCircle className="h-3.5 w-3.5" />
                     Cancel Call Sheet
                   </Button>
                 )}
-                <Button onClick={handlePrint} size="sm" className="gap-1.5 flex-1 sm:flex-none">
+                <Button onClick={handlePrint} size="sm" className="gap-1.5">
                   <Download className="h-3.5 w-3.5" />
                   Download PDF
                 </Button>
@@ -254,13 +254,14 @@ export const CallSheetDetail: React.FC = () => {
             {/* Bottom: secondary actions — hidden for Technical Store users */}
             {!isTechnicalStore && (
               <div className="flex flex-wrap items-center gap-2 mt-3">
+                {/* Row 1 on mobile: Edit + Duplicate side-by-side */}
                 <Button
                   onClick={() => navigate(`/callsheet/edit/${callSheet.id}`, {
                     state: { editData: callSheet }
                   })}
                   variant="default"
                   size="sm"
-                  className="gap-1.5"
+                  className="gap-1.5 flex-1 sm:flex-none"
                   disabled={isCancelled}
                 >
                   <Edit className="h-3.5 w-3.5" />
@@ -272,42 +273,64 @@ export const CallSheetDetail: React.FC = () => {
                   })}
                   variant="outline"
                   size="sm"
-                  className="gap-1.5"
+                  className="gap-1.5 flex-1 sm:flex-none"
                   disabled={isCancelled}
                 >
                   <Copy className="h-3.5 w-3.5" />
                   Duplicate
                 </Button>
-              {hasCallSheetRole && (
-                <TooltipProvider delayDuration={0}>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                        <span className={(!isStoreCompleted || isCancelled) ? 'cursor-not-allowed' : undefined}>
-                          <Button
-                            onClick={() => setShowEmailModal(true)}
-                            variant="outline"
-                            size="sm"
-                            className="gap-1.5"
-                            disabled={isCancelled || !isStoreCompleted}
-                          >
-                            <Mail className="h-3.5 w-3.5" />
-                            Announce / Send Email
-                          </Button>
-                        </span>
-                      </TooltipTrigger>
-                      {!isStoreCompleted && !isCancelled && (
-                        <TooltipContent side="bottom" className="max-w-xs text-center">
-                          <div className="flex items-start gap-1.5">
-                            <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-                            <p>Announcement emails can only be sent once the Technical Store has confirmed the call sheet. Current status: <strong>{callSheet.status}</strong></p>
-                          </div>
-                        </TooltipContent>
-                      )}
-                    </Tooltip>
-                  </TooltipProvider>
+                {/* Row 2 on mobile: Announce / Send Email full-width */}
+                {hasCallSheetRole && (
+                  <div className="w-full sm:w-auto flex">
+                    <TooltipProvider delayDuration={0}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className={`flex w-full sm:w-auto${(!isStoreCompleted || isCancelled) ? ' cursor-not-allowed' : ''}`}>
+                            <Button
+                              onClick={() => setShowEmailModal(true)}
+                              variant="outline"
+                              size="sm"
+                              className="gap-1.5 w-full sm:w-auto"
+                              disabled={isCancelled || !isStoreCompleted}
+                            >
+                              <Mail className="h-3.5 w-3.5" />
+                              Announce / Send Email
+                            </Button>
+                          </span>
+                        </TooltipTrigger>
+                        {!isStoreCompleted && !isCancelled && (
+                          <TooltipContent side="bottom" className="max-w-xs text-center">
+                            <div className="flex items-start gap-1.5">
+                              <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                              <p>Announcement emails can only be sent once the Technical Store has confirmed the call sheet. Current status: <strong>{callSheet.status}</strong></p>
+                            </div>
+                          </TooltipContent>
+                        )}
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
                 )}
               </div>
             )}
+
+            {/* Row 3 on mobile: Cancel + Download (desktop version is top-right, above) */}
+            <div className="flex sm:hidden items-center gap-2 mt-2 flex-wrap">
+              {!isTechnicalStore && hasCallSheetRole && !isCancelled && (
+                <Button
+                  onClick={() => setShowCancelModal(true)}
+                  variant="destructive"
+                  size="sm"
+                  className="gap-1.5 flex-1"
+                >
+                  <XCircle className="h-3.5 w-3.5" />
+                  Cancel Call Sheet
+                </Button>
+              )}
+              <Button onClick={handlePrint} size="sm" className="gap-1.5 flex-1">
+                <Download className="h-3.5 w-3.5" />
+                Download PDF
+              </Button>
+            </div>
 
           </div>
         </div>
