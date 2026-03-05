@@ -50,7 +50,7 @@ export const BookingDashboard: React.FC = () => {
     Booking: { icon: User, label: 'Booking', path: '/booking' },
     NOC: { icon: Radio, label: 'NOC', path: '/noc' },
     Ingest: { icon: Package, label: 'Ingest', path: '/ingest' },
-    Admin: { icon: Shield, label: 'Admin', path: '/admin' },
+    Admin: { icon: Shield, label: 'Booking Dashboard', path: '/admin' },
     Callsheet: { icon: FileText, label: 'Call Sheet', path: '/callsheet' }
   };
 
