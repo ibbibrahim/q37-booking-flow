@@ -274,7 +274,6 @@ export const CallSheetDetail: React.FC = () => {
                   variant="outline"
                   size="sm"
                   className="gap-1.5 flex-1 sm:flex-none"
-                  disabled={isCancelled}
                 >
                   <Copy className="h-3.5 w-3.5" />
                   Duplicate
