@@ -42,7 +42,7 @@ export interface CreateEditingRequestDto {
   producerName: string;
   producerContact: string;
   rushesSelectedCloudUx: boolean;
-  approximateDuration: string;
+  approximateDuration?: string;
   gfxReady: boolean;
   producerComments?: string;
   createdBy?: number;

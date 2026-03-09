@@ -5,6 +5,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/contexts/ToastContext';
 import { editingApi } from '../api/editingApi';
@@ -30,27 +37,41 @@ export const EditingRequestForm: React.FC<EditingRequestFormProps> = ({
   const requestToEdit = editData || initialRequest;
   const isEditMode = mode === 'edit' || !!requestToEdit;
 
+  const DURATION_PRESETS = [
+    '30 min',
+    '1 hour',
+    '1 hour 30 min',
+    '2 hours',
+    '2 hours 30 min',
+    '3 hours',
+  ] as const;
+
   const [formData, setFormData] = useState({
     programName: '',
     producerName: '',
     producerContact: '',
     rushesSelectedCloudUx: false,
-    approximateDuration: '',
+    durationPreset: '' as string,
+    customDuration: '',
     gfxReady: false,
     producerComments: '',
   });
 
   useEffect(() => {
     if (requestToEdit) {
-      setFormData({
+      const duration = requestToEdit.approximateDuration || '';
+      const isPreset = DURATION_PRESETS.includes(duration as (typeof DURATION_PRESETS)[number]);
+      setFormData((prev) => ({
+        ...prev,
         programName: requestToEdit.programName || '',
         producerName: requestToEdit.producerName || '',
         producerContact: requestToEdit.producerContact || '',
         rushesSelectedCloudUx: requestToEdit.rushesSelectedCloudUx ?? false,
-        approximateDuration: requestToEdit.approximateDuration || '',
+        durationPreset: isPreset ? duration : duration ? 'other' : '',
+        customDuration: isPreset ? '' : duration,
         gfxReady: requestToEdit.gfxReady ?? false,
         producerComments: requestToEdit.producerComments || '',
-      });
+      }));
     }
   }, [requestToEdit]);
 
@@ -60,7 +81,6 @@ export const EditingRequestForm: React.FC<EditingRequestFormProps> = ({
     if (!formData.programName.trim()) errors.push('Program Name is required');
     if (!formData.producerName.trim()) errors.push('Producer Name is required');
     if (!formData.producerContact.trim()) errors.push('Producer Contact is required');
-    if (!formData.approximateDuration.trim()) errors.push('Approximate Duration is required');
 
     if (errors.length > 0) {
       errors.forEach((error) => showToast(error, 'error'));
@@ -68,6 +88,13 @@ export const EditingRequestForm: React.FC<EditingRequestFormProps> = ({
     }
 
     return true;
+  };
+
+  const getApproximateDurationValue = (): string => {
+    if (formData.durationPreset === 'other') {
+      return formData.customDuration.trim();
+    }
+    return formData.durationPreset;
   };
 
   const handleSubmit = async () => {
@@ -82,7 +109,7 @@ export const EditingRequestForm: React.FC<EditingRequestFormProps> = ({
         producerName: formData.producerName.trim(),
         producerContact: formData.producerContact.trim(),
         rushesSelectedCloudUx: formData.rushesSelectedCloudUx,
-        approximateDuration: formData.approximateDuration.trim(),
+        approximateDuration: getApproximateDurationValue() || undefined,
         gfxReady: formData.gfxReady,
         producerComments: formData.producerComments.trim() || undefined,
       };
@@ -231,17 +258,39 @@ export const EditingRequestForm: React.FC<EditingRequestFormProps> = ({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="approximateDuration">
-            Approximate Duration Request <span className="text-red-500">*</span>
-          </Label>
-          <Input
-            id="approximateDuration"
-            value={formData.approximateDuration}
-            onChange={(e) =>
-              setFormData((prev) => ({ ...prev, approximateDuration: e.target.value }))
+          <Label htmlFor="approximateDuration">Approximate Duration Request</Label>
+          <Select
+            value={formData.durationPreset}
+            onValueChange={(value) =>
+              setFormData((prev) => ({
+                ...prev,
+                durationPreset: value,
+                customDuration: value === 'other' ? prev.customDuration : '',
+              }))
             }
-            placeholder="e.g., 30 minutes, 1 hour"
-          />
+          >
+            <SelectTrigger id="approximateDuration">
+              <SelectValue placeholder="Select duration" />
+            </SelectTrigger>
+            <SelectContent>
+              {DURATION_PRESETS.map((preset) => (
+                <SelectItem key={preset} value={preset}>
+                  {preset}
+                </SelectItem>
+              ))}
+              <SelectItem value="other">Other (specify)</SelectItem>
+            </SelectContent>
+          </Select>
+          {formData.durationPreset === 'other' && (
+            <Input
+              value={formData.customDuration}
+              onChange={(e) =>
+                setFormData((prev) => ({ ...prev, customDuration: e.target.value }))
+              }
+              placeholder="e.g., 45 min, 4 hours"
+              className="mt-2"
+            />
+          )}
         </div>
 
         <div className="space-y-2">
