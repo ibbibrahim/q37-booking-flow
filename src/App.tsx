@@ -8,6 +8,11 @@ import { RoleView } from './booking_workflow/components/RoleView';
 import { RequestDetail } from './booking_workflow/components/RequestDetail';
 import { CallSheetRoleView } from './callsheet_workflow/components/CallSheetRoleView';
 import { CallSheetDetail } from './callsheet_workflow/components/CallSheetDetail';
+import { EditingRequestsPage } from './editing_reservation/pages/EditingRequestsPage';
+import { NewEditingRequestPage } from './editing_reservation/pages/NewEditingRequestPage';
+import { EditEditingRequestPage } from './editing_reservation/pages/EditEditingRequestPage';
+import { EditingRequestDetailPage } from './editing_reservation/pages/EditingRequestDetailPage';
+import { EditorQueuePage } from './editing_reservation/pages/EditorQueuePage';
 import { CallSheetAnalytics } from './callsheet_workflow/components/CallSheetAnalytics';
 import { InventoryList } from './inventory/components/InventoryList';
 import { StudioBookingDashboard } from './studio_booking/components/StudioBookingDashboard';
@@ -26,6 +31,7 @@ function App() {
     if (user.roles.includes("Booking")) return "/booking";
     if (user.roles.includes("TechnicalStore")) return "/inventory";
     if (user.roles.includes("Callsheet")) return "/callsheet";
+    if (user.roles.includes("Editor")) return "/editor-queue";
 
     return "/unauthorized";
   };
@@ -209,6 +215,50 @@ function App() {
           element={
             <ProtectedRoute>
               <CallSheetDetail />
+            </ProtectedRoute>
+          }
+        />
+
+        {/** EDIT RESERVATIONS (Producer/Booking) */}
+        <Route
+          path="editing"
+          element={
+            <ProtectedRoute allowedRoles={['Booking', 'Admin']}>
+              <EditingRequestsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="editing/new"
+          element={
+            <ProtectedRoute allowedRoles={['Booking', 'Admin']}>
+              <NewEditingRequestPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="editing/:id"
+          element={
+            <ProtectedRoute allowedRoles={['Booking', 'Admin', 'Editor']}>
+              <EditingRequestDetailPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="editing/:id/edit"
+          element={
+            <ProtectedRoute allowedRoles={['Booking', 'Admin']}>
+              <EditEditingRequestPage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/** EDITOR QUEUE */}
+        <Route
+          path="editor-queue"
+          element={
+            <ProtectedRoute allowedRoles={['Editor', 'Admin']}>
+              <EditorQueuePage />
             </ProtectedRoute>
           }
         />

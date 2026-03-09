@@ -6,6 +6,7 @@ import { useAuth } from './AuthContext';
 import type { WorkflowRequest } from '../booking_workflow/types/workflow';
 import { notificationsApi, type NotificationDTO } from '../api/notifications';
 import { shouldShowBrowserNotification, showBrowserNotification } from '../utils/browserNotifications';
+import type { EditingRequest } from '../editing_reservation/types/editing';
 
 export interface Notification {
   id: number;
@@ -222,6 +223,33 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       //showToast(`🚗 Driver assigned: ${data.title}`, 'success');
     });
 
+    // Editing request listeners
+    const unsubscribeEditingCreated = listen('EditingRequestCreated', (data: EditingRequest) => {
+      showToast(`📝 New edit reservation: ${data.programName}`, 'info');
+      const isEditorUser = user?.roles?.includes('Editor') || user?.roles?.includes('Admin');
+      if (isEditorUser && shouldShowBrowserNotification()) {
+        showBrowserNotification({
+          title: 'New Edit Reservation Request',
+          body: data.programName,
+          icon: '/Qbusiness_Logo_NEG_POS-02.png',
+          tag: `editing-${data.id}`,
+          playSound: true,
+          onClick: () => {
+            window.focus();
+            navigate('/editor-queue');
+          }
+        });
+      }
+    });
+
+    const unsubscribeEditingUpdated = listen('EditingRequestUpdated', (data: EditingRequest) => {
+      showToast(`✅ Edit reservation confirmed: ${data.programName}`, 'success');
+    });
+
+    const unsubscribeEditingCancelled = listen('EditingRequestCancelled', (data: EditingRequest) => {
+      showToast(`❌ Edit reservation cancelled: ${data.programName}`, 'error');
+    });
+
     return () => {
       unsubscribeNotificationCreated();
       unsubscribeCreated();
@@ -231,6 +259,9 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       unsubscribeNotDone();
       unsubscribeCallSheetCreated();
       unsubscribeCallSheetUpdated();
+      unsubscribeEditingCreated();
+      unsubscribeEditingUpdated();
+      unsubscribeEditingCancelled();
     };
   }, [isConnected, listen, showToast, user, navigate]);
 

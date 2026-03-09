@@ -59,6 +59,8 @@ export const NotificationDropdown: React.FC = () => {
         return '📡';
       case 'callsheet':
         return '📋';
+      case 'editingrequest':
+        return '📝';
       case 'acknowledgement':
         return '✅';
       case 'resources':

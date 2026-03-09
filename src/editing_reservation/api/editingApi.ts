@@ -1,0 +1,84 @@
+import apiClient from '@/utils/apiClient';
+import type {
+  EditingRequest,
+  CreateEditingRequestDto,
+  UpdateEditorAssignmentDto,
+  UpdateEditingStatusDto,
+  CancelEditingRequestDto,
+  EditingSearchRequest,
+  EditingSearchResult,
+} from '../types/editing';
+
+const API_BASE = '/api/editing/requests';
+
+const serializeSearchRequest = (dto: EditingSearchRequest): Record<string, unknown> => {
+  const payload: Record<string, unknown> = { ...dto };
+  if (dto.dateFrom) payload.dateFrom = dto.dateFrom.toISOString();
+  if (dto.dateTo) payload.dateTo = dto.dateTo.toISOString();
+  return payload;
+};
+
+export const editingApi = {
+  // Get all requests
+  getAll: async (): Promise<EditingRequest[]> => {
+    const { data } = await apiClient.get(API_BASE);
+    return data as EditingRequest[];
+  },
+
+  // Get by ID
+  getById: async (id: number): Promise<EditingRequest> => {
+    const { data } = await apiClient.get(`${API_BASE}/${id}`);
+    return data as EditingRequest;
+  },
+
+  // Create (Producer)
+  create: async (dto: CreateEditingRequestDto): Promise<EditingRequest> => {
+    const { data } = await apiClient.post(API_BASE, dto);
+    return data as EditingRequest;
+  },
+
+  // Update (Producer)
+  update: async (id: number, dto: CreateEditingRequestDto): Promise<EditingRequest> => {
+    const { data } = await apiClient.put(`${API_BASE}/${id}`, dto);
+    return data as EditingRequest;
+  },
+
+  // Delete
+  delete: async (id: number): Promise<void> => {
+    await apiClient.delete(`${API_BASE}/${id}`);
+  },
+
+  // Update status
+  updateStatus: async (id: number, dto: UpdateEditingStatusDto): Promise<EditingRequest> => {
+    const { data } = await apiClient.patch(`${API_BASE}/${id}/status`, dto);
+    return data as EditingRequest;
+  },
+
+  // Editor assignment
+  updateEditorAssignment: async (
+    id: number,
+    dto: UpdateEditorAssignmentDto
+  ): Promise<EditingRequest> => {
+    const { data } = await apiClient.patch(`${API_BASE}/${id}/editor-assignment`, dto);
+    return data as EditingRequest;
+  },
+
+  // Cancel
+  cancel: async (id: number, dto: CancelEditingRequestDto): Promise<EditingRequest> => {
+    const { data } = await apiClient.post(`${API_BASE}/${id}/cancel`, dto);
+    return data as EditingRequest;
+  },
+
+  // Search
+  search: async (dto: EditingSearchRequest): Promise<EditingSearchResult> => {
+    const payload = serializeSearchRequest(dto);
+    const { data } = await apiClient.post(`${API_BASE}/search`, payload);
+    return data as EditingSearchResult;
+  },
+
+  // Editor queue
+  getEditorQueue: async (): Promise<EditingRequest[]> => {
+    const { data } = await apiClient.get(`${API_BASE}/editor-queue`);
+    return data as EditingRequest[];
+  },
+};

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import type { UserRole } from '../types/workflow';
-import { User, Radio, Package, Shield, Menu, X, Sun, Moon, FileText, LogOut, UserCircle, BarChart3, Boxes, Video, Users, KeyRound } from 'lucide-react';
+import { User, Radio, Package, Shield, Menu, X, Sun, Moon, FileText, LogOut, UserCircle, BarChart3, Boxes, Video, Users, KeyRound, Film, Inbox } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { NotificationDropdown } from '../../components/NotificationDropdown';
@@ -24,6 +24,9 @@ export const BookingDashboard: React.FC = () => {
     const pathParts = location.pathname.split('/').filter(Boolean);
     if (pathParts[0] === 'admin' && pathParts[1] === 'users') {
       return 'admin-users';
+    }
+    if (pathParts[0] === 'editing' || pathParts[0] === 'editor-queue') {
+      return pathParts[0];
     }
     return pathParts[0] || 'booking';
   };
@@ -57,6 +60,8 @@ export const BookingDashboard: React.FC = () => {
   const hasCallsheetAccess = user?.roles?.includes('Callsheet') || user?.roles?.includes('Admin');
   const hasAdminAccess = user?.roles?.includes('Admin');
   const hasTechnicalStoreAccess = user?.roles?.includes('TechnicalStore') || user?.roles?.includes('Admin');
+  const hasEditingAccess = user?.roles?.includes('Booking') || user?.roles?.includes('Admin');
+  const hasEditorQueueAccess = user?.roles?.includes('Editor') || user?.roles?.includes('Admin');
 
   const getAllowedRoles = (): UserRole[] => {
     if (!user || !user.roles || user.roles.length === 0) {
@@ -157,6 +162,38 @@ export const BookingDashboard: React.FC = () => {
               </>
             )}
 
+            {hasEditingAccess && (
+              <>
+                <button
+                  onClick={() => navigate('/editing')}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
+                    currentSection === 'editing'
+                      ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+                      : 'text-sidebar-foreground hover:bg-sidebar-accent'
+                  }`}
+                >
+                  <Film size={20} />
+                  <span className="font-medium text-sm">Edit Reservations</span>
+                </button>
+              </>
+            )}
+
+            {hasEditorQueueAccess && (
+              <>
+                <button
+                  onClick={() => navigate('/editor-queue')}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
+                    currentSection === 'editor-queue'
+                      ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+                      : 'text-sidebar-foreground hover:bg-sidebar-accent'
+                  }`}
+                >
+                  <Inbox size={20} />
+                  <span className="font-medium text-sm">Editor Queue</span>
+                </button>
+              </>
+            )}
+
             {hasTechnicalStoreAccess && (
               <>
                 {/* <div className="my-2 border-t border-sidebar-border"></div> */}
@@ -242,6 +279,10 @@ export const BookingDashboard: React.FC = () => {
                       ? 'Call Sheet Workflow'
                       : currentSection === 'inventory'
                       ? 'Inventory Management'
+                      : currentSection === 'editing'
+                      ? 'Edit Reservations'
+                      : currentSection === 'editor-queue'
+                      ? 'Editor Queue'
                       : currentSection === 'studio-booking'
                       ? 'Studio Booking'
                       : currentSection === 'admin-users'
@@ -253,6 +294,10 @@ export const BookingDashboard: React.FC = () => {
                       ? 'Manage call sheets, equipment, and transportation requests'
                       : currentSection === 'inventory'
                       ? 'Manage technical store inventory items'
+                      : currentSection === 'editing'
+                      ? 'Create and manage edit reservation requests'
+                      : currentSection === 'editor-queue'
+                      ? 'View and assign edit reservation requests'
                       : currentSection === 'studio-booking'
                       ? 'Manage studio bookings and schedules'
                       : currentSection === 'admin-users'
