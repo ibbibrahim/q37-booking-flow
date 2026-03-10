@@ -58,10 +58,42 @@ export default {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: "0" },
         },
+        "dialog-overlay-in": {
+          from: { opacity: "0" },
+          to: { opacity: "1" },
+        },
+        "dialog-overlay-out": {
+          from: { opacity: "1" },
+          to: { opacity: "0" },
+        },
+        "dialog-content-in": {
+          from: {
+            opacity: "0",
+            transform: "translate3d(-50%, -50%, 0) scale(0.97)",
+          },
+          to: {
+            opacity: "1",
+            transform: "translate3d(-50%, -50%, 0) scale(1)",
+          },
+        },
+        "dialog-content-out": {
+          from: {
+            opacity: "1",
+            transform: "translate3d(-50%, -50%, 0) scale(1)",
+          },
+          to: {
+            opacity: "0",
+            transform: "translate3d(-50%, -50%, 0) scale(0.97)",
+          },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "dialog-overlay-in": "dialog-overlay-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) both",
+        "dialog-overlay-out": "dialog-overlay-out 0.35s cubic-bezier(0.4, 0, 1, 1) both",
+        "dialog-content-in": "dialog-content-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) both",
+        "dialog-content-out": "dialog-content-out 0.35s cubic-bezier(0.4, 0, 1, 1) both",
       },
     },
   },

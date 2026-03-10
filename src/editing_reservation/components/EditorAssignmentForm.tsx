@@ -3,7 +3,6 @@ import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/contexts/ToastContext';
 import { editingApi } from '../api/editingApi';
@@ -97,42 +96,39 @@ export const EditorAssignmentForm: React.FC<EditorAssignmentFormProps> = ({
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Editor Assignment</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="editorAssigned">
-            Editor Assigned <span className="text-red-500">*</span>
-          </Label>
-          <Input
+    <div className="space-y-4">
+      <h2 className="text-lg font-semibold leading-none tracking-tight">Editor Assignment</h2>
+      <div className="space-y-2">
+        <Label htmlFor="editorAssigned">
+          Editor Assigned <span className="text-red-500">*</span>
+        </Label>
+        <Input
             id="editorAssigned"
             value={formData.editorAssigned}
             onChange={(e) =>
               setFormData((prev) => ({ ...prev, editorAssigned: e.target.value }))
             }
-            placeholder="Editor name"
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="editRoomNumber">
-            Edit Room Number <span className="text-red-500">*</span>
-          </Label>
-          <Input
+          placeholder="Editor name"
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="editRoomNumber">
+          Edit Room Number <span className="text-red-500">*</span>
+        </Label>
+        <Input
             id="editRoomNumber"
             value={formData.editRoomNumber}
             onChange={(e) =>
               setFormData((prev) => ({ ...prev, editRoomNumber: e.target.value }))
             }
-            placeholder="Room number"
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="availableDatetime">
-            Available Date and Time <span className="text-red-500">*</span>
-          </Label>
-          <Input
+          placeholder="Room number"
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="availableDatetime">
+          Available Date and Time <span className="text-red-500">*</span>
+        </Label>
+        <Input
             id="availableDatetime"
             type="datetime-local"
             value={formData.availableDatetime}
@@ -140,35 +136,34 @@ export const EditorAssignmentForm: React.FC<EditorAssignmentFormProps> = ({
               setFormData((prev) => ({ ...prev, availableDatetime: e.target.value }))
             }
           />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="editorComments">Editor Comments</Label>
-          <Textarea
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="editorComments">Editor Comments</Label>
+        <Textarea
             id="editorComments"
             value={formData.editorComments}
             onChange={(e) =>
               setFormData((prev) => ({ ...prev, editorComments: e.target.value }))
             }
-            placeholder="Optional comments"
-            rows={3}
-          />
-        </div>
-        <div className="flex gap-2 justify-end pt-4">
-          <Button variant="outline" onClick={onCancel} disabled={isSubmitting}>
-            Cancel
-          </Button>
-          <Button onClick={handleSubmit} disabled={isSubmitting} className="gap-1.5">
-            {isSubmitting ? (
-              <>
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                Submitting...
-              </>
-            ) : (
-              'Confirm Assignment'
-            )}
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+          placeholder="Optional comments"
+          rows={3}
+        />
+      </div>
+      <div className="flex gap-2 justify-end pt-4">
+        <Button variant="outline" onClick={onCancel} disabled={isSubmitting}>
+          Cancel
+        </Button>
+        <Button onClick={handleSubmit} disabled={isSubmitting} className="gap-1.5">
+          {isSubmitting ? (
+            <>
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              Submitting...
+            </>
+          ) : (
+            'Confirm Assignment'
+          )}
+        </Button>
+      </div>
+    </div>
   );
 };

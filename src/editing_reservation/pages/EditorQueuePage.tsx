@@ -1,12 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { EditingRequestList } from '../components/EditingRequestList';
 import { EditorAssignmentForm } from '../components/EditorAssignmentForm';
 import { editingApi } from '../api/editingApi';
@@ -27,7 +22,7 @@ export const EditorQueuePage: React.FC = () => {
       const data = await editingApi.getEditorQueue();
       setRequests(data);
     } catch (error) {
-      console.error('Failed to load editor queue:', error);
+      console.error('Failed to load edit suite assignments:', error);
       setRequests([]);
     } finally {
       setLoading(false);
@@ -80,7 +75,7 @@ export const EditorQueuePage: React.FC = () => {
 
   return (
     <div className="p-6 space-y-6">
-      <h1 className="text-2xl font-bold text-card-foreground">Editor Queue</h1>
+      <h1 className="text-2xl font-bold text-card-foreground">Edit Suite Assignments</h1>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
@@ -101,9 +96,7 @@ export const EditorQueuePage: React.FC = () => {
       {assignRequest && (
         <Dialog open={!!assignRequest} onOpenChange={() => setAssignRequest(null)}>
           <DialogContent className="max-w-lg">
-            <DialogHeader>
-              <DialogTitle>Assign Editor - {assignRequest.programName}</DialogTitle>
-            </DialogHeader>
+            <DialogTitle className="sr-only">Editor Assignment</DialogTitle>
             <EditorAssignmentForm
               editingRequest={assignRequest}
               onSuccess={handleAssignSuccess}

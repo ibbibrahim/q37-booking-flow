@@ -35,6 +35,9 @@ export const EditingRequestDetailPage: React.FC = () => {
 
   const isBooking = user?.roles?.includes('Booking') || user?.roles?.includes('Admin');
   const isEditor = user?.roles?.includes('Editor') || user?.roles?.includes('Admin');
+
+  /** Back destination: editors go to editor-queue; booking/admin go to editing list */
+  const getBackRoute = () => (isEditor && !isBooking ? '/editor-queue' : '/editing');
   const isCancelled = request?.status === 'Cancelled';
   const isCompleted = request?.status === 'Completed';
   const canEdit = isBooking && !isCancelled && !isCompleted;
@@ -131,7 +134,7 @@ export const EditingRequestDetailPage: React.FC = () => {
     return (
       <div className="text-center py-16">
         <p className="text-muted-foreground">Edit reservation not found</p>
-        <Button variant="outline" className="mt-4" onClick={() => navigate('/editing')}>
+        <Button variant="outline" className="mt-4" onClick={() => navigate(getBackRoute())}>
           Back to List
         </Button>
       </div>
@@ -145,7 +148,7 @@ export const EditingRequestDetailPage: React.FC = () => {
           variant="outline"
           size="icon"
           className="shrink-0"
-          onClick={() => navigate('/editing')}
+          onClick={() => navigate(getBackRoute())}
         >
           <ArrowLeft size={20} />
         </Button>
@@ -208,9 +211,7 @@ export const EditingRequestDetailPage: React.FC = () => {
       {showAssignModal && (
         <Dialog open={showAssignModal} onOpenChange={setShowAssignModal}>
           <DialogContent className="max-w-lg">
-            <DialogHeader>
-              <DialogTitle>Assign Editor</DialogTitle>
-            </DialogHeader>
+            <DialogTitle className="sr-only">Editor Assignment</DialogTitle>
             <EditorAssignmentForm
               editingRequest={request}
               onSuccess={handleAssignSuccess}

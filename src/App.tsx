@@ -253,7 +253,7 @@ function App() {
           }
         />
 
-        {/** EDITOR QUEUE */}
+        {/** EDIT SUITE ASSIGNMENTS */}
         <Route
           path="editor-queue"
           element={

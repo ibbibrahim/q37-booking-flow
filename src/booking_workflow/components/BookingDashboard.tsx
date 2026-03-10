@@ -26,6 +26,11 @@ export const BookingDashboard: React.FC = () => {
       return 'admin-users';
     }
     if (pathParts[0] === 'editing' || pathParts[0] === 'editor-queue') {
+      // Editors viewing an edit request detail (/editing/:id) should see Edit Suite Assignments as active
+      const isEditorOnly = user?.roles?.includes('Editor') && !user?.roles?.includes('Booking') && !user?.roles?.includes('Admin');
+      if (pathParts[0] === 'editing' && pathParts[1] && isEditorOnly) {
+        return 'editor-queue';
+      }
       return pathParts[0];
     }
     return pathParts[0] || 'booking';
@@ -173,7 +178,7 @@ export const BookingDashboard: React.FC = () => {
                   }`}
                 >
                   <Film size={20} />
-                  <span className="font-medium text-sm">Edit Reservations</span>
+                  <span className="font-medium text-sm">Edit Suite Booking</span>
                 </button>
               </>
             )}
@@ -189,7 +194,7 @@ export const BookingDashboard: React.FC = () => {
                   }`}
                 >
                   <Inbox size={20} />
-                  <span className="font-medium text-sm">Editor Queue</span>
+                  <span className="font-medium text-sm">Edit Suite Assignments</span>
                 </button>
               </>
             )}
@@ -280,9 +285,9 @@ export const BookingDashboard: React.FC = () => {
                       : currentSection === 'inventory'
                       ? 'Inventory Management'
                       : currentSection === 'editing'
-                      ? 'Edit Reservations'
+                      ? 'Edit Suite Booking'
                       : currentSection === 'editor-queue'
-                      ? 'Editor Queue'
+                      ? 'Edit Suite Assignments'
                       : currentSection === 'studio-booking'
                       ? 'Studio Booking'
                       : currentSection === 'admin-users'
@@ -295,9 +300,9 @@ export const BookingDashboard: React.FC = () => {
                       : currentSection === 'inventory'
                       ? 'Manage technical store inventory items'
                       : currentSection === 'editing'
-                      ? 'Create and manage edit reservation requests'
+                      ? 'Create and manage edit suite booking requests'
                       : currentSection === 'editor-queue'
-                      ? 'View and assign edit reservation requests'
+                      ? 'View and assign edit suite booking requests'
                       : currentSection === 'studio-booking'
                       ? 'Manage studio bookings and schedules'
                       : currentSection === 'admin-users'
