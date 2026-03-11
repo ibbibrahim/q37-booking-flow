@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeft, Loader2, Calendar, CalendarDays, CalendarRange, Info } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/contexts/ToastContext';
 import { editingApi } from '../api/editingApi';
 import type { CreateEditingRequestDto, EditingRequest } from '../types/editing';
@@ -54,6 +55,7 @@ export const EditingRequestForm: React.FC<EditingRequestFormProps> = ({
     durationPreset: '' as string,
     customDuration: '',
     gfxReady: false,
+    sessionsPerWeek: 1,
     producerComments: '',
   });
 
@@ -70,6 +72,7 @@ export const EditingRequestForm: React.FC<EditingRequestFormProps> = ({
         durationPreset: isPreset ? duration : duration ? 'other' : '',
         customDuration: isPreset ? '' : duration,
         gfxReady: requestToEdit.gfxReady ?? false,
+        sessionsPerWeek: requestToEdit.sessionsPerWeek || 1,
         producerComments: requestToEdit.producerComments || '',
       }));
     }
@@ -111,6 +114,7 @@ export const EditingRequestForm: React.FC<EditingRequestFormProps> = ({
         rushesSelectedCloudUx: formData.rushesSelectedCloudUx,
         approximateDuration: getApproximateDurationValue() || undefined,
         gfxReady: formData.gfxReady,
+        sessionsPerWeek: formData.sessionsPerWeek,
         producerComments: formData.producerComments.trim() || undefined,
       };
 
@@ -317,6 +321,85 @@ export const EditingRequestForm: React.FC<EditingRequestFormProps> = ({
               </Label>
             </div>
           </RadioGroup>
+        </div>
+
+        {/* Sessions Per Week - Radio Cards */}
+        <div className="space-y-2 md:col-span-2">
+          <Label>
+            How many editing sessions do you need per week? <span className="text-red-500">*</span>
+          </Label>
+          <RadioGroup
+            value={formData.sessionsPerWeek.toString()}
+            onValueChange={(value) =>
+              setFormData((prev) => ({ ...prev, sessionsPerWeek: parseInt(value) }))
+            }
+            className="grid grid-cols-1 sm:grid-cols-3 gap-3"
+          >
+            <div
+              className={`relative flex items-center space-x-3 rounded-lg border-2 p-4 cursor-pointer transition-all ${
+                formData.sessionsPerWeek === 1
+                  ? 'border-primary bg-primary/5'
+                  : 'border-border hover:border-primary/50'
+              }`}
+            >
+              <RadioGroupItem value="1" id="sessions-1" className="peer sr-only" />
+              <Label
+                htmlFor="sessions-1"
+                className="flex flex-1 items-center gap-3 cursor-pointer"
+              >
+                <Calendar className="h-5 w-5 text-muted-foreground" />
+                <div>
+                  <p className="font-medium text-card-foreground">1 Session</p>
+                  <p className="text-sm text-muted-foreground">Once per week</p>
+                </div>
+              </Label>
+            </div>
+            <div
+              className={`relative flex items-center space-x-3 rounded-lg border-2 p-4 cursor-pointer transition-all ${
+                formData.sessionsPerWeek === 2
+                  ? 'border-primary bg-primary/5'
+                  : 'border-border hover:border-primary/50'
+              }`}
+            >
+              <RadioGroupItem value="2" id="sessions-2" className="peer sr-only" />
+              <Label
+                htmlFor="sessions-2"
+                className="flex flex-1 items-center gap-3 cursor-pointer"
+              >
+                <CalendarDays className="h-5 w-5 text-muted-foreground" />
+                <div>
+                  <p className="font-medium text-card-foreground">2 Sessions</p>
+                  <p className="text-sm text-muted-foreground">Twice per week</p>
+                </div>
+              </Label>
+            </div>
+            <div
+              className={`relative flex items-center space-x-3 rounded-lg border-2 p-4 cursor-pointer transition-all ${
+                formData.sessionsPerWeek === 3
+                  ? 'border-primary bg-primary/5'
+                  : 'border-border hover:border-primary/50'
+              }`}
+            >
+              <RadioGroupItem value="3" id="sessions-3" className="peer sr-only" />
+              <Label
+                htmlFor="sessions-3"
+                className="flex flex-1 items-center gap-3 cursor-pointer"
+              >
+                <CalendarRange className="h-5 w-5 text-muted-foreground" />
+                <div>
+                  <p className="font-medium text-card-foreground">3 Sessions</p>
+                  <p className="text-sm text-muted-foreground">Three times per week</p>
+                </div>
+              </Label>
+            </div>
+          </RadioGroup>
+          <Alert className="mt-2">
+            <Info className="h-4 w-4" />
+            <AlertDescription className="text-sm">
+              Each session represents a separate editing appointment.
+              The editor will assign specific times for each session.
+            </AlertDescription>
+          </Alert>
         </div>
 
         {/* Comments as the last field */}

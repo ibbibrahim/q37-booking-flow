@@ -23,6 +23,18 @@ const formatDate = (dateString: string): string => {
   });
 };
 
+const getSessionProgress = (request: EditingRequest): string => {
+  const sessions = request.editingSessions ?? [];
+  const total = request.sessionsPerWeek ?? 1;
+  const assigned = sessions.filter((s) => s.availableDatetime).length;
+  if (request.editorAssigned && request.availableDatetime && assigned === 0) {
+    return total === 1 ? '✅ 1/1' : `✅ 1/${total}`;
+  }
+  if (assigned === 0) return `0/${total}`;
+  if (assigned === total) return `✅ ${assigned}/${total}`;
+  return `📝 ${assigned}/${total}`;
+};
+
 export const EditingRequestList: React.FC<EditingRequestListProps> = ({
   requests,
   loading = false,
@@ -42,6 +54,7 @@ export const EditingRequestList: React.FC<EditingRequestListProps> = ({
               <th className="text-left py-3 px-4 text-sm font-semibold">Program</th>
               <th className="text-left py-3 px-4 text-sm font-semibold">Producer</th>
               <th className="text-left py-3 px-4 text-sm font-semibold">Status</th>
+              <th className="text-left py-3 px-4 text-sm font-semibold">Sessions</th>
               <th className="text-left py-3 px-4 text-sm font-semibold">Created</th>
               {showAssignButton && <th className="text-left py-3 px-4 text-sm font-semibold">Action</th>}
             </tr>
@@ -60,6 +73,9 @@ export const EditingRequestList: React.FC<EditingRequestListProps> = ({
                 </td>
                 <td className="py-3 px-4">
                   <div className="h-5 w-20 bg-muted animate-pulse rounded" />
+                </td>
+                <td className="py-3 px-4">
+                  <div className="h-4 w-16 bg-muted animate-pulse rounded" />
                 </td>
                 <td className="py-3 px-4">
                   <div className="h-4 w-24 bg-muted animate-pulse rounded" />
@@ -118,6 +134,9 @@ export const EditingRequestList: React.FC<EditingRequestListProps> = ({
                 Status
               </th>
               <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground whitespace-nowrap">
+                Sessions
+              </th>
+              <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground whitespace-nowrap">
                 Created At
               </th>
               <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground whitespace-nowrap">
@@ -145,6 +164,9 @@ export const EditingRequestList: React.FC<EditingRequestListProps> = ({
                   >
                     {request.status}
                   </span>
+                </td>
+                <td className="py-3 px-4 text-sm text-muted-foreground">
+                  {getSessionProgress(request)}
                 </td>
                 <td className="py-3 px-4 text-sm text-muted-foreground">
                   {formatDate(request.createdAt)}

@@ -1,5 +1,5 @@
 import React from 'react';
-import { FileText, User, Clock, Video, AlertTriangle } from 'lucide-react';
+import { FileText, User, Clock, Video, AlertTriangle, Calendar } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { getEditingStatusBadgeClass, formatDateTime } from '../utils/editingUtils';
@@ -11,7 +11,10 @@ interface EditingRequestDetailProps {
 
 export const EditingRequestDetail: React.FC<EditingRequestDetailProps> = ({ request }) => {
   const isCancelled = request.status === 'Cancelled';
-  const hasEditorAssignment =
+  const sessions = request.editingSessions ?? [];
+  const sessionsPerWeek = request.sessionsPerWeek ?? 1;
+  const hasSessions = sessions.length > 0;
+  const hasLegacyAssignment =
     request.editorAssigned || request.editRoomNumber || request.availableDatetime;
 
   return (
@@ -82,40 +85,97 @@ export const EditingRequestDetail: React.FC<EditingRequestDetailProps> = ({ requ
             </div>
           </div>
 
-          {hasEditorAssignment && (
+          {(hasSessions || hasLegacyAssignment) && (
             <div className="bg-card rounded-lg border border-border overflow-hidden">
               <div className="flex items-center gap-2 px-6 py-4 border-b border-border bg-muted/30">
                 <div className="flex items-center justify-center w-7 h-7 rounded-md bg-primary/10">
-                  <User className="h-4 w-4 text-primary" />
+                  <Calendar className="h-4 w-4 text-primary" />
                 </div>
-                <h2 className="text-base font-semibold text-card-foreground">Editor Assignment</h2>
+                <h2 className="text-base font-semibold text-card-foreground">
+                  Editing Sessions ({hasSessions ? sessions.length : 1}/{sessionsPerWeek})
+                </h2>
               </div>
-              <div className="p-6 grid grid-cols-2 gap-4 text-sm">
-                {request.editorAssigned && (
-                  <div>
-                    <div className="text-xs text-muted-foreground mb-1">Editor Assigned</div>
-                    <div className="text-card-foreground font-medium">{request.editorAssigned}</div>
-                  </div>
-                )}
-                {request.editRoomNumber && (
-                  <div>
-                    <div className="text-xs text-muted-foreground mb-1">Edit Room Number</div>
-                    <div className="text-card-foreground font-medium">{request.editRoomNumber}</div>
-                  </div>
-                )}
-                {request.availableDatetime && (
-                  <div>
-                    <div className="text-xs text-muted-foreground mb-1">Available Date and Time</div>
-                    <div className="text-card-foreground font-medium">
-                      {formatDateTime(request.availableDatetime)}
-                    </div>
-                  </div>
-                )}
-                {request.editorComments && (
-                  <div className="col-span-2">
-                    <div className="text-xs text-muted-foreground mb-1">Editor Comments</div>
-                    <div className="text-card-foreground">{request.editorComments}</div>
-                  </div>
+              <div className="p-6 space-y-4">
+                {hasSessions ? (
+                  sessions
+                    .sort((a, b) => a.sessionNumber - b.sessionNumber)
+                    .map((session) => (
+                      <Card key={session.id} className="border-2">
+                        <CardHeader className="pb-3">
+                          <h4 className="font-medium text-sm">Session {session.sessionNumber}</h4>
+                        </CardHeader>
+                        <CardContent className="grid grid-cols-2 gap-3 text-sm">
+                          {session.editorAssigned && (
+                            <div>
+                              <div className="text-xs text-muted-foreground mb-1">Editor</div>
+                              <div className="text-card-foreground font-medium">
+                                {session.editorAssigned}
+                              </div>
+                            </div>
+                          )}
+                          {session.editRoomNumber && (
+                            <div>
+                              <div className="text-xs text-muted-foreground mb-1">Room</div>
+                              <div className="text-card-foreground font-medium">
+                                {session.editRoomNumber}
+                              </div>
+                            </div>
+                          )}
+                          {session.availableDatetime && (
+                            <div className="col-span-2">
+                              <div className="text-xs text-muted-foreground mb-1">Available Time</div>
+                              <div className="text-card-foreground font-medium">
+                                {formatDateTime(session.availableDatetime)}
+                              </div>
+                            </div>
+                          )}
+                          {session.editorComments && (
+                            <div className="col-span-2">
+                              <div className="text-xs text-muted-foreground mb-1">Comments</div>
+                              <div className="text-card-foreground">{session.editorComments}</div>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    ))
+                ) : (
+                  <Card className="border-2">
+                    <CardHeader className="pb-3">
+                      <h4 className="font-medium text-sm">Session 1</h4>
+                    </CardHeader>
+                    <CardContent className="grid grid-cols-2 gap-3 text-sm">
+                      {request.editorAssigned && (
+                        <div>
+                          <div className="text-xs text-muted-foreground mb-1">Editor</div>
+                          <div className="text-card-foreground font-medium">
+                            {request.editorAssigned}
+                          </div>
+                        </div>
+                      )}
+                      {request.editRoomNumber && (
+                        <div>
+                          <div className="text-xs text-muted-foreground mb-1">Room</div>
+                          <div className="text-card-foreground font-medium">
+                            {request.editRoomNumber}
+                          </div>
+                        </div>
+                      )}
+                      {request.availableDatetime && (
+                        <div className="col-span-2">
+                          <div className="text-xs text-muted-foreground mb-1">Available Time</div>
+                          <div className="text-card-foreground font-medium">
+                            {formatDateTime(request.availableDatetime)}
+                          </div>
+                        </div>
+                      )}
+                      {request.editorComments && (
+                        <div className="col-span-2">
+                          <div className="text-xs text-muted-foreground mb-1">Comments</div>
+                          <div className="text-card-foreground">{request.editorComments}</div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
                 )}
               </div>
             </div>

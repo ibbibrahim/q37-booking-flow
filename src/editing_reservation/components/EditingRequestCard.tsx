@@ -44,11 +44,21 @@ export const EditingRequestCard: React.FC<EditingRequestCardProps> = ({ request,
         </div>
       </div>
 
-      <div className="mt-4 pt-4 border-t border-border">
-        <span className="text-xs text-muted-foreground">Duration: </span>
-        <span className="text-xs font-medium text-card-foreground bg-muted px-2 py-1 rounded">
-          {request.approximateDuration}
-        </span>
+      <div className="mt-4 pt-4 border-t border-border flex items-center justify-between">
+        <div>
+          <span className="text-xs text-muted-foreground">Duration: </span>
+          <span className="text-xs font-medium text-card-foreground bg-muted px-2 py-1 rounded">
+            {request.approximateDuration}
+          </span>
+        </div>
+        <div>
+          <span className="text-xs text-muted-foreground">Sessions: </span>
+          <span className="text-xs font-medium text-card-foreground bg-muted px-2 py-1 rounded">
+            {(request.editingSessions ?? []).filter((s) => s.availableDatetime).length ||
+              (request.editorAssigned && request.availableDatetime ? 1 : 0)}
+            /{request.sessionsPerWeek ?? 1}
+          </span>
+        </div>
       </div>
     </div>
   );

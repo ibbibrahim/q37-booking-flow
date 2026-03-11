@@ -1,3 +1,18 @@
+// Session entity (editor assignment per session)
+export interface EditingSession {
+  id: number;
+  editingRequestId: number;
+  sessionNumber: number; // 1, 2, or 3
+  editorAssigned?: string;
+  editRoomNumber?: string;
+  availableDatetime?: string; // ISO string
+  editorComments?: string;
+  createdBy?: number;
+  createdAt: string;
+  updatedBy?: number;
+  updatedAt: string;
+}
+
 // Main entity
 export interface EditingRequest {
   id: number;
@@ -11,10 +26,14 @@ export interface EditingRequest {
   gfxReady: boolean;
   producerComments?: string;
 
-  // Editor fields
+  // Sessions support
+  sessionsPerWeek?: number; // 1, 2, or 3 (default 1 for backward compat)
+  editingSessions?: EditingSession[];
+
+  // Legacy editor fields (kept for backward compatibility with existing API)
   editorAssigned?: string;
   editRoomNumber?: string;
-  availableDatetime?: string; // ISO string
+  availableDatetime?: string;
   editorComments?: string;
 
   // Status
@@ -45,10 +64,12 @@ export interface CreateEditingRequestDto {
   approximateDuration?: string;
   gfxReady: boolean;
   producerComments?: string;
+  sessionsPerWeek?: number;
   createdBy?: number;
 }
 
 export interface UpdateEditorAssignmentDto {
+  sessionNumber: number;
   editorAssigned: string;
   editRoomNumber: string;
   availableDatetime: string;
