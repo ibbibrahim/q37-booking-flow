@@ -9,6 +9,7 @@ import { RequestDetail } from './booking_workflow/components/RequestDetail';
 import { CallSheetRoleView } from './callsheet_workflow/components/CallSheetRoleView';
 import { CallSheetDetail } from './callsheet_workflow/components/CallSheetDetail';
 import { EditingRequestsPage } from './editing_reservation/pages/EditingRequestsPage';
+import { EditingDashboardPage } from './editing_reservation/pages/EditingDashboardPage';
 import { NewEditingRequestPage } from './editing_reservation/pages/NewEditingRequestPage';
 import { EditEditingRequestPage } from './editing_reservation/pages/EditEditingRequestPage';
 import { EditingRequestDetailPage } from './editing_reservation/pages/EditingRequestDetailPage';
@@ -225,6 +226,14 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={['Booking', 'Admin']}>
               <EditingRequestsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="editing/dashboard"
+          element={
+            <ProtectedRoute allowedRoles={['Admin', 'Booking', 'Editor']}>
+              <EditingDashboardPage />
             </ProtectedRoute>
           }
         />

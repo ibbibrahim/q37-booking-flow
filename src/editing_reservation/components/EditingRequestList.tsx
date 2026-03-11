@@ -4,6 +4,7 @@ import { Edit } from 'lucide-react';
 import { EditingRequestCard } from './EditingRequestCard';
 import { getEditingStatusBadgeClass } from '../utils/editingUtils';
 import type { EditingRequest } from '../types/editing';
+import { formatDateTime } from '@/studio_booking/utils/timeUtils';
 
 type ViewMode = 'grid' | 'list';
 
@@ -169,7 +170,7 @@ export const EditingRequestList: React.FC<EditingRequestListProps> = ({
                   {getSessionProgress(request)}
                 </td>
                 <td className="py-3 px-4 text-sm text-muted-foreground">
-                  {formatDate(request.createdAt)}
+                  {formatDateTime(request.createdAt)}
                 </td>
                 <td className="py-3 px-4 text-sm" onClick={(e) => e.stopPropagation()}>
                   <div className="flex items-center gap-1">

@@ -2,8 +2,9 @@ import React from 'react';
 import { FileText, User, Clock, Video, AlertTriangle, Calendar } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { getEditingStatusBadgeClass, formatDateTime } from '../utils/editingUtils';
+import { getEditingStatusBadgeClass } from '../utils/editingUtils';
 import type { EditingRequest } from '../types/editing';
+import { formatDateTime, formatTime } from '@/studio_booking/utils/timeUtils';
 
 interface EditingRequestDetailProps {
   request: EditingRequest;

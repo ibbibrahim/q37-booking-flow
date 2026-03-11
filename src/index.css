@@ -133,3 +133,29 @@
     overflow: hidden;
   }
 }
+
+/* Schedule cell scrollbar - subtle and professional */
+.schedule-cell-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+.schedule-cell-scroll::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+.schedule-cell-scroll::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+  min-height: 30px;
+}
+.schedule-cell-scroll::-webkit-scrollbar-thumb:hover {
+  background: #a1a1a1;
+}
+.dark .schedule-cell-scroll::-webkit-scrollbar-track {
+  background: hsl(var(--muted));
+}
+.dark .schedule-cell-scroll::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.3);
+}
+.dark .schedule-cell-scroll::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.5);
+}

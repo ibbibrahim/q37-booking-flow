@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import type { UserRole } from '../types/workflow';
-import { User, Radio, Package, Shield, Menu, X, Sun, Moon, FileText, LogOut, UserCircle, BarChart3, Boxes, Video, Users, KeyRound, Film, Inbox } from 'lucide-react';
+import { User, Radio, Package, Shield, Menu, X, Sun, Moon, FileText, LogOut, UserCircle, BarChart3, Boxes, Video, Users, KeyRound, Film, Inbox, CalendarDays } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { NotificationDropdown } from '../../components/NotificationDropdown';
@@ -24,6 +24,9 @@ export const BookingDashboard: React.FC = () => {
     const pathParts = location.pathname.split('/').filter(Boolean);
     if (pathParts[0] === 'admin' && pathParts[1] === 'users') {
       return 'admin-users';
+    }
+    if (pathParts[0] === 'editing' && pathParts[1] === 'dashboard') {
+      return 'editing-dashboard';
     }
     if (pathParts[0] === 'editing' || pathParts[0] === 'editor-queue') {
       // Editors viewing an edit request detail (/editing/:id) should see Edit Suite Assignments as active
@@ -67,6 +70,10 @@ export const BookingDashboard: React.FC = () => {
   const hasTechnicalStoreAccess = user?.roles?.includes('TechnicalStore') || user?.roles?.includes('Admin');
   const hasEditingAccess = user?.roles?.includes('Booking') || user?.roles?.includes('Admin');
   const hasEditorQueueAccess = user?.roles?.includes('Editor') || user?.roles?.includes('Admin');
+  const hasEditSuiteDashboardAccess =
+    user?.roles?.includes('Admin') ||
+    user?.roles?.includes('Booking') ||
+    user?.roles?.includes('Editor');
 
   const getAllowedRoles = (): UserRole[] => {
     if (!user || !user.roles || user.roles.length === 0) {
@@ -183,6 +190,22 @@ export const BookingDashboard: React.FC = () => {
               </>
             )}
 
+            {hasEditSuiteDashboardAccess && (
+              <>
+                <button
+                  onClick={() => navigate('/editing/dashboard')}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
+                    currentSection === 'editing-dashboard'
+                      ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+                      : 'text-sidebar-foreground hover:bg-sidebar-accent'
+                  }`}
+                >
+                  <CalendarDays size={20} />
+                  <span className="font-medium text-sm">Edit Suite Dashboard</span>
+                </button>
+              </>
+            )}
+
             {hasEditorQueueAccess && (
               <>
                 <button
@@ -286,6 +309,8 @@ export const BookingDashboard: React.FC = () => {
                       ? 'Inventory Management'
                       : currentSection === 'editing'
                       ? 'Edit Suite Booking'
+                      : currentSection === 'editing-dashboard'
+                      ? 'Edit Suite Dashboard'
                       : currentSection === 'editor-queue'
                       ? 'Edit Suite Assignments'
                       : currentSection === 'studio-booking'
@@ -301,6 +326,8 @@ export const BookingDashboard: React.FC = () => {
                       ? 'Manage technical store inventory items'
                       : currentSection === 'editing'
                       ? 'Create and manage edit suite booking requests'
+                      : currentSection === 'editing-dashboard'
+                      ? 'Weekly schedule of edit room reservations'
                       : currentSection === 'editor-queue'
                       ? 'View and assign edit suite booking requests'
                       : currentSection === 'studio-booking'
