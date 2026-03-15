@@ -174,12 +174,12 @@ export const EditingRequestDetailPage: React.FC = () => {
               Edit
             </Button>
           )}
-          {isSuperEditor && canAssign && (
+          {/* {isSuperEditor && canAssign && (
             <Button variant="outline" size="sm" className="gap-1.5" onClick={handleMarkCompleted}>
               <Check size={16} />
               Mark Completed
             </Button>
-          )}
+          )} */}
           {canCancel && (
             <Button
               variant="destructive"
