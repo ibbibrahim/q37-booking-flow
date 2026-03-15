@@ -43,10 +43,7 @@ export const EditingWeeklySchedule: React.FC<EditingWeeklyScheduleProps> = ({
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-center gap-3">
           <Calendar className="h-8 w-8 text-primary" />
-          <div>
-            <h1 className="text-2xl font-bold text-card-foreground">Edit Suite Dashboard</h1>
-            <p className="text-sm text-muted-foreground">{getWeekLabel(weekDates)}</p>
-          </div>
+          <h1 className="text-2xl font-bold text-card-foreground">{getWeekLabel(weekDates)}</h1>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={onPreviousWeek}>

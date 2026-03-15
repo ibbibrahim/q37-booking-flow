@@ -85,7 +85,7 @@ export const EditingScheduleCell: React.FC<EditingScheduleCellProps> = ({
               <div className="space-y-1 text-sm">
                 <p className="font-semibold">{request.programName}</p>
                 <p>Producer: {request.producerName}</p>
-                <p>Editor: {session.editorAssigned || '—'}</p>
+                <p>Editor: {session.editorName || '—'}</p>
                 <p>Room: {session.editRoomNumber || '—'}</p>
                 <p>
                   Time:{' '}

@@ -3,14 +3,22 @@ export interface EditingSession {
   id: number;
   editingRequestId: number;
   sessionNumber: number; // 1, 2, or 3
-  editorAssigned?: string;
+  requestedDate?: string; // ISO string (date only) - producer's preferred date
+  editorId?: number;
+  editorName?: string; // Display name from backend
   editRoomNumber?: string;
   availableDatetime?: string; // ISO string
+  sessionDurationMinutes?: number;
   editorComments?: string;
   createdBy?: number;
   createdAt: string;
   updatedBy?: number;
   updatedAt: string;
+}
+
+export interface SessionRequest {
+  sessionNumber: number; // 1, 2, or 3
+  requestedDate: string;
 }
 
 // Main entity
@@ -31,7 +39,8 @@ export interface EditingRequest {
   editingSessions?: EditingSession[];
 
   // Legacy editor fields (kept for backward compatibility with existing API)
-  editorAssigned?: string;
+  editorId?: number;
+  editorName?: string;
   editRoomNumber?: string;
   availableDatetime?: string;
   editorComments?: string;
@@ -65,14 +74,16 @@ export interface CreateEditingRequestDto {
   gfxReady: boolean;
   producerComments?: string;
   sessionsPerWeek?: number;
+  sessionRequests: SessionRequest[];
   createdBy?: number;
 }
 
 export interface UpdateEditorAssignmentDto {
   sessionNumber: number;
-  editorAssigned: string;
+  editorId: number;
   editRoomNumber: string;
   availableDatetime: string;
+  sessionDurationMinutes: number;
   editorComments?: string;
 }
 
@@ -101,4 +112,22 @@ export interface EditingSearchResult {
   page: number;
   pageSize: number;
   items: EditingRequest[];
+}
+
+export interface CheckAvailabilityDto {
+  editorId: number;
+  editRoomNumber: string;
+  sessionStartDatetime: string;
+  sessionDurationMinutes: number;
+  excludeSessionId?: number;
+}
+
+export interface ConflictDto {
+  type: 'room' | 'editor';
+  message: string;
+}
+
+export interface AvailabilityResultDto {
+  isAvailable: boolean;
+  conflicts: ConflictDto[];
 }

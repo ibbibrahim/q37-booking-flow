@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeft, Calendar, Loader2 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/contexts/ToastContext';
 import { editingApi } from '../api/editingApi';
 import type { CreateEditingRequestDto, EditingRequest } from '../types/editing';
@@ -56,12 +57,24 @@ export const EditingRequestForm: React.FC<EditingRequestFormProps> = ({
     gfxReady: false,
     sessionsPerWeek: 1,
     producerComments: '',
+    sessionDates: [''] as string[],
   });
 
   useEffect(() => {
     if (requestToEdit) {
       const duration = requestToEdit.approximateDuration || '';
       const isPreset = DURATION_PRESETS.includes(duration as (typeof DURATION_PRESETS)[number]);
+
+      const sessionDates: string[] = [];
+      const sessionsPerWeek = requestToEdit.sessionsPerWeek || 1;
+      for (let i = 1; i <= sessionsPerWeek; i++) {
+        const session = requestToEdit.editingSessions?.find((s) => s.sessionNumber === i);
+        const dateStr = session?.requestedDate
+          ? String(session.requestedDate).slice(0, 16)
+          : '';
+        sessionDates.push(dateStr);
+      }
+
       setFormData((prev) => ({
         ...prev,
         programName: requestToEdit.programName || '',
@@ -73,9 +86,37 @@ export const EditingRequestForm: React.FC<EditingRequestFormProps> = ({
         gfxReady: requestToEdit.gfxReady ?? false,
         sessionsPerWeek: requestToEdit.sessionsPerWeek || 1,
         producerComments: requestToEdit.producerComments || '',
+        sessionDates: sessionDates.length > 0 ? sessionDates : [''],
       }));
     }
   }, [requestToEdit]);
+
+  const handleSessionsPerWeekChange = (newValue: number) => {
+    setFormData((prev) => {
+      const currentDates = [...prev.sessionDates];
+      if (newValue > currentDates.length) {
+        while (currentDates.length < newValue) {
+          currentDates.push('');
+        }
+      } else if (newValue < currentDates.length) {
+        currentDates.splice(newValue);
+      }
+
+      return {
+        ...prev,
+        sessionsPerWeek: newValue,
+        sessionDates: currentDates,
+      };
+    });
+  };
+
+  const updateSessionDate = (index: number, date: string) => {
+    setFormData((prev) => {
+      const newDates = [...prev.sessionDates];
+      newDates[index] = date;
+      return { ...prev, sessionDates: newDates };
+    });
+  };
 
   const validateForm = (): boolean => {
     const errors: string[] = [];
@@ -83,6 +124,12 @@ export const EditingRequestForm: React.FC<EditingRequestFormProps> = ({
     if (!formData.programName.trim()) errors.push('Program Name is required');
     if (!formData.producerName.trim()) errors.push('Producer Name is required');
     if (!formData.producerContact.trim()) errors.push('Producer Contact is required');
+
+    for (let i = 0; i < formData.sessionsPerWeek; i++) {
+      if (!formData.sessionDates[i]) {
+        errors.push(`Requested date for Session ${i + 1} is required`);
+      }
+    }
 
     if (errors.length > 0) {
       errors.forEach((error) => showToast(error, 'error'));
@@ -114,6 +161,12 @@ export const EditingRequestForm: React.FC<EditingRequestFormProps> = ({
         approximateDuration: getApproximateDurationValue() || undefined,
         gfxReady: formData.gfxReady,
         sessionsPerWeek: formData.sessionsPerWeek,
+        sessionRequests: formData.sessionDates
+          .slice(0, formData.sessionsPerWeek)
+          .map((dateStr, index) => ({
+            sessionNumber: index + 1,
+            requestedDate: dateStr,
+          })),
         producerComments: formData.producerComments.trim() || undefined,
       };
 
@@ -236,30 +289,57 @@ export const EditingRequestForm: React.FC<EditingRequestFormProps> = ({
           </div>
         </div>
 
-        <div className="space-y-2">
-          <Label>
-            Rushes Selected on Cloud UX <span className="text-red-500">*</span>
-          </Label>
-          <RadioGroup
-            value={formData.rushesSelectedCloudUx ? 'yes' : 'no'}
-            onValueChange={(value) =>
-              setFormData((prev) => ({ ...prev, rushesSelectedCloudUx: value === 'yes' }))
-            }
-            className="flex gap-4"
-          >
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="yes" id="rushes-yes" />
-              <Label htmlFor="rushes-yes" className="font-normal cursor-pointer">
-                Yes
-              </Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="no" id="rushes-no" />
-              <Label htmlFor="rushes-no" className="font-normal cursor-pointer">
-                No
-              </Label>
-            </div>
-          </RadioGroup>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label>
+              Rushes Selected on Cloud UX <span className="text-red-500">*</span>
+            </Label>
+            <RadioGroup
+              value={formData.rushesSelectedCloudUx ? 'yes' : 'no'}
+              onValueChange={(value) =>
+                setFormData((prev) => ({ ...prev, rushesSelectedCloudUx: value === 'yes' }))
+              }
+              className="flex gap-4"
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="yes" id="rushes-yes" />
+                <Label htmlFor="rushes-yes" className="font-normal cursor-pointer">
+                  Yes
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="no" id="rushes-no" />
+                <Label htmlFor="rushes-no" className="font-normal cursor-pointer">
+                  No
+                </Label>
+              </div>
+            </RadioGroup>
+          </div>
+          <div className="space-y-2">
+            <Label>
+              Graphic GFX Ready <span className="text-red-500">*</span>
+            </Label>
+            <RadioGroup
+              value={formData.gfxReady ? 'yes' : 'no'}
+              onValueChange={(value) =>
+                setFormData((prev) => ({ ...prev, gfxReady: value === 'yes' }))
+              }
+              className="flex gap-4"
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="yes" id="gfx-yes" />
+                <Label htmlFor="gfx-yes" className="font-normal cursor-pointer">
+                  Yes
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="no" id="gfx-no" />
+                <Label htmlFor="gfx-no" className="font-normal cursor-pointer">
+                  No
+                </Label>
+              </div>
+            </RadioGroup>
+          </div>
         </div>
 
         <div className="space-y-2">
@@ -298,32 +378,6 @@ export const EditingRequestForm: React.FC<EditingRequestFormProps> = ({
           )}
         </div>
 
-        <div className="space-y-2">
-          <Label>
-            GFX Ready <span className="text-red-500">*</span>
-          </Label>
-          <RadioGroup
-            value={formData.gfxReady ? 'yes' : 'no'}
-            onValueChange={(value) =>
-              setFormData((prev) => ({ ...prev, gfxReady: value === 'yes' }))
-            }
-            className="flex gap-4"
-          >
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="yes" id="gfx-yes" />
-              <Label htmlFor="gfx-yes" className="font-normal cursor-pointer">
-                Yes
-              </Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="no" id="gfx-no" />
-              <Label htmlFor="gfx-no" className="font-normal cursor-pointer">
-                No
-              </Label>
-            </div>
-          </RadioGroup>
-        </div>
-
         {/* Sessions Per Week - Dropdown */}
         <div className="space-y-2">
           <Label htmlFor="sessionsPerWeek">
@@ -331,9 +385,7 @@ export const EditingRequestForm: React.FC<EditingRequestFormProps> = ({
           </Label>
           <Select
             value={formData.sessionsPerWeek.toString()}
-            onValueChange={(value) =>
-              setFormData((prev) => ({ ...prev, sessionsPerWeek: parseInt(value) }))
-            }
+            onValueChange={(value) => handleSessionsPerWeekChange(parseInt(value))}
           >
             <SelectTrigger id="sessionsPerWeek">
               <SelectValue placeholder="Select sessions per week" />
@@ -344,6 +396,42 @@ export const EditingRequestForm: React.FC<EditingRequestFormProps> = ({
               <SelectItem value="3">3 Sessions – Three times per week</SelectItem>
             </SelectContent>
           </Select>
+        </div>
+
+        {/* Session Dates */}
+        <div className="space-y-3">
+          <Label>
+            Select your preferred date for each editing session <span className="text-red-500">*</span>
+          </Label>
+          {/* <p className="text-sm text-muted-foreground -mt-1">
+            Select your preferred date for each editing session
+          </p> */}
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+            {Array.from({ length: formData.sessionsPerWeek }).map((_, index) => (
+              <div key={index} className="space-y-1.5">
+                <Label htmlFor={`session-date-${index}`} className="text-sm font-medium">
+                  Session {index + 1} Date <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id={`session-date-${index}`}
+                  type="datetime-local"
+                  value={formData.sessionDates[index] || ''}
+                  onChange={(e) => updateSessionDate(index, e.target.value)}
+                  min={new Date().toISOString()}
+                  className="w-full"
+                />
+              </div>
+            ))}
+          </div>
+
+          {/* <Alert className="mt-2">
+            <Calendar className="h-4 w-4" />
+            <AlertDescription className="text-sm">
+              These are your preferred date/time. The editor will assign specific times for each
+              session (which may differ based on availability).
+            </AlertDescription>
+          </Alert> */}
         </div>
 
         {/* Comments as the last field */}

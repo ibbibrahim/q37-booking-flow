@@ -16,6 +16,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import {
@@ -29,8 +31,10 @@ import {
 import {
   Plus,
   Search,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
+  Filter,
   Edit,
   Shield,
   Key,
@@ -65,6 +69,7 @@ export const UsersPage: React.FC = () => {
   const [sortBy, setSortBy] = useState<SortField>('username');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [includeInactive, setIncludeInactive] = useState(false);
+  const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
 
   const [availableRoles, setAvailableRoles] = useState<RoleDto[]>([]);
 
@@ -100,6 +105,7 @@ export const UsersPage: React.FC = () => {
         sortBy,
         sortDir,
         includeInactive,
+        roles: selectedRoles.length > 0 ? selectedRoles.join(',') : undefined,
       };
 
       const response = await usersApi.getUsers(params);
@@ -117,7 +123,7 @@ export const UsersPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [debouncedSearch, currentPage, pageSize, sortBy, sortDir, includeInactive, showToast]);
+  }, [debouncedSearch, currentPage, pageSize, sortBy, sortDir, includeInactive, selectedRoles, showToast]);
 
   const loadRoles = useCallback(async () => {
     try {
@@ -306,6 +312,13 @@ export const UsersPage: React.FC = () => {
     }
   };
 
+  const handleRoleToggle = (roleName: string) => {
+    setSelectedRoles((prev) =>
+      prev.includes(roleName) ? prev.filter((r) => r !== roleName) : [...prev, roleName]
+    );
+    setCurrentPage(1);
+  };
+
   const handleSort = (field: SortField) => {
     if (sortBy === field) {
       setSortDir(sortDir === 'asc' ? 'desc' : 'asc');
@@ -340,7 +353,7 @@ export const UsersPage: React.FC = () => {
 
       <div className="bg-card rounded-lg border border-border p-4 space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-          <div className="md:col-span-6 relative">
+          <div className="md:col-span-5 relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search by username, name, or email..."
@@ -351,6 +364,45 @@ export const UsersPage: React.FC = () => {
           </div>
 
           <div className="md:col-span-3">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="w-full justify-between">
+                  <span className="flex items-center gap-2">
+                    <Filter size={16} />
+                    {selectedRoles.length > 0
+                      ? `${selectedRoles.length} role(s) selected`
+                      : 'Filter by roles'}
+                  </span>
+                  <ChevronDown size={16} />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-64" align="start">
+                <div className="max-h-64 overflow-y-auto space-y-2">
+                  {availableRoles.length === 0 ? (
+                    <p className="text-sm text-muted-foreground py-2">Loading roles...</p>
+                  ) : (
+                    availableRoles.map((role) => (
+                      <div key={role.id} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`filter-role-${role.id}`}
+                          checked={selectedRoles.includes(role.name)}
+                          onCheckedChange={() => handleRoleToggle(role.name)}
+                        />
+                        <Label
+                          htmlFor={`filter-role-${role.id}`}
+                          className="text-sm font-normal cursor-pointer flex-1"
+                        >
+                          {role.name}
+                        </Label>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
+
+          <div className="md:col-span-2">
             <Select
               value={pageSize.toString()}
               onValueChange={(value) => {
@@ -369,7 +421,7 @@ export const UsersPage: React.FC = () => {
             </Select>
           </div>
 
-          <div className="md:col-span-3 flex items-center space-x-2">
+          <div className="md:col-span-2 flex items-center space-x-2">
             <Switch
               id="include-inactive"
               checked={includeInactive}

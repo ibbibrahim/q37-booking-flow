@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Edit, XCircle, UserPlus, Check } from 'lucide-react';
+import { ArrowLeft, Edit, XCircle, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -16,8 +16,7 @@ import { useToast } from '@/contexts/ToastContext';
 import { useSignalR } from '@/contexts/SignalRContext';
 import { editingApi } from '../api/editingApi';
 import { EditingRequestDetail } from '../components/EditingRequestDetail';
-import { EditorAssignmentForm } from '../components/EditorAssignmentForm';
-import { getEditingStatusBadgeClass } from '../utils/editingUtils';
+import { getEditingStatusBadgeClass, getEditingStatusDisplayLabel } from '../utils/editingUtils';
 import type { EditingRequest } from '../types/editing';
 
 export const EditingRequestDetailPage: React.FC = () => {
@@ -28,20 +27,21 @@ export const EditingRequestDetailPage: React.FC = () => {
   const { listen, isConnected } = useSignalR();
   const [request, setRequest] = useState<EditingRequest | null>(null);
   const [loading, setLoading] = useState(true);
-  const [showAssignModal, setShowAssignModal] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [cancellationReason, setCancellationReason] = useState('');
   const [isCancelling, setIsCancelling] = useState(false);
 
   const isBooking = user?.roles?.includes('Booking') || user?.roles?.includes('Admin');
   const isEditor = user?.roles?.includes('Editor') || user?.roles?.includes('Admin');
+  const isSuperEditor = user?.roles?.includes('SuperEditor') || user?.roles?.includes('Admin');
 
   /** Back destination: editors go to editor-queue; booking/admin go to editing list */
   const getBackRoute = () => (isEditor && !isBooking ? '/editor-queue' : '/editing');
   const isCancelled = request?.status === 'Cancelled';
   const isCompleted = request?.status === 'Completed';
   const canEdit = isBooking && !isCancelled && !isCompleted;
-  const canAssign = isEditor && ['Pending', 'Acknowledged'].includes(request?.status || '');
+  /** Only SuperEditor (or Admin) can do edit assignment; Editor role cannot assign */
+  const canAssign = isSuperEditor && ['Pending', 'Acknowledged'].includes(request?.status || '');
   const canCancel = isBooking && !isCancelled && !isCompleted;
 
   const loadRequest = useCallback(async () => {
@@ -84,7 +84,6 @@ export const EditingRequestDetailPage: React.FC = () => {
   }, [isConnected, listen, id]);
 
   const handleAssignSuccess = () => {
-    setShowAssignModal(false);
     loadRequest();
   };
 
@@ -156,7 +155,7 @@ export const EditingRequestDetailPage: React.FC = () => {
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-2 mb-1">
             <h1 className="text-2xl font-bold text-card-foreground">{request.programName}</h1>
-            <Badge className={getEditingStatusBadgeClass(request.status)}>{request.status}</Badge>
+            <Badge className={getEditingStatusBadgeClass(request.status)}>{getEditingStatusDisplayLabel(request.status)}</Badge>
           </div>
           <p className="text-sm text-muted-foreground font-mono">#{request.id}</p>
         </div>
@@ -175,18 +174,7 @@ export const EditingRequestDetailPage: React.FC = () => {
               Edit
             </Button>
           )}
-          {canAssign && (
-            <Button
-              variant="default"
-              size="sm"
-              className="gap-1.5"
-              onClick={() => setShowAssignModal(true)}
-            >
-              <UserPlus size={16} />
-              Assign Editor
-            </Button>
-          )}
-          {isEditor && canAssign && (
+          {isSuperEditor && canAssign && (
             <Button variant="outline" size="sm" className="gap-1.5" onClick={handleMarkCompleted}>
               <Check size={16} />
               Mark Completed
@@ -206,20 +194,11 @@ export const EditingRequestDetailPage: React.FC = () => {
         </div>
       </div>
 
-      <EditingRequestDetail request={request} />
-
-      {showAssignModal && (
-        <Dialog open={showAssignModal} onOpenChange={setShowAssignModal}>
-          <DialogContent className="max-w-lg">
-            <DialogTitle className="sr-only">Editor Assignment</DialogTitle>
-            <EditorAssignmentForm
-              editingRequest={request}
-              onSuccess={handleAssignSuccess}
-              onCancel={() => setShowAssignModal(false)}
-            />
-          </DialogContent>
-        </Dialog>
-      )}
+      <EditingRequestDetail
+        request={request}
+        canAssign={canAssign}
+        onAssignSuccess={handleAssignSuccess}
+      />
 
       <Dialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
         <DialogContent className="sm:max-w-[500px]">

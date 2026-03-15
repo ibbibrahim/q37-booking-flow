@@ -60,6 +60,7 @@ export interface UsersListParams {
   sortBy?: string;
   sortDir?: 'asc' | 'desc';
   includeInactive?: boolean;
+  roles?: string;
 }
 
 export interface UsersListResponse {

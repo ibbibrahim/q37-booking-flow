@@ -7,6 +7,8 @@ import type {
   CancelEditingRequestDto,
   EditingSearchRequest,
   EditingSearchResult,
+  CheckAvailabilityDto,
+  AvailabilityResultDto,
 } from '../types/editing';
 
 const API_BASE = '/api/editing/requests';
@@ -16,6 +18,16 @@ const serializeSearchRequest = (dto: EditingSearchRequest): Record<string, unkno
   if (dto.dateFrom) payload.dateFrom = dto.dateFrom.toISOString();
   if (dto.dateTo) payload.dateTo = dto.dateTo.toISOString();
   return payload;
+};
+
+const serializeCreateDto = (dto: CreateEditingRequestDto): Record<string, unknown> => {
+  return {
+    ...dto,
+    sessionRequests: dto.sessionRequests.map((sr) => ({
+      sessionNumber: sr.sessionNumber,
+      requestedDate: `${sr.requestedDate}:00.000Z`,
+    })),
+  };
 };
 
 export const editingApi = {
@@ -33,13 +45,15 @@ export const editingApi = {
 
   // Create (Producer)
   create: async (dto: CreateEditingRequestDto): Promise<EditingRequest> => {
-    const { data } = await apiClient.post(API_BASE, dto);
+    const payload = serializeCreateDto(dto);
+    const { data } = await apiClient.post(API_BASE, payload);
     return data as EditingRequest;
   },
 
   // Update (Producer)
   update: async (id: number, dto: CreateEditingRequestDto): Promise<EditingRequest> => {
-    const { data } = await apiClient.put(`${API_BASE}/${id}`, dto);
+    const payload = serializeCreateDto(dto);
+    const { data } = await apiClient.put(`${API_BASE}/${id}`, payload);
     return data as EditingRequest;
   },
 
@@ -80,5 +94,11 @@ export const editingApi = {
   getEditorQueue: async (): Promise<EditingRequest[]> => {
     const { data } = await apiClient.get(`${API_BASE}/editor-queue`);
     return data as EditingRequest[];
+  },
+
+  // Check availability
+  checkAvailability: async (dto: CheckAvailabilityDto): Promise<AvailabilityResultDto> => {
+    const { data } = await apiClient.post<AvailabilityResultDto>(`${API_BASE}/check-availability`, dto);
+    return data;
   },
 };

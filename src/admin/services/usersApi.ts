@@ -23,6 +23,7 @@ export const usersApi = {
     if (params.sortBy) queryParams.append('sortBy', params.sortBy);
     if (params.sortDir) queryParams.append('sortDir', params.sortDir);
     if (params.includeInactive !== undefined) queryParams.append('includeInactive', params.includeInactive.toString());
+    if (params.roles) queryParams.append('roles', params.roles);
 
     const response = await apiClient.get<UsersListResponse>(
       `/api/users?${queryParams.toString()}`

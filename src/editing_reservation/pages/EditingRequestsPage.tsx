@@ -19,7 +19,13 @@ import { DateRange } from 'react-day-picker';
 
 type ViewMode = 'grid' | 'list';
 
-const STATUS_OPTIONS = ['All States', 'Pending', 'Acknowledged', 'Completed', 'Cancelled'];
+const STATUS_OPTIONS = [
+  { value: 'All States', label: 'All States' },
+  { value: 'Pending', label: 'Pending' },
+  { value: 'Completed', label: 'Assignment Completed' },
+  { value: 'Cancelled', label: 'Cancelled' },
+];
+const PAGE_SIZE = 50;
 
 export const EditingRequestsPage: React.FC = () => {
   const navigate = useNavigate();
@@ -27,64 +33,49 @@ export const EditingRequestsPage: React.FC = () => {
   const [requests, setRequests] = useState<EditingRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('All States');
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
     const saved = localStorage.getItem('editing-view-mode');
     return (saved as ViewMode) || 'list';
   });
-  const [filteredRequests, setFilteredRequests] = useState<EditingRequest[]>([]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+      setCurrentPage(1);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
   const loadRequests = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await editingApi.getAll();
-      setRequests(data);
+      const result = await editingApi.search({
+        searchQuery: debouncedSearch.trim() || undefined,
+        status: statusFilter !== 'All States' ? statusFilter : undefined,
+        dateFrom: dateRange?.from,
+        dateTo: dateRange?.to,
+        page: currentPage,
+        pageSize: PAGE_SIZE,
+      });
+      setRequests(result.items ?? []);
+      setTotalCount(result.total ?? 0);
     } catch (error) {
       console.error('Failed to load edit reservations:', error);
       setRequests([]);
+      setTotalCount(0);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [debouncedSearch, statusFilter, dateRange?.from, dateRange?.to, currentPage]);
 
   useEffect(() => {
     loadRequests();
   }, [loadRequests]);
-
-  useEffect(() => {
-    let filtered = requests;
-
-    if (searchTerm) {
-      const key = searchTerm.toLowerCase();
-      filtered = filtered.filter(
-        (req) =>
-          req.programName.toLowerCase().includes(key) ||
-          req.producerName.toLowerCase().includes(key) ||
-          req.producerContact?.toLowerCase().includes(key)
-      );
-    }
-
-    if (statusFilter !== 'All States') {
-      filtered = filtered.filter((req) => req.status === statusFilter);
-    }
-
-    if (dateRange?.from || dateRange?.to) {
-      filtered = filtered.filter((req) => {
-        const d = new Date(req.createdAt);
-        if (Number.isNaN(d.getTime())) return false;
-        if (dateRange.from && d < dateRange.from) return false;
-        if (dateRange.to) {
-          const toEnd = new Date(dateRange.to);
-          toEnd.setHours(23, 59, 59, 999);
-          if (d > toEnd) return false;
-        }
-        return true;
-      });
-    }
-
-    setFilteredRequests(filtered);
-  }, [requests, searchTerm, statusFilter, dateRange]);
 
   useEffect(() => {
     if (!isConnected) return;
@@ -98,15 +89,11 @@ export const EditingRequestsPage: React.FC = () => {
     });
 
     const unsubscribeUpdated = listen('EditingRequestUpdated', (data: EditingRequest) => {
-      setRequests((prev) =>
-        prev.map((r) => (r.id === data.id ? data : r))
-      );
+      setRequests((prev) => prev.map((r) => (r.id === data.id ? data : r)));
     });
 
     const unsubscribeCancelled = listen('EditingRequestCancelled', (data: EditingRequest) => {
-      setRequests((prev) =>
-        prev.map((r) => (r.id === data.id ? data : r))
-      );
+      setRequests((prev) => prev.map((r) => (r.id === data.id ? data : r)));
     });
 
     return () => {
@@ -177,19 +164,32 @@ export const EditingRequestsPage: React.FC = () => {
 
           {/* Date range */}
           <div className="md:col-span-4">
-            <DateRangePicker value={dateRange} onChange={setDateRange} className="w-full" />
+            <DateRangePicker
+              value={dateRange}
+              onChange={(range) => {
+                setDateRange(range);
+                setCurrentPage(1);
+              }}
+              className="w-full"
+            />
           </div>
 
           {/* Status filter */}
           <div className="md:col-span-3">
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <Select
+              value={statusFilter}
+              onValueChange={(v) => {
+                setStatusFilter(v);
+                setCurrentPage(1);
+              }}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="All States" />
               </SelectTrigger>
               <SelectContent>
                 {STATUS_OPTIONS.map((opt) => (
-                  <SelectItem key={opt} value={opt}>
-                    {opt}
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -198,7 +198,7 @@ export const EditingRequestsPage: React.FC = () => {
         </div>
       </div>
 
-      {filteredRequests.length === 0 ? (
+      {requests.length === 0 && !loading ? (
         <div className="text-center py-16">
           <p className="text-muted-foreground text-lg">No edit reservations found</p>
           <button
@@ -209,7 +209,37 @@ export const EditingRequestsPage: React.FC = () => {
           </button>
         </div>
       ) : (
-        <EditingRequestList requests={filteredRequests} loading={loading} viewMode={viewMode} />
+        <>
+          <EditingRequestList requests={requests} loading={loading} viewMode={viewMode} />
+          {totalCount > PAGE_SIZE && (
+            <div className="flex items-center justify-between text-sm text-muted-foreground pt-4">
+              <span>
+                Showing {requests.length} of {totalCount} result{totalCount !== 1 ? 's' : ''}
+              </span>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage <= 1 || loading}
+                >
+                  Previous
+                </Button>
+                <span>
+                  Page {currentPage} of {Math.ceil(totalCount / PAGE_SIZE)}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage((p) => p + 1)}
+                  disabled={currentPage >= Math.ceil(totalCount / PAGE_SIZE) || loading}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

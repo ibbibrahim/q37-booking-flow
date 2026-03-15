@@ -21,8 +21,7 @@ interface EditingSearchFiltersProps {
 const STATUS_OPTIONS = [
   { value: 'all', label: 'All Statuses' },
   { value: 'Pending', label: 'Pending' },
-  { value: 'Acknowledged', label: 'Acknowledged' },
-  { value: 'Completed', label: 'Completed' },
+  { value: 'Completed', label: 'Assignment Completed' },
   { value: 'Cancelled', label: 'Cancelled' },
 ];
 

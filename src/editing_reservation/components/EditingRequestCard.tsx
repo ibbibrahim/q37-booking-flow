@@ -1,7 +1,7 @@
 import React from 'react';
 import { Clock, Calendar, User } from 'lucide-react';
 import type { EditingRequest } from '../types/editing';
-import { getEditingStatusBadgeClass } from '../utils/editingUtils';
+import { getEditingStatusBadgeClass, getEditingStatusDisplayLabel } from '../utils/editingUtils';
 
 interface EditingRequestCardProps {
   request: EditingRequest;
@@ -22,7 +22,7 @@ export const EditingRequestCard: React.FC<EditingRequestCardProps> = ({ request,
                 request.status
               )}`}
             >
-              {request.status}
+              {getEditingStatusDisplayLabel(request.status)}
             </span>
           </div>
           <h3 className="text-lg font-semibold text-card-foreground mb-1">{request.programName}</h3>
@@ -44,21 +44,11 @@ export const EditingRequestCard: React.FC<EditingRequestCardProps> = ({ request,
         </div>
       </div>
 
-      <div className="mt-4 pt-4 border-t border-border flex items-center justify-between">
-        <div>
-          <span className="text-xs text-muted-foreground">Duration: </span>
-          <span className="text-xs font-medium text-card-foreground bg-muted px-2 py-1 rounded">
-            {request.approximateDuration}
-          </span>
-        </div>
-        <div>
-          <span className="text-xs text-muted-foreground">Sessions: </span>
-          <span className="text-xs font-medium text-card-foreground bg-muted px-2 py-1 rounded">
-            {(request.editingSessions ?? []).filter((s) => s.availableDatetime).length ||
-              (request.editorAssigned && request.availableDatetime ? 1 : 0)}
-            /{request.sessionsPerWeek ?? 1}
-          </span>
-        </div>
+      <div className="mt-4 pt-4 border-t border-border">
+        <span className="text-xs text-muted-foreground">Duration: </span>
+        <span className="text-xs font-medium text-card-foreground bg-muted px-2 py-1 rounded">
+          {request.approximateDuration}
+        </span>
       </div>
     </div>
   );

@@ -1,18 +1,43 @@
-import React, { useState } from 'react';
-import { Loader2, Copy } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Loader2, Copy, Calendar, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useToast } from '@/contexts/ToastContext';
+import { usersApi } from '@/admin/services/usersApi';
+import type { UserDto } from '@/admin/types/user';
 import { editingApi } from '../api/editingApi';
-import type { EditingRequest, UpdateEditorAssignmentDto } from '../types/editing';
+import { parseApproximateDurationToMinutes } from '../utils/editingUtils';
+import type { EditingRequest, UpdateEditorAssignmentDto, ConflictDto } from '../types/editing';
+
+const DURATION_PRESETS = [
+  { value: '30', label: '30 min' },
+  { value: '60', label: '1 hour' },
+  { value: '90', label: '1 hour 30 min' },
+  { value: '120', label: '2 hours' },
+  { value: '150', label: '2 hours 30 min' },
+  { value: '180', label: '3 hours' },
+  { value: 'custom', label: 'Other' },
+] as const;
 
 interface SessionFormData {
-  editorAssigned: string;
+  editorId: number | '';
   editRoomNumber: string;
   availableDatetime: string;
+  durationPreset: string;
+  sessionDurationMinutes: number;
+  customHours: number;
+  customMinutes: number;
   editorComments: string;
 }
 
@@ -29,6 +54,57 @@ export const EditorAssignmentForm: React.FC<EditorAssignmentFormProps> = ({
 }) => {
   const { showToast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [editors, setEditors] = useState<UserDto[]>([]);
+  const [conflicts, setConflicts] = useState<ConflictDto[]>([]);
+  const [checkingAvailability, setCheckingAvailability] = useState(false);
+
+  useEffect(() => {
+    usersApi
+      .getUsers({ roles: 'Editor', sortDir: 'asc', includeInactive: false })
+      .then((res) => {
+        const items = Array.isArray(res) ? res : (res?.items ?? []);
+        setEditors(items);
+      })
+      .catch((err) => {
+        console.error('Failed to load editors:', err);
+        showToast('Failed to load editor list', 'error');
+      });
+  }, [showToast]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const allConflicts: ConflictDto[] = [];
+      let hasCompleteSession = false;
+      const runChecks = async () => {
+        setCheckingAvailability(true);
+        try {
+          for (let i = 0; i < sessions.length; i++) {
+            const session = sessions[i];
+            if (!session.editorId || !session.editRoomNumber || !session.availableDatetime || !session.sessionDurationMinutes) {
+              continue;
+            }
+            hasCompleteSession = true;
+            const result = await editingApi.checkAvailability({
+              editorId: Number(session.editorId),
+              editRoomNumber: session.editRoomNumber,
+              sessionStartDatetime: `${session.availableDatetime}:00.000Z`,
+              sessionDurationMinutes: session.sessionDurationMinutes,
+              excludeSessionId: editingRequest.editingSessions?.find((s) => s.sessionNumber === i + 1)?.id,
+            });
+            allConflicts.push(...result.conflicts);
+          }
+          setConflicts(hasCompleteSession ? allConflicts : []);
+        } catch (error) {
+          console.error('Availability check failed:', error);
+          setConflicts([]);
+        } finally {
+          setCheckingAvailability(false);
+        }
+      };
+      runChecks();
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [sessions, editingRequest.editingSessions]);
 
   const sessionsPerWeek = editingRequest.sessionsPerWeek ?? 1;
   const editingSessions = editingRequest.editingSessions ?? [];
@@ -37,46 +113,75 @@ export const EditorAssignmentForm: React.FC<EditorAssignmentFormProps> = ({
     const initial: SessionFormData[] = [];
     for (let i = 0; i < sessionsPerWeek; i++) {
       const existingSession = editingSessions.find((s) => s.sessionNumber === i + 1);
+      let availableDatetimeLocal = '';
+
       if (existingSession?.availableDatetime) {
         const dt = new Date(existingSession.availableDatetime);
-        const availableDatetimeLocal = new Date(dt.getTime() - dt.getTimezoneOffset() * 60000)
+        availableDatetimeLocal = new Date(dt.getTime() - dt.getTimezoneOffset() * 60000)
           .toISOString()
           .slice(0, 16);
-        initial.push({
-          editorAssigned: existingSession.editorAssigned || '',
-          editRoomNumber: existingSession.editRoomNumber || '',
-          availableDatetime: availableDatetimeLocal,
-          editorComments: existingSession.editorComments || '',
-        });
-      } else if (i === 0 && editingRequest.editorAssigned) {
+      } else if (existingSession?.requestedDate) {
+        const requestedDate = new Date(existingSession.requestedDate);
+        requestedDate.setHours(10, 0, 0, 0);
+        availableDatetimeLocal = new Date(
+          requestedDate.getTime() - requestedDate.getTimezoneOffset() * 60000
+        )
+          .toISOString()
+          .slice(0, 16);
+      } else if (i === 0 && (editingRequest.editorId != null || editingRequest.editorName)) {
         const dt = editingRequest.availableDatetime
           ? new Date(editingRequest.availableDatetime)
           : null;
-        const availableDatetimeLocal = dt
+        availableDatetimeLocal = dt
           ? new Date(dt.getTime() - dt.getTimezoneOffset() * 60000).toISOString().slice(0, 16)
           : '';
-        initial.push({
-          editorAssigned: editingRequest.editorAssigned || '',
-          editRoomNumber: editingRequest.editRoomNumber || '',
-          availableDatetime: availableDatetimeLocal,
-          editorComments: editingRequest.editorComments || '',
-        });
-      } else {
-        initial.push({
-          editorAssigned: '',
-          editRoomNumber: '',
-          availableDatetime: '',
-          editorComments: '',
-        });
       }
+
+      const defaultMins = existingSession?.sessionDurationMinutes ?? parseApproximateDurationToMinutes(editingRequest.approximateDuration || '');
+      const preset = DURATION_PRESETS.find((p) => p.value !== 'custom' && parseInt(p.value, 10) === defaultMins);
+      const defaultDuration = preset
+        ? { durationPreset: preset.value, sessionDurationMinutes: defaultMins, customHours: 0, customMinutes: 0 }
+        : {
+            durationPreset: 'custom',
+            sessionDurationMinutes: defaultMins,
+            customHours: Math.min(12, Math.floor(defaultMins / 60)),
+            customMinutes: defaultMins % 60,
+          };
+      initial.push({
+        editorId: existingSession?.editorId ?? editingRequest.editorId ?? '',
+        editRoomNumber: existingSession?.editRoomNumber || editingRequest.editRoomNumber || '',
+        availableDatetime: availableDatetimeLocal,
+        durationPreset: defaultDuration.durationPreset,
+        sessionDurationMinutes: defaultDuration.sessionDurationMinutes,
+        customHours: defaultDuration.customHours,
+        customMinutes: defaultDuration.customMinutes,
+        editorComments: existingSession?.editorComments || editingRequest.editorComments || '',
+      });
     }
     return initial;
   });
 
-  const updateSession = (index: number, field: keyof SessionFormData, value: string) => {
+  const updateSession = (index: number, field: keyof SessionFormData, value: string | number) => {
     setSessions((prev) => {
       const updated = [...prev];
-      updated[index] = { ...updated[index], [field]: value };
+      const next = { ...updated[index], [field]: value };
+      if (field === 'durationPreset') {
+        const presetVal = value as string;
+        if (presetVal === 'custom') {
+          next.sessionDurationMinutes = next.customHours * 60 + next.customMinutes;
+        } else {
+          next.sessionDurationMinutes = parseInt(presetVal, 10) || 60;
+          next.customHours = Math.floor(next.sessionDurationMinutes / 60);
+          next.customMinutes = next.sessionDurationMinutes % 60;
+        }
+      } else if (field === 'customHours' || field === 'customMinutes') {
+        const hours = field === 'customHours' ? (value as number) : next.customHours;
+        const mins = field === 'customMinutes' ? (value as number) : next.customMinutes;
+        next.customHours = Math.min(12, Math.max(0, hours));
+        next.customMinutes = Math.min(59, Math.max(0, mins));
+        next.sessionDurationMinutes = next.customHours * 60 + next.customMinutes;
+      }
+      updated[index] = next;
       return updated;
     });
   };
@@ -87,9 +192,14 @@ export const EditorAssignmentForm: React.FC<EditorAssignmentFormProps> = ({
     setSessions((prev) => {
       const updated = [...prev];
       updated[toIndex] = {
-        editorAssigned: prev[fromIndex].editorAssigned,
+        ...prev[toIndex],
+        editorId: prev[fromIndex].editorId,
         editRoomNumber: prev[fromIndex].editRoomNumber,
         availableDatetime: '',
+        durationPreset: prev[fromIndex].durationPreset,
+        sessionDurationMinutes: prev[fromIndex].sessionDurationMinutes,
+        customHours: prev[fromIndex].customHours,
+        customMinutes: prev[fromIndex].customMinutes,
         editorComments: prev[fromIndex].editorComments,
       };
       return updated;
@@ -100,7 +210,7 @@ export const EditorAssignmentForm: React.FC<EditorAssignmentFormProps> = ({
   const validateForm = (): boolean => {
     for (let i = 0; i < sessions.length; i++) {
       const session = sessions[i];
-      if (!session.editorAssigned.trim()) {
+      if (!session.editorId) {
         showToast(`Session ${i + 1}: Editor Assigned is required`, 'error');
         return false;
       }
@@ -110,6 +220,10 @@ export const EditorAssignmentForm: React.FC<EditorAssignmentFormProps> = ({
       }
       if (!session.availableDatetime) {
         showToast(`Session ${i + 1}: Available Date and Time is required`, 'error');
+        return false;
+      }
+      if (!session.sessionDurationMinutes || session.sessionDurationMinutes <= 0) {
+        showToast(`Session ${i + 1}: Session Duration is required`, 'error');
         return false;
       }
     }
@@ -127,9 +241,10 @@ export const EditorAssignmentForm: React.FC<EditorAssignmentFormProps> = ({
         const session = sessions[i];
         const dto: UpdateEditorAssignmentDto = {
           sessionNumber: i + 1,
-          editorAssigned: session.editorAssigned.trim(),
+          editorId: Number(session.editorId),
           editRoomNumber: session.editRoomNumber.trim(),
-          availableDatetime: new Date(session.availableDatetime).toISOString(),
+          availableDatetime: `${session.availableDatetime}:00.000Z`,
+          sessionDurationMinutes: session.sessionDurationMinutes,
           editorComments: session.editorComments.trim() || undefined,
         };
         await editingApi.updateEditorAssignment(editingRequest.id, dto);
@@ -166,7 +281,18 @@ export const EditorAssignmentForm: React.FC<EditorAssignmentFormProps> = ({
         {sessions.map((session, index) => (
           <Card key={index} className="border-2">
             <CardHeader className="flex flex-row items-center justify-between pb-3">
-              <h4 className="font-medium text-sm">Session {index + 1}</h4>
+              <div>
+                <h4 className="font-medium text-sm">Session {index + 1}</h4>
+                {editingRequest.editingSessions?.[index]?.requestedDate && (
+                  <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                    <Calendar size={12} />
+                    Requested:{' '}
+                    {new Date(
+                      editingRequest.editingSessions[index].requestedDate!,
+                    ).toLocaleDateString('en-GB')}
+                  </p>
+                )}
+              </div>
               {index > 0 && (
                 <Button
                   variant="ghost"
@@ -184,23 +310,41 @@ export const EditorAssignmentForm: React.FC<EditorAssignmentFormProps> = ({
                 <Label htmlFor={`editor-${index}`}>
                   Editor Assigned <span className="text-red-500">*</span>
                 </Label>
-                <Input
-                  id={`editor-${index}`}
-                  value={session.editorAssigned}
-                  onChange={(e) => updateSession(index, 'editorAssigned', e.target.value)}
-                  placeholder="Editor name"
-                />
+                <Select
+                  value={session.editorId ? String(session.editorId) : undefined}
+                  onValueChange={(value) => updateSession(index, 'editorId', value ? parseInt(value, 10) : '')}
+                >
+                  <SelectTrigger id={`editor-${index}`}>
+                    <SelectValue placeholder="Select editor" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(editors ?? []).map((editor) => (
+                      <SelectItem key={editor.id} value={String(editor.id)}>
+                        {editor.displayName || editor.username}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor={`room-${index}`}>
                   Edit Room Number <span className="text-red-500">*</span>
                 </Label>
-                <Input
-                  id={`room-${index}`}
+                <Select
                   value={session.editRoomNumber}
-                  onChange={(e) => updateSession(index, 'editRoomNumber', e.target.value)}
-                  placeholder="Room number"
-                />
+                  onValueChange={(value) => updateSession(index, 'editRoomNumber', value)}
+                >
+                  <SelectTrigger id={`room-${index}`}>
+                    <SelectValue placeholder="Room number (3 to 8)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {['3', '4', '5', '6', '7', '8'].map((room) => (
+                      <SelectItem key={room} value={room}>
+                        Edit Room {room}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor={`datetime-${index}`}>
@@ -212,6 +356,54 @@ export const EditorAssignmentForm: React.FC<EditorAssignmentFormProps> = ({
                   value={session.availableDatetime}
                   onChange={(e) => updateSession(index, 'availableDatetime', e.target.value)}
                 />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor={`duration-${index}`}>Session Duration</Label>
+                <Select
+                  value={session.durationPreset}
+                  onValueChange={(v) => updateSession(index, 'durationPreset', v)}
+                >
+                  <SelectTrigger id={`duration-${index}`}>
+                    <SelectValue placeholder="Select duration" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {DURATION_PRESETS.map((p) => (
+                      <SelectItem key={p.value} value={p.value}>
+                        {p.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {session.durationPreset === 'custom' && (
+                  <div className="grid grid-cols-2 gap-2 mt-2">
+                    <div className="space-y-1">
+                      <Label htmlFor={`hours-${index}`} className="text-xs">Hours (max 12)</Label>
+                      <Input
+                        id={`hours-${index}`}
+                        type="number"
+                        min={0}
+                        max={12}
+                        value={session.customHours || ''}
+                        onChange={(e) =>
+                          updateSession(index, 'customHours', parseInt(e.target.value, 10) || 0)
+                        }
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label htmlFor={`minutes-${index}`} className="text-xs">Minutes (max 59)</Label>
+                      <Input
+                        id={`minutes-${index}`}
+                        type="number"
+                        min={0}
+                        max={59}
+                        value={session.customMinutes || ''}
+                        onChange={(e) =>
+                          updateSession(index, 'customMinutes', parseInt(e.target.value, 10) || 0)
+                        }
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor={`comments-${index}`}>Editor Comments</Label>
@@ -227,6 +419,25 @@ export const EditorAssignmentForm: React.FC<EditorAssignmentFormProps> = ({
           </Card>
         ))}
       </div>
+
+      {conflicts.length > 0 && (
+        <Alert variant="default" className="mt-3 border-amber-500/50 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-500/30">
+          <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+          <AlertTitle className="text-amber-800 dark:text-amber-200">
+            ⚠️ Conflict Detected (Flexible)
+          </AlertTitle>
+          <AlertDescription>
+            <p className="text-amber-700 dark:text-amber-300 text-sm mb-2">
+              The following conflicts were detected. You may still proceed if you choose to.
+            </p>
+            <ul className="list-disc list-inside space-y-1 mt-2 text-amber-800 dark:text-amber-200">
+              {conflicts.map((c, i) => (
+                <li key={i}>{c.message}</li>
+              ))}
+            </ul>
+          </AlertDescription>
+        </Alert>
+      )}
 
       <div className="flex gap-2 justify-end pt-4 border-t">
         <Button variant="outline" onClick={onCancel} disabled={isSubmitting}>
