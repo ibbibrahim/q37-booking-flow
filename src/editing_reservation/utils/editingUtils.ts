@@ -1,3 +1,8 @@
+import { isValid } from "date-fns";
+import { format, parseISO } from "date-fns";
+
+
+
 // Display label for status (UI only; underlying value stays e.g. "Completed")
 export const getEditingStatusDisplayLabel = (status: string): string => {
   if (status === 'Completed') return 'Assignment Completed';
@@ -42,15 +47,15 @@ export const formatDate = (dateString: string): string => {
 };
 
 // Format datetime
-export const formatDateTime = (dateString: string): string => {
-  return new Date(dateString).toLocaleString('en-GB', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+export const formatDateTime = (dateTimeString?: string | null): string => {
+  if (!dateTimeString) return "N/A";
+
+  const d = parseISO(dateTimeString);
+  if (!isValid(d)) return "N/A";
+
+  return format(d, "d MMM yyyy, h:mm a");
 };
+
 
 // Parse approximateDuration string (e.g. "1 hour 30 min" or "30 min") to minutes
 export const parseApproximateDurationToMinutes = (approximateDuration: string): number => {
@@ -85,4 +90,47 @@ export const addMinutesToDatetime = (datetimeStr: string, minutes: number): stri
   const d = new Date(datetimeStr);
   d.setMinutes(d.getMinutes() + minutes);
   return d.toISOString();
+};
+
+/** Extract HH:mm from datetime string for <input type="time"> (24h format) */
+export const parseTime = (datetime?: string | null): string => {
+  if (!datetime) return '';
+  const d = new Date(datetime);
+  if (Number.isNaN(d.getTime())) return '';
+  const h = d.getHours();
+  const m = d.getMinutes();
+  return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+};
+
+/** Add minutes to start datetime, return HH:mm for <input type="time"> */
+export const calculateEndTime = (startDatetime: string, minutes: number): string => {
+  const endIso = addMinutesToDatetime(startDatetime, minutes);
+  return parseTime(endIso);
+};
+
+/** Format TimeSpan "HH:mm:ss" for display e.g. "11:00 AM" */
+export const formatTimeSpan = (timeSpan?: string | null): string => {
+  if (!timeSpan) return '—';
+  const parts = timeSpan.split(':');
+  const h = parseInt(parts[0] ?? '0', 10);
+  const m = parseInt(parts[1] ?? '0', 10);
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const h12 = h % 12 || 12;
+  return `${h12}:${m.toString().padStart(2, '0')} ${ampm}`;
+};
+
+/** Format duration between two time strings (HH:mm or HH:mm:ss) as "2h 30m" */
+export const formatDurationFromTimes = (start: string, end: string): string => {
+  if (!start || !end) return '—';
+  const parse = (s: string) => {
+    const p = s.split(':');
+    return (parseInt(p[0] ?? '0', 10) * 60 + parseInt(p[1] ?? '0', 10)) | 0;
+  };
+  const mins = parse(end) - parse(start);
+  if (mins <= 0) return '0m';
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  if (h === 0) return `${m}m`;
+  if (m === 0) return `${h}h`;
+  return `${h}h ${m}m`;
 };

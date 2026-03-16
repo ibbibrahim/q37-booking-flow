@@ -14,6 +14,35 @@ export interface EditingSession {
   createdAt: string;
   updatedBy?: number;
   updatedAt: string;
+  // Assignment metadata
+  assignedBy?: number;
+  assignedByName?: string;
+  assignedAt?: string;
+  // Report fields
+  actualStartTime?: string; // HH:mm format
+  actualEndTime?: string;
+  workCompletedPercentage?: number;
+  workDescription?: string;
+  hadDelay?: boolean;
+  delayReason?: string;
+  hadTechnicalIssues?: boolean;
+  technicalIssueDescription?: string;
+  sessionComments?: string;
+  reportSubmittedAt?: string;
+  reportSubmittedBy?: number;
+  reportSubmitterName?: string;
+}
+
+export interface SubmitSessionReportDto {
+  actualStartTime: string; // HH:mm:ss (TimeSpan format)
+  actualEndTime: string;
+  workCompletedPercentage: number;
+  workDescription?: string;
+  hadDelay: boolean;
+  delayReason?: string;
+  hadTechnicalIssues: boolean;
+  technicalIssueDescription?: string;
+  sessionComments?: string;
 }
 
 export interface SessionRequest {

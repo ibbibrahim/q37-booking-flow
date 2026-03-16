@@ -23,10 +23,11 @@ import {
   parseApproximateDurationToMinutes,
   formatDurationMinutes,
   addMinutesToDatetime,
+  formatDateTime,
 } from '../utils/editingUtils';
 import { editingApi } from '../api/editingApi';
-import type { EditingRequest, UpdateEditorAssignmentDto, ConflictDto } from '../types/editing';
-import { formatDateTime } from '@/studio_booking/utils/timeUtils';
+import type { EditingRequest, UpdateEditorAssignmentDto, ConflictDto, EditingSession } from '../types/editing';
+import { SessionReportModal } from './SessionReportModal';
 
 const DURATION_PRESETS = [
   { value: '30', label: '30 min' },
@@ -53,12 +54,20 @@ interface EditingRequestDetailProps {
   request: EditingRequest;
   canAssign?: boolean;
   onAssignSuccess?: () => void;
+  currentUserId?: number;
+  isSuperEditor?: boolean;
+  isAdmin?: boolean;
+  onReportComplete?: () => void;
 }
 
 export const EditingRequestDetail: React.FC<EditingRequestDetailProps> = ({
   request,
   canAssign = false,
   onAssignSuccess,
+  currentUserId,
+  isSuperEditor = false,
+  isAdmin = false,
+  onReportComplete,
 }) => {
   const { showToast } = useToast();
   const isCancelled = request.status === 'Cancelled';
@@ -120,6 +129,8 @@ export const EditingRequestDetail: React.FC<EditingRequestDetailProps> = ({
   const [isAssigning, setIsAssigning] = useState(false);
   const [editors, setEditors] = useState<UserDto[]>([]);
   const [conflictsBySession, setConflictsBySession] = useState<Record<number, ConflictDto[]>>({});
+  const [reportModalSession, setReportModalSession] = useState<EditingSession | null>(null);
+  const [reportModalMode, setReportModalMode] = useState<'submit' | 'view'>('submit');
 
   useEffect(() => {
     if (canAssign) {
@@ -546,19 +557,59 @@ export const EditingRequestDetail: React.FC<EditingRequestDetailProps> = ({
                         ) : (
                           <>
                             {(session?.editorName ?? session?.editorId ?? (isLegacy && (request.editorName || request.editorId))) && (
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-                                <div>
-                                  <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Editor</div>
-                                  <div className="font-medium text-card-foreground">
-                                    {session?.editorName ?? request.editorName ?? '—'}
+                              <div className="flex flex-wrap items-center justify-between gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm flex-1">
+                                  <div>
+                                    <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Editor</div>
+                                    <div className="font-medium text-card-foreground">
+                                      {session?.editorName ?? request.editorName ?? '—'}
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Room</div>
+                                    <div className="font-medium text-card-foreground">
+                                      {session?.editRoomNumber ?? request.editRoomNumber}
+                                    </div>
                                   </div>
                                 </div>
-                                <div>
-                                  <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Room</div>
-                                  <div className="font-medium text-card-foreground">
-                                    {session?.editRoomNumber ?? request.editRoomNumber}
-                                  </div>
-                                </div>
+                                {session && (() => {
+                                  const isAssignedEditor = currentUserId != null && session.editorId === currentUserId;
+                                  const canViewReport = isAssignedEditor || isSuperEditor || isAdmin;
+                                  const reportSubmitted = !!session.reportSubmittedAt;
+                                  return (
+                                    <div className="flex items-center gap-2">
+                                      {reportSubmitted ? (
+                                        <>
+                                          <Badge variant="secondary" className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400">
+                                            Report Submitted
+                                          </Badge>
+                                          {canViewReport && (
+                                            <Button
+                                              size="sm"
+                                              variant="outline"
+                                              onClick={() => {
+                                                setReportModalSession(session);
+                                                setReportModalMode('view');
+                                              }}
+                                            >
+                                              View Report
+                                            </Button>
+                                          )}
+                                        </>
+                                      ) : isAssignedEditor && request.status === 'Completed' ? (
+                                        <Button
+                                          size="sm"
+                                          onClick={() => {
+                                            setReportModalSession(session);
+                                            setReportModalMode('submit');
+                                          }}
+                                        >
+                                          Submit Report
+                                        </Button>
+                                      ) : null}
+                                    </div>
+                                  );
+                                })()}
                               </div>
                             )}
                             {(session?.availableDatetime ?? (isLegacy && request.availableDatetime)) && (
@@ -591,6 +642,16 @@ export const EditingRequestDetail: React.FC<EditingRequestDetailProps> = ({
                                 <div className="text-card-foreground leading-relaxed">
                                   {session?.editorComments ?? request.editorComments}
                                 </div>
+                              </div>
+                            )}
+                            {(session?.assignedAt || session?.reportSubmittedAt) && (
+                              <div className="mt-3 pt-3 border-t space-y-1 text-xs text-muted-foreground">
+                                {session.assignedAt && (
+                                  <div>Assigned by <span className="font-medium">{session.assignedByName || 'Unknown'}</span> on {formatDateTime(session.assignedAt)}</div>
+                                )}
+                                {/* {session.reportSubmittedAt && (
+                                  <div>Report submitted by <span className="font-medium">{session.reportSubmitterName || 'Unknown'}</span> on {formatDateTime(session.reportSubmittedAt)}</div>
+                                )} */}
                               </div>
                             )}
                           </>
@@ -655,6 +716,20 @@ export const EditingRequestDetail: React.FC<EditingRequestDetailProps> = ({
           </div>
         </div>
       </div>
+
+      {reportModalSession && (
+        <SessionReportModal
+          open={!!reportModalSession}
+          onOpenChange={(open) => !open && setReportModalSession(null)}
+          session={reportModalSession}
+          request={request}
+          mode={reportModalMode}
+          onSuccess={() => {
+            onReportComplete?.();
+            setReportModalSession(null);
+          }}
+        />
+      )}
     </div>
   );
 };

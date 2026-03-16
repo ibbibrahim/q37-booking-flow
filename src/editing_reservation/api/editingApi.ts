@@ -9,6 +9,7 @@ import type {
   EditingSearchResult,
   CheckAvailabilityDto,
   AvailabilityResultDto,
+  SubmitSessionReportDto,
 } from '../types/editing';
 
 const API_BASE = '/api/editing/requests';
@@ -100,5 +101,18 @@ export const editingApi = {
   checkAvailability: async (dto: CheckAvailabilityDto): Promise<AvailabilityResultDto> => {
     const { data } = await apiClient.post<AvailabilityResultDto>(`${API_BASE}/check-availability`, dto);
     return data;
+  },
+
+  // Submit session report
+  submitSessionReport: async (
+    requestId: number,
+    sessionNumber: number,
+    dto: SubmitSessionReportDto
+  ): Promise<EditingRequest> => {
+    const { data } = await apiClient.post(
+      `${API_BASE}/${requestId}/sessions/${sessionNumber}/submit-report`,
+      dto
+    );
+    return data as EditingRequest;
   },
 };

@@ -198,6 +198,10 @@ export const EditingRequestDetailPage: React.FC = () => {
         request={request}
         canAssign={canAssign}
         onAssignSuccess={handleAssignSuccess}
+        currentUserId={user?.id}
+        isSuperEditor={isSuperEditor}
+        isAdmin={user?.roles?.includes('Admin')}
+        onReportComplete={loadRequest}
       />
 
       <Dialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
