@@ -141,7 +141,7 @@ export const EditingRequestDetail: React.FC<EditingRequestDetailProps> = ({
           setEditors(items);
         })
         .catch((err) => {
-          console.error('Failed to load editors:', err);
+          console.error('Failed to load editorss:', err);
           showToast('Failed to load editor list', 'error');
         });
     }
