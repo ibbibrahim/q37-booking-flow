@@ -73,7 +73,7 @@ export const EditingScheduleCell: React.FC<EditingScheduleCellProps> = ({
                 </p>
                 <p className="text-[10px] text-muted-foreground mt-0.5">
                   {session.availableDatetime
-                    ? formatTimeRange(session.availableDatetime)
+                    ? formatTimeRange(session.availableDatetime, session.sessionDurationMinutes)
                     : '—'}
                 </p>
               </button>
@@ -90,7 +90,7 @@ export const EditingScheduleCell: React.FC<EditingScheduleCellProps> = ({
                 <p>
                   Time:{' '}
                   {session.availableDatetime
-                    ? formatTimeRange(session.availableDatetime)
+                    ? formatTimeRange(session.availableDatetime, session.sessionDurationMinutes)
                     : '—'}
                 </p>
                 <p>Notes: {session.editorComments || 'No notes'}</p>

@@ -69,9 +69,13 @@ export function extractRoomNumber(value: string | undefined): number | null {
 }
 
 /**
- * Format time range from ISO datetime. Assumes 2-hour sessions.
+ * Format time range from ISO datetime and optional session duration.
+ * Uses sessionDurationMinutes when provided; otherwise falls back to 2 hours.
  */
-export function formatTimeRange(isoDatetime: string): string {
+export function formatTimeRange(
+  isoDatetime: string,
+  sessionDurationMinutes?: number | null
+): string {
   const d = new Date(isoDatetime);
   const hours = d.getHours();
   const minutes = d.getMinutes();
@@ -79,7 +83,11 @@ export function formatTimeRange(isoDatetime: string): string {
   const h = hours % 12 || 12;
   const start = `${h}:${minutes.toString().padStart(2, '0')} ${ampm}`;
 
-  const endD = new Date(d.getTime() + 2 * 60 * 60 * 1000);
+  const durationMs =
+    sessionDurationMinutes != null && sessionDurationMinutes > 0
+      ? sessionDurationMinutes * 60 * 1000
+      : 2 * 60 * 60 * 1000;
+  const endD = new Date(d.getTime() + durationMs);
   const endHours = endD.getHours();
   const endMinutes = endD.getMinutes();
   const endAmpm = endHours >= 12 ? 'PM' : 'AM';

@@ -5,7 +5,7 @@ import { useSignalR } from '@/contexts/SignalRContext';
 import { editingApi } from '../api/editingApi';
 import type { EditingRequest } from '../types/editing';
 import { EditingWeeklySchedule } from '../components/EditingWeeklySchedule';
-import { getSundayOfWeek } from '../utils/scheduleUtils';
+import { getSundayOfWeek, getWeekDates } from '../utils/scheduleUtils';
 
 const ALLOWED_ROLES = ['Admin', 'Booking', 'Editor'];
 
@@ -24,7 +24,10 @@ export const EditingDashboardPage: React.FC = () => {
   const fetchRequests = useCallback(async () => {
     try {
       setLoading(true);
-      const data = await editingApi.getAll();
+      const weekDates = getWeekDates(getSundayOfWeek(weekStart));
+      const dateFrom = weekDates[0];
+      const dateTo = weekDates[weekDates.length - 1];
+      const data = await editingApi.searchForDashboard(dateFrom, dateTo);
       setRequests(data);
     } catch (error) {
       console.error('Failed to load editing requests:', error);
@@ -32,7 +35,7 @@ export const EditingDashboardPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [weekStart]);
 
   useEffect(() => {
     if (!hasAccess) return;

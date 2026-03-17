@@ -175,8 +175,7 @@ export const EditingWeeklySchedule: React.FC<EditingWeeklyScheduleProps> = ({
 
       {/* Footer */}
       <p className="text-xs text-muted-foreground">
-        Sessions are 2 hours each. Click any session block to view full details. Friday is off and
-        not displayed.
+        Click any session block to view full details. Friday is off and not displayed.
       </p>
     </div>
   );

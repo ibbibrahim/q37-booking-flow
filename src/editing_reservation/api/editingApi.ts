@@ -38,6 +38,21 @@ export const editingApi = {
     return data as EditingRequest[];
   },
 
+  // Search for dashboard (uses editing search API)
+  searchForDashboard: async (dateFrom: Date, dateTo: Date): Promise<EditingRequest[]> => {
+    const payload = serializeSearchRequest({
+      dateFrom,
+      dateTo,
+      page: 1,
+      pageSize: 100,
+    });
+    const { data } = await apiClient.post<EditingSearchResult>(
+      `${API_BASE}/search`,
+      payload
+    );
+    return (data?.items ?? []) as EditingRequest[];
+  },
+
   // Get by ID
   getById: async (id: number): Promise<EditingRequest> => {
     const { data } = await apiClient.get(`${API_BASE}/${id}`);
