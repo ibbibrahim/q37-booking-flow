@@ -18,6 +18,8 @@ import { CallSheetAnalytics } from './callsheet_workflow/components/CallSheetAna
 import { InventoryList } from './inventory/components/InventoryList';
 import { StudioBookingDashboard } from './studio_booking/components/StudioBookingDashboard';
 import { UsersPage } from './admin/components/UsersPage';
+import { RotaManagementPage } from './rota/pages/RotaManagementPage';
+import { PublicRotaPage } from './rota/pages/PublicRotaPage';
 
 function App() {
   const { isAuthenticated, user, isLoading } = useAuth();
@@ -33,6 +35,7 @@ function App() {
     if (user.roles.includes("TechnicalStore")) return "/inventory";
     if (user.roles.includes("Callsheet")) return "/callsheet";
     if (user.roles.includes("Editor")) return "/editor-queue";
+    if (user.roles.includes("RotaTeamLead")) return "/rota";
 
     return "/unauthorized";
   };
@@ -65,6 +68,9 @@ function App() {
       />
 
       <Route path="/unauthorized" element={<Unauthorized />} />
+
+      {/** ROTA PUBLIC (no auth) */}
+      <Route path="/rota/public/:uuid" element={<PublicRotaPage />} />
 
       {/** MAIN WRAPPER */}
       <Route
@@ -288,6 +294,16 @@ function App() {
           element={
             <ProtectedRoute>
               <StudioBookingDashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        {/** ROTA MANAGEMENT */}
+        <Route
+          path="rota"
+          element={
+            <ProtectedRoute allowedRoles={['Admin', 'RotaTeamLead']}>
+              <RotaManagementPage />
             </ProtectedRoute>
           }
         />

@@ -25,6 +25,9 @@ export const BookingDashboard: React.FC = () => {
     if (pathParts[0] === 'admin' && pathParts[1] === 'users') {
       return 'admin-users';
     }
+    if (pathParts[0] === 'rota') {
+      return 'rota';
+    }
     if (pathParts[0] === 'editing' && pathParts[1] === 'dashboard') {
       return 'editing-dashboard';
     }
@@ -70,6 +73,7 @@ export const BookingDashboard: React.FC = () => {
   const hasTechnicalStoreAccess = user?.roles?.includes('TechnicalStore') || user?.roles?.includes('Admin');
   const hasEditingAccess = user?.roles?.includes('Booking') || user?.roles?.includes('Admin');
   const hasEditorQueueAccess = user?.roles?.includes('Editor') || user?.roles?.includes('Admin');
+  const hasRotaAccess = user?.roles?.includes('Admin') || user?.roles?.includes('RotaTeamLead');
   const hasEditSuiteDashboardAccess =
     user?.roles?.includes('Admin') ||
     user?.roles?.includes('Booking') ||
@@ -206,6 +210,22 @@ export const BookingDashboard: React.FC = () => {
               </>
             )}
 
+            {hasRotaAccess && (
+              <>
+                <button
+                  onClick={() => navigate('/rota')}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
+                    currentSection === 'rota'
+                      ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+                      : 'text-sidebar-foreground hover:bg-sidebar-accent'
+                  }`}
+                >
+                  <CalendarDays size={20} />
+                  <span className="font-medium text-sm">Rota Management</span>
+                </button>
+              </>
+            )}
+
             {hasEditorQueueAccess && (
               <>
                 <button
@@ -313,6 +333,8 @@ export const BookingDashboard: React.FC = () => {
                       ? 'Edit Suite Dashboard'
                       : currentSection === 'editor-queue'
                       ? 'Edit Suite Assignments'
+                      : currentSection === 'rota'
+                      ? 'Rota Management'
                       : currentSection === 'studio-booking'
                       ? 'Studio Booking'
                       : currentSection === 'admin-users'
@@ -330,6 +352,8 @@ export const BookingDashboard: React.FC = () => {
                       ? 'Weekly schedule of edit room reservations'
                       : currentSection === 'editor-queue'
                       ? 'View and assign edit suite booking requests'
+                      : currentSection === 'rota'
+                      ? 'Manage department rotas and shift assignments'
                       : currentSection === 'studio-booking'
                       ? 'Manage studio bookings and schedules'
                       : currentSection === 'admin-users'
