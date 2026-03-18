@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FileText, Clock, AlertTriangle, AlertCircle, Calendar, Copy, Loader2 } from 'lucide-react';
+import { FileText, Clock, AlertTriangle, AlertCircle, Calendar, Copy, Loader2, Pencil } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -131,6 +131,7 @@ export const EditingRequestDetail: React.FC<EditingRequestDetailProps> = ({
   const [conflictsBySession, setConflictsBySession] = useState<Record<number, ConflictDto[]>>({});
   const [reportModalSession, setReportModalSession] = useState<EditingSession | null>(null);
   const [reportModalMode, setReportModalMode] = useState<'submit' | 'view'>('submit');
+  const [editingSessionIndex, setEditingSessionIndex] = useState<number | null>(null);
 
   useEffect(() => {
     if (canAssign) {
@@ -231,21 +232,19 @@ export const EditingRequestDetail: React.FC<EditingRequestDetailProps> = ({
   const validateAssignmentForm = (): boolean => {
     for (let i = 0; i < sessionForms.length; i++) {
       const form = sessionForms[i];
-      if (!form.editorId) {
-        showToast(`Session ${i + 1}: Editor Assigned is required`, 'error');
-        return false;
-      }
-      if (!form.editRoomNumber.trim()) {
-        showToast(`Session ${i + 1}: Edit Room Number is required`, 'error');
-        return false;
-      }
-      if (!form.availableDatetime) {
-        showToast(`Session ${i + 1}: Available Date and Time is required`, 'error');
-        return false;
-      }
-      if (!form.sessionDurationMinutes || form.sessionDurationMinutes <= 0) {
-        showToast(`Session ${i + 1}: Session Duration is required`, 'error');
-        return false;
+      if (form.editorId) {
+        if (!form.editRoomNumber.trim()) {
+          showToast(`Session ${i + 1}: Room/DateTime/Duration required when editor is selected`, 'error');
+          return false;
+        }
+        if (!form.availableDatetime) {
+          showToast(`Session ${i + 1}: Room/DateTime/Duration required when editor is selected`, 'error');
+          return false;
+        }
+        if (!form.sessionDurationMinutes || form.sessionDurationMinutes <= 0) {
+          showToast(`Session ${i + 1}: Room/DateTime/Duration required when editor is selected`, 'error');
+          return false;
+        }
       }
     }
     return true;
@@ -260,18 +259,22 @@ export const EditingRequestDetail: React.FC<EditingRequestDetailProps> = ({
         const form = sessionForms[i];
         const dto: UpdateEditorAssignmentDto = {
           sessionNumber: i + 1,
-          editorId: Number(form.editorId),
-          editRoomNumber: form.editRoomNumber.trim(),
-          availableDatetime: `${form.availableDatetime}:00.000Z`,
-          sessionDurationMinutes: form.sessionDurationMinutes,
+          editorId: form.editorId ? Number(form.editorId) : undefined,
+          editRoomNumber: form.editRoomNumber.trim() || undefined,
+          availableDatetime: form.availableDatetime ? `${form.availableDatetime}:00.000Z` : undefined,
+          sessionDurationMinutes: form.sessionDurationMinutes || undefined,
           editorComments: form.editorComments.trim() || undefined,
         };
         await editingApi.updateEditorAssignment(request.id, dto);
       }
+      const wasUpdate = sessions.some((s) => s.availableDatetime);
       showToast(
-        `All ${sessionForms.length} session(s) assigned and producer notified`,
+        wasUpdate
+          ? 'Sessions updated and notifications sent'
+          : `All ${sessionForms.length} session(s) assigned and producer notified`,
         'success'
       );
+      setEditingSessionIndex(null);
       onAssignSuccess();
     } catch (error: unknown) {
       console.error('Error updating editor assignment:', error);
@@ -367,11 +370,6 @@ export const EditingRequestDetail: React.FC<EditingRequestDetailProps> = ({
                 </h2>
               </div>
               <div className="p-6 space-y-4">
-                {canAssign && (
-                  <p className="text-sm text-muted-foreground -mt-2">
-                    Fill in all session details below. You can copy editor/room info between sessions.
-                  </p>
-                )}
                 {Array.from({ length: sessionsPerWeek }).map((_, index) => {
                   const session = sessions.find((s) => s.sessionNumber === index + 1);
                   const isLegacy = !hasSessions && index === 0;
@@ -391,6 +389,12 @@ export const EditingRequestDetail: React.FC<EditingRequestDetailProps> = ({
                             </p>
                           )}
                         </div>
+                        {canAssign && session?.availableDatetime && !isCancelled && (
+                          <Button variant="default" size="sm" onClick={() => setEditingSessionIndex(index)} className="gap-1.5 shrink-0">
+                            <Pencil size={14} />
+                            Edit Session
+                          </Button>
+                        )}
                         {/* {canAssign && index > 0 && (
                           <Button
                             variant="ghost"
@@ -415,7 +419,7 @@ export const EditingRequestDetail: React.FC<EditingRequestDetailProps> = ({
                             </div>
                           </div>
                         )}
-                        {canAssign && form ? (
+                        {canAssign && form && (editingSessionIndex === index || !session?.availableDatetime) ? (
                           <>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                               <div className="space-y-1.5">
@@ -553,6 +557,13 @@ export const EditingRequestDetail: React.FC<EditingRequestDetailProps> = ({
                                 </div>
                               )
                             )}
+                            {editingSessionIndex === index && (
+                              <div className="flex justify-end pt-2">
+                                <Button variant="outline" size="sm" onClick={() => setEditingSessionIndex(null)}>
+                                  Cancel
+                                </Button>
+                              </div>
+                            )}
                           </>
                         ) : (
                           <>
@@ -669,7 +680,11 @@ export const EditingRequestDetail: React.FC<EditingRequestDetailProps> = ({
                           Assigning...
                         </>
                       ) : (
-                        <>Assign All Sessions & Notify Producer</>
+                        <>
+                          {sessions.some((s) => s.availableDatetime)
+                            ? 'Update Sessions'
+                            : 'Assign All Sessions & Notify Producer'}
+                        </>
                       )}
                     </Button>
                   </div>

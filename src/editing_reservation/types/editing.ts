@@ -109,10 +109,10 @@ export interface CreateEditingRequestDto {
 
 export interface UpdateEditorAssignmentDto {
   sessionNumber: number;
-  editorId: number;
-  editRoomNumber: string;
-  availableDatetime: string;
-  sessionDurationMinutes: number;
+  editorId?: number;
+  editRoomNumber?: string;
+  availableDatetime?: string;
+  sessionDurationMinutes?: number;
   editorComments?: string;
 }
 
