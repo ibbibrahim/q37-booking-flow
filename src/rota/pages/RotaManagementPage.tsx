@@ -20,7 +20,8 @@ import {
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 import { RotaCalendar } from '../components/RotaCalendar';
-import { EmployeePool } from '../components/EmployeePool';
+import { ShiftOptionsPool } from '../components/ShiftOptionsPool';
+import { EditAssignmentModal } from '../components/EditAssignmentModal';
 import { WeekNavigator } from '../components/WeekNavigator';
 import { AutoRotateModal } from '../components/AutoRotateModal';
 import { ShareRotaModal } from '../components/ShareRotaModal';
@@ -31,6 +32,8 @@ import {
   formatDateForApi,
   normalizeDateString,
 } from '../utils/dateUtils';
+import type { RotaAssignment } from '../types/rota';
+import type { EditAssignmentFormData } from '../components/EditAssignmentModal';
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -48,6 +51,12 @@ export function RotaManagementPage() {
   );
   const [autoRotateOpen, setAutoRotateOpen] = useState(false);
   const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editModalState, setEditModalState] = useState<{
+    assignment: RotaAssignment | null;
+    employeeId: number | null;
+    date: Date | null;
+  }>({ assignment: null, employeeId: null, date: null });
 
   const { data: departments = [], isLoading: departmentsLoading } = useQuery({
     queryKey: ['rotaDepartments'],
@@ -81,7 +90,6 @@ export function RotaManagementPage() {
     enabled: !!selectedDepartmentId,
   });
 
-  // Auto-select first department for non-Admin users
   useEffect(() => {
     if (departmentsLoading || selectedDepartmentId !== null) return;
     if (!isAdmin && departments.length > 0) {
@@ -105,53 +113,120 @@ export function RotaManagementPage() {
     },
   });
 
-  const handleAssign = useCallback(
-    async (employeeId: number, date: Date, shiftType: string) => {
+  const buildAssignmentsPayload = useCallback(
+    (assignments: RotaAssignment[]) =>
+      assignments.map((a) => ({
+        employeeId: a.employeeId,
+        shiftDate: normalizeDateString(a.shiftDate),
+        shiftType: a.shiftType,
+        customLabel: a.customLabel,
+        programName: a.programName,
+        assignmentComments: a.assignmentComments,
+        shiftStartTime: a.shiftStartTime,
+        shiftEndTime: a.shiftEndTime,
+        isOffDay: a.isOffDay ?? false,
+      })),
+    []
+  );
+
+  const bulkSave = useCallback(
+    async (assignments: RotaAssignment[]) => {
       if (!week) return;
-
-      const dateStr = formatDateForApi(date);
-      const existingOnDate = week.assignments.find(
-        (a) =>
-          a.employeeId === employeeId &&
-          normalizeDateString(a.shiftDate) === dateStr &&
-          a.shiftType !== shiftType
-      );
-
-      if (existingOnDate) {
-        showToast(
-          'Employee already assigned to another shift on this date',
-          'warning'
-        );
-        return;
-      }
-
-      const newAssignment = {
-        employeeId,
-        shiftDate: dateStr,
-        shiftType: shiftType as 'morning' | 'evening' | 'night',
-      };
-
-      const updatedAssignments = [
-        ...week.assignments.map((a) => ({
-          employeeId: a.employeeId,
-          shiftDate: normalizeDateString(a.shiftDate),
-          shiftType: a.shiftType,
-        })),
-        newAssignment,
-      ];
-
       try {
         await rotaApi.bulkAssign({
           rotaWeekId: week.id,
-          assignments: updatedAssignments,
+          assignments: buildAssignmentsPayload(assignments),
         });
-        showToast('Employee assigned', 'success');
         refetchWeek();
       } catch {
-        showToast('Failed to assign employee', 'error');
+        showToast('Failed to save assignments', 'error');
+        throw new Error('Save failed');
       }
     },
-    [week, showToast, refetchWeek]
+    [week, buildAssignmentsPayload, refetchWeek, showToast]
+  );
+
+  const handleAssign = useCallback(
+    async (
+      employeeId: number,
+      date: Date,
+      shiftType: string,
+      isOffDay?: boolean,
+      customLabel?: string,
+      programName?: string
+    ) => {
+      if (!week) return;
+
+      const dateStr = formatDateForApi(date);
+      const existing = week.assignments.find(
+        (a) =>
+          a.employeeId === employeeId &&
+          normalizeDateString(a.shiftDate) === dateStr
+      );
+      if (existing) {
+        showToast('Employee already has an assignment on this date', 'warning');
+        return;
+      }
+
+      const newAssignment: RotaAssignment = {
+        id: -Date.now(),
+        rotaWeekId: week.id,
+        employeeId,
+        employeeName: employees.find((e) => e.id === employeeId)?.name ?? '',
+        shiftDate: dateStr,
+        shiftType: isOffDay ? undefined : (shiftType as 'morning' | 'evening' | 'night'),
+        isOffDay: isOffDay ?? false,
+        customLabel,
+        programName,
+      };
+
+      const updated = [...week.assignments, newAssignment];
+      try {
+        await bulkSave(updated);
+        showToast('Assignment added', 'success');
+      } catch {
+        // Error already shown in bulkSave
+      }
+    },
+    [week, employees, bulkSave, showToast]
+  );
+
+  const handleAssignProgram = useCallback(
+    async (employeeId: number, date: Date, programName: string) => {
+      if (!week) return;
+
+      const dateStr = formatDateForApi(date);
+      const existing = week.assignments.find(
+        (a) =>
+          a.employeeId === employeeId &&
+          normalizeDateString(a.shiftDate) === dateStr
+      );
+
+      let updated: RotaAssignment[];
+      if (existing) {
+        updated = week.assignments.map((a) =>
+          a.id === existing.id ? { ...a, programName } : a
+        );
+      } else {
+        const newAssignment: RotaAssignment = {
+          id: -Date.now(),
+          rotaWeekId: week.id,
+          employeeId,
+          employeeName: employees.find((e) => e.id === employeeId)?.name ?? '',
+          shiftDate: dateStr,
+          programName,
+        };
+        updated = [...week.assignments, newAssignment];
+      }
+
+      try {
+        await bulkSave(updated);
+        showToast(existing ? 'Program added' : 'Assignment added', 'success');
+      } catch {
+        // Error already shown in bulkSave
+      }
+    },
+    [week, employees, bulkSave, showToast]
   );
 
   const handleRemove = useCallback(
@@ -165,6 +240,105 @@ export function RotaManagementPage() {
       }
     },
     [showToast, refetchWeek]
+  );
+
+  const handleEdit = useCallback(
+    (assignment: RotaAssignment | null, employeeId: number, date: Date) => {
+      setEditModalState({ assignment, employeeId, date });
+      setEditModalOpen(true);
+    },
+    []
+  );
+
+  const handleEditModalSave = useCallback(
+    async (data: EditAssignmentFormData, empId: number, date: Date) => {
+      if (!week) return;
+
+      const dateStr = formatDateForApi(date);
+      const existing = week.assignments.find(
+        (a) =>
+          a.employeeId === empId && normalizeDateString(a.shiftDate) === dateStr
+      );
+
+      const employeeName = employees.find((e) => e.id === empId)?.name ?? '';
+
+      const updatedAssignment: RotaAssignment = {
+        ...(existing ?? {
+          id: -Date.now(),
+          rotaWeekId: week.id,
+          employeeId: empId,
+          employeeName,
+          shiftDate: dateStr,
+        }),
+        shiftType: data.shiftType,
+        customLabel: data.customLabel,
+        programName: data.programName,
+        assignmentComments: data.assignmentComments,
+        shiftStartTime: data.shiftStartTime,
+        shiftEndTime: data.shiftEndTime,
+        isOffDay: data.isOffDay ?? false,
+      };
+
+      const updated = existing
+        ? week.assignments.map((a) =>
+            a.id === existing.id ? updatedAssignment : a
+          )
+        : [...week.assignments, updatedAssignment];
+
+      try {
+        await bulkSave(updated);
+        showToast(existing ? 'Assignment updated' : 'Assignment added', 'success');
+      } catch {
+        // Error already shown
+      }
+    },
+    [week, employees, bulkSave, showToast]
+  );
+
+  const handleCustomClick = useCallback(() => {
+    setEditModalState({ assignment: null, employeeId: null, date: null });
+    setEditModalOpen(true);
+  }, []);
+
+  const handleMoveAssignment = useCallback(
+    async (
+      fromAssignment: RotaAssignment,
+      toEmployeeId: number,
+      toDate: Date
+    ) => {
+      if (!week) return;
+
+      const toDateStr = formatDateForApi(toDate);
+      const existingAtTarget = week.assignments.find(
+        (a) =>
+          a.employeeId === toEmployeeId &&
+          normalizeDateString(a.shiftDate) === toDateStr
+      );
+      if (existingAtTarget) {
+        showToast('Target cell already has an assignment', 'warning');
+        return;
+      }
+
+      const moved: RotaAssignment = {
+        ...fromAssignment,
+        id: -Date.now(),
+        employeeId: toEmployeeId,
+        employeeName: employees.find((e) => e.id === toEmployeeId)?.name ?? fromAssignment.employeeName,
+        shiftDate: toDateStr,
+      };
+
+      const updated = week.assignments
+        .filter((a) => a.id !== fromAssignment.id)
+        .concat(moved);
+
+      try {
+        await bulkSave(updated);
+        showToast('Assignment moved', 'success');
+      } catch {
+        // Error already shown
+      }
+    },
+    [week, employees, bulkSave, showToast]
   );
 
   const handleAutoRotate = async () => {
@@ -199,24 +373,50 @@ export function RotaManagementPage() {
       const { active, over } = event;
       if (!over || !week) return;
 
-      const employeeData = active.data.current as
-        | { employeeId?: number; type?: string }
+      const overData = over.data.current as
+        | { type?: string; employeeId?: number; date?: string }
         | undefined;
-      const cellData = over.data.current as
-        | { date?: string; shiftType?: string }
+      const activeData = active.data.current as
+        | {
+            type?: string;
+            shiftType?: string;
+            assignment?: RotaAssignment;
+            programName?: string;
+          }
         | undefined;
 
       if (
-        employeeData?.type === 'employee' &&
-        typeof employeeData.employeeId === 'number' &&
-        cellData?.date &&
-        cellData?.shiftType
+        overData?.type === 'employee-cell' &&
+        typeof overData.employeeId === 'number' &&
+        overData.date
       ) {
-        const date = new Date(cellData.date);
-        handleAssign(employeeData.employeeId, date, cellData.shiftType);
+        const toDate = new Date(overData.date);
+
+        if (activeData?.type === 'shift-option') {
+          const shiftType = activeData.shiftType as string;
+          if (shiftType === 'custom') return; // Handled by Custom button
+          handleAssign(
+            overData.employeeId,
+            toDate,
+            shiftType,
+            shiftType === 'off'
+          );
+        } else if (activeData?.type === 'program' && activeData.programName) {
+          handleAssignProgram(
+            overData.employeeId,
+            toDate,
+            activeData.programName
+          );
+        } else if (activeData?.type === 'assignment' && activeData.assignment) {
+          handleMoveAssignment(
+            activeData.assignment,
+            overData.employeeId,
+            toDate
+          );
+        }
       }
     },
-    [week, handleAssign]
+    [week, handleAssign, handleAssignProgram, handleMoveAssignment]
   );
 
   if (departments.length === 0 && !departmentsLoading) {
@@ -245,7 +445,8 @@ export function RotaManagementPage() {
             <Select
               value={selectedDepartmentId?.toString() ?? ''}
               onValueChange={(v) => setSelectedDepartmentId(v ? parseInt(v, 10) : null)}
-              disabled={!isAdmin}>
+              disabled={!isAdmin}
+            >
               <SelectTrigger aria-label="Select department">
                 <SelectValue placeholder="Select department" />
               </SelectTrigger>
@@ -265,21 +466,24 @@ export function RotaManagementPage() {
             variant="outline"
             size="sm"
             onClick={() => setAutoRotateOpen(true)}
-            disabled={!week}>
+            disabled={!week}
+          >
             Auto-Rotate
           </Button>
           <Button
             variant="outline"
             size="sm"
             onClick={() => setShareModalOpen(true)}
-            disabled={!week}>
+            disabled={!week}
+          >
             Share
           </Button>
           {week?.status === 'draft' && (
             <Button
               size="sm"
               onClick={() => week && publishMutation.mutate(week.id)}
-              disabled={publishMutation.isPending}>
+              disabled={publishMutation.isPending}
+            >
               {publishMutation.isPending ? 'Publishing...' : 'Publish'}
             </Button>
           )}
@@ -289,11 +493,9 @@ export function RotaManagementPage() {
       <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
         <div className="flex gap-4">
           <aside className="hidden lg:block shrink-0">
-            <EmployeePool
-              employees={employees}
-              assignments={week?.assignments ?? []}
-              weekDates={weekDates}
-              selectedDate={null}
+            <ShiftOptionsPool
+              onCustomClick={handleCustomClick}
+              department={selectedDepartment}
             />
           </aside>
 
@@ -306,10 +508,23 @@ export function RotaManagementPage() {
               isLoading={weekLoading || (!!selectedDepartmentId && employeesLoading)}
               onAssign={handleAssign}
               onRemove={handleRemove}
+              onEdit={handleEdit}
             />
           </div>
         </div>
       </DndContext>
+
+      <EditAssignmentModal
+        open={editModalOpen}
+        onOpenChange={setEditModalOpen}
+        assignment={editModalState.assignment}
+        employeeId={editModalState.employeeId}
+        date={editModalState.date}
+        employees={employees}
+        weekDates={weekDates}
+        department={selectedDepartment}
+        onSave={handleEditModalSave}
+      />
 
       <AutoRotateModal
         open={autoRotateOpen}

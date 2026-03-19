@@ -8,6 +8,16 @@ export interface RotaDepartment {
   nightRequired: number;
   isActive: boolean;
   employeeCount?: number;
+  requiresTimeRange?: boolean;
+  /** Shift timings - e.g. "06:00", "14:00" */
+  morningStartTime?: string;
+  morningEndTime?: string;
+  eveningStartTime?: string;
+  eveningEndTime?: string;
+  nightStartTime?: string;
+  nightEndTime?: string;
+  usesShifts?: boolean;
+  allowsCustomLabels?: boolean;
 }
 
 export interface RotaEmployee {
@@ -27,8 +37,14 @@ export interface RotaAssignment {
   employeeId: number;
   employeeName: string;
   shiftDate: string; // ISO date string
-  shiftType: 'morning' | 'evening' | 'night';
+  shiftType?: 'morning' | 'evening' | 'night';
   notes?: string;
+  customLabel?: string;
+  programName?: string;
+  assignmentComments?: string;
+  shiftStartTime?: string; // "09:00:00"
+  shiftEndTime?: string; // "17:00:00"
+  isOffDay?: boolean;
 }
 
 export interface RotaWeek {
@@ -46,6 +62,8 @@ export interface RotaWeek {
   morningRequired?: number;
   eveningRequired?: number;
   nightRequired?: number;
+  /** Optional - employees for public view (employee-first layout) */
+  employees?: RotaEmployee[];
 }
 
 export interface CoverageStats {
@@ -60,6 +78,12 @@ export interface BulkAssignDto {
   assignments: {
     employeeId: number;
     shiftDate: string;
-    shiftType: 'morning' | 'evening' | 'night';
+    shiftType?: 'morning' | 'evening' | 'night';
+    customLabel?: string;
+    programName?: string;
+    assignmentComments?: string;
+    shiftStartTime?: string;
+    shiftEndTime?: string;
+    isOffDay?: boolean;
   }[];
 }

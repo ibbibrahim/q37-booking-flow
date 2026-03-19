@@ -1,7 +1,6 @@
-import React from 'react';
 import { DndContext } from '@dnd-kit/core';
 import { DepartmentSection } from './DepartmentSection';
-import { formatDateDisplay, isFriday } from '../utils/dateUtils';
+import { formatDateDisplay } from '../utils/dateUtils';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { RotaDepartment, RotaAssignment, RotaEmployee, RotaWeek } from '../types/rota';
 
@@ -14,8 +13,9 @@ export interface RotaCalendarProps {
   weekDates: Date[];
   isLoading: boolean;
   readOnly?: boolean;
-  onAssign: (employeeId: number, date: Date, shiftType: string) => void;
+  onAssign: (employeeId: number, date: Date, shiftType: string, isOffDay?: boolean, customLabel?: string) => void;
   onRemove: (assignmentId: number) => void;
+  onEdit: (assignment: RotaAssignment | null, employeeId: number, date: Date) => void;
 }
 
 export function RotaCalendar({
@@ -27,6 +27,7 @@ export function RotaCalendar({
   readOnly = false,
   onAssign,
   onRemove,
+  onEdit,
 }: RotaCalendarProps) {
   if (isLoading || !department) {
     return (
@@ -38,43 +39,43 @@ export function RotaCalendar({
 
   const tableContent = (
     <div className="overflow-x-auto rounded-lg border">
-        <table className="w-full border-collapse">
-          <thead>
-            <tr>
-              <th className="sticky left-0 z-10 bg-background border-b border-r px-4 py-3 text-left text-xs font-semibold uppercase text-muted-foreground">
-                Department
+      <table className="w-full border-collapse">
+        <thead>
+          <tr>
+            <th className="sticky left-0 z-10 bg-background border-b border-r px-4 py-3 text-left text-xs font-semibold uppercase text-muted-foreground">
+              Employee
+            </th>
+            {weekDates.map((date) => (
+              <th
+                key={date.toISOString()}
+                className="border-b px-2 py-3 text-center text-xs font-semibold"
+              >
+                <div>{DAY_NAMES[date.getDay()]}</div>
+                <div className="text-muted-foreground font-normal mt-0.5">
+                  {formatDateDisplay(date)}
+                </div>
               </th>
-              {weekDates.map((date) => (
-                <th
-                  key={date.toISOString()}
-                  className={`border-b px-2 py-3 text-center text-xs font-semibold ${
-                    isFriday(date) ? 'bg-muted' : ''
-                  }`}>
-                  <div>{DAY_NAMES[date.getDay()]}</div>
-                  <div className="text-muted-foreground font-normal mt-0.5">
-                    {formatDateDisplay(date)}
-                  </div>
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {week && (
-              <DepartmentSection
-                department={department}
-                weekDates={weekDates}
-                assignments={week.assignments}
-                employees={employees}
-                onDrop={onAssign}
-                onRemove={onRemove}
-              />
-            )}
-          </tbody>
-        </table>
-      </div>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {week && (
+            <DepartmentSection
+              department={department}
+              weekDates={weekDates}
+              assignments={week.assignments}
+              employees={employees}
+              readOnly={readOnly}
+              onAssign={onAssign}
+              onRemove={onRemove}
+              onEdit={onEdit}
+            />
+          )}
+        </tbody>
+      </table>
+    </div>
   );
 
-  // PublicRotaPage renders RotaCalendar without parent DndContext - wrap for readOnly
   if (readOnly) {
     return (
       <DndContext onDragEnd={() => {}}>

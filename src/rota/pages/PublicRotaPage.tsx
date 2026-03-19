@@ -96,19 +96,23 @@ export function PublicRotaPage() {
     isActive: true,
   };
 
-  // Build minimal employee list from assignments for display
-  const employeesMap = new Map(
-    week.assignments.map((a) => [
-      a.employeeId,
-      {
-        id: a.employeeId,
-        name: a.employeeName,
-        departmentId: week.departmentId,
-        isActive: true,
-      },
-    ])
-  );
-  const employees = Array.from(employeesMap.values());
+  // Use employees from API if available, otherwise derive from assignments
+  const employees =
+    (week.employees?.length ?? 0) > 0
+      ? [...week.employees!].sort((a, b) => a.name.localeCompare(b.name))
+      : Array.from(
+          new Map(
+            week.assignments.map((a) => [
+              a.employeeId,
+              {
+                id: a.employeeId,
+                name: a.employeeName,
+                departmentId: week.departmentId,
+                isActive: true,
+              },
+            ])
+          ).values()
+        ).sort((a, b) => a.name.localeCompare(b.name));
 
   return (
     <div className="min-h-screen bg-background p-4 md:p-8 print:p-4">
@@ -142,6 +146,7 @@ export function PublicRotaPage() {
           readOnly
           onAssign={() => {}}
           onRemove={() => {}}
+          onEdit={() => {}}
         />
       </div>
     </div>
