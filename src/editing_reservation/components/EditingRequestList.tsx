@@ -33,9 +33,9 @@ export const EditingRequestList: React.FC<EditingRequestListProps> = ({
               <th className="text-left py-3 px-4 text-sm font-semibold">ID</th>
               <th className="text-left py-3 px-4 text-sm font-semibold">Program</th>
               <th className="text-left py-3 px-4 text-sm font-semibold">Producer</th>
-              <th className="text-left py-3 px-4 text-sm font-semibold">Created By</th>
               <th className="text-left py-3 px-4 text-sm font-semibold">Status</th>
               <th className="text-left py-3 px-4 text-sm font-semibold">Created</th>
+              <th className="text-left py-3 px-4 text-sm font-semibold">Created By</th>
             </tr>
           </thead>
           <tbody>
@@ -105,13 +105,13 @@ export const EditingRequestList: React.FC<EditingRequestListProps> = ({
                 Producer
               </th>
               <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground whitespace-nowrap">
-                Created By
-              </th>
-              <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground whitespace-nowrap">
                 Status
               </th>
               <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground whitespace-nowrap">
                 Created At
+              </th>
+              <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground whitespace-nowrap">
+                Created By
               </th>
             </tr>
           </thead>
@@ -127,9 +127,6 @@ export const EditingRequestList: React.FC<EditingRequestListProps> = ({
                   {request.programName}
                 </td>
                 <td className="py-3 px-4 text-sm text-muted-foreground">{request.producerName}</td>
-                <td className="py-3 px-4 text-sm text-muted-foreground">
-                  {request.createdByUser?.displayName || request.createdByUser?.username || '—'}
-                </td>
                 <td className="py-3 px-4 text-sm">
                   <span
                     className={`px-3 py-1 rounded-full text-xs font-medium ${getEditingStatusBadgeClass(
@@ -141,6 +138,9 @@ export const EditingRequestList: React.FC<EditingRequestListProps> = ({
                 </td>
                 <td className="py-3 px-4 text-sm text-muted-foreground">
                   {formatDateTime(request.createdAt)}
+                </td>
+                <td className="py-3 px-4 text-sm text-muted-foreground">
+                  {request.createdByUser?.displayName || request.createdByUser?.username || '—'}
                 </td>
               </tr>
             ))}
