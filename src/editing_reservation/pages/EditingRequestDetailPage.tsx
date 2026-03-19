@@ -42,7 +42,10 @@ export const EditingRequestDetailPage: React.FC = () => {
   const canEdit = isBooking && !isCancelled && !isCompleted;
   /** Only SuperEditor (or Admin) can do edit assignment; Editor role cannot assign. Includes Completed so they can edit session details. */
   const canAssign = isSuperEditor && ['Pending', 'Acknowledged', 'Completed'].includes(request?.status || '');
-  const canCancel = isBooking && !isCancelled && !isCompleted;
+  const isAdmin = user?.roles?.includes('Admin');
+  const isCreator = user?.id === request?.createdBy;
+  /** Cancel: Admin always; Booking only if they created the request. Shown even when Completed. */
+  const canCancel = !isCancelled && ((isAdmin) || (isBooking && isCreator));
 
   const loadRequest = useCallback(async () => {
     if (!id) return;

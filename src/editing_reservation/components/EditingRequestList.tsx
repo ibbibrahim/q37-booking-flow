@@ -33,6 +33,7 @@ export const EditingRequestList: React.FC<EditingRequestListProps> = ({
               <th className="text-left py-3 px-4 text-sm font-semibold">ID</th>
               <th className="text-left py-3 px-4 text-sm font-semibold">Program</th>
               <th className="text-left py-3 px-4 text-sm font-semibold">Producer</th>
+              <th className="text-left py-3 px-4 text-sm font-semibold">Created By</th>
               <th className="text-left py-3 px-4 text-sm font-semibold">Status</th>
               <th className="text-left py-3 px-4 text-sm font-semibold">Created</th>
             </tr>
@@ -48,6 +49,9 @@ export const EditingRequestList: React.FC<EditingRequestListProps> = ({
                 </td>
                 <td className="py-3 px-4">
                   <div className="h-4 w-24 bg-muted animate-pulse rounded" />
+                </td>
+                <td className="py-3 px-4">
+                  <div className="h-4 w-28 bg-muted animate-pulse rounded" />
                 </td>
                 <td className="py-3 px-4">
                   <div className="h-5 w-20 bg-muted animate-pulse rounded" />
@@ -101,6 +105,9 @@ export const EditingRequestList: React.FC<EditingRequestListProps> = ({
                 Producer
               </th>
               <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground whitespace-nowrap">
+                Created By
+              </th>
+              <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground whitespace-nowrap">
                 Status
               </th>
               <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground whitespace-nowrap">
@@ -120,6 +127,9 @@ export const EditingRequestList: React.FC<EditingRequestListProps> = ({
                   {request.programName}
                 </td>
                 <td className="py-3 px-4 text-sm text-muted-foreground">{request.producerName}</td>
+                <td className="py-3 px-4 text-sm text-muted-foreground">
+                  {request.createdByUser?.displayName || request.createdByUser?.username || '—'}
+                </td>
                 <td className="py-3 px-4 text-sm">
                   <span
                     className={`px-3 py-1 rounded-full text-xs font-medium ${getEditingStatusBadgeClass(

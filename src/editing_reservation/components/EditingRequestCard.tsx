@@ -1,5 +1,5 @@
 import React from 'react';
-import { Clock, Calendar, User } from 'lucide-react';
+import { Clock, Calendar, User, UserCircle } from 'lucide-react';
 import type { EditingRequest } from '../types/editing';
 import { getEditingStatusBadgeClass, getEditingStatusDisplayLabel } from '../utils/editingUtils';
 
@@ -42,6 +42,12 @@ export const EditingRequestCard: React.FC<EditingRequestCardProps> = ({ request,
           <Clock size={16} />
           <span>ID: {request.id}</span>
         </div>
+        {request.createdByUser && (
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <UserCircle size={16} />
+            <span>{request.createdByUser.displayName || request.createdByUser.username}</span>
+          </div>
+        )}
       </div>
 
       <div className="mt-4 pt-4 border-t border-border">
