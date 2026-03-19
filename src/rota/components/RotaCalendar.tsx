@@ -38,8 +38,8 @@ export function RotaCalendar({
   }
 
   const tableContent = (
-    <div className="overflow-x-auto rounded-lg border">
-      <table className="w-full border-collapse">
+    <div className="overflow-x-auto rounded-lg border print:overflow-visible print:border">
+      <table className="w-full border-collapse print:table-fixed">
         <thead>
           <tr>
             <th className="sticky left-0 z-10 bg-background border-b border-r px-4 py-3 text-left text-xs font-semibold uppercase text-muted-foreground">

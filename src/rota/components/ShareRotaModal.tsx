@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -39,7 +39,9 @@ export function ShareRotaModal({
     setIsLoading(true);
     try {
       const result = await onGenerateLink(expiryDate || undefined);
-      setShareResult(result);
+      // Always use frontend origin so the link opens our employee-first PublicRotaPage
+      const publicUrl = `${window.location.origin}/rota/public/${result.uuid}`;
+      setShareResult({ ...result, publicUrl });
     } finally {
       setIsLoading(false);
     }
@@ -94,13 +96,19 @@ export function ShareRotaModal({
                 <Button variant="outline" onClick={handleCopy}>
                   Copy
                 </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => window.open(shareResult.publicUrl, '_blank')}
+                >
+                  Preview
+                </Button>
               </div>
             </div>
 
             <Alert>
               <Info className="h-4 w-4" />
               <AlertDescription>
-                Anyone with this link can view this week&apos;s rota (read-only)
+                Anyone with this link can view this week&apos;s rota (read-only). Rows show employees; cells show shift types (Morning, Evening, Night) or programs.
               </AlertDescription>
             </Alert>
           </div>

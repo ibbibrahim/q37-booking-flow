@@ -22,8 +22,8 @@ export const EmployeeRow = memo(function EmployeeRow({
   onEdit,
 }: EmployeeRowProps) {
   return (
-    <tr>
-      <td className="px-4 py-2 border-r bg-muted/20 font-medium text-sm sticky left-0 bg-background">
+    <tr className="print:break-inside-avoid">
+      <td className="px-4 py-2 border-r bg-muted/20 font-medium text-sm sticky left-0 bg-background print:bg-muted/30">
         {employee.name}
       </td>
       {weekDates.map((date) => (

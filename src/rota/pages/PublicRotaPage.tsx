@@ -1,4 +1,3 @@
-import React from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -6,7 +5,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle, Printer } from 'lucide-react';
 import { RotaCalendar } from '../components/RotaCalendar';
 import { rotaApi } from '../api/rotaApi';
-import { getWeekDates, formatDateDisplay } from '../utils/dateUtils';
+import { getWeekDates, formatDateDisplay, parseLocalDate } from '../utils/dateUtils';
 import type { RotaDepartment } from '../types/rota';
 
 export function PublicRotaPage() {
@@ -81,7 +80,7 @@ export function PublicRotaPage() {
     );
   }
 
-  const weekStart = new Date(week.weekStartDate);
+  const weekStart = parseLocalDate(week.weekStartDate);
   const weekDates = getWeekDates(weekStart);
   const weekEnd = new Date(weekStart);
   weekEnd.setDate(weekEnd.getDate() + 6);
@@ -96,17 +95,17 @@ export function PublicRotaPage() {
     isActive: true,
   };
 
-  // Use employees from API if available, otherwise derive from assignments
+  // Use employees from API if available, otherwise derive from assignments (employee-first layout)
   const employees =
     (week.employees?.length ?? 0) > 0
       ? [...week.employees!].sort((a, b) => a.name.localeCompare(b.name))
       : Array.from(
           new Map(
-            week.assignments.map((a) => [
+            (week.assignments ?? []).map((a) => [
               a.employeeId,
               {
                 id: a.employeeId,
-                name: a.employeeName,
+                name: a.employeeName ?? `Employee ${a.employeeId}`,
                 departmentId: week.departmentId,
                 isActive: true,
               },
