@@ -18,7 +18,17 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertCircle } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { AlertCircle, Trash2 } from 'lucide-react';
 import { RotaCalendar } from '../components/RotaCalendar';
 import { ShiftOptionsPool } from '../components/ShiftOptionsPool';
 import { EditAssignmentModal } from '../components/EditAssignmentModal';
@@ -51,6 +61,8 @@ export function RotaManagementPage() {
   );
   const [autoRotateOpen, setAutoRotateOpen] = useState(false);
   const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [clearAllOpen, setClearAllOpen] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editModalState, setEditModalState] = useState<{
     assignment: RotaAssignment | null;
@@ -359,6 +371,24 @@ export function RotaManagementPage() {
     return rotaApi.generateShareLink(week.id, expiresAt);
   };
 
+  const handleClearAll = useCallback(async () => {
+    if (!week) return;
+    setIsClearing(true);
+    try {
+      await rotaApi.bulkAssign({
+        rotaWeekId: week.id,
+        assignments: [],
+      });
+      showToast('All assignments cleared', 'success');
+      refetchWeek();
+      setClearAllOpen(false);
+    } catch {
+      showToast('Failed to clear assignments', 'error');
+    } finally {
+      setIsClearing(false);
+    }
+  }, [week, refetchWeek, showToast]);
+
   const handlePrevWeek = () =>
     setSelectedWeekStart((prev) => new Date(prev.getTime() - WEEK_MS));
   const handleNextWeek = () =>
@@ -465,6 +495,16 @@ export function RotaManagementPage() {
           <Button
             variant="outline"
             size="sm"
+            onClick={() => setClearAllOpen(true)}
+            disabled={!week || (week?.assignments?.length ?? 0) === 0}
+            className="text-destructive hover:text-destructive"
+          >
+            <Trash2 className="h-4 w-4 mr-2" />
+            Clear All
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() => setAutoRotateOpen(true)}
             disabled={!week}
           >
@@ -541,6 +581,27 @@ export function RotaManagementPage() {
         onGenerateLink={handleGenerateShareLink}
         onCopySuccess={() => showToast('Link copied!', 'success')}
       />
+
+      <AlertDialog open={clearAllOpen} onOpenChange={setClearAllOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Clear all assignments?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will remove all shift assignments from the current week. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleClearAll}
+              disabled={isClearing}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isClearing ? 'Clearing...' : 'Clear All'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
