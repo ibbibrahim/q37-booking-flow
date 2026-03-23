@@ -28,13 +28,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { AlertCircle, Trash2 } from 'lucide-react';
+import { AlertCircle, Copy, Trash2 } from 'lucide-react';
 import { RotaCalendar } from '../components/RotaCalendar';
 import { ShiftOptionsPool } from '../components/ShiftOptionsPool';
 import { EditAssignmentModal } from '../components/EditAssignmentModal';
 import { WeekNavigator } from '../components/WeekNavigator';
 import { AutoRotateModal } from '../components/AutoRotateModal';
 import { ShareRotaModal } from '../components/ShareRotaModal';
+import { CopyWeekModal } from '../components/CopyWeekModal';
 import { rotaApi } from '../api/rotaApi';
 import {
   getWeekStart,
@@ -61,6 +62,7 @@ export function RotaManagementPage() {
   );
   const [autoRotateOpen, setAutoRotateOpen] = useState(false);
   const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [copyModalOpen, setCopyModalOpen] = useState(false);
   const [clearAllOpen, setClearAllOpen] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -505,6 +507,16 @@ export function RotaManagementPage() {
           <Button
             variant="outline"
             size="sm"
+            onClick={() => setCopyModalOpen(true)}
+            disabled={!week}
+            className="gap-2"
+          >
+            <Copy className="h-4 w-4" />
+            Copy Week
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() => setAutoRotateOpen(true)}
             disabled={!week}
           >
@@ -578,8 +590,23 @@ export function RotaManagementPage() {
         open={shareModalOpen}
         onOpenChange={setShareModalOpen}
         weekId={week?.id ?? null}
+        week={week}
+        department={selectedDepartment}
+        employees={employees}
         onGenerateLink={handleGenerateShareLink}
         onCopySuccess={() => showToast('Link copied!', 'success')}
+      />
+
+      <CopyWeekModal
+        open={copyModalOpen}
+        onOpenChange={setCopyModalOpen}
+        currentWeekStart={selectedWeekStart}
+        currentWeekId={week?.id}
+        departmentId={selectedDepartmentId}
+        onSuccess={() => {
+          refetchWeek();
+          setCopyModalOpen(false);
+        }}
       />
 
       <AlertDialog open={clearAllOpen} onOpenChange={setClearAllOpen}>

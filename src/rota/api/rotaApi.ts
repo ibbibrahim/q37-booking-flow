@@ -62,6 +62,13 @@ export const rotaApi = {
     return data;
   },
 
+  copyFromWeek: async (targetWeekId: number, sourceWeekId: number): Promise<RotaWeek> => {
+    const { data } = await apiClient.post(
+      `${API_BASE}/weeks/${targetWeekId}/copy-from/${sourceWeekId}`
+    );
+    return data;
+  },
+
   // Assignments
   bulkAssign: async (dto: BulkAssignDto): Promise<void> => {
     await apiClient.post(`${API_BASE}/assignments/bulk`, dto);

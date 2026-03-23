@@ -85,3 +85,21 @@ export const hasConflictOnDate = (
       (excludeShiftType ? a.shiftType !== excludeShiftType : true)
   );
 };
+
+/** Format week range for display, e.g. "22-28 Mar 2026" or "28 Mar - 3 Apr 2026" */
+export const formatWeekRange = (weekStart: Date): string => {
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekStart.getDate() + 6);
+
+  const startDay = weekStart.getDate();
+  const endDay = weekEnd.getDate();
+  const month = weekStart.toLocaleDateString('en-GB', { month: 'short' });
+  const year = weekStart.getFullYear();
+
+  if (weekStart.getMonth() === weekEnd.getMonth()) {
+    return `${startDay}-${endDay} ${month} ${year}`;
+  } else {
+    const endMonth = weekEnd.toLocaleDateString('en-GB', { month: 'short' });
+    return `${startDay} ${month} - ${endDay} ${endMonth} ${year}`;
+  }
+};
