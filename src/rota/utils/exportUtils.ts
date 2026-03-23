@@ -64,32 +64,60 @@ export const exportRotaToPDF = (
   const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   const headers = ['Employee', ...days];
 
-  const sortedEmployees = [...employees].sort((a, b) =>
-    a.name.localeCompare(b.name)
-  );
+  const groupedEmployees = department.hasSubDepartments
+    ? (() => {
+        const groups = employees.reduce(
+          (acc, emp) => {
+            const deptName = emp.departmentName || 'Other';
+            if (!acc[deptName]) acc[deptName] = [];
+            acc[deptName].push(emp);
+            return acc;
+          },
+          {} as Record<string, RotaEmployee[]>
+        );
+        return Object.entries(groups).map(([departmentName, emps]) => ({
+          departmentName,
+          employees: emps.sort((a, b) => a.name.localeCompare(b.name)),
+        }));
+      })()
+    : [{ departmentName: null as string | null, employees: [...employees].sort((a, b) => a.name.localeCompare(b.name)) }];
 
-  const rows = sortedEmployees.map((emp) => {
-    const row = [emp.name];
+  const rows: (string | { content: string; colSpan: number; styles?: Record<string, unknown> })[][] = [];
 
-    for (let i = 0; i < 7; i++) {
-      const date = new Date(weekStartDate);
-      date.setDate(weekStartDate.getDate() + i);
-      const dateStr = formatDateForApi(date);
-
-      const assignment = (week.assignments ?? []).find(
-        (a) =>
-          a.employeeId === emp.id &&
-          normalizeDateString(a.shiftDate) === dateStr
-      );
-
-      if (assignment) {
-        row.push(getCellText(assignment));
-      } else {
-        row.push('');
-      }
+  groupedEmployees.forEach((group) => {
+    if (group.departmentName) {
+      rows.push([
+        {
+          content: group.departmentName,
+          colSpan: 8,
+          styles: { fillColor: [220, 220, 220], fontStyle: 'bold', halign: 'left' },
+        },
+      ]);
     }
 
-    return row;
+    group.employees.forEach((emp) => {
+      const row = [emp.name];
+
+      for (let i = 0; i < 7; i++) {
+        const date = new Date(weekStartDate);
+        date.setDate(weekStartDate.getDate() + i);
+        const dateStr = formatDateForApi(date);
+
+        const assignment = (week.assignments ?? []).find(
+          (a) =>
+            a.employeeId === emp.id &&
+            normalizeDateString(a.shiftDate) === dateStr
+        );
+
+        if (assignment) {
+          row.push(getCellText(assignment));
+        } else {
+          row.push('');
+        }
+      }
+
+      rows.push(row);
+    });
   });
 
   autoTable(doc, {
@@ -162,37 +190,57 @@ export const exportRotaToExcel = (
   const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   data.push(['Employee', ...days]);
 
-  const sortedEmployees = [...employees].sort((a, b) =>
-    a.name.localeCompare(b.name)
-  );
+  const groupedEmployees = department.hasSubDepartments
+    ? (() => {
+        const groups = employees.reduce(
+          (acc, emp) => {
+            const deptName = emp.departmentName || 'Other';
+            if (!acc[deptName]) acc[deptName] = [];
+            acc[deptName].push(emp);
+            return acc;
+          },
+          {} as Record<string, RotaEmployee[]>
+        );
+        return Object.entries(groups).map(([departmentName, emps]) => ({
+          departmentName,
+          employees: emps.sort((a, b) => a.name.localeCompare(b.name)),
+        }));
+      })()
+    : [{ departmentName: null as string | null, employees: [...employees].sort((a, b) => a.name.localeCompare(b.name)) }];
 
-  sortedEmployees.forEach((emp) => {
-    const row: string[] = [emp.name];
-
-    for (let i = 0; i < 7; i++) {
-      const date = new Date(weekStartDate);
-      date.setDate(weekStartDate.getDate() + i);
-      const dateStr = formatDateForApi(date);
-
-      const assignment = (week.assignments ?? []).find(
-        (a) =>
-          a.employeeId === emp.id &&
-          normalizeDateString(a.shiftDate) === dateStr
-      );
-
-      let cellValue = '';
-      if (assignment) {
-        const display = getAssignmentDisplay(assignment);
-        cellValue = display?.label ?? '';
-        if (assignment.programName && display?.label !== assignment.programName) {
-          cellValue += ` - ${assignment.programName}`;
-        }
-      }
-
-      row.push(cellValue);
+  groupedEmployees.forEach((group) => {
+    if (group.departmentName) {
+      data.push([group.departmentName, '', '', '', '', '', '', '', '']);
     }
 
-    data.push(row);
+    group.employees.forEach((emp) => {
+      const row: string[] = [emp.name];
+
+      for (let i = 0; i < 7; i++) {
+        const date = new Date(weekStartDate);
+        date.setDate(weekStartDate.getDate() + i);
+        const dateStr = formatDateForApi(date);
+
+        const assignment = (week.assignments ?? []).find(
+          (a) =>
+            a.employeeId === emp.id &&
+            normalizeDateString(a.shiftDate) === dateStr
+        );
+
+        let cellValue = '';
+        if (assignment) {
+          const display = getAssignmentDisplay(assignment);
+          cellValue = display?.label ?? '';
+          if (assignment.programName && display?.label !== assignment.programName) {
+            cellValue += ` - ${assignment.programName}`;
+          }
+        }
+
+        row.push(cellValue);
+      }
+
+      data.push(row);
+    });
   });
 
   const ws = XLSX.utils.aoa_to_sheet(data);

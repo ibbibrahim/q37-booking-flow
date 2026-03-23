@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   DndContext,
@@ -104,12 +104,17 @@ export function RotaManagementPage() {
     enabled: !!selectedDepartmentId,
   });
 
+  const parentDepartments = useMemo(
+    () => departments.filter((d) => !d.parentDepartmentId),
+    [departments]
+  );
+
   useEffect(() => {
     if (departmentsLoading || selectedDepartmentId !== null) return;
-    if (!isAdmin && departments.length > 0) {
-      setSelectedDepartmentId(departments[0].id);
+    if (!isAdmin && parentDepartments.length > 0) {
+      setSelectedDepartmentId(parentDepartments[0].id);
     }
-  }, [departments, departmentsLoading, isAdmin, selectedDepartmentId]);
+  }, [departments, departmentsLoading, isAdmin, selectedDepartmentId, parentDepartments]);
 
   const selectedDepartment = departments.find(
     (d) => d.id === selectedDepartmentId
@@ -473,7 +478,7 @@ export function RotaManagementPage() {
             onNextWeek={handleNextWeek}
           />
 
-          <div className="w-48">
+          <div className="w-56">
             <Select
               value={selectedDepartmentId?.toString() ?? ''}
               onValueChange={(v) => setSelectedDepartmentId(v ? parseInt(v, 10) : null)}
@@ -483,7 +488,7 @@ export function RotaManagementPage() {
                 <SelectValue placeholder="Select department" />
               </SelectTrigger>
               <SelectContent>
-                {departments.map((d) => (
+                {parentDepartments.map((d) => (
                   <SelectItem key={d.id} value={String(d.id)}>
                     {d.name}
                   </SelectItem>

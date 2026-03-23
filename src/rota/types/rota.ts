@@ -1,6 +1,10 @@
 export interface RotaDepartment {
   id: number;
   name: string;
+  parentDepartmentId?: number;
+  parentDepartmentName?: string;
+  hasSubDepartments?: boolean;
+  subDepartments?: RotaDepartment[];
   description?: string;
   color: string; // Hex color for UI
   morningRequired: number;

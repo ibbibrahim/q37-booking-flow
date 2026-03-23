@@ -70,6 +70,11 @@ export const EmployeeCell = memo(function EmployeeCell({
                 {assignment.programName}
               </div>
             )}
+          {assignment.assignmentComments && (
+            <div className="text-[10px] text-muted-foreground truncate italic">
+              {assignment.assignmentComments}
+            </div>
+          )}
         </div>
       ) : (
         <>
