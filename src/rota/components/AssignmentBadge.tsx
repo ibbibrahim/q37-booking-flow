@@ -2,7 +2,7 @@ import { memo } from 'react';
 import { useDraggable } from '@dnd-kit/core';
 import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { RotaAssignment } from '../types/rota';
+import type { RotaAssignment, RotaShiftType } from '../types/rota';
 import { getAssignmentDisplay, type AssignmentDisplay } from '../utils/rotaUtils';
 
 const colorClasses: Record<AssignmentDisplay['color'], string> = {
@@ -18,6 +18,7 @@ export interface AssignmentBadgeProps {
   onRemove: () => void;
   draggable?: boolean;
   readOnly?: boolean;
+  shiftTypes?: RotaShiftType[];
 }
 
 export const AssignmentBadge = memo(function AssignmentBadge({
@@ -25,8 +26,9 @@ export const AssignmentBadge = memo(function AssignmentBadge({
   onRemove,
   draggable = true,
   readOnly = false,
+  shiftTypes,
 }: AssignmentBadgeProps) {
-  const display = getAssignmentDisplay(assignment);
+  const display = getAssignmentDisplay(assignment, shiftTypes);
   if (!display) return null;
 
   const {
@@ -48,16 +50,27 @@ export const AssignmentBadge = memo(function AssignmentBadge({
     disabled: !draggable || readOnly,
   });
 
+  const useCustomColor = !!display.customColor;
+
   return (
     <div
       ref={setNodeRef}
       {...(draggable && !readOnly ? { ...listeners, ...attributes } : {})}
       className={cn(
         'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium border',
-        colorClasses[display.color],
+        !useCustomColor && colorClasses[display.color],
         draggable && !readOnly && 'cursor-grab active:cursor-grabbing',
         isDragging && 'opacity-50'
       )}
+      style={
+        useCustomColor
+          ? {
+              backgroundColor: display.customColor,
+              borderColor: display.customColor,
+              color: '#374151',
+            }
+          : undefined
+      }
     >
       <span>{display.label}</span>
       {!readOnly && (

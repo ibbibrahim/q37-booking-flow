@@ -1,7 +1,7 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
-import type { RotaWeek, RotaDepartment, RotaEmployee, RotaAssignment } from '../types/rota';
+import type { RotaWeek, RotaDepartment, RotaEmployee, RotaAssignment, RotaShiftType } from '../types/rota';
 import { formatDateForApi, parseLocalDate, normalizeDateString } from './dateUtils';
 import { getAssignmentDisplay } from './rotaUtils';
 
@@ -16,8 +16,8 @@ const formatDateDisplay = (date: Date | string): string => {
 };
 
 /** Get cell text for an assignment (uses getAssignmentDisplay for consistent labels) */
-const getCellText = (assignment: RotaAssignment): string => {
-  const display = getAssignmentDisplay(assignment);
+const getCellText = (assignment: RotaAssignment, shiftTypes?: RotaShiftType[]): string => {
+  const display = getAssignmentDisplay(assignment, shiftTypes);
   if (!display) return '';
   let text = display.label;
   if (assignment.programName && display.label !== assignment.programName) {
@@ -40,7 +40,8 @@ const getFillColorForCell = (cellText: string): number[] | null => {
 export const exportRotaToPDF = (
   week: RotaWeek,
   department: RotaDepartment,
-  employees: RotaEmployee[]
+  employees: RotaEmployee[],
+  shiftTypes?: RotaShiftType[]
 ): void => {
   const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
 
@@ -110,7 +111,7 @@ export const exportRotaToPDF = (
         );
 
         if (assignment) {
-          row.push(getCellText(assignment));
+          row.push(getCellText(assignment, shiftTypes));
         } else {
           row.push('');
         }
@@ -172,7 +173,8 @@ export const exportRotaToPDF = (
 export const exportRotaToExcel = (
   week: RotaWeek,
   department: RotaDepartment,
-  employees: RotaEmployee[]
+  employees: RotaEmployee[],
+  shiftTypes?: RotaShiftType[]
 ): void => {
   const weekStartDate = parseLocalDate(week.weekStartDate);
   const weekEndDate = new Date(weekStartDate);
@@ -229,7 +231,7 @@ export const exportRotaToExcel = (
 
         let cellValue = '';
         if (assignment) {
-          const display = getAssignmentDisplay(assignment);
+          const display = getAssignmentDisplay(assignment, shiftTypes);
           cellValue = display?.label ?? '';
           if (assignment.programName && display?.label !== assignment.programName) {
             cellValue += ` - ${assignment.programName}`;

@@ -1,11 +1,12 @@
 import { memo } from 'react';
 import { EmployeeCell } from './EmployeeCell';
-import type { RotaAssignment, RotaEmployee } from '../types/rota';
+import type { RotaAssignment, RotaEmployee, RotaShiftType } from '../types/rota';
 
 export interface EmployeeRowProps {
   employee: RotaEmployee;
   weekDates: Date[];
   assignments: RotaAssignment[];
+  shiftTypes?: RotaShiftType[];
   readOnly?: boolean;
   onAssign: (employeeId: number, date: Date, shiftType: string, isOffDay?: boolean, customLabel?: string) => void;
   onRemove: (assignmentId: number) => void;
@@ -16,6 +17,7 @@ export const EmployeeRow = memo(function EmployeeRow({
   employee,
   weekDates,
   assignments,
+  shiftTypes = [],
   readOnly = false,
   onAssign,
   onRemove,
@@ -32,6 +34,7 @@ export const EmployeeRow = memo(function EmployeeRow({
           employee={employee}
           date={date}
           assignments={assignments}
+          shiftTypes={shiftTypes}
           readOnly={readOnly}
           onAssign={onAssign}
           onRemove={onRemove}

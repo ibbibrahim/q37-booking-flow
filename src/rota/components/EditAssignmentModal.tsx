@@ -18,11 +18,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import type { RotaAssignment, RotaDepartment } from '../types/rota';
+import type { RotaAssignment, RotaDepartment, RotaShiftType } from '../types/rota';
 import { PREDEFINED_PROGRAMS } from '../utils/rotaConstants';
 
 export interface EditAssignmentFormData {
-  shiftType?: 'morning' | 'evening' | 'night';
+  shiftType?: string;
   customLabel?: string;
   programName?: string;
   assignmentComments?: string;
@@ -40,6 +40,7 @@ export interface EditAssignmentModalProps {
   employees: { id: number; name: string }[];
   weekDates: Date[];
   department: RotaDepartment | null;
+  shiftTypes?: RotaShiftType[];
   onSave: (data: EditAssignmentFormData, employeeId: number, date: Date) => Promise<void>;
 }
 
@@ -52,6 +53,7 @@ export function EditAssignmentModal({
   employees,
   weekDates,
   department,
+  shiftTypes = [],
   onSave,
 }: EditAssignmentModalProps) {
   const [shiftType, setShiftType] = useState<'shift' | 'custom'>('shift');
@@ -105,7 +107,7 @@ export function EditAssignmentModal({
       setIsOffDay(assignment.isOffDay ?? false);
     } else if (open && !assignment) {
       setShiftType('shift');
-      setSelectedShift('morning');
+      setSelectedShift(shiftTypes.length > 0 ? (shiftTypes[0]?.name ?? '') : 'morning');
       setCustomLabel('');
       setProgramName('');
       setCustomProgramName('');
@@ -141,7 +143,7 @@ export function EditAssignmentModal({
         if (selectedShift === 'off') {
           data.isOffDay = true;
         } else {
-          data.shiftType = (selectedShift || 'morning') as 'morning' | 'evening' | 'night';
+          data.shiftType = selectedShift || (shiftTypes[0]?.name ?? 'morning');
         }
         if (department?.requiresTimeRange) {
           data.shiftStartTime = `${startTime}:00`;
@@ -233,7 +235,9 @@ export function EditAssignmentModal({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="shift">Shift (Morning/Evening/Night)</SelectItem>
+                <SelectItem value="shift">
+                  Shift ({shiftTypes.length > 0 ? 'Department types' : 'A/B/C'})
+                </SelectItem>
                 <SelectItem value="custom">Custom Label</SelectItem>
               </SelectContent>
             </Select>
@@ -250,10 +254,26 @@ export function EditAssignmentModal({
                   <SelectValue placeholder="Select shift" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="morning">Morning</SelectItem>
-                  <SelectItem value="evening">Evening</SelectItem>
-                  <SelectItem value="night">Night</SelectItem>
-                  <SelectItem value="off">OFF</SelectItem>
+                  {shiftTypes.length > 0 ? (
+                    <>
+                      {shiftTypes
+                        .filter((s) => s.isActive)
+                        .sort((a, b) => a.displayOrder - b.displayOrder)
+                        .map((s) => (
+                          <SelectItem key={s.id} value={s.name}>
+                            {s.label}
+                          </SelectItem>
+                        ))}
+                      <SelectItem value="off">OFF</SelectItem>
+                    </>
+                  ) : (
+                    <>
+                      <SelectItem value="morning">Shift A</SelectItem>
+                      <SelectItem value="evening">Shift B</SelectItem>
+                      <SelectItem value="night">Shift C</SelectItem>
+                      <SelectItem value="off">OFF</SelectItem>
+                    </>
+                  )}
                 </SelectContent>
               </Select>
             </div>

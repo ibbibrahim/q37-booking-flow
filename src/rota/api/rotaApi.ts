@@ -3,6 +3,8 @@ import type {
   RotaDepartment,
   RotaEmployee,
   RotaWeek,
+  RotaShiftType,
+  CreateShiftTypeDto,
   BulkAssignDto,
 } from '../types/rota';
 
@@ -22,6 +24,47 @@ export const rotaApi = {
       `${API_BASE}/departments/${departmentId}/employees`
     );
     return data;
+  },
+
+  getDepartmentShiftTypes: async (
+    departmentId: number
+  ): Promise<RotaShiftType[]> => {
+    const { data } = await apiClient.get(
+      `${API_BASE}/departments/${departmentId}/shift-types`
+    );
+    return data;
+  },
+
+  createShiftType: async (
+    departmentId: number,
+    dto: CreateShiftTypeDto
+  ): Promise<RotaShiftType> => {
+    const { data } = await apiClient.post(
+      `${API_BASE}/departments/${departmentId}/shift-types`,
+      dto
+    );
+    return data;
+  },
+
+  updateShiftType: async (
+    departmentId: number,
+    id: number,
+    dto: Partial<CreateShiftTypeDto>
+  ): Promise<RotaShiftType> => {
+    const { data } = await apiClient.put(
+      `${API_BASE}/departments/${departmentId}/shift-types/${id}`,
+      dto
+    );
+    return data;
+  },
+
+  deleteShiftType: async (
+    departmentId: number,
+    id: number
+  ): Promise<void> => {
+    await apiClient.delete(
+      `${API_BASE}/departments/${departmentId}/shift-types/${id}`
+    );
   },
 
   // Weeks

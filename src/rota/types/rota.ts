@@ -1,3 +1,24 @@
+export interface RotaShiftType {
+  id: number;
+  departmentId: number;
+  name: string;
+  label: string;
+  startTime: string;
+  endTime: string;
+  color: string;
+  displayOrder: number;
+  isActive: boolean;
+}
+
+export interface CreateShiftTypeDto {
+  name: string;
+  label: string;
+  startTime: string;
+  endTime: string;
+  color?: string;
+  displayOrder: number;
+}
+
 export interface RotaDepartment {
   id: number;
   name: string;
@@ -7,9 +28,6 @@ export interface RotaDepartment {
   subDepartments?: RotaDepartment[];
   description?: string;
   color: string; // Hex color for UI
-  morningRequired: number;
-  eveningRequired: number;
-  nightRequired: number;
   isActive: boolean;
   employeeCount?: number;
   requiresTimeRange?: boolean;
@@ -22,6 +40,7 @@ export interface RotaDepartment {
   nightEndTime?: string;
   usesShifts?: boolean;
   allowsCustomLabels?: boolean;
+  shiftTypes?: RotaShiftType[];
 }
 
 export interface RotaEmployee {
@@ -41,7 +60,7 @@ export interface RotaAssignment {
   employeeId: number;
   employeeName: string;
   shiftDate: string; // ISO date string
-  shiftType?: 'morning' | 'evening' | 'night';
+  shiftType?: string;
   notes?: string;
   customLabel?: string;
   programName?: string;
@@ -82,7 +101,7 @@ export interface BulkAssignDto {
   assignments: {
     employeeId: number;
     shiftDate: string;
-    shiftType?: 'morning' | 'evening' | 'night';
+    shiftType?: string;
     customLabel?: string;
     programName?: string;
     assignmentComments?: string;

@@ -20,6 +20,7 @@ import { StudioBookingDashboard } from './studio_booking/components/StudioBookin
 import { UsersPage } from './admin/components/UsersPage';
 import { RotaManagementPage } from './rota/pages/RotaManagementPage';
 import { PublicRotaPage } from './rota/pages/PublicRotaPage';
+import { RotaDepartmentSettingsPage } from './rota/pages/RotaDepartmentSettingsPage';
 
 function App() {
   const { isAuthenticated, user, isLoading } = useAuth();
@@ -304,6 +305,14 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={['Admin', 'RotaTeamLead']}>
               <RotaManagementPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="rota/departments/:id/settings"
+          element={
+            <ProtectedRoute allowedRoles={['Admin']}>
+              <RotaDepartmentSettingsPage />
             </ProtectedRoute>
           }
         />

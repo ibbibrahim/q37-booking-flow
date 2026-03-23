@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   DndContext,
@@ -28,7 +29,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { AlertCircle, Copy, Trash2 } from 'lucide-react';
+import { AlertCircle, Copy, Trash2, Settings } from 'lucide-react';
 import { RotaCalendar } from '../components/RotaCalendar';
 import { ShiftOptionsPool } from '../components/ShiftOptionsPool';
 import { EditAssignmentModal } from '../components/EditAssignmentModal';
@@ -52,6 +53,7 @@ export function RotaManagementPage() {
   const { user } = useAuth();
   const { showToast } = useToast();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const isAdmin = user?.roles?.includes('Admin') ?? false;
 
   const [selectedWeekStart, setSelectedWeekStart] = useState<Date>(() =>
@@ -75,6 +77,12 @@ export function RotaManagementPage() {
   const { data: departments = [], isLoading: departmentsLoading } = useQuery({
     queryKey: ['rotaDepartments'],
     queryFn: rotaApi.getDepartments,
+  });
+
+  const { data: shiftTypes = [] } = useQuery({
+    queryKey: ['departmentShiftTypes', selectedDepartmentId],
+    queryFn: () => rotaApi.getDepartmentShiftTypes(selectedDepartmentId!),
+    enabled: !!selectedDepartmentId,
   });
 
   const { data: employees = [], isLoading: employeesLoading } = useQuery({
@@ -478,23 +486,37 @@ export function RotaManagementPage() {
             onNextWeek={handleNextWeek}
           />
 
-          <div className="w-56">
-            <Select
-              value={selectedDepartmentId?.toString() ?? ''}
-              onValueChange={(v) => setSelectedDepartmentId(v ? parseInt(v, 10) : null)}
-              disabled={!isAdmin}
-            >
-              <SelectTrigger aria-label="Select department">
-                <SelectValue placeholder="Select department" />
-              </SelectTrigger>
-              <SelectContent>
-                {parentDepartments.map((d) => (
-                  <SelectItem key={d.id} value={String(d.id)}>
-                    {d.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="flex items-center gap-2">
+            <div className="w-56">
+              <Select
+                value={selectedDepartmentId?.toString() ?? ''}
+                onValueChange={(v) => setSelectedDepartmentId(v ? parseInt(v, 10) : null)}
+                disabled={!isAdmin}
+              >
+                <SelectTrigger aria-label="Select department">
+                  <SelectValue placeholder="Select department" />
+                </SelectTrigger>
+                <SelectContent>
+                  {parentDepartments.map((d) => (
+                    <SelectItem key={d.id} value={String(d.id)}>
+                      {d.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {isAdmin && selectedDepartmentId && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() =>
+                  navigate(`/rota/departments/${selectedDepartmentId}/settings`)
+                }
+                aria-label="Department settings"
+              >
+                <Settings className="h-4 w-4" />
+              </Button>
+            )}
           </div>
         </div>
 
@@ -562,6 +584,7 @@ export function RotaManagementPage() {
               department={selectedDepartment}
               employees={employees}
               weekDates={weekDates}
+              shiftTypes={shiftTypes}
               isLoading={weekLoading || (!!selectedDepartmentId && employeesLoading)}
               onAssign={handleAssign}
               onRemove={handleRemove}
@@ -580,6 +603,7 @@ export function RotaManagementPage() {
         employees={employees}
         weekDates={weekDates}
         department={selectedDepartment}
+        shiftTypes={shiftTypes}
         onSave={handleEditModalSave}
       />
 
@@ -598,6 +622,7 @@ export function RotaManagementPage() {
         week={week}
         department={selectedDepartment}
         employees={employees}
+        shiftTypes={shiftTypes}
         onGenerateLink={handleGenerateShareLink}
         onCopySuccess={() => showToast('Link copied!', 'success')}
       />

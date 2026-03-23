@@ -1,4 +1,4 @@
-import type { RotaAssignment, RotaEmployee } from '../types/rota';
+import type { RotaAssignment, RotaEmployee, RotaShiftType } from '../types/rota';
 import { formatDateForApi, normalizeDateString } from './dateUtils';
 
 /** Format "06:00" to "6am", "14:00" to "2pm". Returns empty string if no times. */
@@ -24,10 +24,13 @@ export type AssignmentDisplay = {
   label: string;
   color: 'grey' | 'orange' | 'blue' | 'indigo' | 'purple';
   showTime?: boolean;
+  /** For dynamic shift types - use as background color when set */
+  customColor?: string;
 };
 
 export const getAssignmentDisplay = (
-  assignment: RotaAssignment
+  assignment: RotaAssignment,
+  shiftTypes?: RotaShiftType[]
 ): AssignmentDisplay | null => {
   if (assignment.isOffDay) return { label: 'OFF', color: 'grey' };
   if (assignment.customLabel)
@@ -36,11 +39,31 @@ export const getAssignmentDisplay = (
       color: 'purple',
       showTime: !!(assignment.shiftStartTime || assignment.shiftEndTime),
     };
-  if (assignment.shiftType === 'morning') return { label: 'Morning', color: 'orange' };
-  if (assignment.shiftType === 'evening') return { label: 'Evening', color: 'blue' };
-  if (assignment.shiftType === 'night') return { label: 'Night', color: 'indigo' };
+  if (assignment.shiftType && shiftTypes?.length) {
+    const match = shiftTypes.find(
+      (s) => s.name === assignment.shiftType || s.name.replace(/_/g, '') === assignment.shiftType?.replace(/_/g, '')
+    );
+    if (match) {
+      const label = match.label.includes('(')
+        ? match.label.split('(')[0].trim()
+        : match.label;
+      return {
+        label,
+        color: 'purple',
+        customColor: match.color,
+      };
+    }
+  }
+  if (assignment.shiftType === 'morning') return { label: 'Shift A', color: 'orange' };
+  if (assignment.shiftType === 'evening') return { label: 'Shift B', color: 'blue' };
+  if (assignment.shiftType === 'night') return { label: 'Shift C', color: 'indigo' };
   if (assignment.programName)
     return { label: assignment.programName, color: 'purple' };
+  if (assignment.shiftType)
+    return {
+      label: assignment.shiftType.charAt(0).toUpperCase() + assignment.shiftType.slice(1).replace(/_/g, ' '),
+      color: 'purple',
+    };
   return null;
 };
 

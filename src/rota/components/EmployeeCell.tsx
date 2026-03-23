@@ -2,7 +2,7 @@ import { memo } from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import { cn } from '@/lib/utils';
 import { AssignmentBadge } from './AssignmentBadge';
-import type { RotaAssignment, RotaEmployee } from '../types/rota';
+import type { RotaAssignment, RotaEmployee, RotaShiftType } from '../types/rota';
 import { formatDateForApi } from '../utils/dateUtils';
 import { getAssignmentForEmployeeDay, getAssignmentDisplay } from '../utils/rotaUtils';
 
@@ -10,6 +10,7 @@ export interface EmployeeCellProps {
   employee: RotaEmployee;
   date: Date;
   assignments: RotaAssignment[];
+  shiftTypes?: RotaShiftType[];
   readOnly?: boolean;
   onAssign: (employeeId: number, date: Date, shiftType: string, isOffDay?: boolean, customLabel?: string) => void;
   onRemove: (assignmentId: number) => void;
@@ -20,6 +21,7 @@ export const EmployeeCell = memo(function EmployeeCell({
   employee,
   date,
   assignments,
+  shiftTypes = [],
   readOnly = false,
   onAssign,
   onRemove,
@@ -63,6 +65,7 @@ export const EmployeeCell = memo(function EmployeeCell({
             onRemove={() => onRemove(assignment.id)}
             draggable={!readOnly}
             readOnly={readOnly}
+            shiftTypes={shiftTypes}
           />
           {assignment.programName &&
             getAssignmentDisplay(assignment)?.label !== assignment.programName && (

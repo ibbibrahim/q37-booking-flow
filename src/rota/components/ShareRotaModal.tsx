@@ -13,7 +13,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Info, FileDown, FileSpreadsheet } from 'lucide-react';
 import { useToast } from '@/contexts/ToastContext';
 import { exportRotaToPDF, exportRotaToExcel } from '../utils/exportUtils';
-import type { RotaWeek, RotaDepartment, RotaEmployee } from '../types/rota';
+import type { RotaWeek, RotaDepartment, RotaEmployee, RotaShiftType } from '../types/rota';
 
 export interface ShareRotaModalProps {
   open: boolean;
@@ -22,6 +22,7 @@ export interface ShareRotaModalProps {
   week?: RotaWeek | null;
   department?: RotaDepartment | null;
   employees?: RotaEmployee[];
+  shiftTypes?: RotaShiftType[];
   onGenerateLink: (expiresAt?: string) => Promise<{ publicUrl: string; uuid: string }>;
   onCopySuccess?: () => void;
 }
@@ -33,6 +34,7 @@ export function ShareRotaModal({
   week,
   department,
   employees = [],
+  shiftTypes = [],
   onGenerateLink,
   onCopySuccess,
 }: ShareRotaModalProps) {
@@ -75,7 +77,7 @@ export function ShareRotaModal({
     if (!week || !department || employees.length === 0) return;
     setIsExporting(true);
     try {
-      exportRotaToPDF(week, department, employees);
+      exportRotaToPDF(week, department, employees, shiftTypes);
       showToast('PDF exported successfully', 'success');
     } catch {
       showToast('Failed to export PDF', 'error');
@@ -88,7 +90,7 @@ export function ShareRotaModal({
     if (!week || !department || employees.length === 0) return;
     setIsExporting(true);
     try {
-      exportRotaToExcel(week, department, employees);
+      exportRotaToExcel(week, department, employees, shiftTypes);
       showToast('Excel exported successfully', 'success');
     } catch {
       showToast('Failed to export Excel', 'error');

@@ -1,12 +1,13 @@
 import { memo, useMemo } from 'react';
 import { EmployeeRow } from './EmployeeRow';
-import type { RotaDepartment, RotaAssignment, RotaEmployee } from '../types/rota';
+import type { RotaDepartment, RotaAssignment, RotaEmployee, RotaShiftType } from '../types/rota';
 
 export interface DepartmentSectionProps {
   department: RotaDepartment;
   weekDates: Date[];
   assignments: RotaAssignment[];
   employees: RotaEmployee[];
+  shiftTypes?: RotaShiftType[];
   readOnly?: boolean;
   onAssign: (employeeId: number, date: Date, shiftType: string, isOffDay?: boolean, customLabel?: string) => void;
   onRemove: (assignmentId: number) => void;
@@ -20,6 +21,7 @@ export const DepartmentSection = memo(function DepartmentSection({
   weekDates,
   assignments,
   employees,
+  shiftTypes = [],
   readOnly = false,
   onAssign,
   onRemove,
@@ -78,6 +80,7 @@ export const DepartmentSection = memo(function DepartmentSection({
             employee={employee}
             weekDates={weekDates}
             assignments={assignments}
+            shiftTypes={shiftTypes}
             readOnly={readOnly}
             onAssign={onAssign}
             onRemove={onRemove}

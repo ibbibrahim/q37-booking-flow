@@ -1,10 +1,13 @@
+import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { ShiftOptionChip } from './ShiftOptionChip';
+import { DynamicShiftChip } from './DynamicShiftChip';
 import { DraggableProgramChip } from './DraggableProgramChip';
 import { PREDEFINED_PROGRAMS } from '../utils/rotaConstants';
 import { formatShiftTiming } from '../utils/rotaUtils';
+import { rotaApi } from '../api/rotaApi';
 import type { RotaDepartment } from '../types/rota';
 import { Plus } from 'lucide-react';
 
@@ -17,6 +20,14 @@ export function ShiftOptionsPool({
   onCustomClick,
   department,
 }: ShiftOptionsPoolProps) {
+  const { data: shiftTypes = [] } = useQuery({
+    queryKey: ['departmentShiftTypes', department?.id],
+    queryFn: () => rotaApi.getDepartmentShiftTypes(department!.id),
+    enabled: !!department?.id,
+  });
+
+  const useDynamicShifts = shiftTypes.length > 0;
+
   return (
     <Card className="w-64 h-full overflow-hidden flex flex-col">
       <CardHeader className="pb-3">
@@ -32,37 +43,60 @@ export function ShiftOptionsPool({
             SHIFT TYPES
           </Label>
           <div className="flex flex-wrap gap-2">
-            <ShiftOptionChip
-              optionType="morning"
-              timing={formatShiftTiming(
-                department?.morningStartTime,
-                department?.morningEndTime
-              )}
-            />
-            <ShiftOptionChip
-              optionType="evening"
-              timing={formatShiftTiming(
-                department?.eveningStartTime,
-                department?.eveningEndTime
-              )}
-            />
-            <ShiftOptionChip
-              optionType="night"
-              timing={formatShiftTiming(
-                department?.nightStartTime,
-                department?.nightEndTime
-              )}
-            />
-            <ShiftOptionChip optionType="off" />
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onCustomClick}
-              className="gap-1 h-8"
-            >
-              <Plus size={14} />
-              Custom...
-            </Button>
+            {useDynamicShifts ? (
+              <>
+                {[...shiftTypes]
+                  .filter((s) => s.isActive)
+                  .sort((a, b) => a.displayOrder - b.displayOrder)
+                  .map((shift) => (
+                    <DynamicShiftChip key={shift.id} shift={shift} />
+                  ))}
+                <ShiftOptionChip optionType="off" />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onCustomClick}
+                  className="gap-1 h-8"
+                >
+                  <Plus size={14} />
+                  Custom...
+                </Button>
+              </>
+            ) : (
+              <>
+                <ShiftOptionChip
+                  optionType="morning"
+                  timing={formatShiftTiming(
+                    department?.morningStartTime,
+                    department?.morningEndTime
+                  )}
+                />
+                <ShiftOptionChip
+                  optionType="evening"
+                  timing={formatShiftTiming(
+                    department?.eveningStartTime,
+                    department?.eveningEndTime
+                  )}
+                />
+                <ShiftOptionChip
+                  optionType="night"
+                  timing={formatShiftTiming(
+                    department?.nightStartTime,
+                    department?.nightEndTime
+                  )}
+                />
+                <ShiftOptionChip optionType="off" />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onCustomClick}
+                  className="gap-1 h-8"
+                >
+                  <Plus size={14} />
+                  Custom...
+                </Button>
+              </>
+            )}
           </div>
         </div>
 

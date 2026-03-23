@@ -89,9 +89,6 @@ export function PublicRotaPage() {
     id: week.departmentId,
     name: week.departmentName,
     color: '#6366f1',
-    morningRequired: week.morningRequired ?? 1,
-    eveningRequired: week.eveningRequired ?? 1,
-    nightRequired: week.nightRequired ?? 1,
     isActive: true,
   };
 
