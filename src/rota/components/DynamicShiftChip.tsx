@@ -2,27 +2,16 @@ import { memo } from 'react';
 import { useDraggable } from '@dnd-kit/core';
 import { cn } from '@/lib/utils';
 import type { RotaShiftType } from '../types/rota';
-import { formatShiftTiming } from '../utils/rotaUtils';
+import { extractShiftLabel, extractTimingFromLabel, formatShiftTiming } from '../utils/rotaUtils';
 
 export interface DynamicShiftChipProps {
   shift: RotaShiftType;
 }
 
-/** Extract label part before parentheses, e.g. "Morning (6am-2pm)" -> "Morning" */
-function extractLabel(text: string): string {
-  return text.includes('(') ? text.split('(')[0].trim() : text;
-}
-
-/** Extract timing from label if present, e.g. "Morning (6am-2pm)" -> "6am-2pm" */
-function extractTimingFromLabel(label: string): string {
-  const match = label.match(/\(([^)]+)\)/);
-  return match ? match[1] : '';
-}
-
 export const DynamicShiftChip = memo(function DynamicShiftChip({
   shift,
 }: DynamicShiftChipProps) {
-  const displayLabel = extractLabel(shift.label);
+  const displayLabel = extractShiftLabel(shift.label);
   const timing =
     extractTimingFromLabel(shift.label) ||
     formatShiftTiming(shift.startTime, shift.endTime);
@@ -34,7 +23,12 @@ export const DynamicShiftChip = memo(function DynamicShiftChip({
     isDragging,
   } = useDraggable({
     id: `shift-option-${shift.id}`,
-    data: { type: 'shift-option', shiftType: shift.name },
+    data: {
+      type: 'shift-option',
+      shiftKind: 'shift' as const,
+      shiftTypeId: shift.id,
+      shiftType: shift,
+    },
     disabled: !shift.isActive,
   });
 

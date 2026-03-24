@@ -15,6 +15,37 @@ const formatDateDisplay = (date: Date | string): string => {
   });
 };
 
+function hexToRgb(hex: string): [number, number, number] | null {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
+  if (!m) return null;
+  const n = parseInt(m[1], 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+
+/** Light background tint from shift hex color (for PDF fill) */
+function lightenFillFromHex(hex: string): [number, number, number] {
+  const rgb = hexToRgb(hex);
+  if (!rgb) return [243, 244, 246];
+  return rgb.map((c) => Math.min(255, Math.round(c + (255 - c) * 0.75))) as [
+    number,
+    number,
+    number,
+  ];
+}
+
+function fillRgbForAssignment(
+  assignment: RotaAssignment,
+  shiftTypes?: RotaShiftType[]
+): [number, number, number] | null {
+  if (assignment.isOffDay) return [243, 244, 246];
+  const st = assignment.shiftType ??
+    (assignment.shiftTypeId != null && shiftTypes?.length
+      ? shiftTypes.find((s) => s.id === assignment.shiftTypeId)
+      : undefined);
+  if (st?.color) return lightenFillFromHex(st.color);
+  return null;
+}
+
 /** Get cell text for an assignment (uses getAssignmentDisplay for consistent labels) */
 const getCellText = (assignment: RotaAssignment, shiftTypes?: RotaShiftType[]): string => {
   const display = getAssignmentDisplay(assignment, shiftTypes);
@@ -24,17 +55,6 @@ const getCellText = (assignment: RotaAssignment, shiftTypes?: RotaShiftType[]): 
     text += `\n${assignment.programName}`;
   }
   return text;
-};
-
-/** Get fill color for PDF cell based on assignment (Morning/Shift A: orange, Evening/Shift B: blue, Night/Shift C: indigo, OFF: grey) */
-const getFillColorForCell = (cellText: string): number[] | null => {
-  if (!cellText) return null;
-  const t = cellText.split('\n')[0];
-  if (t === 'OFF') return [243, 244, 246];
-  if (t.includes('Morning') || t.includes('Shift A')) return [255, 237, 213];
-  if (t.includes('Evening') || t.includes('Shift B')) return [219, 234, 254];
-  if (t.includes('Night') || t.includes('Shift C')) return [224, 231, 255];
-  return null;
 };
 
 export const exportRotaToPDF = (
@@ -52,12 +72,10 @@ export const exportRotaToPDF = (
   const weekStartStr = formatDateDisplay(weekStartDate);
   const weekEndStr = formatDateDisplay(weekEndDate);
 
-  // Title
   doc.setFontSize(20);
   doc.setFont('helvetica', 'bold');
   doc.text(`${department.name} Rota`, 148, 20, { align: 'center' });
 
-  // Week range
   doc.setFontSize(12);
   doc.setFont('helvetica', 'normal');
   doc.text(`${weekStartStr} - ${weekEndStr}`, 148, 28, { align: 'center' });
@@ -84,6 +102,8 @@ export const exportRotaToPDF = (
     : [{ departmentName: null as string | null, employees: [...employees].sort((a, b) => a.name.localeCompare(b.name)) }];
 
   const rows: (string | { content: string; colSpan: number; styles?: Record<string, unknown> })[][] = [];
+  /** Parallel to `rows`: per-body-row fill colors for columns 1–7 (index aligns with `rows` body indices). */
+  const rowFills: (([number, number, number] | null)[] | null)[] = [];
 
   groupedEmployees.forEach((group) => {
     if (group.departmentName) {
@@ -94,10 +114,21 @@ export const exportRotaToPDF = (
           styles: { fillColor: [220, 220, 220], fontStyle: 'bold', halign: 'left' },
         },
       ]);
+      rowFills.push(null);
     }
 
     group.employees.forEach((emp) => {
-      const row = [emp.name];
+      const row: string[] = [emp.name];
+      const fills: ([number, number, number] | null)[] = [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+      ];
 
       for (let i = 0; i < 7; i++) {
         const date = new Date(weekStartDate);
@@ -112,12 +143,14 @@ export const exportRotaToPDF = (
 
         if (assignment) {
           row.push(getCellText(assignment, shiftTypes));
+          fills[i + 1] = fillRgbForAssignment(assignment, shiftTypes);
         } else {
           row.push('');
         }
       }
 
       rows.push(row);
+      rowFills.push(fills);
     });
   });
 
@@ -143,10 +176,9 @@ export const exportRotaToPDF = (
     },
     didParseCell: (data) => {
       if (data.section === 'body' && data.column.index > 0) {
-        const cellText = String(data.cell.text[0] ?? '');
-        const fillColor = getFillColorForCell(cellText);
-        if (fillColor) {
-          data.cell.styles.fillColor = fillColor;
+        const rf = rowFills[data.row.index];
+        if (rf?.[data.column.index]) {
+          data.cell.styles.fillColor = rf[data.column.index] as unknown as number[];
         }
       }
     },

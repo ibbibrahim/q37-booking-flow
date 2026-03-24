@@ -1,7 +1,7 @@
 import type { RotaAssignment, RotaEmployee, RotaShiftType } from '../types/rota';
 import { formatDateForApi, normalizeDateString } from './dateUtils';
 
-/** Format "06:00" to "6am", "14:00" to "2pm". Returns empty string if no times. */
+/** Format "06:00" to "6am", "08:30" to "8:30am", "14:00" to "2pm". Minutes included when non-zero. */
 export const formatShiftTiming = (
   startTime?: string,
   endTime?: string
@@ -11,13 +11,26 @@ export const formatShiftTiming = (
   const formatTime = (time: string) => {
     const [hours, minutes] = time.split(':').map(Number);
     const h = hours ?? 0;
-    if (h === 0) return '12am';
-    if (h === 12) return '12pm';
-    if (h > 12) return `${h - 12}pm`;
-    return `${h}am`;
+    const m = minutes ?? 0;
+    const minPart = m > 0 ? `:${String(m).padStart(2, '0')}` : '';
+
+    if (h === 0) return `12${minPart}am`;
+    if (h === 12) return `12${minPart}pm`;
+    if (h > 12) return `${h - 12}${minPart}pm`;
+    return `${h}${minPart}am`;
   };
 
   return `${formatTime(startTime)}-${formatTime(endTime)}`;
+};
+
+/** Label before "(...)" in shift type labels */
+export const extractShiftLabel = (label: string): string =>
+  label.includes('(') ? label.split('(')[0].trim() : label;
+
+/** Text inside first "(...)" in label, if any */
+export const extractTimingFromLabel = (label: string): string => {
+  const match = label.match(/\(([^)]+)\)/);
+  return match ? match[1] : '';
 };
 
 export type AssignmentDisplay = {
@@ -27,6 +40,17 @@ export type AssignmentDisplay = {
   /** For dynamic shift types - use as background color when set */
   customColor?: string;
 };
+
+function resolveShiftType(
+  assignment: RotaAssignment,
+  shiftTypes?: RotaShiftType[]
+): RotaShiftType | undefined {
+  if (assignment.shiftType) return assignment.shiftType;
+  if (assignment.shiftTypeId != null && shiftTypes?.length) {
+    return shiftTypes.find((s) => s.id === assignment.shiftTypeId);
+  }
+  return undefined;
+}
 
 export const getAssignmentDisplay = (
   assignment: RotaAssignment,
@@ -39,31 +63,19 @@ export const getAssignmentDisplay = (
       color: 'purple',
       showTime: !!(assignment.shiftStartTime || assignment.shiftEndTime),
     };
-  if (assignment.shiftType && shiftTypes?.length) {
-    const match = shiftTypes.find(
-      (s) => s.name === assignment.shiftType || s.name.replace(/_/g, '') === assignment.shiftType?.replace(/_/g, '')
-    );
-    if (match) {
-      const label = match.label.includes('(')
-        ? match.label.split('(')[0].trim()
-        : match.label;
-      return {
-        label,
-        color: 'purple',
-        customColor: match.color,
-      };
-    }
+
+  const st = resolveShiftType(assignment, shiftTypes);
+  if (st) {
+    const label = extractShiftLabel(st.label);
+    return {
+      label,
+      color: 'purple',
+      customColor: st.color,
+    };
   }
-  if (assignment.shiftType === 'morning') return { label: 'Shift A', color: 'orange' };
-  if (assignment.shiftType === 'evening') return { label: 'Shift B', color: 'blue' };
-  if (assignment.shiftType === 'night') return { label: 'Shift C', color: 'indigo' };
+
   if (assignment.programName)
     return { label: assignment.programName, color: 'purple' };
-  if (assignment.shiftType)
-    return {
-      label: assignment.shiftType.charAt(0).toUpperCase() + assignment.shiftType.slice(1).replace(/_/g, ' '),
-      color: 'purple',
-    };
   return null;
 };
 
@@ -94,18 +106,19 @@ export const getEmployeeById = (
   return employees.find((e) => e.id === employeeId);
 };
 
+/** True if the employee already has an assignment on this date (optionally excluding one assignment id, e.g. when moving). */
 export const hasConflictOnDate = (
   assignments: RotaAssignment[],
   employeeId: number,
   date: Date,
-  excludeShiftType?: string
+  excludeAssignmentId?: number
 ): boolean => {
   const dateStr = formatDateForApi(date);
   return assignments.some(
     (a) =>
       a.employeeId === employeeId &&
       normalizeDateString(a.shiftDate) === dateStr &&
-      (excludeShiftType ? a.shiftType !== excludeShiftType : true)
+      (excludeAssignmentId !== undefined ? a.id !== excludeAssignmentId : true)
   );
 };
 

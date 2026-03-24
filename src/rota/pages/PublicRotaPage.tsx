@@ -90,6 +90,7 @@ export function PublicRotaPage() {
     name: week.departmentName,
     color: '#6366f1',
     isActive: true,
+    shiftTypes: [],
   };
 
   // Use employees from API if available, otherwise derive from assignments (employee-first layout)

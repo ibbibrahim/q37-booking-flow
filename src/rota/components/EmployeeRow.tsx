@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import { EmployeeCell } from './EmployeeCell';
-import type { RotaAssignment, RotaEmployee, RotaShiftType } from '../types/rota';
+import type { RotaAssignment, RotaEmployee, RotaShiftType, RotaAssignPayload } from '../types/rota';
 
 export interface EmployeeRowProps {
   employee: RotaEmployee;
@@ -8,7 +8,7 @@ export interface EmployeeRowProps {
   assignments: RotaAssignment[];
   shiftTypes?: RotaShiftType[];
   readOnly?: boolean;
-  onAssign: (employeeId: number, date: Date, shiftType: string, isOffDay?: boolean, customLabel?: string) => void;
+  onAssign: (employeeId: number, date: Date, payload: RotaAssignPayload) => void;
   onRemove: (assignmentId: number) => void;
   onEdit: (assignment: RotaAssignment | null, empId: number, d: Date) => void;
 }

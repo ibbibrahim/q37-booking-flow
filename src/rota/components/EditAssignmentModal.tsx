@@ -22,7 +22,8 @@ import type { RotaAssignment, RotaDepartment, RotaShiftType } from '../types/rot
 import { PREDEFINED_PROGRAMS } from '../utils/rotaConstants';
 
 export interface EditAssignmentFormData {
-  shiftType?: string;
+  shiftTypeId?: number;
+  shiftType?: RotaShiftType;
   customLabel?: string;
   programName?: string;
   assignmentComments?: string;
@@ -56,8 +57,12 @@ export function EditAssignmentModal({
   shiftTypes = [],
   onSave,
 }: EditAssignmentModalProps) {
-  const [shiftType, setShiftType] = useState<'shift' | 'custom'>('shift');
-  const [selectedShift, setSelectedShift] = useState<string>('');
+  const effectiveShiftTypes =
+    shiftTypes.length > 0 ? shiftTypes : department?.shiftTypes ?? [];
+
+  const [assignmentMode, setAssignmentMode] = useState<'shift' | 'custom'>('shift');
+  /** Select value: "off" | stringified shift type id */
+  const [shiftSelectValue, setShiftSelectValue] = useState<string>('off');
   const [customLabel, setCustomLabel] = useState('');
   const [programName, setProgramName] = useState<string>('');
   const [customProgramName, setCustomProgramName] = useState('');
@@ -81,10 +86,20 @@ export function EditAssignmentModal({
 
   useEffect(() => {
     if (open && assignment) {
-      setShiftType(assignment.customLabel ? 'custom' : 'shift');
-      setSelectedShift(
-        assignment.isOffDay ? 'off' : (assignment.shiftType ?? '')
-      );
+      const custom = !!assignment.customLabel;
+      setAssignmentMode(custom ? 'custom' : 'shift');
+      setIsOffDay(assignment.isOffDay ?? false);
+      if (assignment.isOffDay) {
+        setShiftSelectValue('off');
+      } else if (custom) {
+        setShiftSelectValue(
+          effectiveShiftTypes[0] ? String(effectiveShiftTypes[0].id) : 'off'
+        );
+      } else {
+        const id =
+          assignment.shiftTypeId ?? assignment.shiftType?.id;
+        setShiftSelectValue(id != null ? String(id) : 'off');
+      }
       setCustomLabel(assignment.customLabel ?? '');
       setProgramName(assignment.programName ?? '');
       setCustomProgramName(
@@ -104,10 +119,12 @@ export function EditAssignmentModal({
           ? assignment.shiftEndTime.slice(0, 5)
           : '17:00'
       );
-      setIsOffDay(assignment.isOffDay ?? false);
     } else if (open && !assignment) {
-      setShiftType('shift');
-      setSelectedShift(shiftTypes.length > 0 ? (shiftTypes[0]?.name ?? '') : 'morning');
+      setAssignmentMode('shift');
+      const first = effectiveShiftTypes.filter((s) => s.isActive).sort(
+        (a, b) => a.displayOrder - b.displayOrder
+      )[0];
+      setShiftSelectValue(first ? String(first.id) : 'off');
       setCustomLabel('');
       setProgramName('');
       setCustomProgramName('');
@@ -116,7 +133,7 @@ export function EditAssignmentModal({
       setEndTime('17:00');
       setIsOffDay(false);
     }
-  }, [open, assignment]);
+  }, [open, assignment, effectiveShiftTypes]);
 
   const handleSave = async () => {
     if (employeeId == null || date == null) return;
@@ -128,23 +145,30 @@ export function EditAssignmentModal({
       const data: EditAssignmentFormData = {
         programName: resolvedProgramName || undefined,
         assignmentComments: comments || undefined,
-        isOffDay,
       };
 
-      if (isOffDay) {
-        data.isOffDay = true;
-      } else if (shiftType === 'custom') {
+      if (assignmentMode === 'custom') {
         data.customLabel = customLabel || undefined;
+        data.isOffDay = false;
+        data.shiftTypeId = undefined;
+        data.shiftType = undefined;
         if (department?.requiresTimeRange) {
           data.shiftStartTime = `${startTime}:00`;
           data.shiftEndTime = `${endTime}:00`;
         }
+      } else if (isOffDay || shiftSelectValue === 'off') {
+        data.isOffDay = true;
+        data.shiftTypeId = undefined;
+        data.shiftType = undefined;
       } else {
-        if (selectedShift === 'off') {
-          data.isOffDay = true;
-        } else {
-          data.shiftType = selectedShift || (shiftTypes[0]?.name ?? 'morning');
+        const id = parseInt(shiftSelectValue, 10);
+        if (!Number.isFinite(id)) {
+          setIsLoading(false);
+          return;
         }
+        data.shiftTypeId = id;
+        data.shiftType = effectiveShiftTypes.find((s) => s.id === id);
+        data.isOffDay = false;
         if (department?.requiresTimeRange) {
           data.shiftStartTime = `${startTime}:00`;
           data.shiftEndTime = `${endTime}:00`;
@@ -228,52 +252,43 @@ export function EditAssignmentModal({
           <div className="space-y-2">
             <Label>Assignment Type</Label>
             <Select
-              value={shiftType}
-              onValueChange={(v) => setShiftType(v as 'shift' | 'custom')}
+              value={assignmentMode}
+              onValueChange={(v) => setAssignmentMode(v as 'shift' | 'custom')}
             >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="shift">
-                  Shift ({shiftTypes.length > 0 ? 'Department types' : 'A/B/C'})
-                </SelectItem>
+                <SelectItem value="shift">Shift (department types)</SelectItem>
                 <SelectItem value="custom">Custom Label</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
-          {shiftType === 'shift' ? (
+          {assignmentMode === 'shift' ? (
             <div className="space-y-2">
               <Label>Shift</Label>
               <Select
-                value={selectedShift}
-                onValueChange={setSelectedShift}
+                value={shiftSelectValue}
+                onValueChange={(v) => {
+                  setShiftSelectValue(v);
+                  if (v === 'off') setIsOffDay(true);
+                  else setIsOffDay(false);
+                }}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select shift" />
                 </SelectTrigger>
                 <SelectContent>
-                  {shiftTypes.length > 0 ? (
-                    <>
-                      {shiftTypes
-                        .filter((s) => s.isActive)
-                        .sort((a, b) => a.displayOrder - b.displayOrder)
-                        .map((s) => (
-                          <SelectItem key={s.id} value={s.name}>
-                            {s.label}
-                          </SelectItem>
-                        ))}
-                      <SelectItem value="off">OFF</SelectItem>
-                    </>
-                  ) : (
-                    <>
-                      <SelectItem value="morning">Shift A</SelectItem>
-                      <SelectItem value="evening">Shift B</SelectItem>
-                      <SelectItem value="night">Shift C</SelectItem>
-                      <SelectItem value="off">OFF</SelectItem>
-                    </>
-                  )}
+                  {effectiveShiftTypes
+                    .filter((s) => s.isActive)
+                    .sort((a, b) => a.displayOrder - b.displayOrder)
+                    .map((s) => (
+                      <SelectItem key={s.id} value={String(s.id)}>
+                        {s.label}
+                      </SelectItem>
+                    ))}
+                  <SelectItem value="off">OFF Day</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -339,7 +354,7 @@ export function EditAssignmentModal({
             />
           </div>
 
-          {department?.requiresTimeRange && !isOffDay && (
+          {department?.requiresTimeRange && assignmentMode === 'shift' && !isOffDay && shiftSelectValue !== 'off' && (
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Start Time</Label>
@@ -360,18 +375,45 @@ export function EditAssignmentModal({
             </div>
           )}
 
-          <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              id="isOffDay"
-              checked={isOffDay}
-              onChange={(e) => setIsOffDay(e.target.checked)}
-              className="rounded border-input"
-            />
-            <Label htmlFor="isOffDay" className="font-normal">
-              Mark as OFF day
-            </Label>
-          </div>
+          {department?.requiresTimeRange && assignmentMode === 'custom' && (
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Start Time</Label>
+                <Input
+                  type="time"
+                  value={startTime}
+                  onChange={(e) => setStartTime(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>End Time</Label>
+                <Input
+                  type="time"
+                  value={endTime}
+                  onChange={(e) => setEndTime(e.target.value)}
+                />
+              </div>
+            </div>
+          )}
+
+          {assignmentMode === 'shift' && (
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="isOffDay"
+                checked={isOffDay}
+                onChange={(e) => {
+                  const v = e.target.checked;
+                  setIsOffDay(v);
+                  if (v) setShiftSelectValue('off');
+                }}
+                className="rounded border-input"
+              />
+              <Label htmlFor="isOffDay" className="font-normal">
+                Mark as OFF day
+              </Label>
+            </div>
+          )}
         </div>
 
         <DialogFooter>

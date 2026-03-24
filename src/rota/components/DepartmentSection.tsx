@@ -1,6 +1,12 @@
 import { memo, useMemo } from 'react';
 import { EmployeeRow } from './EmployeeRow';
-import type { RotaDepartment, RotaAssignment, RotaEmployee, RotaShiftType } from '../types/rota';
+import type {
+  RotaDepartment,
+  RotaAssignment,
+  RotaEmployee,
+  RotaShiftType,
+  RotaAssignPayload,
+} from '../types/rota';
 
 export interface DepartmentSectionProps {
   department: RotaDepartment;
@@ -9,7 +15,7 @@ export interface DepartmentSectionProps {
   employees: RotaEmployee[];
   shiftTypes?: RotaShiftType[];
   readOnly?: boolean;
-  onAssign: (employeeId: number, date: Date, shiftType: string, isOffDay?: boolean, customLabel?: string) => void;
+  onAssign: (employeeId: number, date: Date, payload: RotaAssignPayload) => void;
   onRemove: (assignmentId: number) => void;
   onEdit: (assignment: RotaAssignment | null, employeeId: number, date: Date) => void;
 }

@@ -44,7 +44,7 @@ import {
   formatDateForApi,
   normalizeDateString,
 } from '../utils/dateUtils';
-import type { RotaAssignment } from '../types/rota';
+import type { RotaAssignment, RotaAssignPayload, RotaShiftType } from '../types/rota';
 import type { EditAssignmentFormData } from '../components/EditAssignmentModal';
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
@@ -79,7 +79,7 @@ export function RotaManagementPage() {
     queryFn: rotaApi.getDepartments,
   });
 
-  const { data: shiftTypes = [] } = useQuery({
+  const { data: shiftTypesFromApi = [] } = useQuery({
     queryKey: ['departmentShiftTypes', selectedDepartmentId],
     queryFn: () => rotaApi.getDepartmentShiftTypes(selectedDepartmentId!),
     enabled: !!selectedDepartmentId,
@@ -127,6 +127,13 @@ export function RotaManagementPage() {
   const selectedDepartment = departments.find(
     (d) => d.id === selectedDepartmentId
   ) ?? null;
+
+  const shiftTypes: RotaShiftType[] = useMemo(() => {
+    const fromDept = selectedDepartment?.shiftTypes;
+    if (fromDept?.length) return fromDept;
+    return shiftTypesFromApi;
+  }, [selectedDepartment, shiftTypesFromApi]);
+
   const weekDates = getWeekDates(selectedWeekStart);
 
   const publishMutation = useMutation({
@@ -145,7 +152,7 @@ export function RotaManagementPage() {
       assignments.map((a) => ({
         employeeId: a.employeeId,
         shiftDate: normalizeDateString(a.shiftDate),
-        shiftType: a.shiftType,
+        shiftTypeId: a.shiftTypeId,
         customLabel: a.customLabel,
         programName: a.programName,
         assignmentComments: a.assignmentComments,
@@ -177,10 +184,7 @@ export function RotaManagementPage() {
     async (
       employeeId: number,
       date: Date,
-      shiftType: string,
-      isOffDay?: boolean,
-      customLabel?: string,
-      programName?: string
+      opts: RotaAssignPayload
     ) => {
       if (!week) return;
 
@@ -201,10 +205,11 @@ export function RotaManagementPage() {
         employeeId,
         employeeName: employees.find((e) => e.id === employeeId)?.name ?? '',
         shiftDate: dateStr,
-        shiftType: isOffDay ? undefined : (shiftType as 'morning' | 'evening' | 'night'),
-        isOffDay: isOffDay ?? false,
-        customLabel,
-        programName,
+        shiftTypeId: opts.isOffDay ? undefined : opts.shiftTypeId,
+        shiftType: opts.isOffDay ? undefined : opts.shiftType,
+        isOffDay: opts.isOffDay ?? false,
+        customLabel: opts.customLabel,
+        programName: opts.programName,
       };
 
       const updated = [...week.assignments, newAssignment];
@@ -297,7 +302,8 @@ export function RotaManagementPage() {
           employeeName,
           shiftDate: dateStr,
         }),
-        shiftType: data.shiftType,
+        shiftTypeId: data.isOffDay ? undefined : data.shiftTypeId,
+        shiftType: data.isOffDay ? undefined : data.shiftType,
         customLabel: data.customLabel,
         programName: data.programName,
         assignmentComments: data.assignmentComments,
@@ -424,7 +430,9 @@ export function RotaManagementPage() {
       const activeData = active.data.current as
         | {
             type?: string;
-            shiftType?: string;
+            shiftKind?: 'shift' | 'off';
+            shiftTypeId?: number;
+            shiftType?: RotaShiftType;
             assignment?: RotaAssignment;
             programName?: string;
           }
@@ -438,14 +446,17 @@ export function RotaManagementPage() {
         const toDate = new Date(overData.date);
 
         if (activeData?.type === 'shift-option') {
-          const shiftType = activeData.shiftType as string;
-          if (shiftType === 'custom') return; // Handled by Custom button
-          handleAssign(
-            overData.employeeId,
-            toDate,
-            shiftType,
-            shiftType === 'off'
-          );
+          if (activeData.shiftKind === 'off') {
+            handleAssign(overData.employeeId, toDate, { isOffDay: true });
+          } else if (
+            activeData.shiftKind === 'shift' &&
+            activeData.shiftTypeId != null
+          ) {
+            handleAssign(overData.employeeId, toDate, {
+              shiftTypeId: activeData.shiftTypeId,
+              shiftType: activeData.shiftType,
+            });
+          }
         } else if (activeData?.type === 'program' && activeData.programName) {
           handleAssignProgram(
             overData.employeeId,
@@ -575,6 +586,7 @@ export function RotaManagementPage() {
             <ShiftOptionsPool
               onCustomClick={handleCustomClick}
               department={selectedDepartment}
+              shiftTypes={shiftTypes}
             />
           </aside>
 

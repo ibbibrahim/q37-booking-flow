@@ -2,7 +2,14 @@ import { DndContext } from '@dnd-kit/core';
 import { DepartmentSection } from './DepartmentSection';
 import { formatDateDisplay } from '../utils/dateUtils';
 import { Skeleton } from '@/components/ui/skeleton';
-import type { RotaDepartment, RotaAssignment, RotaEmployee, RotaWeek, RotaShiftType } from '../types/rota';
+import type {
+  RotaDepartment,
+  RotaAssignment,
+  RotaEmployee,
+  RotaWeek,
+  RotaShiftType,
+  RotaAssignPayload,
+} from '../types/rota';
 
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -14,7 +21,7 @@ export interface RotaCalendarProps {
   shiftTypes?: RotaShiftType[];
   isLoading: boolean;
   readOnly?: boolean;
-  onAssign: (employeeId: number, date: Date, shiftType: string, isOffDay?: boolean, customLabel?: string) => void;
+  onAssign: (employeeId: number, date: Date, payload: RotaAssignPayload) => void;
   onRemove: (assignmentId: number) => void;
   onEdit: (assignment: RotaAssignment | null, employeeId: number, date: Date) => void;
 }

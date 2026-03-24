@@ -27,20 +27,14 @@ export interface RotaDepartment {
   hasSubDepartments?: boolean;
   subDepartments?: RotaDepartment[];
   description?: string;
-  color: string; // Hex color for UI
+  color: string;
   isActive: boolean;
   employeeCount?: number;
   requiresTimeRange?: boolean;
-  /** Shift timings - e.g. "06:00", "14:00" */
-  morningStartTime?: string;
-  morningEndTime?: string;
-  eveningStartTime?: string;
-  eveningEndTime?: string;
-  nightStartTime?: string;
-  nightEndTime?: string;
   usesShifts?: boolean;
   allowsCustomLabels?: boolean;
-  shiftTypes?: RotaShiftType[];
+  /** Department-defined shift types (required for scheduling) */
+  shiftTypes: RotaShiftType[];
 }
 
 export interface RotaEmployee {
@@ -50,7 +44,7 @@ export interface RotaEmployee {
   phone?: string;
   departmentId: number;
   departmentName?: string;
-  preferredShift?: 'morning' | 'evening' | 'night';
+  preferredShift?: string;
   isActive: boolean;
 }
 
@@ -59,20 +53,23 @@ export interface RotaAssignment {
   rotaWeekId: number;
   employeeId: number;
   employeeName: string;
-  shiftDate: string; // ISO date string
-  shiftType?: string;
+  shiftDate: string;
+  /** FK to department shift type */
+  shiftTypeId?: number;
+  /** Populated by API when loading assignments */
+  shiftType?: RotaShiftType;
   notes?: string;
   customLabel?: string;
   programName?: string;
   assignmentComments?: string;
-  shiftStartTime?: string; // "09:00:00"
-  shiftEndTime?: string; // "17:00:00"
+  shiftStartTime?: string;
+  shiftEndTime?: string;
   isOffDay?: boolean;
 }
 
 export interface RotaWeek {
   id: number;
-  weekStartDate: string; // ISO date (always Sunday in this case)
+  weekStartDate: string;
   departmentId: number;
   departmentName: string;
   status: 'draft' | 'published' | 'archived';
@@ -81,11 +78,6 @@ export interface RotaWeek {
   shareViewCount: number;
   assignments: RotaAssignment[];
   coverageStats?: CoverageStats;
-  /** Optional - may be returned with public/week API */
-  morningRequired?: number;
-  eveningRequired?: number;
-  nightRequired?: number;
-  /** Optional - employees for public view (employee-first layout) */
   employees?: RotaEmployee[];
 }
 
@@ -96,12 +88,21 @@ export interface CoverageStats {
   understaffedShifts: number;
 }
 
+/** Payload when assigning from drag/drop or modal (replaces legacy string shiftType). */
+export interface RotaAssignPayload {
+  isOffDay?: boolean;
+  shiftTypeId?: number;
+  shiftType?: RotaShiftType;
+  customLabel?: string;
+  programName?: string;
+}
+
 export interface BulkAssignDto {
   rotaWeekId: number;
   assignments: {
     employeeId: number;
     shiftDate: string;
-    shiftType?: string;
+    shiftTypeId?: number;
     customLabel?: string;
     programName?: string;
     assignmentComments?: string;

@@ -43,6 +43,7 @@ export const AssignmentBadge = memo(function AssignmentBadge({
       assignment,
       employeeId: assignment.employeeId,
       shiftDate: assignment.shiftDate,
+      shiftTypeId: assignment.shiftTypeId,
       shiftType: assignment.shiftType,
       customLabel: assignment.customLabel,
       isOffDay: assignment.isOffDay,

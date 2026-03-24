@@ -1,4 +1,3 @@
-import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -6,27 +5,24 @@ import { ShiftOptionChip } from './ShiftOptionChip';
 import { DynamicShiftChip } from './DynamicShiftChip';
 import { DraggableProgramChip } from './DraggableProgramChip';
 import { PREDEFINED_PROGRAMS } from '../utils/rotaConstants';
-import { formatShiftTiming } from '../utils/rotaUtils';
-import { rotaApi } from '../api/rotaApi';
-import type { RotaDepartment } from '../types/rota';
+import type { RotaDepartment, RotaShiftType } from '../types/rota';
 import { Plus } from 'lucide-react';
 
 export interface ShiftOptionsPoolProps {
   onCustomClick?: () => void;
   department?: RotaDepartment | null;
+  /** Resolved shift types (department.shiftTypes or API query) */
+  shiftTypes: RotaShiftType[];
 }
 
 export function ShiftOptionsPool({
   onCustomClick,
   department,
+  shiftTypes,
 }: ShiftOptionsPoolProps) {
-  const { data: shiftTypes = [] } = useQuery({
-    queryKey: ['departmentShiftTypes', department?.id],
-    queryFn: () => rotaApi.getDepartmentShiftTypes(department!.id),
-    enabled: !!department?.id,
-  });
-
-  const useDynamicShifts = shiftTypes.length > 0;
+  const activeSorted = [...shiftTypes]
+    .filter((s) => s.isActive)
+    .sort((a, b) => a.displayOrder - b.displayOrder);
 
   return (
     <Card className="w-64 h-full overflow-hidden flex flex-col">
@@ -37,70 +33,34 @@ export function ShiftOptionsPool({
         </p>
       </CardHeader>
       <CardContent className="flex-1 overflow-y-auto space-y-4 pt-0">
-        {/* Shift Types Section */}
         <div>
           <Label className="text-xs font-semibold text-muted-foreground mb-2 block">
             SHIFT TYPES
           </Label>
           <div className="flex flex-wrap gap-2">
-            {useDynamicShifts ? (
-              <>
-                {[...shiftTypes]
-                  .filter((s) => s.isActive)
-                  .sort((a, b) => a.displayOrder - b.displayOrder)
-                  .map((shift) => (
-                    <DynamicShiftChip key={shift.id} shift={shift} />
-                  ))}
-                <ShiftOptionChip optionType="off" />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={onCustomClick}
-                  className="gap-1 h-8"
-                >
-                  <Plus size={14} />
-                  Custom...
-                </Button>
-              </>
-            ) : (
-              <>
-                <ShiftOptionChip
-                  optionType="morning"
-                  timing={formatShiftTiming(
-                    department?.morningStartTime,
-                    department?.morningEndTime
-                  )}
-                />
-                <ShiftOptionChip
-                  optionType="evening"
-                  timing={formatShiftTiming(
-                    department?.eveningStartTime,
-                    department?.eveningEndTime
-                  )}
-                />
-                <ShiftOptionChip
-                  optionType="night"
-                  timing={formatShiftTiming(
-                    department?.nightStartTime,
-                    department?.nightEndTime
-                  )}
-                />
-                <ShiftOptionChip optionType="off" />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={onCustomClick}
-                  className="gap-1 h-8"
-                >
-                  <Plus size={14} />
-                  Custom...
-                </Button>
-              </>
+            {activeSorted.length === 0 && (
+              <p className="text-xs text-muted-foreground">
+                No shift types configured
+                {department?.name ? ` for ${department.name}` : ''}. Add them in
+                department settings.
+              </p>
             )}
+            {activeSorted.map((shift) => (
+              <DynamicShiftChip key={shift.id} shift={shift} />
+            ))}
+            <ShiftOptionChip optionType="off" />
+            {/* <Button
+              variant="outline"
+              size="sm"
+              onClick={onCustomClick}
+              className="gap-1 h-8"
+            >
+              <Plus size={14} />
+              Custom...
+            </Button> */}
           </div>
         </div>
 
-        {/* Program Names Section */}
         <div>
           <Label className="text-xs font-semibold text-muted-foreground mb-2 block">
             PROGRAM NAMES
