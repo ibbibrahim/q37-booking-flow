@@ -22,6 +22,14 @@ export interface DepartmentSectionProps {
 
 type EmployeeGroup = { departmentName: string | null; employees: RotaEmployee[] };
 
+/** Rotating tints so sub-department separators read clearly vs the main department row */
+const SUB_DEPARTMENT_ROW_STYLES = [
+  'bg-sky-100/80 dark:bg-sky-950/40 border-l-4 border-sky-500',
+  'bg-violet-100/80 dark:bg-violet-950/40 border-l-4 border-violet-500',
+  'bg-amber-100/80 dark:bg-amber-950/40 border-l-4 border-amber-500',
+  'bg-emerald-100/80 dark:bg-emerald-950/40 border-l-4 border-emerald-500',
+] as const;
+
 export const DepartmentSection = memo(function DepartmentSection({
   department,
   weekDates,
@@ -33,8 +41,6 @@ export const DepartmentSection = memo(function DepartmentSection({
   onRemove,
   onEdit,
 }: DepartmentSectionProps) {
-  const employeeCount = department.employeeCount ?? employees.length;
-
   const groupedEmployees = useMemo((): EmployeeGroup[] => {
     if (!department.hasSubDepartments) {
       return [{ departmentName: null, employees: [...employees].sort((a, b) => a.name.localeCompare(b.name)) }];
@@ -63,17 +69,17 @@ export const DepartmentSection = memo(function DepartmentSection({
           colSpan={8}
           className="bg-muted/30 px-4 py-2 font-semibold"
         >
-          {department.name} ({employeeCount} staff)
+          {department.name}
         </td>
       </tr>
 
-      {groupedEmployees.flatMap((group) => [
+      {groupedEmployees.flatMap((group, groupIndex) => [
         ...(group.departmentName
           ? [
               <tr key={`header-${group.departmentName}`}>
                 <td
                   colSpan={8}
-                  className="bg-muted/50 px-4 py-2 font-semibold text-sm border-t border-b"
+                  className={`px-4 py-2 font-semibold text-sm border-y border-border/60 ${SUB_DEPARTMENT_ROW_STYLES[groupIndex % SUB_DEPARTMENT_ROW_STYLES.length]}`}
                 >
                   {group.departmentName}
                 </td>
