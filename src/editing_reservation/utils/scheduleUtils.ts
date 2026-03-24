@@ -1,9 +1,5 @@
 import type { EditingRequest, EditingSession } from '../types/editing';
 
-export function isFriday(date: Date): boolean {
-  return date.getDay() === 5;
-}
-
 export function isSameDay(a: Date, b: Date): boolean {
   return (
     a.getFullYear() === b.getFullYear() &&
@@ -25,8 +21,7 @@ export function getSundayOfWeek(date: Date): Date {
 }
 
 /**
- * Returns 6 dates: Sunday, Monday, Tuesday, Wednesday, Thursday, Saturday.
- * Friday is excluded.
+ * Returns 7 dates: Sunday through Saturday (full week).
  */
 export function getWeekDates(weekStartSunday: Date): Date[] {
   const dates: Date[] = [];
@@ -36,9 +31,7 @@ export function getWeekDates(weekStartSunday: Date): Date[] {
   for (let i = 0; i < 7; i++) {
     const d = new Date(sun);
     d.setDate(sun.getDate() + i);
-    if (!isFriday(d)) {
-      dates.push(d);
-    }
+    dates.push(d);
   }
   return dates;
 }
@@ -104,15 +97,12 @@ export interface SessionWithRequest {
 
 /**
  * Get sessions for a specific cell (room + date).
- * Excludes Friday sessions.
  */
 export function getSessionsForCell(
   requests: EditingRequest[],
   roomNumber: number,
   date: Date
 ): SessionWithRequest[] {
-  if (isFriday(date)) return [];
-
   const result: SessionWithRequest[] = [];
 
   for (const request of requests) {
@@ -124,7 +114,6 @@ export function getSessionsForCell(
 
       const sessionDate = new Date(session.availableDatetime);
       if (!isSameDay(sessionDate, date)) continue;
-      if (isFriday(sessionDate)) continue;
 
       const room = extractRoomNumber(session.editRoomNumber);
       if (room !== null && room === roomNumber) {

@@ -15,7 +15,7 @@ interface EditingScheduleCellProps {
   reservedFor: string;
 }
 
-const CELL_HEIGHT = 'h-[120px]';
+const CELL_HEIGHT = 'h-[132px]';
 
 export const EditingScheduleCell: React.FC<EditingScheduleCellProps> = ({
   sessions,
@@ -71,7 +71,10 @@ export const EditingScheduleCell: React.FC<EditingScheduleCellProps> = ({
                 <p className="text-xs font-semibold text-card-foreground truncate">
                   {request.programName}
                 </p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">
+                <p className="text-[10px] text-muted-foreground truncate mt-0.5" title={session.editorName || undefined}>
+                  {session.editorName || '—'}
+                </p>
+                <p className="text-[10px] text-muted-foreground/90 mt-0.5">
                   {session.availableDatetime
                     ? formatTimeRange(session.availableDatetime, session.sessionDurationMinutes)
                     : '—'}

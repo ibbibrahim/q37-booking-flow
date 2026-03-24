@@ -89,15 +89,15 @@ export const EditingWeeklySchedule: React.FC<EditingWeeklyScheduleProps> = ({
 
       {/* Grid */}
       <div className="overflow-x-auto border border-border rounded-lg">
-        <div className="min-w-[900px]">
+        <div className="min-w-[1000px]">
           {loading ? (
             <div className="flex items-center justify-center py-24 text-muted-foreground">
               Loading schedule...
             </div>
           ) : (
             <>
-              {/* Header row - Room col 120px fixed, 6 day cols equal min 130px */}
-              <div className="grid grid-cols-[120px_repeat(6,minmax(130px,1fr))] border-b-2 border-border bg-muted/50">
+              {/* Header row - Room col 120px fixed, 7 day cols equal min 120px */}
+              <div className="grid grid-cols-[120px_repeat(7,minmax(120px,1fr))] border-b-2 border-border bg-muted/50">
                 <div className="p-2 text-sm font-semibold text-foreground">Room</div>
                 {weekDates.map((d) => (
                   <div
@@ -123,7 +123,7 @@ export const EditingWeeklySchedule: React.FC<EditingWeeklyScheduleProps> = ({
                       <div className="w-[120px] shrink-0 p-2 text-sm font-semibold text-foreground flex items-center border-r border-border">
                         Room {roomNum}
                       </div>
-                      <div className="flex-1 h-[120px] flex items-center justify-center bg-[#f5f5f5] dark:bg-muted/50 relative overflow-hidden border-l border-border">
+                      <div className="flex-1 h-[50px] flex items-center justify-center bg-[#f5f5f5] dark:bg-muted/50 relative overflow-hidden border-l border-border">
                         <div
                           className="absolute inset-0"
                           style={{
@@ -148,7 +148,7 @@ export const EditingWeeklySchedule: React.FC<EditingWeeklyScheduleProps> = ({
                 return (
                   <div
                     key={roomNum}
-                    className="grid grid-cols-[120px_repeat(6,minmax(130px,1fr))] border-b border-border last:border-b-0"
+                    className="grid grid-cols-[120px_repeat(7,minmax(120px,1fr))] border-b border-border last:border-b-0"
                   >
                     <div className="p-2 text-sm font-semibold text-foreground flex items-center border-r border-border bg-muted/30">
                       Room {roomNum}
@@ -175,7 +175,7 @@ export const EditingWeeklySchedule: React.FC<EditingWeeklyScheduleProps> = ({
 
       {/* Footer */}
       <p className="text-xs text-muted-foreground">
-        Click any session block to view full details. Friday is off and not displayed.
+        Click any session block to view full details.
       </p>
     </div>
   );
