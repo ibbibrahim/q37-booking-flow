@@ -14,8 +14,6 @@ import { DateRange } from 'react-day-picker';
 type ViewMode = 'grid' | 'list';
 
 const PAGE_SIZE = 50;
-// Statuses shown in "All" tab (Acknowledged kept in logic, removed from UI tabs only)
-const ALL_TAB_STATUSES = ['Pending', 'Acknowledged', 'Completed'];
 
 export const EditorQueuePage: React.FC = () => {
   const navigate = useNavigate();
@@ -54,12 +52,8 @@ export const EditorQueuePage: React.FC = () => {
         pageSize: PAGE_SIZE,
       });
       const items = result.items ?? [];
-      const filtered =
-        activeTab === 'all'
-          ? items.filter((r) => ALL_TAB_STATUSES.includes(r.status))
-          : items;
-      setRequests(filtered);
-      setTotalCount(result.total ?? filtered.length);
+      setRequests(items);
+      setTotalCount(result.total ?? items.length);
     } catch (error) {
       console.error('Failed to load edit suite assignments:', error);
       setRequests([]);
@@ -80,7 +74,7 @@ export const EditorQueuePage: React.FC = () => {
       setRequests((prev) => {
         const exists = prev.some((r) => r.id === data.id);
         if (exists) return prev;
-        if (!ALL_TAB_STATUSES.includes(data.status)) return prev;
+        if (activeTab !== 'all' && data.status !== activeTab) return prev;
         return [data, ...prev];
       });
     });
@@ -98,7 +92,7 @@ export const EditorQueuePage: React.FC = () => {
       unsubscribeUpdated();
       unsubscribeCancelled();
     };
-  }, [isConnected, listen]);
+  }, [isConnected, listen, activeTab]);
 
   const handleViewModeChange = (mode: ViewMode) => {
     setViewMode(mode);
@@ -166,7 +160,7 @@ export const EditorQueuePage: React.FC = () => {
         </div>
       </div>
 
-      {/* Filter tabs – All, Pending, Assignment Completed (Acknowledged removed from UI only) */}
+      {/* Filter tabs – same TabsList / TabsTrigger styling as existing segments */}
       <Tabs
         value={activeTab}
         onValueChange={(v) => {
@@ -178,6 +172,7 @@ export const EditorQueuePage: React.FC = () => {
           <TabsTrigger value="all">All</TabsTrigger>
           <TabsTrigger value="Pending">Pending</TabsTrigger>
           <TabsTrigger value="Completed">Assignment Completed</TabsTrigger>
+          <TabsTrigger value="Cancelled">Cancelled</TabsTrigger>
         </TabsList>
         <TabsContent value={activeTab} className="mt-6">
           {requests.length === 0 && !loading ? (
