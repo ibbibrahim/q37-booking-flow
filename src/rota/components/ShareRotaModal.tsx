@@ -73,11 +73,11 @@ export function ShareRotaModal({
     }
   };
 
-  const handleExportPDF = () => {
+  const handleExportPDF = async () => {
     if (!week || !department || employees.length === 0) return;
     setIsExporting(true);
     try {
-      exportRotaToPDF(week, department, employees, shiftTypes);
+      await exportRotaToPDF(week, department, employees, shiftTypes);
       showToast('PDF exported successfully', 'success');
     } catch {
       showToast('Failed to export PDF', 'error');
@@ -86,11 +86,11 @@ export function ShareRotaModal({
     }
   };
 
-  const handleExportExcel = () => {
+  const handleExportExcel = async () => {
     if (!week || !department || employees.length === 0) return;
     setIsExporting(true);
     try {
-      exportRotaToExcel(week, department, employees, shiftTypes);
+      await exportRotaToExcel(week, department, employees, shiftTypes);
       showToast('Excel exported successfully', 'success');
     } catch {
       showToast('Failed to export Excel', 'error');
