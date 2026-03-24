@@ -55,6 +55,8 @@ export function RotaManagementPage() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const isAdmin = user?.roles?.includes('Admin') ?? false;
+  const isRotaTeamLead = user?.roles?.includes('RotaTeamLead') ?? false;
+  const canAccessDepartmentSettings = isAdmin || isRotaTeamLead;
 
   const [selectedWeekStart, setSelectedWeekStart] = useState<Date>(() =>
     getWeekStart(new Date())
@@ -516,7 +518,7 @@ export function RotaManagementPage() {
                 </SelectContent>
               </Select>
             </div>
-            {isAdmin && selectedDepartmentId && (
+            {canAccessDepartmentSettings && selectedDepartmentId && (
               <Button
                 variant="ghost"
                 size="icon"

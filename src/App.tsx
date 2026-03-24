@@ -311,7 +311,7 @@ function App() {
         <Route
           path="rota/departments/:id/settings"
           element={
-            <ProtectedRoute allowedRoles={['Admin']}>
+            <ProtectedRoute allowedRoles={['Admin', 'RotaTeamLead']}>
               <RotaDepartmentSettingsPage />
             </ProtectedRoute>
           }
