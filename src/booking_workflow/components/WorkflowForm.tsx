@@ -18,10 +18,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { TimePickerInput } from "./TimePickerInput";
-import type {
-  BookingType,
-  WorkflowRequest,
-  WorkflowStatus,
+import {
+  getBookingTypeLabel,
+  type BookingType,
+  type WorkflowRequest,
+  type WorkflowStatus,
 } from "../types/workflow";
 
 interface WorkflowFormProps {
@@ -919,9 +920,9 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Incoming Feed">Incoming Feed</SelectItem>
-                    <SelectItem value="Invite Guest for News">Invite Guest for News</SelectItem>
-                    <SelectItem value="Invite Guest for Program">Invite Guest for Program</SelectItem>
-                    <SelectItem value="Download and Ingest">Download and Ingest</SelectItem>
+                    <SelectItem value="Invite Guest for News">{getBookingTypeLabel("Invite Guest for News")}</SelectItem>
+                    <SelectItem value="Invite Guest for Program">{getBookingTypeLabel("Invite Guest for Program")}</SelectItem>
+                    <SelectItem value="Download and Ingest">{getBookingTypeLabel("Download and Ingest")}</SelectItem>
                     <SelectItem value="Camera Card and Ingest">Camera Card and Ingest</SelectItem>
                   </SelectContent>
                 </Select>

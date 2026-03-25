@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, Clock, User, FileText, CheckCircle2, AlertCircle, Edit, Copy, ExternalLink, FolderOpen } from 'lucide-react';
-import type {
-  WorkflowRequest,
-  UserRole,
-  DownloadLinkDto,
+import {
+  getBookingTypeLabel,
+  type WorkflowRequest,
+  type UserRole,
+  type DownloadLinkDto,
 } from '../types/workflow';
 import { mockApi } from '../services/bookingApi';
 import { NOCActions } from './NOCActions';
@@ -248,7 +249,7 @@ export const RequestDetail: React.FC = () => {
             <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
               <span className="font-mono">{request.id}</span>
               <span>·</span>
-              <Badge variant="outline">{request.bookingType}</Badge>
+              <Badge variant="outline">{getBookingTypeLabel(request.bookingType)}</Badge>
               {request.priority && (
                 <>
                   <span>·</span>

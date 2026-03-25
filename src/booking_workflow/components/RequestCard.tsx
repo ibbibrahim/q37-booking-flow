@@ -1,6 +1,6 @@
 import React from 'react';
 import { Clock, Calendar, AlertCircle, CheckCircle2, Radio, User } from 'lucide-react';
-import type { WorkflowRequest, WorkflowStatus } from '../types/workflow';
+import { getBookingTypeLabel, type WorkflowRequest, type WorkflowStatus } from '../types/workflow';
 
 interface RequestCardProps {
   request: WorkflowRequest;
@@ -71,7 +71,7 @@ export const RequestCard: React.FC<RequestCardProps> = ({ request, isNew, onClic
         <div className="flex items-center gap-3">
           <span className="text-xs text-muted-foreground">Type:</span>
           <span className="text-xs font-medium text-card-foreground bg-muted px-2 py-1 rounded">
-            {request.bookingType}
+            {getBookingTypeLabel(request.bookingType)}
           </span>
         </div>
         <div className="flex items-center gap-2">

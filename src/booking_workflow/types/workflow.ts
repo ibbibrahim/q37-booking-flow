@@ -2,6 +2,19 @@ import { User } from "@/contexts/AuthContext";
 
 export type BookingType = 'Incoming Feed' | 'Invite Guest for News' | 'Invite Guest for Program' | 'Download and Ingest' | 'Camera Card and Ingest';
 
+/** Display labels only; canonical values remain `BookingType` for API and logic. */
+export const BOOKING_TYPE_DISPLAY_LABELS: Record<BookingType, string> = {
+  'Incoming Feed': 'Incoming Feed',
+  'Invite Guest for News': 'Invite online reporter/guest for news',
+  'Invite Guest for Program': 'Invite online reporter/guest for programs',
+  'Download and Ingest': 'Download and Ingest',
+  'Camera Card and Ingest': 'Camera Card and Ingest',
+};
+
+export function getBookingTypeLabel(type: BookingType | string): string {
+  return BOOKING_TYPE_DISPLAY_LABELS[type as BookingType] ?? type;
+}
+
 export type WorkflowStatus =
   | 'Draft'
   | 'Submitted'

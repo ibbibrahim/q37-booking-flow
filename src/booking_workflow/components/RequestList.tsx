@@ -14,7 +14,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { RequestCard } from './RequestCard';
 import { RequestDetail } from './RequestDetail';
-import type { WorkflowRequest, WorkflowStatus, UserRole } from '../types/workflow';
+import { getBookingTypeLabel, type WorkflowRequest, type WorkflowStatus, type UserRole } from '../types/workflow';
 
 import { DateRange } from 'react-day-picker';
 import { startOfDay, endOfDay } from 'date-fns';
@@ -385,7 +385,7 @@ export const RequestList: React.FC<RequestListProps> = ({
                               <span
                                 className={`px-3 py-1 rounded-full text-xs font-medium ${bookingTypeColor}`}
                               >
-                                {request.bookingType}
+                                {getBookingTypeLabel(request.bookingType)}
                               </span>
                             </td>
                            

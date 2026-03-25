@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { BarChart3, TrendingUp, Clock, AlertTriangle, CheckCircle2, Users, Radio, UserCircle } from 'lucide-react';
-import type { WorkflowRequest, WorkflowStatus } from '../types/workflow';
+import { getBookingTypeLabel, type WorkflowRequest, type WorkflowStatus } from '../types/workflow';
 
 interface AdminDashboardProps {
   requests: WorkflowRequest[];
@@ -211,7 +211,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ requests }) => {
                   <td className="py-3 px-4 text-sm font-medium text-card-foreground">{req.title}</td>
                   <td className="py-3 px-4 text-sm text-muted-foreground">
                     <span className="bg-muted px-2 py-1 rounded text-xs">
-                      {req.bookingType}
+                      {getBookingTypeLabel(req.bookingType)}
                     </span>
                   </td>
                   <td className="py-3 px-4 text-sm">
