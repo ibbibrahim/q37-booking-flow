@@ -49,6 +49,36 @@ import type { EditAssignmentFormData } from '../components/EditAssignmentModal';
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
+/** Only shift timing / type — program, comments, and custom label stay with each employee. */
+function getSwappableShiftFields(a: RotaAssignment) {
+  return {
+    shiftTypeId: a.shiftTypeId,
+    shiftType: a.shiftType,
+    isOffDay: a.isOffDay,
+    shiftStartTime: a.shiftStartTime,
+    shiftEndTime: a.shiftEndTime,
+  };
+}
+
+function mergeShiftFieldsOnto(
+  base: RotaAssignment,
+  fields: ReturnType<typeof getSwappableShiftFields>
+): RotaAssignment {
+  const next: RotaAssignment = {
+    ...base,
+    shiftTypeId: fields.shiftTypeId,
+    shiftType: fields.shiftType,
+    isOffDay: fields.isOffDay ?? false,
+    shiftStartTime: fields.shiftStartTime,
+    shiftEndTime: fields.shiftEndTime,
+  };
+  if (next.isOffDay) {
+    next.shiftTypeId = undefined;
+    next.shiftType = undefined;
+  }
+  return next;
+}
+
 export function RotaManagementPage() {
   const { user } = useAuth();
   const { showToast } = useToast();
@@ -350,7 +380,28 @@ export function RotaManagementPage() {
           normalizeDateString(a.shiftDate) === toDateStr
       );
       if (existingAtTarget) {
-        showToast('Target cell already has an assignment', 'warning');
+        // Swap any two occupied cells (same or different day, same or different employee),
+        // as long as the drop target is not the same assignment row.
+        if (fromAssignment.id === existingAtTarget.id) {
+          return;
+        }
+        const fromFields = getSwappableShiftFields(fromAssignment);
+        const toFields = getSwappableShiftFields(existingAtTarget);
+        const updated = week.assignments.map((a) => {
+          if (a.id === fromAssignment.id) {
+            return mergeShiftFieldsOnto(a, toFields);
+          }
+          if (a.id === existingAtTarget.id) {
+            return mergeShiftFieldsOnto(a, fromFields);
+          }
+          return a;
+        });
+        try {
+          await bulkSave(updated);
+          showToast('Assignments swapped', 'success');
+        } catch {
+          // Error already shown in bulkSave
+        }
         return;
       }
 

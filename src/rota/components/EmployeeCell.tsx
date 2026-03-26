@@ -1,8 +1,14 @@
 import { memo } from 'react';
-import { useDroppable } from '@dnd-kit/core';
+import { useDndContext, useDroppable } from '@dnd-kit/core';
+import { ArrowLeftRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { AssignmentBadge } from './AssignmentBadge';
-import type { RotaAssignment, RotaEmployee, RotaShiftType, RotaAssignPayload } from '../types/rota';
+import type {
+  RotaAssignment,
+  RotaEmployee,
+  RotaShiftType,
+  RotaAssignPayload,
+} from '../types/rota';
 import { formatDateForApi } from '../utils/dateUtils';
 import { getAssignmentForEmployeeDay, getAssignmentDisplay } from '../utils/rotaUtils';
 
@@ -38,6 +44,23 @@ export const EmployeeCell = memo(function EmployeeCell({
     disabled,
   });
 
+  const { active } = useDndContext();
+  const activeData = active?.data?.current as
+    | { type?: string; assignment?: RotaAssignment }
+    | undefined;
+  const draggedAssignment =
+    activeData?.type === 'assignment' ? activeData.assignment : undefined;
+  const isDraggingAssignment = Boolean(draggedAssignment);
+  const hasExistingAssignment = Boolean(assignment);
+  const showSwapOverlay =
+    !readOnly &&
+    !disabled &&
+    isOver &&
+    hasExistingAssignment &&
+    isDraggingAssignment &&
+    draggedAssignment &&
+    draggedAssignment.id !== assignment?.id;
+
   const handleDoubleClick = () => {
     if (readOnly || disabled) return;
     onEdit(assignment ?? null, employee.id, date);
@@ -48,12 +71,20 @@ export const EmployeeCell = memo(function EmployeeCell({
       ref={setNodeRef}
       onDoubleClick={handleDoubleClick}
       className={cn(
-        'border p-2 min-w-28 h-20 align-top',
+        'relative border p-2 min-w-28 h-20 align-top',
         disabled && 'bg-muted cursor-not-allowed',
-        isOver && !disabled && 'bg-primary/10 border-primary border-2',
+        isOver && !disabled && !showSwapOverlay && 'bg-primary/10 border-primary border-2',
         !readOnly && !disabled && 'cursor-pointer'
       )}
     >
+      {showSwapOverlay && (
+        <div
+          className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded border-2 border-blue-500 bg-blue-50"
+          aria-hidden
+        >
+          <ArrowLeftRight className="h-6 w-6 text-blue-600" />
+        </div>
+      )}
       {disabled ? (
         <div className="flex items-center justify-center h-full text-muted-foreground text-xs">
           OFF
