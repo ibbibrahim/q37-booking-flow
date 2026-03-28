@@ -1,4 +1,12 @@
+import { isValid, parseISO } from 'date-fns';
 import type { EditingRequest, EditingSession } from '../types/editing';
+
+/** Requests shown on the weekly dashboard (excludes Cancelled). */
+export const EDITING_DASHBOARD_STATUSES = ['Completed', 'Acknowledged'] as const;
+
+export function isDashboardSchedulableStatus(status: string): boolean {
+  return (EDITING_DASHBOARD_STATUSES as readonly string[]).includes(status);
+}
 
 export function isSameDay(a: Date, b: Date): boolean {
   return (
@@ -106,14 +114,14 @@ export function getSessionsForCell(
   const result: SessionWithRequest[] = [];
 
   for (const request of requests) {
-    if (request.status !== 'Completed') continue;
+    if (!isDashboardSchedulableStatus(request.status)) continue;
 
     const sessions = request.editingSessions ?? [];
     for (const session of sessions) {
       if (!session.availableDatetime) continue;
 
-      const sessionDate = new Date(session.availableDatetime);
-      if (!isSameDay(sessionDate, date)) continue;
+      const sessionDate = parseISO(session.availableDatetime);
+      if (!isValid(sessionDate) || !isSameDay(sessionDate, date)) continue;
 
       const room = extractRoomNumber(session.editRoomNumber);
       if (room !== null && room === roomNumber) {
@@ -144,7 +152,7 @@ export function isReservedRoom(roomNumber: number): boolean {
 export function getMaxRoomFromRequests(requests: EditingRequest[]): number {
   let max = 11;
   for (const request of requests) {
-    if (request.status !== 'Completed') continue;
+    if (!isDashboardSchedulableStatus(request.status)) continue;
     for (const session of request.editingSessions ?? []) {
       const room = extractRoomNumber(session.editRoomNumber);
       if (room !== null && room > max) max = room;

@@ -26,8 +26,10 @@ export const EditingDashboardPage: React.FC = () => {
       setLoading(true);
       const weekDates = getWeekDates(getSundayOfWeek(weekStart));
       const dateFrom = weekDates[0];
-      const dateTo = weekDates[weekDates.length - 1];
-      const data = await editingApi.searchForDashboard(dateFrom, dateTo);
+      // End of last day (Sat) so API range includes full day (avoids dropping sessions when dateTo was midnight start-of-day)
+      const dateToEnd = new Date(weekDates[weekDates.length - 1]);
+      dateToEnd.setHours(23, 59, 59, 999);
+      const data = await editingApi.searchForDashboard(dateFrom, dateToEnd);
       setRequests(data);
     } catch (error) {
       console.error('Failed to load editing requests:', error);

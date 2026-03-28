@@ -11,6 +11,7 @@ import {
   getMaxRoomFromRequests,
   isReservedRoom,
   RESERVED_ROOMS,
+  isDashboardSchedulableStatus,
 } from '../utils/scheduleUtils';
 import type { EditingRequest } from '../types/editing';
 
@@ -33,9 +34,9 @@ export const EditingWeeklySchedule: React.FC<EditingWeeklyScheduleProps> = ({
   onNextWeek,
   onThisWeek,
 }) => {
-  const completedRequests = requests.filter((r) => r.status === 'Completed');
+  const dashboardRequests = requests.filter((r) => isDashboardSchedulableStatus(r.status));
   const weekDates = getWeekDates(getSundayOfWeek(weekStart));
-  const roomCount = Math.max(MIN_ROOM_COUNT, getMaxRoomFromRequests(completedRequests));
+  const roomCount = Math.max(MIN_ROOM_COUNT, getMaxRoomFromRequests(dashboardRequests));
 
   return (
     <div className="space-y-4">
@@ -154,7 +155,7 @@ export const EditingWeeklySchedule: React.FC<EditingWeeklyScheduleProps> = ({
                       Room {roomNum}
                     </div>
                     {weekDates.map((date) => {
-                      const sessions = getSessionsForCell(completedRequests, roomNum, date);
+                      const sessions = getSessionsForCell(dashboardRequests, roomNum, date);
                       return (
                         <div key={date.toISOString()} className="border-l border-border min-w-0">
                           <EditingScheduleCell

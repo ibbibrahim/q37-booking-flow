@@ -50,6 +50,7 @@ import type {
   RoleDto,
   UsersListParams,
 } from '../types/user';
+import { getApiErrorMessage } from '@/utils/apiError';
 
 type SortField = 'username' | 'displayName' | 'email' | 'isActive';
 
@@ -81,6 +82,7 @@ export const UsersPage: React.FC = () => {
   const [selectedUser, setSelectedUser] = useState<UserDto | null>(null);
   const [selectedUserRoles, setSelectedUserRoles] = useState<string[]>([]);
   const [actionLoading, setActionLoading] = useState(false);
+  const [createUserUsernameError, setCreateUserUsernameError] = useState<string | null>(null);
   const [confirmAction, setConfirmAction] = useState<{
     type: 'activate' | 'deactivate';
     user: UserDto;
@@ -145,6 +147,7 @@ export const UsersPage: React.FC = () => {
   const handleCreateUser = async (data: CreateUserDto) => {
     try {
       setActionLoading(true);
+      setCreateUserUsernameError(null);
       await usersApi.createUser(data);
       showToast({
         title: 'Success',
@@ -152,13 +155,19 @@ export const UsersPage: React.FC = () => {
       });
       setUserFormOpen(false);
       loadUsers();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to create user:', error);
-      showToast({
-        title: 'Error',
-        description: error.response?.data?.message || 'Failed to create user',
-        variant: 'destructive',
-      });
+      const status = (error as { response?: { status?: number } })?.response?.status;
+      const message = getApiErrorMessage(error, 'Failed to create user');
+      if (status === 409) {
+        setCreateUserUsernameError(message);
+      } else {
+        showToast({
+          title: 'Error',
+          description: message,
+          variant: 'destructive',
+        });
+      }
     } finally {
       setActionLoading(false);
     }
@@ -344,7 +353,14 @@ export const UsersPage: React.FC = () => {
           </p>
         </div>
         {canEdit && (
-          <Button onClick={() => setUserFormOpen(true)} className="flex items-center gap-2">
+          <Button
+            onClick={() => {
+              setSelectedUser(null);
+              setCreateUserUsernameError(null);
+              setUserFormOpen(true);
+            }}
+            className="flex items-center gap-2"
+          >
             <Plus size={18} />
             New User
           </Button>
@@ -627,11 +643,18 @@ export const UsersPage: React.FC = () => {
         open={userFormOpen}
         onOpenChange={(open) => {
           setUserFormOpen(open);
-          if (!open) setSelectedUser(null);
+          if (!open) {
+            setSelectedUser(null);
+            setCreateUserUsernameError(null);
+          }
         }}
         user={selectedUser}
         onSubmit={selectedUser ? handleUpdateUser : handleCreateUser}
         loading={actionLoading}
+        serverUsernameError={!selectedUser ? createUserUsernameError : undefined}
+        onClearServerUsernameError={
+          !selectedUser ? () => setCreateUserUsernameError(null) : undefined
+        }
       />
 
       {selectedUser && (

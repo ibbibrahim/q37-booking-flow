@@ -18,6 +18,9 @@ interface UserFormModalProps {
   user?: UserDto | null;
   onSubmit: (data: CreateUserDto | UpdateUserDto) => Promise<void>;
   loading?: boolean;
+  /** Shown under username (e.g. API 409 conflict when creating a user) */
+  serverUsernameError?: string | null;
+  onClearServerUsernameError?: () => void;
 }
 
 export const UserFormModal: React.FC<UserFormModalProps> = ({
@@ -26,6 +29,8 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
   user,
   onSubmit,
   loading = false,
+  serverUsernameError,
+  onClearServerUsernameError,
 }) => {
   const isEditMode = !!user;
 
@@ -116,12 +121,17 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
               <Input
                 id="username"
                 value={formData.username}
-                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                onChange={(e) => {
+                  setFormData({ ...formData, username: e.target.value });
+                  if (serverUsernameError) onClearServerUsernameError?.();
+                }}
                 disabled={loading}
-                className={errors.username ? 'border-red-500' : ''}
+                className={errors.username || serverUsernameError ? 'border-red-500' : ''}
               />
-              {errors.username && (
-                <p className="text-sm text-red-500">{errors.username}</p>
+              {(errors.username || serverUsernameError) && (
+                <p className="text-sm text-red-500">
+                  {errors.username || serverUsernameError}
+                </p>
               )}
             </div>
 
