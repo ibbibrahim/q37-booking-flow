@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Clock, User, FileText, CheckCircle2, AlertCircle, Edit, Copy, ExternalLink, FolderOpen } from 'lucide-react';
+import { ArrowLeft, Clock, User, FileText, CheckCircle2, AlertCircle, AlertTriangle, Edit, Copy, ExternalLink, FolderOpen } from 'lucide-react';
 import {
   getBookingTypeLabel,
   type WorkflowRequest,
@@ -213,6 +213,7 @@ export const RequestDetail: React.FC = () => {
       'Completed': 'bg-green-100 text-green-800',
       'Clarification Requested': 'bg-orange-100 text-orange-800',
       'Rejected': 'bg-red-100 text-red-800',
+      'Not Done': 'bg-red-100 text-red-800',
     };
     return statusMap[status] || 'bg-gray-100 text-gray-800';
   };
@@ -228,9 +229,29 @@ export const RequestDetail: React.FC = () => {
 
   const transitions = request.transitions || [];
   const nocResources = request.nocResources || [];
+  const ingestNotDoneReason = request.ingestNotDoneReason?.trim();
 
   return (
     <div className="max-w-6xl mx-auto">
+      {request.status === 'Not Done' && ingestNotDoneReason && (
+        <div className="px-6 pt-4">
+          <div className="bg-destructive/10 border-2 border-destructive rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="h-6 w-6 text-destructive mt-0.5 flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <h2 className="text-lg font-bold text-destructive mb-1">
+                  Ingest team marked request as not done.
+                </h2>
+                <div className="mt-2">
+                  <p className="text-sm font-semibold text-foreground mb-1">Reason:</p>
+                  <p className="text-sm text-muted-foreground break-words">{ingestNotDoneReason}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="px-6">
         <div className="flex items-center gap-4">
