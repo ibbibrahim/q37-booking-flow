@@ -7,6 +7,7 @@ import { DateRangePicker } from '@/components/DateRangePicker';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { EditingRequestList } from '../components/EditingRequestList';
 import { editingApi } from '../api/editingApi';
+import { useAuth } from '@/contexts/AuthContext';
 import { useSignalR } from '@/contexts/SignalRContext';
 import type { EditingRequest } from '../types/editing';
 import { DateRange } from 'react-day-picker';
@@ -15,8 +16,14 @@ type ViewMode = 'grid' | 'list';
 
 const PAGE_SIZE = 50;
 
+function isAssignedToEditor(request: EditingRequest, editorId: number): boolean {
+  if (request.editorId === editorId) return true;
+  return request.editingSessions?.some((s) => s.editorId === editorId) ?? false;
+}
+
 export const EditorQueuePage: React.FC = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { listen, isConnected } = useSignalR();
   const [requests, setRequests] = useState<EditingRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,10 +49,14 @@ export const EditorQueuePage: React.FC = () => {
   const loadQueue = useCallback(async () => {
     setLoading(true);
     try {
-      const statusFilter = activeTab === 'all' ? undefined : activeTab;
+      const statusFilter =
+        activeTab === 'all' || activeTab === 'my-assignments' ? undefined : activeTab;
+      const editorId =
+        activeTab === 'my-assignments' && user?.id != null ? user.id : undefined;
       const result = await editingApi.search({
         searchQuery: debouncedSearch.trim() || undefined,
         status: statusFilter,
+        editorId,
         dateFrom: dateRange?.from,
         dateTo: dateRange?.to,
         page: currentPage,
@@ -61,7 +72,7 @@ export const EditorQueuePage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [activeTab, debouncedSearch, dateRange?.from, dateRange?.to, currentPage]);
+  }, [activeTab, debouncedSearch, dateRange?.from, dateRange?.to, currentPage, user?.id]);
 
   useEffect(() => {
     loadQueue();
@@ -74,7 +85,11 @@ export const EditorQueuePage: React.FC = () => {
       setRequests((prev) => {
         const exists = prev.some((r) => r.id === data.id);
         if (exists) return prev;
-        if (activeTab !== 'all' && data.status !== activeTab) return prev;
+        if (activeTab === 'my-assignments') {
+          if (user?.id == null || !isAssignedToEditor(data, user.id)) return prev;
+        } else if (activeTab !== 'all' && data.status !== activeTab) {
+          return prev;
+        }
         return [data, ...prev];
       });
     });
@@ -92,7 +107,7 @@ export const EditorQueuePage: React.FC = () => {
       unsubscribeUpdated();
       unsubscribeCancelled();
     };
-  }, [isConnected, listen, activeTab]);
+  }, [isConnected, listen, activeTab, user?.id]);
 
   const handleViewModeChange = (mode: ViewMode) => {
     setViewMode(mode);
@@ -170,6 +185,7 @@ export const EditorQueuePage: React.FC = () => {
       >
         <TabsList>
           <TabsTrigger value="all">All</TabsTrigger>
+          <TabsTrigger value="my-assignments">My assignments</TabsTrigger>
           <TabsTrigger value="Pending">Pending</TabsTrigger>
           <TabsTrigger value="Completed">Assignment Completed</TabsTrigger>
           <TabsTrigger value="Cancelled">Cancelled</TabsTrigger>

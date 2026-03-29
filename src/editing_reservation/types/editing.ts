@@ -132,6 +132,8 @@ export interface EditingSearchRequest {
   dateTo?: Date;
   searchQuery?: string;
   status?: string;
+  /** When set, limits results to requests assigned to this editor (edit suite search). */
+  editorId?: number;
   page?: number;
   pageSize?: number;
 }
