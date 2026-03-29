@@ -1,5 +1,6 @@
 import React from 'react';
 import { Clock, Calendar, AlertCircle, CheckCircle2, Radio, User } from 'lucide-react';
+import { formatBookingStoredDateTime } from '@/studio_booking/utils/timeUtils';
 import { getBookingTypeLabel, type WorkflowRequest, type WorkflowStatus } from '../types/workflow';
 
 interface RequestCardProps {
@@ -59,7 +60,7 @@ export const RequestCard: React.FC<RequestCardProps> = ({ request, isNew, onClic
       <div className="space-y-2 text-sm">
         <div className="flex items-center gap-2 text-muted-foreground">
           <Calendar size={16} />
-          <span>{new Date(request.airDateTime).toLocaleString()}</span>
+          <span>{formatBookingStoredDateTime(request.airDateTime)}</span>
         </div>
         <div className="flex items-center gap-2 text-muted-foreground">
           <Clock size={16} />

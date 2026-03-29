@@ -12,6 +12,7 @@ import { NOCActions } from './NOCActions';
 import { IngestActions } from './IngestActions';
 import { UpdateDownloadLinkModal } from './UpdateDownloadLinkModal';
 import { BookingApi } from '../services/booking';
+import { formatBookingStoredDateTime } from '@/studio_booking/utils/timeUtils';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -381,9 +382,9 @@ export const RequestDetail: React.FC = () => {
                   {renderField('Program / Segment', request.program)}
                   {/* {renderField('Language', request.language)} */}
                   {!(request.bookingType === "Download and Ingest" || request.bookingType === "Camera Card and Ingest") &&
-                    renderField("Air Date / Time", new Date(request.airDateTime).toLocaleString())}
-                  {request.feedStartTime && renderField("Feed Start Time", new Date(request.feedStartTime).toLocaleString())}
-                  {request.feedEndTime && renderField("Feed End Time", new Date(request.feedEndTime).toLocaleString())}
+                    renderField("Air Date / Time", formatBookingStoredDateTime(request.airDateTime))}
+                  {request.feedStartTime && renderField("Feed Start Time", formatBookingStoredDateTime(request.feedStartTime))}
+                  {request.feedEndTime && renderField("Feed End Time", formatBookingStoredDateTime(request.feedEndTime))}
                   {renderField('Studio', request.studio)}
                 </div>
 
@@ -407,8 +408,8 @@ export const RequestDetail: React.FC = () => {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {request.guestDetail && (
                           <>
-                            {renderField("Guest Name", request.guestDetail.guestName)}
-                            {renderField("Guest Contact", request.guestDetail.guestContact)}
+                            {renderField("Guest or Reporter Name", request.guestDetail.guestName)}
+                            {renderField("Guest or Reporter Contact", request.guestDetail.guestContact)}
                           </>
                         )}
                       </div>

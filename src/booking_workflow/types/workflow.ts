@@ -5,7 +5,7 @@ export type BookingType = 'Incoming Feed' | 'Invite Guest for News' | 'Invite Gu
 /** Display labels only; canonical values remain `BookingType` for API and logic. */
 export const BOOKING_TYPE_DISPLAY_LABELS: Record<BookingType, string> = {
   'Incoming Feed': 'Incoming Feed',
-  'Invite Guest for News': 'Invite reporter/guest for news',
+  'Invite Guest for News': 'DTL',
   'Invite Guest for Program': 'Invite reporter/guest for programs',
   'Download and Ingest': 'Download and Ingest',
   'Camera Card and Ingest': 'Camera Card and Ingest',

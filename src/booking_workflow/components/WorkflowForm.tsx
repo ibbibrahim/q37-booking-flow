@@ -50,6 +50,43 @@ const DAYS_OF_WEEK = [
   { key: 'sat', label: 'Sa', full: 'Saturday' },
 ];
 
+/** Concatenate selected date + time only — no timezone suffix, no Date conversions. */
+function formatBookingPlainDateTime(dateYmd: string, timeHm: string): string {
+  const [hRaw, mRaw] = timeHm.split(':');
+  const h = Number(hRaw);
+  const m = Number(mRaw);
+  const hh = String(Number.isFinite(h) ? h : 0).padStart(2, '0');
+  const mm = String(Number.isFinite(m) ? m : 0).padStart(2, '0');
+  return `${dateYmd}T${hh}:${mm}:00`;
+}
+
+/** HH:mm from stored value using the literal digits in the string (no Date parsing). */
+function parseStoredTimeHm(stored: string | undefined): string {
+  if (!stored) return '';
+  const m = stored.match(/T(\d{2}):(\d{2})/);
+  return m ? `${m[1]}:${m[2]}` : '';
+}
+
+/** YYYY-MM-DD from stored value using literal digits (no Date parsing). */
+function parseStoredDateYmd(stored: string | undefined): string {
+  if (!stored) return '';
+  const m = stored.match(/^(\d{4}-\d{2}-\d{2})/);
+  return m ? m[1] : '';
+}
+
+function localDateToYmd(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function plainLocalNowDateTime(): string {
+  const d = new Date();
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${localDateToYmd(d)}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+
 export const WorkflowForm: React.FC<WorkflowFormProps> = ({
   onSubmit,
   onCancel,
@@ -88,8 +125,8 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
         guestContact = initialData.guestDetail.guestContact;
       }
 
-      const airDate = initialData.airDateTime ? new Date(initialData.airDateTime).toISOString().split('T')[0] : "";
-      const airTimeSingle = initialData.airDateTime ? new Date(initialData.airDateTime).toTimeString().slice(0, 5) : "";
+      const airDate = parseStoredDateYmd(initialData.airDateTime);
+      const airTimeSingle = parseStoredTimeHm(initialData.airDateTime);
 
       return {
         bookingType: initialData.bookingType || "",
@@ -101,8 +138,8 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
         airTimeSingle,
         feedStartTime: initialData.feedStartTime || "",
         feedEndTime: initialData.feedEndTime || "",
-        feedStartTimeOnly: initialData.feedStartTime ? new Date(initialData.feedStartTime).toTimeString().slice(0, 5) : "",
-        feedEndTimeOnly: initialData.feedEndTime ? new Date(initialData.feedEndTime).toTimeString().slice(0, 5) : "",
+        feedStartTimeOnly: parseStoredTimeHm(initialData.feedStartTime),
+        feedEndTimeOnly: parseStoredTimeHm(initialData.feedEndTime),
         language: initialData.language || "Arabic",
         priority: initialData.priority || "",
         nocRequired: "",
@@ -339,10 +376,7 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
       formData.bookingType === "Invite Guest for Program"
     ) {
       if (!formData.guestName) {
-        newErrors.guestName = "Guest name is required";
-      }
-      if (!formData.guestContact) {
-        newErrors.guestContact = "Guest contact/email is required";
+        newErrors.guestName = "Guest or reporter name is required";
       }
       if (!formData.studio) {
         newErrors.studio = "Please select a studio";
@@ -452,64 +486,47 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
 
       let finalAirDateTime;
       if (isDownloadOrCameraCard) {
-        finalAirDateTime = new Date().toISOString();
+        finalAirDateTime = plainLocalNowDateTime();
       } else if (formData.airDate && formData.airTimeSingle) {
-        const [hours, minutes] = formData.airTimeSingle.split(':').map(Number);
-        const airDateObj = new Date(formData.airDate);
-        airDateObj.setHours(hours, minutes, 0, 0);
-        finalAirDateTime = airDateObj.toISOString();
+        finalAirDateTime = formatBookingPlainDateTime(formData.airDate, formData.airTimeSingle);
       }
 
-      let newFeedStartTime = undefined;
-      let newFeedEndTime = undefined;
+      let newFeedStartTime: string | undefined;
+      let newFeedEndTime: string | undefined;
 
       if (formData.feedStartTimeOnly && formData.feedEndTimeOnly && formData.airDate) {
-        const airDate = new Date(formData.airDate);
-        const [startHours, startMinutes] = formData.feedStartTimeOnly.split(':').map(Number);
-        const [endHours, endMinutes] = formData.feedEndTimeOnly.split(':').map(Number);
-
-        newFeedStartTime = new Date(airDate);
-        newFeedStartTime.setHours(startHours, startMinutes, 0, 0);
-
-        newFeedEndTime = new Date(airDate);
-        newFeedEndTime.setHours(endHours, endMinutes, 0, 0);
+        newFeedStartTime = formatBookingPlainDateTime(formData.airDate, formData.feedStartTimeOnly);
+        newFeedEndTime = formatBookingPlainDateTime(formData.airDate, formData.feedEndTimeOnly);
       }
 
       const singlePayload = {
         ...basePayload,
         airDateTime: finalAirDateTime,
-        feedStartTime: newFeedStartTime ? newFeedStartTime.toISOString() : undefined,
-        feedEndTime: newFeedEndTime ? newFeedEndTime.toISOString() : undefined,
+        feedStartTime: newFeedStartTime,
+        feedEndTime: newFeedEndTime,
       };
 
       const payload = normalizePayload(singlePayload);
       onSubmit(payload as any, status);
     } else {
       bulkDates.forEach((date, index) => {
-        const [airHours, airMinutes] = formData.airTime.split(':').map(Number);
-        const newAirDateTime = new Date(date);
-        newAirDateTime.setHours(airHours, airMinutes, 0, 0);
+        const dateYmd = localDateToYmd(date);
+        const newAirDateTime = formatBookingPlainDateTime(dateYmd, formData.airTime);
 
-        let newFeedStartTime = undefined;
-        let newFeedEndTime = undefined;
+        let newFeedStartTime: string | undefined;
+        let newFeedEndTime: string | undefined;
 
         if (formData.feedStartTimeOnly && formData.feedEndTimeOnly) {
-          const [startHours, startMinutes] = formData.feedStartTimeOnly.split(':').map(Number);
-          const [endHours, endMinutes] = formData.feedEndTimeOnly.split(':').map(Number);
-
-          newFeedStartTime = new Date(date);
-          newFeedStartTime.setHours(startHours, startMinutes, 0, 0);
-
-          newFeedEndTime = new Date(date);
-          newFeedEndTime.setHours(endHours, endMinutes, 0, 0);
+          newFeedStartTime = formatBookingPlainDateTime(dateYmd, formData.feedStartTimeOnly);
+          newFeedEndTime = formatBookingPlainDateTime(dateYmd, formData.feedEndTimeOnly);
         }
 
         const bulkPayload = {
           ...basePayload,
           title: generateTitleForDate(date, index),
-          airDateTime: newAirDateTime.toISOString(),
-          feedStartTime: newFeedStartTime ? newFeedStartTime.toISOString() : formData.feedStartTime,
-          feedEndTime: newFeedEndTime ? newFeedEndTime.toISOString() : formData.feedEndTime,
+          airDateTime: newAirDateTime,
+          feedStartTime: newFeedStartTime ?? formData.feedStartTime,
+          feedEndTime: newFeedEndTime ?? formData.feedEndTime,
         };
 
         const payload = normalizePayload(bulkPayload);
@@ -526,7 +543,7 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
     <>
       <div className="space-y-2">
         <Label htmlFor="guestName">
-          Guest Name <span className="text-red-500">*</span>
+          Guest or Reporter Name <span className="text-red-500">*</span>
         </Label>
         <Input
           id="guestName"
@@ -539,7 +556,7 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
         )}
       </div>
       <div className="space-y-2">
-        <Label htmlFor="guestContact">Guest Contact <span className="text-red-500">*</span> </Label>
+        <Label htmlFor="guestContact">Guest or Reporter Contact</Label>
         <Input
           id="guestContact"
           value={formData.guestContact || ""}
@@ -921,7 +938,8 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
                   <SelectContent>
                     <SelectItem value="Incoming Feed">Incoming Feed</SelectItem>
                     <SelectItem value="Invite Guest for News">{getBookingTypeLabel("Invite Guest for News")}</SelectItem>
-                    <SelectItem value="Invite Guest for Program">{getBookingTypeLabel("Invite Guest for Program")}</SelectItem>
+                    {/* Hidden from new bookings — type + logic remain for existing requests / API */}
+                    {/* <SelectItem value="Invite Guest for Program">{getBookingTypeLabel("Invite Guest for Program")}</SelectItem> */}
                     <SelectItem value="Download and Ingest">{getBookingTypeLabel("Download and Ingest")}</SelectItem>
                     <SelectItem value="Camera Card and Ingest">Camera Card and Ingest</SelectItem>
                   </SelectContent>
@@ -1118,7 +1136,7 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
           formData.bookingType === "Invite Guest for Program") && (
           <Card>
             <CardHeader>
-              <CardTitle>Guest & Rundown Details</CardTitle>
+              <CardTitle>Guest or Reporter Details</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
