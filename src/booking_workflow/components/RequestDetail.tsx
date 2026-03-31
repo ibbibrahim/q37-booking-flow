@@ -624,6 +624,12 @@ export const RequestDetail: React.FC = () => {
                                 minute: '2-digit',
                               })}
                             </div>
+                            {request.nocNotes ? (
+                              <div className="mt-2 pt-2 border-t border-blue-200/80 text-xs text-card-foreground whitespace-pre-wrap">
+                                <span className="font-medium text-muted-foreground">Notes: </span>
+                                {request.nocNotes}
+                              </div>
+                            ) : null}
                           </div>
                         </div>
                       </div>

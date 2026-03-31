@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { CheckCircle2, AlertCircle, Send, Trash2, Plus, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -39,6 +39,13 @@ export const NOCActions: React.FC<NOCActionsProps> = ({ request, onAction }) => 
 
   const [assignedResources, setAssignedResources] = useState<AssignedResource[]>([]);
   const { showToast } = useToast();
+
+  useEffect(() => {
+    setNocData((prev) => ({
+      ...prev,
+      notes: request.nocNotes ?? '',
+    }));
+  }, [request.id, request.nocNotes]);
 
   const isAcknowledged = request.nocAcknowledged === true;
 
@@ -107,6 +114,7 @@ export const NOCActions: React.FC<NOCActionsProps> = ({ request, onAction }) => 
       return;
     }
 
+    const trimmedNotes = nocData.notes.trim();
     onAction('send_to_ingest', {
       nocResources: assignedResources.map(res => ({
         sourceType: nocData.sourceType,
@@ -118,7 +126,7 @@ export const NOCActions: React.FC<NOCActionsProps> = ({ request, onAction }) => 
       })),
       changedBy: 10017,
       comment: "Resources assigned by NOC",
-      notes: nocData.notes
+      ...(trimmedNotes ? { nocNotes: trimmedNotes } : {})
     });
   };
 

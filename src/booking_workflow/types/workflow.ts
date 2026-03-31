@@ -126,6 +126,8 @@ export interface WorkflowRequest {
   nocForwardToIngest: YesNo;
   ingestStatus?: string;
   ingestNotes?: string;
+  /** NOC notes on the booking; same level as ingestNotes in the API DTO. */
+  nocNotes?: string;
   ingestNotDoneReason?: string;
   ingestFolderPath?: string;
   ingestAcknowledged: boolean;
