@@ -96,7 +96,7 @@ export function PublicRotaPage() {
   // Use employees from API if available, otherwise derive from assignments (employee-first layout)
   const employees =
     (week.employees?.length ?? 0) > 0
-      ? [...week.employees!].sort((a, b) => a.name.localeCompare(b.name))
+      ? [...week.employees!]
       : Array.from(
           new Map(
             (week.assignments ?? []).map((a) => [
@@ -109,7 +109,7 @@ export function PublicRotaPage() {
               },
             ])
           ).values()
-        ).sort((a, b) => a.name.localeCompare(b.name));
+        );
 
   return (
     <div className="min-h-screen bg-background p-4 md:p-8 print:p-4">

@@ -94,7 +94,7 @@ function buildGroupedEmployees(
     return [
       {
         departmentName: null,
-        employees: [...employees].sort((a, b) => a.name.localeCompare(b.name)),
+        employees: [...employees],
       },
     ];
   }
@@ -109,7 +109,7 @@ function buildGroupedEmployees(
   );
   return Object.entries(groups).map(([departmentName, emps]) => ({
     departmentName,
-    employees: emps.sort((a, b) => a.name.localeCompare(b.name)),
+    employees: emps,
   }));
 }
 

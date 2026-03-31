@@ -555,7 +555,7 @@ export function RotaManagementPage() {
               <Select
                 value={selectedDepartmentId?.toString() ?? ''}
                 onValueChange={(v) => setSelectedDepartmentId(v ? parseInt(v, 10) : null)}
-                disabled={!isAdmin}
+                disabled={parentDepartments.length <= 1}
               >
                 <SelectTrigger aria-label="Select department">
                   <SelectValue placeholder="Select department" />
