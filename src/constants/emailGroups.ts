@@ -31,4 +31,5 @@ export const DEFAULT_CC_EMAILS = [
   'salderham@qtv37.qa',
   'haldelfi@qtv37.qa',
   'mabushanab@qtv37.qa',
+  'bgaben@qtv37.qa',
 ];
