@@ -148,6 +148,7 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
         complianceTags: "",
         notes: initialData.notes || "",
         studio: initialData.studio || "",
+        ingestNeeded: initialData.ingestNeeded || "",
         cameraCardVideoQuantity: cameraCardVideoQty,
         cameraCardAudioQuantity: cameraCardAudioQty,
         guestName,
@@ -176,6 +177,7 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
       newsroomTicket: "",
       complianceTags: "",
       notes: "",
+      ingestNeeded: "",
       cameraCardVideoQuantity: "",
       cameraCardAudioQuantity: "",
       guestName: "",
@@ -1098,6 +1100,27 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
                   {errors.feedEndTimeOnly && (
                     <p className="text-sm text-red-500">{errors.feedEndTimeOnly}</p>
                   )}
+                </div>
+              </div>
+            )}
+
+            {(formData.bookingType === "Incoming Feed" ||
+              formData.bookingType === "Invite Guest for News") && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="ingestNeeded">Ingest Needed</Label>
+                  <Select
+                    value={formData.ingestNeeded || ""}
+                    onValueChange={(value) => handleChange("ingestNeeded", value)}
+                  >
+                    <SelectTrigger id="ingestNeeded">
+                      <SelectValue placeholder="Select Yes or No" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Yes">Yes</SelectItem>
+                      <SelectItem value="No">No</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
             )}

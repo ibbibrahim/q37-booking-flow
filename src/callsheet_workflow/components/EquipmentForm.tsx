@@ -84,6 +84,52 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({
     return `${start}|${end}|${categoryId}|${callsheetId || ''}`;
   };
 
+  /** After availability loads, drop or fix selections that are invalid for this window (e.g. duplicate callsheet). */
+  const reconcileRowsForCategory = useCallback((categoryId: number, items: InventoryAvailabilityItem[]) => {
+    const itemById = new Map(items.map(i => [i.inventoryItemId, i]));
+
+    setEquipmentRows(prev => {
+      const consumed = new Map<number, number>();
+
+      return prev.map(row => {
+        if (row.categoryId !== categoryId) return row;
+        if (!row.inventoryItemId) return { ...row, exceedsAvailability: false };
+
+        const invItem = itemById.get(row.inventoryItemId);
+        if (!invItem || invItem.availableQty <= 0) {
+          return {
+            ...row,
+            inventoryItemId: undefined,
+            item: '',
+            quantity: 1,
+            exceedsAvailability: false
+          };
+        }
+
+        const used = consumed.get(row.inventoryItemId) ?? 0;
+        const remaining = invItem.availableQty - used;
+
+        if (remaining <= 0) {
+          return {
+            ...row,
+            inventoryItemId: undefined,
+            item: '',
+            quantity: 1,
+            exceedsAvailability: false
+          };
+        }
+
+        if (row.quantity > remaining) {
+          consumed.set(row.inventoryItemId, used + remaining);
+          return { ...row, exceedsAvailability: true };
+        }
+
+        consumed.set(row.inventoryItemId, used + row.quantity);
+        return { ...row, exceedsAvailability: false };
+      });
+    });
+  }, []);
+
   const fetchAvailabilityForRow = useCallback((tempId: string, categoryId: number) => {
     if (!startDateTime || !returnDateTime) return;
 
@@ -91,6 +137,7 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({
     const cached = availabilityCache.current.get(cacheKey);
 
     if (cached) {
+      reconcileRowsForCategory(categoryId, cached.items);
       return;
     }
 
@@ -113,6 +160,8 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({
         setEquipmentRows(prev => prev.map(r =>
           r.tempId === tempId ? { ...r, availabilityLoading: false } : r
         ));
+
+        reconcileRowsForCategory(categoryId, result.items);
       } catch (error: any) {
         console.error('Failed to fetch availability:', error);
         setEquipmentRows(prev => prev.map(r =>
@@ -124,7 +173,7 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({
     }, 300);
 
     debounceTimers.current.set(tempId, timer);
-  }, [startDateTime, returnDateTime, callsheetId]);
+  }, [startDateTime, returnDateTime, callsheetId, reconcileRowsForCategory]);
 
   const getAvailabilityForCategory = (categoryId: number): InventoryAvailabilityItem[] => {
     const cacheKey = getCacheKey(categoryId);

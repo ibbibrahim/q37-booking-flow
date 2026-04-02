@@ -432,6 +432,22 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
     return true;
   };
 
+  const validateEquipmentAvailability = (): boolean => {
+    const exceeds = equipmentRows.some(
+      r => r.categoryId && r.inventoryItemId && r.quantity > 0 && r.exceedsAvailability
+    );
+    if (exceeds) {
+      showToast(
+        'One or more equipment lines exceed availability for the selected time. Adjust quantities or items before submitting.',
+        'warning',
+        7000
+      );
+      setActiveTab('equipment');
+      return false;
+    }
+    return true;
+  };
+
   const handleSubmit = async () => {
     if (isSubmitting) {
       return;
@@ -439,6 +455,10 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
 
     if (!validateStep1()) {
       setActiveTab('request');
+      return;
+    }
+
+    if (!validateEquipmentAvailability()) {
       return;
     }
 

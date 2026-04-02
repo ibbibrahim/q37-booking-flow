@@ -119,6 +119,7 @@ export interface WorkflowRequest {
   language: Language;
   priority: Priority;
   status: WorkflowStatus;
+  ingestNeeded?: YesNo;
   resourcesNeeded?: string;
   notes?: string;
   nocAcknowledged: boolean;
