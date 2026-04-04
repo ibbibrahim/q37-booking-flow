@@ -1,5 +1,143 @@
 import apiClient from '../../utils/apiClient';
-import type { WorkflowRequest, WorkflowTransition, ResourceAssignment, WorkflowStatus, UserRole, UpdateDownloadLinkDto } from '../types/workflow';
+import type {
+  WorkflowRequest,
+  WorkflowTransition,
+  ResourceAssignment,
+  WorkflowStatus,
+  UserRole,
+  UpdateDownloadLinkDto,
+} from '../types/workflow';
+
+/** POST /api/booking/requests/search body (optional fields omitted when unset). */
+export interface BookingRequestSearchBody {
+  page: number;
+  pageSize: number;
+  searchQuery?: string | null;
+  status?: string | null;
+  bookingType?: string | null;
+  dateFrom?: string | null;
+  dateTo?: string | null;
+  createdAtFrom?: string | null;
+  createdAtTo?: string | null;
+}
+
+export interface BookingRequestSearchResponse {
+  total: number;
+  page: number;
+  pageSize: number;
+  items: WorkflowRequest[];
+}
+
+function buildSearchPayload(body: BookingRequestSearchBody): Record<string, unknown> {
+  const payload: Record<string, unknown> = {
+    page: body.page,
+    pageSize: body.pageSize,
+  };
+  if (body.searchQuery?.trim()) payload.searchQuery = body.searchQuery.trim();
+  if (body.status?.trim()) payload.status = body.status.trim();
+  if (body.bookingType?.trim()) payload.bookingType = body.bookingType.trim();
+  if (body.dateFrom) payload.dateFrom = body.dateFrom;
+  if (body.dateTo) payload.dateTo = body.dateTo;
+  if (body.createdAtFrom) payload.createdAtFrom = body.createdAtFrom;
+  if (body.createdAtTo) payload.createdAtTo = body.createdAtTo;
+  return payload;
+}
+
+function visibleForRole(req: WorkflowRequest, userRole: UserRole): boolean {
+  if (userRole === 'NOC') {
+    return (
+      req.status === 'Submitted' ||
+      req.status === 'With NOC' ||
+      req.status === 'Clarification Requested' ||
+      req.status === 'Resources Added' ||
+      req.status === 'Completed' ||
+      req.status === 'Partially Completed'
+    );
+  }
+  if (userRole === 'Ingest') {
+    return (
+      req.status === 'With Ingest' ||
+      req.status === 'Completed' ||
+      req.status === 'Not Done' ||
+      req.status === 'Partially Completed'
+    );
+  }
+  return true;
+}
+
+function guestSearchText(req: WorkflowRequest): string {
+  const g = req.guestDetail?.guestName;
+  if (g) return g;
+  const legacy = (req as WorkflowRequest & { guestName?: string }).guestName;
+  return legacy ?? '';
+}
+
+function mockSearchBookingRequests(
+  body: BookingRequestSearchBody,
+  userRole: UserRole
+): BookingRequestSearchResponse {
+  let list = [...mockRequests];
+
+  list = list.filter((req) => visibleForRole(req, userRole));
+
+  const q = body.searchQuery?.trim().toLowerCase();
+  if (q) {
+    list = list.filter((req) => {
+      const hay = [
+        req.title,
+        req.program,
+        req.studio ?? '',
+        req.notes ?? '',
+        guestSearchText(req),
+      ]
+        .join(' ')
+        .toLowerCase();
+      return hay.includes(q);
+    });
+  }
+
+  if (body.status?.trim()) {
+    list = list.filter((req) => req.status === body.status);
+  }
+
+  if (body.bookingType?.trim()) {
+    list = list.filter((req) => req.bookingType === body.bookingType);
+  }
+
+  if (body.dateFrom || body.dateTo) {
+    const fromT = body.dateFrom ? new Date(body.dateFrom).getTime() : -Infinity;
+    const toT = body.dateTo ? new Date(body.dateTo).getTime() : Infinity;
+    list = list.filter((req) => {
+      if (!req.airDateTime) return false;
+      const t = new Date(req.airDateTime).getTime();
+      if (Number.isNaN(t)) return false;
+      return t >= fromT && t <= toT;
+    });
+  }
+
+  if (body.createdAtFrom || body.createdAtTo) {
+    const fromT = body.createdAtFrom ? new Date(body.createdAtFrom).getTime() : -Infinity;
+    const toT = body.createdAtTo ? new Date(body.createdAtTo).getTime() : Infinity;
+    list = list.filter((req) => {
+      const t = new Date(req.createdAt).getTime();
+      if (Number.isNaN(t)) return false;
+      return t >= fromT && t <= toT;
+    });
+  }
+
+  const total = list.length;
+  const page = Math.max(1, body.page);
+  const pageSize = Math.max(1, body.pageSize);
+  const start = (page - 1) * pageSize;
+  const items = list.slice(start, start + pageSize);
+
+  return {
+    total,
+    page,
+    pageSize,
+    items,
+  };
+}
 
 export const mockRequests: WorkflowRequest[] = [
   {
@@ -189,6 +327,23 @@ export const mockApi = {
       // Optional fallback (you can remove if you want strict backend)
       await new Promise((resolve) => setTimeout(resolve, 300));
       return mockRequests;
+    }
+  },
+
+  searchBookingRequests: async (
+    body: BookingRequestSearchBody,
+    userRole: UserRole
+  ): Promise<BookingRequestSearchResponse> => {
+    try {
+      const response = await apiClient.post(
+        '/api/booking/requests/search',
+        buildSearchPayload(body)
+      );
+      return response.data;
+    } catch (error) {
+      console.warn('Booking search API unavailable, using mock:', error);
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      return mockSearchBookingRequests(body, userRole);
     }
   },
 

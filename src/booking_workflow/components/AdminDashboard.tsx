@@ -1,38 +1,69 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { BarChart3, TrendingUp, Clock, AlertTriangle, CheckCircle2, Users, Radio, UserCircle } from 'lucide-react';
 import { getBookingTypeLabel, type WorkflowRequest, type WorkflowStatus } from '../types/workflow';
+import { mockApi } from '../services/bookingApi';
+
+/** Large page so dashboard stats cover full dataset; adjust if you exceed this. */
+const ADMIN_DASHBOARD_PAGE_SIZE = 10_000;
 
 interface AdminDashboardProps {
-  requests: WorkflowRequest[];
+  /** Bump to refetch (e.g. after create/update or SignalR). */
+  refreshSignal?: number;
 }
 
-export const AdminDashboard: React.FC<AdminDashboardProps> = ({ requests }) => {
+export const AdminDashboard: React.FC<AdminDashboardProps> = ({ refreshSignal = 0 }) => {
+  const [requests, setRequests] = useState<WorkflowRequest[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await mockApi.searchBookingRequests(
+        {
+          page: 1,
+          pageSize: ADMIN_DASHBOARD_PAGE_SIZE,
+        },
+        'Admin'
+      );
+      setRequests(res.items ?? []);
+    } catch (e) {
+      console.error('Failed to load admin dashboard:', e);
+      setRequests([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load, refreshSignal]);
+
   const stats = useMemo(() => {
     const statusCounts: Record<WorkflowStatus, number> = {
-      'Draft': 0,
-      'Submitted': 0,
+      Draft: 0,
+      Submitted: 0,
       'With NOC': 0,
       'Clarification Requested': 0,
       'Resources Added': 0,
       'With Ingest': 0,
-      'Completed': 0,
-      'Not Done': 0
+      Completed: 0,
+      'Not Done': 0,
+      'Partially Completed': 0,
     };
 
     const priorityCounts = { Normal: 0, High: 0, Urgent: 0 };
-    const typeCounts = { 'Incoming Feed': 0, 'Guest for iNEWS Rundown': 0 };
+    const typeCounts: Record<string, number> = {};
     let nocRequiredCount = 0;
 
-    requests.forEach(req => {
+    requests.forEach((req) => {
       statusCounts[req.status]++;
       priorityCounts[req.priority]++;
-      typeCounts[req.bookingType]++;
+      typeCounts[req.bookingType] = (typeCounts[req.bookingType] ?? 0) + 1;
       if (req.nocRequired === 'Yes') nocRequiredCount++;
     });
 
-    const completionRate = requests.length > 0
-      ? ((statusCounts.Completed / requests.length) * 100).toFixed(1)
-      : '0';
+    const completionRate =
+      requests.length > 0 ? ((statusCounts.Completed / requests.length) * 100).toFixed(1) : '0';
 
     const activeRequests = requests.length - statusCounts.Completed - statusCounts['Not Done'];
 
@@ -43,7 +74,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ requests }) => {
       typeCounts,
       nocRequiredCount,
       completionRate,
-      activeRequests
+      activeRequests,
     };
   }, [requests]);
 
@@ -67,6 +98,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ requests }) => {
       </div>
     </div>
   );
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -146,7 +185,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ requests }) => {
                 </div>
                 <span className="text-sm font-medium text-card-foreground">Incoming Feed</span>
               </div>
-              <span className="text-lg font-bold text-card-foreground">{stats.typeCounts['Incoming Feed']}</span>
+              <span className="text-lg font-bold text-card-foreground">
+                {stats.typeCounts['Incoming Feed'] ?? 0}
+              </span>
             </div>
 
             <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
@@ -156,7 +197,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ requests }) => {
                 </div>
                 <span className="text-sm font-medium text-card-foreground">Guest Rundown</span>
               </div>
-              <span className="text-lg font-bold text-card-foreground">{stats.typeCounts['Guest for iNEWS Rundown']}</span>
+              <span className="text-lg font-bold text-card-foreground">
+                {stats.typeCounts['Guest for iNEWS Rundown'] ?? 0}
+              </span>
             </div>
 
             <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
@@ -170,18 +213,24 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ requests }) => {
             </div>
 
             <div className="pt-3 border-t border-border">
-              <h4 className="text-xs font-semibold text-muted-foreground mb-2 uppercase">Priority Breakdown</h4>
+              <h4 className="text-xs font-semibold text-muted-foreground mb-2 uppercase">
+                Priority Breakdown
+              </h4>
               <div className="grid grid-cols-3 gap-2">
                 <div className="text-center p-2 bg-muted rounded">
                   <p className="text-lg font-bold text-card-foreground">{stats.priorityCounts.Normal}</p>
                   <p className="text-xs text-muted-foreground">Normal</p>
                 </div>
                 <div className="text-center p-2 bg-orange-100 dark:bg-orange-900/30 rounded">
-                  <p className="text-lg font-bold text-orange-700 dark:text-orange-400">{stats.priorityCounts.High}</p>
+                  <p className="text-lg font-bold text-orange-700 dark:text-orange-400">
+                    {stats.priorityCounts.High}
+                  </p>
                   <p className="text-xs text-orange-600 dark:text-orange-500">High</p>
                 </div>
                 <div className="text-center p-2 bg-red-100 dark:bg-red-900/30 rounded">
-                  <p className="text-lg font-bold text-red-700 dark:text-red-400">{stats.priorityCounts.Urgent}</p>
+                  <p className="text-lg font-bold text-red-700 dark:text-red-400">
+                    {stats.priorityCounts.Urgent}
+                  </p>
                   <p className="text-xs text-red-600 dark:text-red-500">Urgent</p>
                 </div>
               </div>
@@ -205,7 +254,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ requests }) => {
               </tr>
             </thead>
             <tbody>
-              {recentRequests.map(req => (
+              {recentRequests.map((req) => (
                 <tr key={req.id} className="border-b border-border hover:bg-muted">
                   <td className="py-3 px-4 text-sm text-muted-foreground font-mono">{req.id}</td>
                   <td className="py-3 px-4 text-sm font-medium text-card-foreground">{req.title}</td>
@@ -220,11 +269,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ requests }) => {
                     </span>
                   </td>
                   <td className="py-3 px-4 text-sm">
-                    <span className={`px-2 py-1 rounded text-xs font-medium ${
-                      req.priority === 'Urgent' ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400' :
-                      req.priority === 'High' ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400' :
-                      'bg-muted text-card-foreground'
-                    }`}>
+                    <span
+                      className={`px-2 py-1 rounded text-xs font-medium ${
+                        req.priority === 'Urgent'
+                          ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
+                          : req.priority === 'High'
+                            ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400'
+                            : 'bg-muted text-card-foreground'
+                      }`}
+                    >
                       {req.priority}
                     </span>
                   </td>

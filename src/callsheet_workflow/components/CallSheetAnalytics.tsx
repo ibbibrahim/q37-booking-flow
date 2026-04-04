@@ -13,6 +13,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ListFilterBar, FilterActiveFiltersRow } from '@/components/ui/list-filter-bar';
 import { Badge } from '@/components/ui/badge';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -393,14 +394,55 @@ export const CallSheetAnalytics: React.FC = () => {
       </div>
 
       {/* Filters */}
-      <Card>
-        <CardHeader className="pb-4">
-          <div className="flex items-center gap-2">
-            <Filter size={18} className="text-muted-foreground" />
-            <CardTitle className="text-base">Filters</CardTitle>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      <ListFilterBar
+        activeFiltersRow={
+          hasActiveFilters ? (
+            <FilterActiveFiltersRow onClearAll={handleClearAll}>
+              {selectedRoles.map((role) => (
+                <Badge key={role} variant="secondary" className="gap-1">
+                  <Users size={12} />
+                  {role}
+                  <button
+                    type="button"
+                    onClick={() => handleRoleToggle(role)}
+                    className="ml-1 hover:bg-muted-foreground/20 rounded-full"
+                  >
+                    <X size={12} />
+                  </button>
+                </Badge>
+              ))}
+
+              {selectedMembers.map((memberName) => (
+                <Badge key={memberName} variant="secondary" className="gap-1">
+                  <Users size={12} />
+                  {memberName}
+                  <button
+                    type="button"
+                    onClick={() => handleMemberToggle(memberName)}
+                    className="ml-1 hover:bg-muted-foreground/20 rounded-full"
+                  >
+                    <X size={12} />
+                  </button>
+                </Badge>
+              ))}
+
+              {searchQuery && (
+                <Badge variant="secondary" className="gap-1">
+                  <Search size={12} />
+                  &quot;{searchQuery}&quot;
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    className="ml-1 hover:bg-muted-foreground/20 rounded-full"
+                  >
+                    <X size={12} />
+                  </button>
+                </Badge>
+              )}
+            </FilterActiveFiltersRow>
+          ) : undefined
+        }
+      >
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <DateRangePicker
               value={dateRange}
@@ -514,63 +556,7 @@ export const CallSheetAnalytics: React.FC = () => {
               />
             </div>
           </div>
-
-          {/* Active filters chips */}
-          {hasActiveFilters && (
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-sm text-muted-foreground">Active filters:</span>
-
-              {selectedRoles.map((role) => (
-                <Badge key={role} variant="secondary" className="gap-1">
-                  <Users size={12} />
-                  {role}
-                  <button
-                    onClick={() => handleRoleToggle(role)}
-                    className="ml-1 hover:bg-muted-foreground/20 rounded-full"
-                  >
-                    <X size={12} />
-                  </button>
-                </Badge>
-              ))}
-
-              {selectedMembers.map((memberName) => (
-                <Badge key={memberName} variant="secondary" className="gap-1">
-                  <Users size={12} />
-                  {memberName}
-                  <button
-                    onClick={() => handleMemberToggle(memberName)}
-                    className="ml-1 hover:bg-muted-foreground/20 rounded-full"
-                  >
-                    <X size={12} />
-                  </button>
-                </Badge>
-              ))}
-
-              {searchQuery && (
-                <Badge variant="secondary" className="gap-1">
-                  <Search size={12} />
-                  "{searchQuery}"
-                  <button
-                    onClick={() => setSearchQuery('')}
-                    className="ml-1 hover:bg-muted-foreground/20 rounded-full"
-                  >
-                    <X size={12} />
-                  </button>
-                </Badge>
-              )}
-
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleClearAll}
-                className="h-6 text-xs"
-              >
-                Clear All
-              </Button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      </ListFilterBar>
 
       {/* Global stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
