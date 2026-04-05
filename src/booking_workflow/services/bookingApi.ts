@@ -339,7 +339,14 @@ export const mockApi = {
         '/api/booking/requests/search',
         buildSearchPayload(body)
       );
-      return response.data;
+      const data: BookingRequestSearchResponse = response.data;
+      const filteredItems = data.items.filter((req) => visibleForRole(req, userRole));
+      const removedCount = data.items.length - filteredItems.length;
+      return {
+        ...data,
+        items: filteredItems,
+        total: Math.max(0, data.total - removedCount),
+      };
     } catch (error) {
       console.warn('Booking search API unavailable, using mock:', error);
       await new Promise((resolve) => setTimeout(resolve, 300));
