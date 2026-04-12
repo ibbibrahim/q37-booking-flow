@@ -405,6 +405,30 @@ export const mockApi = {
     return res.data;
   },
 
+  /** PATCH bulk: marks given links (or all) as Done; returns updated booking request. */
+  markAllDownloadLinksDone: async (
+    requestId: string,
+    body: { all?: boolean; linkIds?: number[] } = { all: true }
+  ): Promise<WorkflowRequest> => {
+    const res = await apiClient.patch(
+      `/api/booking/requests/${requestId}/download-links/mark-all-done`,
+      body
+    );
+    const data = res.data as
+      | (WorkflowRequest & { request?: WorkflowRequest })
+      | { request: WorkflowRequest }
+      | undefined;
+    if (data && typeof data === 'object' && 'request' in data && data.request) {
+      const inner = data.request;
+      return { ...inner, id: inner.id != null ? String(inner.id) : inner.id } as WorkflowRequest;
+    }
+    const flat = data as WorkflowRequest | undefined;
+    if (flat?.id != null && typeof flat.id !== 'string') {
+      return { ...flat, id: String(flat.id) } as WorkflowRequest;
+    }
+    return flat as WorkflowRequest;
+  },
+
   getTransitions: async (requestId: string): Promise<WorkflowTransition[]> => {
     await new Promise(resolve => setTimeout(resolve, 200));
     return mockTransitions.filter(trans => trans.requestId === String(requestId));

@@ -1,6 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Clock, User, FileText, CheckCircle2, AlertCircle, AlertTriangle, Edit, Copy, ExternalLink, FolderOpen } from 'lucide-react';
+import {
+  ArrowLeft,
+  Clock,
+  User,
+  FileText,
+  CheckCircle2,
+  AlertCircle,
+  AlertTriangle,
+  Edit,
+  Copy,
+  ExternalLink,
+  FolderOpen,
+  ListChecks,
+} from 'lucide-react';
 import {
   getBookingTypeLabel,
   type WorkflowRequest,
@@ -33,6 +46,19 @@ import {
 } from '@/components/ui/tooltip';
 import { useToast } from '@/contexts/ToastContext';
 import { useSignalR } from '@/contexts/SignalRContext';
+import { useAuth } from '@/contexts/AuthContext';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+
+function isDownloadLinkDone(ingestStatus: string | undefined) {
+  return (ingestStatus || '').trim().toLowerCase() === 'done';
+}
 
 export const RequestDetail: React.FC = () => {
   const { id } = useParams();
@@ -40,11 +66,14 @@ export const RequestDetail: React.FC = () => {
   const location = useLocation();
   const { showToast } = useToast();
   const { listen, isConnected } = useSignalR();
+  const { user } = useAuth();
 
   const [request, setRequest] = useState<WorkflowRequest | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedLink, setSelectedLink] = useState<DownloadLinkDto | null>(null);
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
+  const [markAllDoneOpen, setMarkAllDoneOpen] = useState(false);
+  const [markAllDoneRunning, setMarkAllDoneRunning] = useState(false);
 
   // Detect current user role from path
   const path = location.pathname.split('/')[1];
@@ -177,6 +206,36 @@ export const RequestDetail: React.FC = () => {
         request.status === 'With NOC' ||
         request.status === 'Clarification Requested')) ||
     (userRole === 'Ingest' && request.status === 'With Ingest');
+
+  const canManageIngest = Boolean(user?.roles?.includes('Admin') || user?.roles?.includes('Ingest'));
+  const showIngestActions =
+    canManageIngest &&
+    ['With Ingest', 'Completed', 'Partially Completed', 'Not Done'].includes(request.status);
+
+  const pendingDownloadLinks =
+    request.bookingType === 'Download and Ingest' && request.downloadLinks
+      ? request.downloadLinks.filter((l) => !isDownloadLinkDone(l.ingestStatus))
+      : [];
+
+  const handleConfirmMarkAllDownloadLinksDone = async () => {
+    if (!request?.downloadLinks?.length || pendingDownloadLinks.length === 0) {
+      setMarkAllDoneOpen(false);
+      return;
+    }
+    setMarkAllDoneRunning(true);
+    try {
+      const linkIds = pendingDownloadLinks.map((l) => l.id);
+      const updated = await mockApi.markAllDownloadLinksDone(request.id, { linkIds });
+      setRequest(updated);
+      showToast('All download links marked as Done', 'success');
+      setMarkAllDoneOpen(false);
+    } catch (error) {
+      console.error('Failed to mark all download links done:', error);
+      showToast('Failed to mark all links as Done', 'error');
+    } finally {
+      setMarkAllDoneRunning(false);
+    }
+  };
 
   const renderField = (label: string, value: string | undefined) => {
     if (!value) return null;
@@ -413,16 +472,32 @@ export const RequestDetail: React.FC = () => {
                  (request.bookingType === "Download and Ingest" && request.downloadLinks && request.downloadLinks.length > 0) ||
                  (request.bookingType === "Camera Card and Ingest" && request.cameraCardDetail) ? (
                   <div className="pt-6 border-t border-border">
-                    <h3 className="text-sm font-semibold text-card-foreground mb-4">
-                    {request.bookingType === "Invite Guest for News" ||
-                      request.bookingType === "Invite Guest for Program"
-                        ? "Guest Information"
-                        : request.bookingType === "Download and Ingest"
-                        ? "Download Details"
-                        : request.bookingType === "Camera Card and Ingest"
-                        ? "Camera Card Details"
-                        : "Additional Details"}
-                    </h3>
+                    {request.bookingType === "Download and Ingest" && request.downloadLinks ? (
+                      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <h3 className="text-sm font-semibold text-card-foreground">Download Details</h3>
+                        {canManageIngest && pendingDownloadLinks.length > 0 && (
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            size="sm"
+                            className="w-fit gap-2"
+                            onClick={() => setMarkAllDoneOpen(true)}
+                          >
+                            <ListChecks className="h-4 w-4" />
+                            Mark all as Done
+                          </Button>
+                        )}
+                      </div>
+                    ) : (
+                      <h3 className="text-sm font-semibold text-card-foreground mb-4">
+                        {request.bookingType === "Invite Guest for News" ||
+                        request.bookingType === "Invite Guest for Program"
+                          ? "Guest Information"
+                          : request.bookingType === "Camera Card and Ingest"
+                            ? "Camera Card Details"
+                            : "Additional Details"}
+                      </h3>
+                    )}
 
                     {request.bookingType === "Invite Guest for News" ||
                     request.bookingType === "Invite Guest for Program" ? (
@@ -644,10 +719,8 @@ export const RequestDetail: React.FC = () => {
               <NOCActions request={request} onAction={handleNOCAction} />
             )}
 
-            {/* Ingest Actions */}
-            {showActions && userRole === 'Ingest' && (
-              <IngestActions request={request} onAction={handleIngestAction} />
-            )}
+            {/* Ingest Actions: JWT Admin or Ingest (not only URL role) */}
+            {showIngestActions && <IngestActions request={request} onAction={handleIngestAction} />}
           </div>
 
           {/* Sidebar */}
@@ -820,6 +893,32 @@ export const RequestDetail: React.FC = () => {
           onSave={handleUpdateDownloadLink}
         />
       )}
+
+      <Dialog open={markAllDoneOpen} onOpenChange={setMarkAllDoneOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Mark all download links as Done?</DialogTitle>
+            <DialogDescription>
+              This will update <strong>{pendingDownloadLinks.length}</strong> link
+              {pendingDownloadLinks.length === 1 ? '' : 's'} using the mark-all-done API. Links already Done are left
+              unchanged.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setMarkAllDoneOpen(false)}
+              disabled={markAllDoneRunning}
+            >
+              Cancel
+            </Button>
+            <Button type="button" onClick={handleConfirmMarkAllDownloadLinksDone} disabled={markAllDoneRunning}>
+              {markAllDoneRunning ? 'Updating…' : 'Confirm'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
