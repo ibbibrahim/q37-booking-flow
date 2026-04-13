@@ -1,4 +1,5 @@
-import { memo, useMemo } from 'react';
+import { memo, useMemo, useState, useCallback } from 'react';
+import { ChevronDown } from 'lucide-react';
 import { EmployeeRow } from './EmployeeRow';
 import type {
   RotaDepartment,
@@ -15,6 +16,8 @@ export interface DepartmentSectionProps {
   employees: RotaEmployee[];
   shiftTypes?: RotaShiftType[];
   readOnly?: boolean;
+  /** When true, sub-department rows (e.g. Producing Team) expand/collapse employee rows. Default expanded. */
+  collapsibleSubTeams?: boolean;
   onAssign: (employeeId: number, date: Date, payload: RotaAssignPayload) => void;
   onRemove: (assignmentId: number) => void;
   onEdit: (assignment: RotaAssignment | null, employeeId: number, date: Date) => void;
@@ -37,10 +40,24 @@ export const DepartmentSection = memo(function DepartmentSection({
   employees,
   shiftTypes = [],
   readOnly = false,
+  collapsibleSubTeams = true,
   onAssign,
   onRemove,
   onEdit,
 }: DepartmentSectionProps) {
+  /** `false` = collapsed; missing/`true` = expanded (default open). */
+  const [subTeamOpen, setSubTeamOpen] = useState<Record<string, boolean>>({});
+
+  const toggleSubTeam = useCallback((name: string) => {
+    setSubTeamOpen((prev) => {
+      const isOpen = prev[name] !== false;
+      if (isOpen) return { ...prev, [name]: false };
+      const next = { ...prev };
+      delete next[name];
+      return next;
+    });
+  }, []);
+
   const groupedEmployees = useMemo((): EmployeeGroup[] => {
     if (!department.hasSubDepartments) {
       return [{ departmentName: null, employees: [...employees] }];
@@ -62,44 +79,71 @@ export const DepartmentSection = memo(function DepartmentSection({
     }));
   }, [employees, department.hasSubDepartments]);
 
+  const colSpan = weekDates.length + 1;
+
   return (
     <>
       <tr>
         <td
-          colSpan={8}
+          colSpan={colSpan}
           className="bg-muted/30 px-4 py-2 font-semibold"
         >
           {department.name}
         </td>
       </tr>
 
-      {groupedEmployees.flatMap((group, groupIndex) => [
-        ...(group.departmentName
-          ? [
-              <tr key={`header-${group.departmentName}`}>
-                <td
-                  colSpan={8}
-                  className={`px-4 py-2 font-semibold text-sm border-y border-border/60 ${SUB_DEPARTMENT_ROW_STYLES[groupIndex % SUB_DEPARTMENT_ROW_STYLES.length]}`}
-                >
-                  {group.departmentName}
-                </td>
-              </tr>,
-            ]
-          : []),
-        ...group.employees.map((employee) => (
-          <EmployeeRow
-            key={employee.id}
-            employee={employee}
-            weekDates={weekDates}
-            assignments={assignments}
-            shiftTypes={shiftTypes}
-            readOnly={readOnly}
-            onAssign={onAssign}
-            onRemove={onRemove}
-            onEdit={onEdit}
-          />
-        )),
-      ])}
+      {groupedEmployees.flatMap((group, groupIndex) => {
+        const subName = group.departmentName;
+        const isSubOpen =
+          !collapsibleSubTeams || !subName || subTeamOpen[subName] !== false;
+
+        return [
+          ...(subName
+            ? [
+                <tr key={`header-${subName}`}>
+                  <td
+                    colSpan={colSpan}
+                    className={`p-0 border-y border-border/60 ${SUB_DEPARTMENT_ROW_STYLES[groupIndex % SUB_DEPARTMENT_ROW_STYLES.length]}`}
+                  >
+                    {collapsibleSubTeams ? (
+                      <button
+                        type="button"
+                        onClick={() => toggleSubTeam(subName)}
+                        className="flex w-full items-center justify-between gap-3 px-4 py-2 text-left font-semibold text-sm hover:bg-black/5 dark:hover:bg-white/5"
+                        aria-expanded={isSubOpen}
+                      >
+                        <span>{subName}</span>
+                        <ChevronDown
+                          className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${isSubOpen ? '' : '-rotate-90'}`}
+                          aria-hidden
+                        />
+                      </button>
+                    ) : (
+                      <div className="px-4 py-2 font-semibold text-sm">
+                        {subName}
+                      </div>
+                    )}
+                  </td>
+                </tr>,
+              ]
+            : []),
+          ...(isSubOpen
+            ? group.employees.map((employee) => (
+                <EmployeeRow
+                  key={employee.id}
+                  employee={employee}
+                  weekDates={weekDates}
+                  assignments={assignments}
+                  shiftTypes={shiftTypes}
+                  readOnly={readOnly}
+                  onAssign={onAssign}
+                  onRemove={onRemove}
+                  onEdit={onEdit}
+                />
+              ))
+            : []),
+        ];
+      })}
     </>
   );
 });

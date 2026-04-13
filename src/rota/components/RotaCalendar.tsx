@@ -21,6 +21,8 @@ export interface RotaCalendarProps {
   shiftTypes?: RotaShiftType[];
   isLoading: boolean;
   readOnly?: boolean;
+  /** Sub-department header rows (e.g. Producing Team) can collapse their employee rows. */
+  collapsibleSubTeams?: boolean;
   onAssign: (employeeId: number, date: Date, payload: RotaAssignPayload) => void;
   onRemove: (assignmentId: number) => void;
   onEdit: (assignment: RotaAssignment | null, employeeId: number, date: Date) => void;
@@ -34,6 +36,7 @@ export function RotaCalendar({
   shiftTypes = [],
   isLoading,
   readOnly = false,
+  collapsibleSubTeams = true,
   onAssign,
   onRemove,
   onEdit,
@@ -76,6 +79,7 @@ export function RotaCalendar({
               employees={employees}
               shiftTypes={shiftTypes}
               readOnly={readOnly}
+              collapsibleSubTeams={collapsibleSubTeams}
               onAssign={onAssign}
               onRemove={onRemove}
               onEdit={onEdit}

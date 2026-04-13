@@ -160,6 +160,9 @@ export function RotaManagementPage() {
     (d) => d.id === selectedDepartmentId
   ) ?? null;
 
+  const hideProgramNamesForDepartment =
+    selectedDepartment?.name?.trim().toLowerCase() === 'news and digital';
+
   const shiftTypes: RotaShiftType[] = useMemo(() => {
     const fromDept = selectedDepartment?.shiftTypes;
     if (fromDept?.length) return fromDept;
@@ -640,6 +643,7 @@ export function RotaManagementPage() {
               onCustomClick={handleCustomClick}
               department={selectedDepartment}
               shiftTypes={shiftTypes}
+              hideProgramNames={hideProgramNamesForDepartment}
             />
           </aside>
 

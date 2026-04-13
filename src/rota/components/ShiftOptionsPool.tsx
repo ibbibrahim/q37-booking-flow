@@ -13,12 +13,15 @@ export interface ShiftOptionsPoolProps {
   department?: RotaDepartment | null;
   /** Resolved shift types (department.shiftTypes or API query) */
   shiftTypes: RotaShiftType[];
+  /** Hide predefined program name chips (e.g. departments that do not schedule by program). */
+  hideProgramNames?: boolean;
 }
 
 export function ShiftOptionsPool({
   onCustomClick,
   department,
   shiftTypes,
+  hideProgramNames = false,
 }: ShiftOptionsPoolProps) {
   const activeSorted = [...shiftTypes]
     .filter((s) => s.isActive)
@@ -61,16 +64,18 @@ export function ShiftOptionsPool({
           </div>
         </div>
 
-        <div>
-          <Label className="text-xs font-semibold text-muted-foreground mb-2 block">
-            PROGRAM NAMES
-          </Label>
-          <div className="space-y-1 max-h-64 overflow-y-auto">
-            {PREDEFINED_PROGRAMS.map((program) => (
-              <DraggableProgramChip key={program} programName={program} />
-            ))}
+        {!hideProgramNames && (
+          <div>
+            <Label className="text-xs font-semibold text-muted-foreground mb-2 block">
+              PROGRAM NAMES
+            </Label>
+            <div className="space-y-1 max-h-64 overflow-y-auto">
+              {PREDEFINED_PROGRAMS.map((program) => (
+                <DraggableProgramChip key={program} programName={program} />
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </CardContent>
     </Card>
   );
