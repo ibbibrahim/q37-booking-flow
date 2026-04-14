@@ -52,14 +52,8 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({
   }, []);
 
   useEffect(() => {
-    if (startDateTime && returnDateTime) {
-      equipmentRows.forEach(row => {
-        if (row.categoryId) {
-          fetchAvailabilityForRow(row.tempId, row.categoryId);
-        }
-      });
-    }
-  }, [startDateTime, returnDateTime]);
+    availabilityCache.current.clear();
+  }, [callsheetId]);
 
   const loadCategories = async () => {
     try {
@@ -174,6 +168,16 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({
 
     debounceTimers.current.set(tempId, timer);
   }, [startDateTime, returnDateTime, callsheetId, reconcileRowsForCategory]);
+
+  useEffect(() => {
+    if (startDateTime && returnDateTime) {
+      equipmentRows.forEach(row => {
+        if (row.categoryId) {
+          fetchAvailabilityForRow(row.tempId, row.categoryId);
+        }
+      });
+    }
+  }, [startDateTime, returnDateTime, callsheetId, fetchAvailabilityForRow]);
 
   const getAvailabilityForCategory = (categoryId: number): InventoryAvailabilityItem[] => {
     const cacheKey = getCacheKey(categoryId);

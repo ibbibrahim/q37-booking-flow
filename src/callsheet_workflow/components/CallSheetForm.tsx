@@ -43,6 +43,9 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
   const editData = location.state?.editData;
   const duplicateData = location.state?.duplicateData;
   const isEditMode = mode === 'edit';
+  /** When editing, exclude this callsheet from availability so its own reservations count toward free stock. */
+  const excludeCallsheetIdForAvailability =
+    isEditMode && editData?.id != null ? editData.id : initialCallSheet?.id;
   const isDuplicateMode = !!duplicateData;
   const isTechnicalStoreMode = mode === 'technicalStore';
   const hasCallSheetRole = user?.roles?.includes('CallSheet') || false;
@@ -1163,7 +1166,7 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
             onDepartmentsToNotifyChange={setDepartmentsToNotify}
             startDateTime={formData.startDateTime}
             returnDateTime={formData.returnDateTime}
-            callsheetId={initialCallSheet?.id}
+            callsheetId={excludeCallsheetIdForAvailability}
           />
         </TabsContent>
 

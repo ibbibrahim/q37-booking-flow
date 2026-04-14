@@ -105,8 +105,8 @@ export const callSheetApi = {
     categoryId: number,
     excludeCallsheetId?: number
   ): Promise<InventoryAvailabilityResponse> => {
-    const params: any = { start, end, categoryId };
-    if (excludeCallsheetId) {
+    const params: Record<string, string | number> = { start, end, categoryId };
+    if (excludeCallsheetId != null) {
       params.excludeCallsheetId = excludeCallsheetId;
     }
     const { data } = await apiClient.get('/api/inventory/items/availability', { params });
