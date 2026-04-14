@@ -5,6 +5,14 @@ import type { RotaWeek, RotaDepartment, RotaEmployee, RotaAssignment, RotaShiftT
 import { formatDateForApi, parseLocalDate, normalizeDateString } from './dateUtils';
 import { getAssignmentDisplay, formatShiftTiming } from './rotaUtils';
 import logoUrl from '../../assets/Qbusiness_Logo_NEG_POS-02.png';
+import q37LogoUrl from '../../assets/q37.png';
+
+/** PDF header logo: Q37 for News and Digital, otherwise Q Business. */
+function getPdfExportLogoSrc(department: RotaDepartment): string {
+  const name = department.name?.trim().toLowerCase() ?? '';
+  if (name === 'news and digital') return q37LogoUrl;
+  return logoUrl;
+}
 
 /** Format date for display, e.g. "22 Mar 2026" */
 const formatDateDisplay = (date: Date | string): string => {
@@ -113,8 +121,51 @@ function buildGroupedEmployees(
   }));
 }
 
-/** Slice a tall canvas across PDF pages (landscape A4). */
-function addCanvasToPdf(doc: jsPDF, canvas: HTMLCanvasElement, marginMm: number): void {
+const PDF_HTML_CANVAS_SCALE = 2;
+
+/**
+ * Y-ranges in **canvas pixels** (same space as html2canvas output): each range is
+ * [subdept header row top, first employee row bottom] so we never slice between them.
+ */
+function getPdfSubdeptWithFirstRowRanges(
+  root: HTMLElement,
+  canvasScale: number
+): { top: number; bottom: number }[] {
+  const table = root.querySelector('.pdf-table tbody');
+  if (!table) return [];
+  const rows = Array.from(table.querySelectorAll('tr'));
+  const rootRect = root.getBoundingClientRect();
+  const ranges: { top: number; bottom: number }[] = [];
+
+  for (let i = 0; i < rows.length; i++) {
+    const tr = rows[i];
+    if (!tr.classList.contains('subdept-row')) continue;
+    const next = rows[i + 1];
+    if (!next || next.classList.contains('subdept-row')) continue;
+
+    const r0 = tr.getBoundingClientRect();
+    const r1 = next.getBoundingClientRect();
+    const topCss = r0.top - rootRect.top;
+    const bottomCss = r1.bottom - rootRect.top;
+    ranges.push({
+      top: topCss * canvasScale,
+      bottom: bottomCss * canvasScale,
+    });
+  }
+  return ranges;
+}
+
+/**
+ * Slice a tall canvas across PDF pages (landscape A4).
+ * `keepTogetherRanges` = canvas-pixel bands that must not be split by a page break
+ * (e.g. sub-team header + first employee row).
+ */
+function addCanvasToPdf(
+  doc: jsPDF,
+  canvas: HTMLCanvasElement,
+  marginMm: number,
+  keepTogetherRanges?: { top: number; bottom: number }[]
+): void {
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
   const imgWidthMm = pageWidth - 2 * marginMm;
@@ -133,13 +184,33 @@ function addCanvasToPdf(doc: jsPDF, canvas: HTMLCanvasElement, marginMm: number)
     return;
   }
 
+  const maxSlicePx = Math.ceil((availableMm * canvas.width) / imgWidthMm);
+  const ranges = keepTogetherRanges ?? [];
+
   let yOffsetPx = 0;
   let isFirst = true;
   while (yOffsetPx < canvas.height) {
-    const sliceHeightPx = Math.min(
-      canvas.height - yOffsetPx,
-      Math.ceil((availableMm * canvas.width) / imgWidthMm)
-    );
+    let proposedEnd = Math.min(yOffsetPx + maxSlicePx, canvas.height);
+
+    let snapped = true;
+    while (snapped) {
+      snapped = false;
+      for (const { top, bottom } of ranges) {
+        if (top < proposedEnd && proposedEnd < bottom) {
+          proposedEnd = top;
+          snapped = true;
+        }
+      }
+    }
+
+    if (proposedEnd <= yOffsetPx) {
+      proposedEnd = Math.min(yOffsetPx + maxSlicePx, canvas.height);
+      if (proposedEnd <= yOffsetPx) {
+        proposedEnd = Math.min(yOffsetPx + 1, canvas.height);
+      }
+    }
+
+    const sliceHeightPx = proposedEnd - yOffsetPx;
     const slice = document.createElement('canvas');
     slice.width = canvas.width;
     slice.height = sliceHeightPx;
@@ -305,6 +376,10 @@ function buildPdfDom(params: {
   font-weight: 600;
   background: #f9fafb;
 }
+.pdf-table tr.subdept-row {
+  break-after: avoid-page;
+  page-break-after: avoid;
+}
 .pdf-table .subdept-row td {
   background: #e0e7ff;
   color: #312e81;
@@ -346,7 +421,7 @@ function buildPdfDom(params: {
 }
 </style>
 <div class="pdf-header">
-  <img class="pdf-logo" src="${logoUrl}" alt="" crossorigin="anonymous" />
+  <img class="pdf-logo" src="${getPdfExportLogoSrc(department)}" alt="" crossorigin="anonymous" />
   <div class="pdf-title-block">
     <h1 class="pdf-title">${escapeHtml(department.name)} — Weekly rota</h1>
     <p class="pdf-sub">${escapeHtml(weekStartStr)} – ${escapeHtml(weekEndStr)}</p>
@@ -419,8 +494,10 @@ export async function exportRotaToPDF(
     await document.fonts.ready;
     await new Promise((r) => setTimeout(r, 200));
 
+    const keepTogetherRanges = getPdfSubdeptWithFirstRowRanges(root, PDF_HTML_CANVAS_SCALE);
+
     const canvas = await html2canvas(root, {
-      scale: 2,
+      scale: PDF_HTML_CANVAS_SCALE,
       useCORS: true,
       allowTaint: false,
       backgroundColor: '#ffffff',
@@ -428,7 +505,7 @@ export async function exportRotaToPDF(
     });
 
     const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-    addCanvasToPdf(doc, canvas, 10);
+    addCanvasToPdf(doc, canvas, 10, keepTogetherRanges);
 
     const safeName = department.name.replace(/\s+/g, '_');
     const safeDate = weekStartStr.replace(/\s+/g, '_');
