@@ -165,6 +165,16 @@ export const CallSheetDetail: React.FC = () => {
   const isCancelled = callSheet.status === 'Cancelled';
   const isStoreCompleted = callSheet.status === 'Completed';
 
+  const creatorId =
+    callSheet.createdByUser?.id ??
+    (typeof callSheet.createdBy === 'number'
+      ? callSheet.createdBy
+      : parseInt(String(callSheet.createdBy), 10));
+  const isCallSheetCreator =
+    user != null &&
+    !Number.isNaN(Number(creatorId)) &&
+    user.id === Number(creatorId);
+
   return (
     <div className="max-w-6xl mx-auto">
       {isCancelled && (
@@ -254,19 +264,21 @@ export const CallSheetDetail: React.FC = () => {
             {/* Bottom: secondary actions — hidden for Technical Store users */}
             {!isTechnicalStore && (
               <div className="flex flex-wrap items-center gap-2 mt-3">
-                {/* Row 1 on mobile: Edit + Duplicate side-by-side */}
-                <Button
-                  onClick={() => navigate(`/callsheet/edit/${callSheet.id}`, {
-                    state: { editData: callSheet }
-                  })}
-                  variant="default"
-                  size="sm"
-                  className="gap-1.5 flex-1 sm:flex-none"
-                  disabled={isCancelled}
-                >
-                  <Edit className="h-3.5 w-3.5" />
-                  Edit
-                </Button>
+                {/* Row 1 on mobile: Edit + Duplicate side-by-side — Edit: creator only */}
+                {isCallSheetCreator && (
+                  <Button
+                    onClick={() => navigate(`/callsheet/edit/${callSheet.id}`, {
+                      state: { editData: callSheet }
+                    })}
+                    variant="default"
+                    size="sm"
+                    className="gap-1.5 flex-1 sm:flex-none"
+                    disabled={isCancelled}
+                  >
+                    <Edit className="h-3.5 w-3.5" />
+                    Edit
+                  </Button>
+                )}
                 <Button
                   onClick={() => navigate('/callsheet/new', {
                     state: { duplicateData: callSheet }
