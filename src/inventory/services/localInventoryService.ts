@@ -1,4 +1,9 @@
-import type { InventoryItem, CreateInventoryItemDto, UpdateInventoryItemDto } from '../types/inventory';
+import type {
+  InventoryItem,
+  CreateInventoryItemDto,
+  UpdateInventoryItemDto,
+  InventoryItemsStatusFilter
+} from '../types/inventory';
 import type { InventoryService } from './inventoryService';
 import { inventorySeed } from '../data/inventorySeed';
 
@@ -23,12 +28,15 @@ class LocalInventoryService implements InventoryService {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
   }
 
-  async getAll(includeInactive: boolean = false): Promise<InventoryItem[]> {
+  async getAll(status: InventoryItemsStatusFilter = 'active'): Promise<InventoryItem[]> {
     const items = this.getItems();
-    if (includeInactive) {
+    if (status === 'all') {
       return items;
     }
-    return items.filter(item => item.isActive);
+    if (status === 'active') {
+      return items.filter(item => item.isActive);
+    }
+    return items.filter(item => !item.isActive);
   }
 
   async create(item: CreateInventoryItemDto): Promise<InventoryItem> {

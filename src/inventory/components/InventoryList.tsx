@@ -1,10 +1,15 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Plus, Search, Edit, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import type { InventoryItem, InventoryItemWithCategory, Category } from '../types/inventory';
+import type {
+  InventoryItem,
+  InventoryItemWithCategory,
+  Category,
+  InventoryItemsStatusFilter
+} from '../types/inventory';
 import { apiInventoryService } from '../services/apiInventoryService';
 import { apiCategoriesService } from '../services/apiCategoriesService';
 import { InventoryModal } from './InventoryModal';
@@ -21,6 +26,7 @@ export const InventoryList: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<InventoryItemsStatusFilter>('all');
   const [sortField, setSortField] = useState<SortField>('itemName');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const [currentPage, setCurrentPage] = useState(1);
@@ -29,16 +35,15 @@ export const InventoryList: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
   const [deletingItem, setDeletingItem] = useState<InventoryItem | null>(null);
+  const isInitialLoadRef = useRef(true);
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
-    setLoading(true);
+  const loadData = useCallback(async () => {
+    if (isInitialLoadRef.current) {
+      setLoading(true);
+    }
     try {
       const [itemsData, categoriesData] = await Promise.all([
-        apiInventoryService.getAll(false),
+        apiInventoryService.getAll(statusFilter),
         apiCategoriesService.getAll(false)
       ]);
       setItems(itemsData);
@@ -55,8 +60,13 @@ export const InventoryList: React.FC = () => {
       setCategories([]);
     } finally {
       setLoading(false);
+      isInitialLoadRef.current = false;
     }
-  };
+  }, [statusFilter, showToast]);
+
+  useEffect(() => {
+    void loadData();
+  }, [loadData]);
 
   const itemsWithCategory = useMemo((): InventoryItemWithCategory[] => {
     return items.map(item => ({
@@ -82,6 +92,13 @@ export const InventoryList: React.FC = () => {
     }
 
     filtered.sort((a, b) => {
+      if (statusFilter === 'all' || statusFilter === 'inactive') {
+        const byActive = Number(a.isActive) - Number(b.isActive);
+        if (byActive !== 0) {
+          return byActive;
+        }
+      }
+
       let aVal: string | number = '';
       let bVal: string | number = '';
 
@@ -108,7 +125,7 @@ export const InventoryList: React.FC = () => {
     });
 
     return filtered;
-  }, [itemsWithCategory, searchTerm, categoryFilter, sortField, sortDirection]);
+  }, [itemsWithCategory, searchTerm, categoryFilter, statusFilter, sortField, sortDirection]);
 
   const totalPages = Math.ceil(filteredAndSortedItems.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -231,6 +248,24 @@ export const InventoryList: React.FC = () => {
                     {category.name}
                   </SelectItem>
                 ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="w-full md:w-64">
+            <Select
+              value={statusFilter}
+              onValueChange={(value) => {
+                setStatusFilter(value as InventoryItemsStatusFilter);
+                setCurrentPage(1);
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="All statuses" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All statuses</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="inactive">Inactive</SelectItem>
               </SelectContent>
             </Select>
           </div>

@@ -1,12 +1,27 @@
-import type { InventoryItem, CreateInventoryItemDto, UpdateInventoryItemDto } from '../types/inventory';
+import type {
+  InventoryItem,
+  CreateInventoryItemDto,
+  UpdateInventoryItemDto,
+  InventoryItemsStatusFilter
+} from '../types/inventory';
 import type { InventoryService } from './inventoryService';
 import apiClient from '@/utils/apiClient';
 
 class ApiInventoryService implements InventoryService {
-  async getAll(includeInactive: boolean = false): Promise<InventoryItem[]> {
+  async getAll(status: InventoryItemsStatusFilter = 'active'): Promise<InventoryItem[]> {
+    const params: Record<string, boolean> = {};
+    if (status === 'all') {
+      params.includeInactive = true;
+    } else if (status === 'active') {
+      params.includeInactive = false;
+    } else {
+      params.includeInactive = true;
+      params.isActive = false;
+    }
+
     try {
       const response = await apiClient.get<InventoryItem[]>('/api/inventory/items', {
-        params: { includeInactive }
+        params
       });
       return response.data;
     } catch (error) {

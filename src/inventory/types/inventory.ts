@@ -1,3 +1,6 @@
+/** Used when listing items: all, active only, or inactive only. */
+export type InventoryItemsStatusFilter = 'all' | 'active' | 'inactive';
+
 export interface Category {
   id: number;
   name: string;
