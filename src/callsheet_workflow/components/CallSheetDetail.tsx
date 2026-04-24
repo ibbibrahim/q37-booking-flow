@@ -34,6 +34,7 @@ export const CallSheetDetail: React.FC = () => {
 
   // Check if user has CallSheet role
   const hasCallSheetRole = user?.roles?.includes('Callsheet') || false;
+  const isAdmin = user?.roles?.includes('Admin') ?? false;
 
   useEffect(() => {
     const loadCallSheet = async () => {
@@ -175,6 +176,9 @@ export const CallSheetDetail: React.FC = () => {
     !Number.isNaN(Number(creatorId)) &&
     user.id === Number(creatorId);
 
+  const canEditCallSheet = isCallSheetCreator || isAdmin;
+  const canCancelCallSheet = isAdmin || isCallSheetCreator;
+
   return (
     <div className="max-w-6xl mx-auto">
       {isCancelled && (
@@ -243,7 +247,7 @@ export const CallSheetDetail: React.FC = () => {
 
               {/* Cancel + Download — top-right on desktop only; hidden on mobile (moved below) */}
               <div className="hidden sm:flex items-center gap-2 shrink-0 flex-wrap">
-                {!isTechnicalStore && hasCallSheetRole && !isCancelled && (
+                {!isTechnicalStore && canCancelCallSheet && !isCancelled && (
                   <Button
                     onClick={() => setShowCancelModal(true)}
                     variant="destructive"
@@ -264,8 +268,8 @@ export const CallSheetDetail: React.FC = () => {
             {/* Bottom: secondary actions — hidden for Technical Store users */}
             {!isTechnicalStore && (
               <div className="flex flex-wrap items-center gap-2 mt-3">
-                {/* Row 1 on mobile: Edit + Duplicate side-by-side — Edit: creator only */}
-                {isCallSheetCreator && (
+                {/* Row 1 on mobile: Edit + Duplicate — Edit: creator or Admin */}
+                {canEditCallSheet && (
                   <Button
                     onClick={() => navigate(`/callsheet/edit/${callSheet.id}`, {
                       state: { editData: callSheet }
@@ -326,7 +330,7 @@ export const CallSheetDetail: React.FC = () => {
 
             {/* Row 3 on mobile: Cancel + Download (desktop version is top-right, above) */}
             <div className="flex sm:hidden items-center gap-2 mt-2 flex-wrap">
-              {!isTechnicalStore && hasCallSheetRole && !isCancelled && (
+              {!isTechnicalStore && canCancelCallSheet && !isCancelled && (
                 <Button
                   onClick={() => setShowCancelModal(true)}
                   variant="destructive"
