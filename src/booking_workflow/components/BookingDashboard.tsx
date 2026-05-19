@@ -7,8 +7,10 @@ import { useAuth } from '../../contexts/AuthContext';
 import { NotificationDropdown } from '../../components/NotificationDropdown';
 import { NotificationPermissionBanner } from '../../components/NotificationPermissionBanner';
 import { NotificationSettings } from '../../components/NotificationSettings';
-import qBusinessLogoDark from '../../assets/Qbusiness_Logo_NEG_POS-01.png';
-import qBusinessLogoLight from '../../assets/Qbusiness_Logo_NEG_POS-02.png';
+import qbcDark from '../../assets/QBC-dark.png';
+import qbcDarkAr from '../../assets/QBC-dark-ar.png';
+import qbcLight from '../../assets/QBC-light.png';
+import qbcLightAr from '../../assets/QBC-light-ar.png';
 import { ChangePasswordModal } from './ChangePasswordModal';
 
 export const BookingDashboard: React.FC = () => {
@@ -120,12 +122,22 @@ export const BookingDashboard: React.FC = () => {
         <div className="h-full flex flex-col">
           <div className="p-6 border-b border-sidebar-border">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <img
-                  src={theme === 'dark' ? qBusinessLogoDark : qBusinessLogoLight}
-                  alt="QBusiness Logo"
-                  className="h-12 object-contain"
-                />
+              <div className="flex items-center gap-2">
+                <div className="h-10 w-[92px] shrink-0 flex items-center justify-center">
+                  <img
+                    src={theme === 'dark' ? qbcDark : qbcLight}
+                    alt="QBC"
+                    className="max-h-full max-w-full object-contain"
+                  />
+                </div>
+                <div className="w-px h-8 bg-sidebar-border opacity-60 shrink-0" />
+                <div className="h-10 w-[88px] shrink-0 flex items-center justify-center">
+                  <img
+                    src={theme === 'dark' ? qbcDarkAr : qbcLightAr}
+                    alt="كيو بي سي"
+                    className="max-h-full max-w-full object-contain"
+                  />
+                </div>
                 {/* <div>
                   <h1 className="text-lg font-bold text-sidebar-foreground">Workflow Hub</h1>
                 </div> */}

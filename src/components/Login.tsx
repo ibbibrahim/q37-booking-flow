@@ -6,10 +6,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
-import { AlertCircle, Video, Monitor, Radio, Eye, EyeOff, Moon, Sun } from 'lucide-react';
+import { AlertCircle, Video, Radio, Eye, EyeOff, Moon, Sun } from 'lucide-react';
 
-import qBusinessLogoDark from '@/assets/Qbusiness_Logo_NEG_POS-01.png';
-import qBusinessLogoLight from '@/assets/Qbusiness_Logo_NEG_POS-02.png';
+import qbcDark from '@/assets/QBC-dark.png';
+import qbcDarkAr from '@/assets/QBC-dark-ar.png';
+import qbcLight from '@/assets/QBC-light.png';
+import qbcLightAr from '@/assets/QBC-light-ar.png';
 
 export const Login: React.FC = () => {
   const navigate = useNavigate();
@@ -81,12 +83,22 @@ export const Login: React.FC = () => {
 
       <Card className="w-full max-w-md shadow-2xl border-0">
         <CardContent className="pt-8 pb-8 px-8">
-          <div className="flex items-center justify-center mb-6">
-            <img
-              src={isDark ? qBusinessLogoDark : qBusinessLogoLight}
-              alt="QBusiness Logo"
-              className="h-12"
-            />
+          <div className="flex items-center justify-center gap-4 mb-6">
+            <div className="h-14 w-[110px] shrink-0 flex items-center justify-center">
+              <img
+                src={isDark ? qbcDark : qbcLight}
+                alt="QBC"
+                className="max-h-full max-w-full object-contain"
+              />
+            </div>
+            <div className="w-px h-10 bg-border opacity-60 shrink-0" />
+            <div className="h-14 w-[110px] shrink-0 flex items-center justify-center">
+              <img
+                src={isDark ? qbcDarkAr : qbcLightAr}
+                alt="كيو بي سي"
+                className="max-h-full max-w-full object-contain"
+              />
+            </div>
           </div>
 
           <div className="text-center mb-8">
@@ -95,7 +107,7 @@ export const Login: React.FC = () => {
               <h1 className="text-2xl font-bold text-foreground">Welcome Back</h1>
             </div> */}
             <p className="text-muted-foreground text-sm">
-              Sign in to access Resourse Management Dashboard
+              Sign in to access Resource Management Dashboard
             </p>
           </div>
 
@@ -109,18 +121,22 @@ export const Login: React.FC = () => {
 
             <div className="space-y-2">
               <Label htmlFor="username" className="text-sm font-medium">
-                Email Address
+                Username
               </Label>
               <Input
                 id="username"
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="your.email@qbusiness.com"
+                placeholder="e.g. imahmood"
                 disabled={isLoading}
                 autoComplete="username"
                 className="h-11"
               />
+              <p className="text-xs text-muted-foreground flex items-center gap-1">
+                <span className="inline-block w-1 h-1 rounded-full bg-muted-foreground/60 mt-px shrink-0" />
+                Enter only the part before the @ in your email
+              </p>
             </div>
 
             <div className="space-y-2">
