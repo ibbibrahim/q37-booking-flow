@@ -1,7 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import type { UserRole } from '../types/workflow';
-import { User, Radio, Package, Shield, Menu, X, Sun, Moon, FileText, LogOut, UserCircle, BarChart3, Boxes, Video, Users, KeyRound, Film, Inbox, CalendarDays } from 'lucide-react';
+import {
+  User, Radio, Package, Shield, Menu, X, Sun, Moon, FileText,
+  LogOut, UserCircle, BarChart3, Boxes, Tv, Users, KeyRound,
+  Film, Inbox, CalendarDays, ChevronLeft, ChevronRight,
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { NotificationDropdown } from '../../components/NotificationDropdown';
@@ -18,27 +23,35 @@ export const BookingDashboard: React.FC = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Mobile overlay open/close
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  // Desktop collapsed (icon-only) — persisted
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    return localStorage.getItem('sidebar-collapsed') === 'true';
+  });
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
 
+  const toggleCollapsed = () => {
+    const next = !sidebarCollapsed;
+    setSidebarCollapsed(next);
+    localStorage.setItem('sidebar-collapsed', String(next));
+  };
+
   const getCurrentSection = (): string => {
     const pathParts = location.pathname.split('/').filter(Boolean);
-    if (pathParts[0] === 'admin' && pathParts[1] === 'users') {
-      return 'admin-users';
-    }
-    if (pathParts[0] === 'rota') {
-      return 'rota';
-    }
-    if (pathParts[0] === 'editing' && pathParts[1] === 'dashboard') {
-      return 'editing-dashboard';
-    }
+    if (pathParts[0] === 'admin' && pathParts[1] === 'users') return 'admin-users';
+    if (pathParts[0] === 'rota') return 'rota';
+    if (pathParts[0] === 'schedule') return 'schedule';
+    if (pathParts[0] === 'studio-booking') return 'studio-booking';
+    if (pathParts[0] === 'editing' && pathParts[1] === 'dashboard') return 'editing-dashboard';
     if (pathParts[0] === 'editing' || pathParts[0] === 'editor-queue') {
-      // Editors viewing an edit request detail (/editing/:id) should see Edit Suite Assignments as active
-      const isEditorOnly = user?.roles?.includes('Editor') && !user?.roles?.includes('Booking') && !user?.roles?.includes('Admin');
-      if (pathParts[0] === 'editing' && pathParts[1] && isEditorOnly) {
-        return 'editor-queue';
-      }
+      const isEditorOnly =
+        user?.roles?.includes('Editor') &&
+        !user?.roles?.includes('Booking') &&
+        !user?.roles?.includes('Admin');
+      if (pathParts[0] === 'editing' && pathParts[1] && isEditorOnly) return 'editor-queue';
       return pathParts[0];
     }
     return pathParts[0] || 'booking';
@@ -49,14 +62,10 @@ export const BookingDashboard: React.FC = () => {
   const getCurrentRole = (): UserRole => {
     const path = location.pathname.split('/')[1];
     switch (path) {
-      case 'noc':
-        return 'NOC';
-      case 'ingest':
-        return 'Ingest';
-      case 'admin':
-        return 'Admin';
-      default:
-        return 'Booking';
+      case 'noc': return 'NOC';
+      case 'ingest': return 'Ingest';
+      case 'admin': return 'Admin';
+      default: return 'Booking';
     }
   };
 
@@ -67,7 +76,7 @@ export const BookingDashboard: React.FC = () => {
     NOC: { icon: Radio, label: 'NOC', path: '/noc' },
     Ingest: { icon: Package, label: 'Ingest', path: '/ingest' },
     Admin: { icon: Shield, label: 'Booking Dashboard', path: '/admin' },
-    Callsheet: { icon: FileText, label: 'Call Sheet', path: '/callsheet' }
+    Callsheet: { icon: FileText, label: 'Call Sheet', path: '/callsheet' },
   };
 
   const hasCallsheetAccess = user?.roles?.includes('Callsheet') || user?.roles?.includes('Admin');
@@ -82,18 +91,13 @@ export const BookingDashboard: React.FC = () => {
     user?.roles?.includes('Editor');
 
   const getAllowedRoles = (): UserRole[] => {
-    if (!user || !user.roles || user.roles.length === 0) {
-      return [];
-    }
-
+    if (!user?.roles?.length) return [];
     const allowed: UserRole[] = [];
-
     if (user.roles.includes('Booking')) allowed.push('Booking');
     if (user.roles.includes('NOC')) allowed.push('NOC');
     if (user.roles.includes('Ingest')) allowed.push('Ingest');
     if (user.roles.includes('Admin')) allowed.push('Admin');
     if (user.roles.includes('Callsheet')) allowed.push('Callsheet');
-
     return allowed;
   };
 
@@ -101,220 +105,272 @@ export const BookingDashboard: React.FC = () => {
 
   const getRoleDescription = (role: UserRole): string => {
     switch (role) {
-      case 'Booking':
-        return 'Create and manage workflow requests';
-      case 'NOC':
-        return 'Review requests and assign resources';
-      case 'Ingest':
-        return 'Process final stage workflow requests';
-      case 'Admin':
-        return 'Full system access and analytics';
-      default:
-        return '';
+      case 'Booking': return 'Create and manage workflow requests';
+      case 'NOC': return 'Review requests and assign resources';
+      case 'Ingest': return 'Process final stage workflow requests';
+      case 'Admin': return 'Full system access and analytics';
+      default: return '';
     }
   };
 
+  // Reusable nav button
+  const NavBtn = ({
+    icon: Icon,
+    label,
+    isActive,
+    onClick,
+  }: {
+    icon: React.ElementType;
+    label: string;
+    isActive: boolean;
+    onClick: () => void;
+  }) => (
+    <button
+      title={sidebarCollapsed ? label : undefined}
+      onClick={() => { onClick(); setSidebarOpen(false); }}
+      className={cn(
+        'w-full flex items-center rounded-lg text-left transition-colors py-2.5',
+        sidebarCollapsed ? 'lg:justify-center lg:px-2 gap-3 px-3' : 'gap-3 px-3',
+        isActive
+          ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+          : 'text-sidebar-foreground hover:bg-sidebar-accent'
+      )}
+    >
+      <Icon size={20} className="shrink-0" />
+      <span className={cn('font-medium text-sm truncate', sidebarCollapsed && 'lg:hidden')}>
+        {label}
+      </span>
+    </button>
+  );
+
+  const headerTitle = (() => {
+    switch (currentSection) {
+      case 'callsheet': return 'Call Sheet Workflow';
+      case 'inventory': return 'Inventory Management';
+      case 'editing': return 'Edit Suite Booking';
+      case 'editing-dashboard': return 'Edit Suite Dashboard';
+      case 'editor-queue': return 'Edit Suite Assignments';
+      case 'rota': return 'Rota Management';
+      case 'studio-booking': return 'Studio Booking';
+      case 'schedule': return 'Programme Schedule';
+      case 'admin-users': return 'User Management';
+      default: return currentRole;
+    }
+  })();
+
+  const headerSubtitle = (() => {
+    switch (currentSection) {
+      case 'callsheet': return 'Manage call sheets, equipment, and transportation requests';
+      case 'inventory': return 'Manage technical store inventory items';
+      case 'editing': return 'Create and manage edit suite booking requests';
+      case 'editing-dashboard': return 'Weekly schedule of edit room reservations';
+      case 'editor-queue': return 'View and assign edit suite booking requests';
+      case 'rota': return 'Manage department rotas and shift assignments';
+      case 'studio-booking': return 'Manage studio bookings and schedules';
+      case 'schedule': return 'QBusiness channel programme guide from BCM';
+      case 'admin-users': return 'Manage system users, roles, and permissions';
+      default: return getRoleDescription(currentRole);
+    }
+  })();
+
   return (
     <div className="h-screen bg-background flex overflow-hidden">
-      <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-sidebar-background border-r border-sidebar-border transform transition-transform duration-200 lg:translate-x-0 lg:static lg:inset-auto ${
-        sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-      }`}>
-        <div className="h-full flex flex-col">
-          <div className="p-6 border-b border-sidebar-border">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="h-10 w-[92px] shrink-0 flex items-center justify-center">
-                  <img
-                    src={theme === 'dark' ? qbcDark : qbcLight}
-                    alt="QBC"
-                    className="max-h-full max-w-full object-contain"
-                  />
-                </div>
-                <div className="w-px h-8 bg-sidebar-border opacity-60 shrink-0" />
-                <div className="h-10 w-[88px] shrink-0 flex items-center justify-center">
-                  <img
-                    src={theme === 'dark' ? qbcDarkAr : qbcLightAr}
-                    alt="كيو بي سي"
-                    className="max-h-full max-w-full object-contain"
-                  />
-                </div>
-                {/* <div>
-                  <h1 className="text-lg font-bold text-sidebar-foreground">Workflow Hub</h1>
-                </div> */}
+
+      {/* ── SIDEBAR ─────────────────────────────────────────────── */}
+      <aside
+        className={cn(
+          'fixed inset-y-0 left-0 z-50 bg-sidebar-background border-r border-sidebar-border',
+          'transform transition-all duration-300 ease-in-out',
+          'flex flex-col',
+          // Mobile: always w-64, slides in/out
+          // Desktop: w-64 expanded or w-16 collapsed
+          sidebarCollapsed ? 'w-64 lg:w-16' : 'w-64',
+          sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
+          'lg:static lg:inset-auto'
+        )}
+      >
+        {/* ── Logo header ── */}
+        <div className="shrink-0 border-b border-sidebar-border">
+          <div className={cn(
+            'flex items-center justify-between transition-all duration-300',
+            sidebarCollapsed ? 'p-3 lg:justify-center' : 'p-4'
+          )}>
+
+            {/* Full dual-logo (shown when expanded OR on mobile) */}
+            <div className={cn(
+              'flex items-center gap-2',
+              sidebarCollapsed && 'lg:hidden'
+            )}>
+              <div className="h-10 w-[92px] shrink-0 flex items-center justify-center">
+                <img
+                  src={theme === 'dark' ? qbcDark : qbcLight}
+                  alt="QBC"
+                  className="max-h-full max-w-full object-contain"
+                />
               </div>
-              <button
-                onClick={() => setSidebarOpen(false)}
-                className="lg:hidden text-sidebar-foreground hover:text-sidebar-primary"
-              >
-                <X size={20} />
-              </button>
+              <div className="w-px h-8 bg-sidebar-border opacity-60 shrink-0" />
+              <div className="h-10 w-[88px] shrink-0 flex items-center justify-center">
+                <img
+                  src={theme === 'dark' ? qbcDarkAr : qbcLightAr}
+                  alt="كيو بي سي"
+                  className="max-h-full max-w-full object-contain"
+                />
+              </div>
             </div>
+
+            {/* Small icon logo (desktop collapsed only) */}
+            <div className={cn(
+              'hidden',
+              sidebarCollapsed && 'lg:flex items-center justify-center'
+            )}>
+              <div className="h-8 w-8 flex items-center justify-center">
+                <img
+                  src={theme === 'dark' ? qbcDark : qbcLight}
+                  alt="QBC"
+                  className="max-h-full max-w-full object-contain"
+                />
+              </div>
+            </div>
+
+            {/* Mobile close button */}
+            <button
+              onClick={() => setSidebarOpen(false)}
+              className="lg:hidden text-sidebar-foreground hover:text-sidebar-primary p-1"
+            >
+              <X size={20} />
+            </button>
           </div>
+        </div>
 
-          <nav className="flex-1 p-4">
-            <div className="space-y-1">
+        {/* ── Nav items ── */}
+        <nav className="flex-1 overflow-y-auto p-2">
+          <div className="space-y-0.5">
+
             {roles.map(role => {
-              const Icon = roleConfig[role].icon;
-              const isActive = currentSection === role.toLowerCase() && location.pathname !== '/callsheet/analytics';
-
+              const isActive =
+                currentSection === role.toLowerCase() &&
+                location.pathname !== '/callsheet/analytics';
               return (
-                <button
+                <NavBtn
                   key={role}
+                  icon={roleConfig[role].icon}
+                  label={roleConfig[role].label}
+                  isActive={isActive}
                   onClick={() => navigate(roleConfig[role].path)}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
-                    isActive
-                      ? 'bg-sidebar-primary text-sidebar-primary-foreground'
-                      : 'text-sidebar-foreground hover:bg-sidebar-accent'
-                  }`}
-                >
-                  <Icon size={20} />
-                  <span className="font-medium text-sm">{roleConfig[role].label}</span>
-                </button>
+                />
               );
             })}
 
             {hasCallsheetAccess && (
-              <>
-                {/* <div className="my-2 border-t border-sidebar-border"></div> */}
-                <button
-                  onClick={() => navigate('/callsheet/analytics')}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
-                    location.pathname === '/callsheet/analytics'
-                      ? 'bg-sidebar-primary text-sidebar-primary-foreground'
-                      : 'text-sidebar-foreground hover:bg-sidebar-accent'
-                  }`}
-                >
-                  <BarChart3 size={20} />
-                  <span className="font-medium text-sm">Call Sheet Analytics</span>
-                </button>
-              </>
+              <NavBtn
+                icon={BarChart3}
+                label="Call Sheet Analytics"
+                isActive={location.pathname === '/callsheet/analytics'}
+                onClick={() => navigate('/callsheet/analytics')}
+              />
             )}
 
             {hasEditingAccess && (
-              <>
-                <button
-                  onClick={() => navigate('/editing')}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
-                    currentSection === 'editing'
-                      ? 'bg-sidebar-primary text-sidebar-primary-foreground'
-                      : 'text-sidebar-foreground hover:bg-sidebar-accent'
-                  }`}
-                >
-                  <Film size={20} />
-                  <span className="font-medium text-sm">Edit Suite Booking</span>
-                </button>
-              </>
+              <NavBtn
+                icon={Film}
+                label="Edit Suite Booking"
+                isActive={currentSection === 'editing'}
+                onClick={() => navigate('/editing')}
+              />
             )}
 
             {hasEditSuiteDashboardAccess && (
-              <>
-                <button
-                  onClick={() => navigate('/editing/dashboard')}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
-                    currentSection === 'editing-dashboard'
-                      ? 'bg-sidebar-primary text-sidebar-primary-foreground'
-                      : 'text-sidebar-foreground hover:bg-sidebar-accent'
-                  }`}
-                >
-                  <CalendarDays size={20} />
-                  <span className="font-medium text-sm">Edit Suite Dashboard</span>
-                </button>
-              </>
+              <NavBtn
+                icon={CalendarDays}
+                label="Edit Suite Dashboard"
+                isActive={currentSection === 'editing-dashboard'}
+                onClick={() => navigate('/editing/dashboard')}
+              />
             )}
 
             {hasRotaAccess && (
-              <>
-                <button
-                  onClick={() => navigate('/rota')}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
-                    currentSection === 'rota'
-                      ? 'bg-sidebar-primary text-sidebar-primary-foreground'
-                      : 'text-sidebar-foreground hover:bg-sidebar-accent'
-                  }`}
-                >
-                  <CalendarDays size={20} />
-                  <span className="font-medium text-sm">Rota Management</span>
-                </button>
-              </>
+              <NavBtn
+                icon={CalendarDays}
+                label="Rota Management"
+                isActive={currentSection === 'rota'}
+                onClick={() => navigate('/rota')}
+              />
             )}
 
             {hasEditorQueueAccess && (
-              <>
-                <button
-                  onClick={() => navigate('/editor-queue')}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
-                    currentSection === 'editor-queue'
-                      ? 'bg-sidebar-primary text-sidebar-primary-foreground'
-                      : 'text-sidebar-foreground hover:bg-sidebar-accent'
-                  }`}
-                >
-                  <Inbox size={20} />
-                  <span className="font-medium text-sm">Edit Suite Assignments</span>
-                </button>
-              </>
+              <NavBtn
+                icon={Inbox}
+                label="Edit Suite Assignments"
+                isActive={currentSection === 'editor-queue'}
+                onClick={() => navigate('/editor-queue')}
+              />
             )}
 
             {hasTechnicalStoreAccess && (
-              <>
-                {/* <div className="my-2 border-t border-sidebar-border"></div> */}
-                <button
-                  onClick={() => navigate('/inventory')}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
-                    currentSection === 'inventory'
-                      ? 'bg-sidebar-primary text-sidebar-primary-foreground'
-                      : 'text-sidebar-foreground hover:bg-sidebar-accent'
-                  }`}
-                >
-                  <Boxes size={20} />
-                  <span className="font-medium text-sm">Inventory</span>
-                </button>
-              </>
+              <NavBtn
+                icon={Boxes}
+                label="Inventory"
+                isActive={currentSection === 'inventory'}
+                onClick={() => navigate('/inventory')}
+              />
             )}
 
-            {/* <button
-              onClick={() => navigate('/studio-booking')}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
-                currentSection === 'studio-booking'
-                  ? 'bg-sidebar-primary text-sidebar-primary-foreground'
-                  : 'text-sidebar-foreground hover:bg-sidebar-accent'
-              }`}
-            >
-              <Video size={20} />
-              <span className="font-medium text-sm">Studio Booking</span>
-            </button> */}
+            <NavBtn
+              icon={Tv}
+              label="Programme Schedule"
+              isActive={currentSection === 'schedule'}
+              onClick={() => navigate('/schedule')}
+            />
 
             {hasAdminAccess && (
               <>
-                <div className="my-2 border-t border-sidebar-border"></div>
-                <button
+                <div className="my-1 border-t border-sidebar-border" />
+                <NavBtn
+                  icon={Users}
+                  label="User Management"
+                  isActive={location.pathname === '/admin/users'}
                   onClick={() => navigate('/admin/users')}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
-                    location.pathname === '/admin/users'
-                      ? 'bg-sidebar-primary text-sidebar-primary-foreground'
-                      : 'text-sidebar-foreground hover:bg-sidebar-accent'
-                  }`}
-                >
-                  <Users size={20} />
-                  <span className="font-medium text-sm">User Management</span>
-                </button>
+                />
               </>
             )}
-            </div>
-          </nav>
+          </div>
+        </nav>
 
-          <div className="p-4 border-t border-sidebar-border">
-            {/* <button
-              onClick={toggleTheme}
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors text-sidebar-foreground hover:bg-sidebar-accent mb-3"
-            >
-              {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
-              <span className="font-medium text-sm">{theme === 'light' ? 'Dark Mode' : 'Light Mode'}</span>
-            </button> */}
-            <p className="text-xs text-sidebar-foreground font-bold opacity-60">Resource Management Workflow</p>
+        {/* ── Footer with collapse toggle ── */}
+        <div className="shrink-0 border-t border-sidebar-border">
+          {/* Desktop collapse toggle button */}
+          <button
+            onClick={toggleCollapsed}
+            title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            className={cn(
+              'hidden lg:flex items-center w-full px-3 py-3 text-sidebar-foreground hover:bg-sidebar-accent transition-colors',
+              sidebarCollapsed ? 'lg:justify-center' : 'gap-3'
+            )}
+          >
+            {sidebarCollapsed
+              ? <ChevronRight size={18} className="shrink-0" />
+              : (
+                <>
+                  <ChevronLeft size={18} className="shrink-0" />
+                  <span className="text-xs font-medium">Collapse sidebar</span>
+                </>
+              )
+            }
+          </button>
+
+          {/* Footer text (hidden when collapsed) */}
+          <div className={cn(
+            'px-4 pb-4 pt-1',
+            sidebarCollapsed && 'lg:hidden'
+          )}>
+            <p className="text-xs text-sidebar-foreground font-bold opacity-60">
+              Resource Management Workflow
+            </p>
           </div>
         </div>
       </aside>
 
+      {/* Mobile backdrop */}
       {sidebarOpen && (
         <div
           className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
@@ -322,11 +378,14 @@ export const BookingDashboard: React.FC = () => {
         />
       )}
 
+      {/* ── MAIN CONTENT ─────────────────────────────────────────── */}
       <div className="flex-1 flex flex-col min-w-0">
+
         <header className="bg-card border-b border-border sticky top-0 z-30">
-          <div className="px-4 sm:px-6 lg:px-8 py-4">
+          <div className="px-4 sm:px-6 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
+                {/* Mobile hamburger */}
                 <button
                   onClick={() => setSidebarOpen(true)}
                   className="lg:hidden text-card-foreground hover:text-primary"
@@ -334,48 +393,12 @@ export const BookingDashboard: React.FC = () => {
                   <Menu size={24} />
                 </button>
                 <div>
-                  <h2 className="text-xl font-bold text-card-foreground">
-                    {currentSection === 'callsheet'
-                      ? 'Call Sheet Workflow'
-                      : currentSection === 'inventory'
-                      ? 'Inventory Management'
-                      : currentSection === 'editing'
-                      ? 'Edit Suite Booking'
-                      : currentSection === 'editing-dashboard'
-                      ? 'Edit Suite Dashboard'
-                      : currentSection === 'editor-queue'
-                      ? 'Edit Suite Assignments'
-                      : currentSection === 'rota'
-                      ? 'Rota Management'
-                      : currentSection === 'studio-booking'
-                      ? 'Studio Booking'
-                      : currentSection === 'admin-users'
-                      ? 'User Management'
-                      : currentRole}
-                  </h2>
-                  <p className="text-sm text-muted-foreground mt-0.5">
-                    {currentSection === 'callsheet'
-                      ? 'Manage call sheets, equipment, and transportation requests'
-                      : currentSection === 'inventory'
-                      ? 'Manage technical store inventory items'
-                      : currentSection === 'editing'
-                      ? 'Create and manage edit suite booking requests'
-                      : currentSection === 'editing-dashboard'
-                      ? 'Weekly schedule of edit room reservations'
-                      : currentSection === 'editor-queue'
-                      ? 'View and assign edit suite booking requests'
-                      : currentSection === 'rota'
-                      ? 'Manage department rotas and shift assignments'
-                      : currentSection === 'studio-booking'
-                      ? 'Manage studio bookings and schedules'
-                      : currentSection === 'admin-users'
-                      ? 'Manage system users, roles, and permissions'
-                      : getRoleDescription(currentRole)
-                    }
-                  </p>
+                  <h2 className="text-xl font-bold text-card-foreground">{headerTitle}</h2>
+                  <p className="text-sm text-muted-foreground mt-0.5">{headerSubtitle}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-3">
+
+              <div className="flex items-center gap-2 sm:gap-3">
                 <NotificationDropdown />
                 <button
                   onClick={toggleTheme}
@@ -387,7 +410,7 @@ export const BookingDashboard: React.FC = () => {
                 <div className="relative">
                   <button
                     onClick={() => setUserMenuOpen(!userMenuOpen)}
-                    className="flex items-center gap-2 px-3 py-2 hover:bg-muted rounded-lg transition-colors"
+                    className="flex items-center gap-2 px-2 sm:px-3 py-2 hover:bg-muted rounded-lg transition-colors"
                   >
                     <UserCircle size={20} className="text-muted-foreground" />
                     <div className="hidden sm:block text-left">
@@ -398,20 +421,14 @@ export const BookingDashboard: React.FC = () => {
 
                   {userMenuOpen && (
                     <>
-                      <div
-                        className="fixed inset-0 z-40"
-                        onClick={() => setUserMenuOpen(false)}
-                      />
+                      <div className="fixed inset-0 z-40" onClick={() => setUserMenuOpen(false)} />
                       <div className="absolute right-0 mt-2 w-48 bg-card border border-border rounded-lg shadow-lg z-50">
                         <div className="p-3 border-b border-border">
                           <p className="text-sm font-medium text-card-foreground">{user?.username}</p>
                           <p className="text-xs text-muted-foreground">{user?.roles?.join(', ')}</p>
                         </div>
                         <button
-                          onClick={() => {
-                            setChangePasswordOpen(true);
-                            setUserMenuOpen(false);
-                          }}
+                          onClick={() => { setChangePasswordOpen(true); setUserMenuOpen(false); }}
                           className="w-full flex items-center gap-2 px-3 py-2 text-left text-sm text-card-foreground hover:bg-muted transition-colors"
                         >
                           <KeyRound size={16} />
@@ -419,11 +436,7 @@ export const BookingDashboard: React.FC = () => {
                         </button>
                         <NotificationSettings />
                         <button
-                          onClick={() => {
-                            logout();
-                            navigate('/login');
-                            setUserMenuOpen(false);
-                          }}
+                          onClick={() => { logout(); navigate('/login'); setUserMenuOpen(false); }}
                           className="w-full flex items-center gap-2 px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors border-t border-border"
                         >
                           <LogOut size={16} />
