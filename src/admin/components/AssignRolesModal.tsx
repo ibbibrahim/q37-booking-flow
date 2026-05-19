@@ -16,7 +16,7 @@ import type { RoleDto } from '../types/user';
 interface AssignRolesModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  userId: number; // forwarded to parent; not used internally
+  userId: number;
   username: string;
   availableRoles: RoleDto[];
   currentRoles: string[];
@@ -55,38 +55,37 @@ export const AssignRolesModal: React.FC<AssignRolesModalProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex flex-col w-full sm:max-w-md max-h-[90dvh] p-0 gap-0">
-        {/* Fixed header */}
-        <DialogHeader className="px-6 pt-6 pb-4 shrink-0 border-b border-border">
+      {/* Keep DialogContent exactly as Radix expects — no flex/height overrides on the container */}
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
           <DialogTitle>Assign Roles</DialogTitle>
           <DialogDescription>
             Select roles for user: <strong>{username}</strong>
           </DialogDescription>
         </DialogHeader>
 
-        {/* Scrollable roles list */}
-        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
-          <div className="flex-1 overflow-y-auto px-6 py-4">
+        <form onSubmit={handleSubmit}>
+          {/* Only the roles list scrolls — footer stays pinned below it */}
+          <div className="max-h-[50vh] overflow-y-auto -mx-1 px-1 py-1">
             {availableRoles.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No roles available</p>
+              <p className="text-sm text-muted-foreground py-2">No roles available</p>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {availableRoles.map((role) => {
                   const isSelected = selectedRoles.includes(role.name);
                   return (
                     <div
                       key={role.id}
-                      onClick={() => !loading && handleToggleRole(role.name)}
-                      className={`flex items-start space-x-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                      className={`flex items-start gap-3 p-3 rounded-lg border transition-colors ${
                         isSelected
                           ? 'bg-amber-50 border-amber-200 dark:bg-amber-950/30 dark:border-amber-800'
-                          : 'hover:bg-accent/50 border-border'
+                          : 'border-border hover:bg-accent/40'
                       }`}
                     >
                       <Checkbox
                         id={`role-${role.id}`}
                         checked={isSelected}
-                        onCheckedChange={() => handleToggleRole(role.name)}
+                        onCheckedChange={() => !loading && handleToggleRole(role.name)}
                         disabled={loading}
                         className="mt-0.5 shrink-0"
                       />
@@ -115,21 +114,20 @@ export const AssignRolesModal: React.FC<AssignRolesModalProps> = ({
             )}
           </div>
 
-          {/* Fixed footer — always visible */}
-          <DialogFooter className="px-6 py-4 shrink-0 border-t border-border bg-background rounded-b-lg flex-row gap-2 sm:gap-0">
+          <DialogFooter className="mt-4 gap-2 sm:gap-0">
             <Button
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
               disabled={loading}
-              className="flex-1 sm:flex-none"
+              className="w-full sm:w-auto"
             >
               Cancel
             </Button>
             <Button
               type="submit"
               disabled={loading}
-              className="flex-1 sm:flex-none"
+              className="w-full sm:w-auto"
             >
               {loading ? 'Saving...' : 'Assign Roles'}
             </Button>
