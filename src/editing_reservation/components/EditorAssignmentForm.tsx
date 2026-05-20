@@ -1,11 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { Loader2, Copy, Calendar, AlertCircle } from 'lucide-react';
+import { Loader2, Copy, Calendar, AlertCircle, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import {
   Select,
   SelectContent,
@@ -54,6 +64,7 @@ export const EditorAssignmentForm: React.FC<EditorAssignmentFormProps> = ({
 }) => {
   const { showToast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [clearConfirmIndex, setClearConfirmIndex] = useState<number | null>(null);
   const [editors, setEditors] = useState<UserDto[]>([]);
   const [conflicts, setConflicts] = useState<ConflictDto[]>([]);
   const [checkingAvailability, setCheckingAvailability] = useState(false);
@@ -186,6 +197,19 @@ export const EditorAssignmentForm: React.FC<EditorAssignmentFormProps> = ({
     });
   };
 
+  const clearSession = (index: number) => {
+    setSessions((prev) => {
+      const updated = [...prev];
+      updated[index] = {
+        ...updated[index],
+        editorId: '',
+        editRoomNumber: '',
+        availableDatetime: '',
+      };
+      return updated;
+    });
+  };
+
   const copyFromPrevious = (toIndex: number) => {
     if (toIndex === 0) return;
     const fromIndex = toIndex - 1;
@@ -293,17 +317,30 @@ export const EditorAssignmentForm: React.FC<EditorAssignmentFormProps> = ({
                   </p>
                 )}
               </div>
-              {index > 0 && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => copyFromPrevious(index)}
-                  className="gap-1.5 h-8"
-                >
-                  <Copy size={14} />
-                  Copy from Session {index}
-                </Button>
-              )}
+              <div className="flex items-center gap-1">
+                {index > 0 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => copyFromPrevious(index)}
+                    className="gap-1.5 h-8"
+                  >
+                    <Copy size={14} />
+                    Copy from Session {index}
+                  </Button>
+                )}
+                {(session.editorId || session.editRoomNumber || session.availableDatetime) && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setClearConfirmIndex(index)}
+                    className="gap-1.5 h-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                  >
+                    <Trash2 size={14} />
+                    Clear
+                  </Button>
+                )}
+              </div>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="space-y-1.5">
@@ -438,6 +475,31 @@ export const EditorAssignmentForm: React.FC<EditorAssignmentFormProps> = ({
           </AlertDescription>
         </Alert>
       )}
+
+      <AlertDialog open={clearConfirmIndex !== null} onOpenChange={(open) => !open && setClearConfirmIndex(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Clear session fields?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will clear the editor, room, and date/time for Session {(clearConfirmIndex ?? 0) + 1}. You can re-fill them before saving.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (clearConfirmIndex !== null) {
+                  clearSession(clearConfirmIndex);
+                  setClearConfirmIndex(null);
+                }
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Clear
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <div className="flex gap-2 justify-end pt-4 border-t">
         <Button variant="outline" onClick={onCancel} disabled={isSubmitting}>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FileText, Clock, AlertTriangle, AlertCircle, Calendar, Copy, Loader2, Pencil } from 'lucide-react';
+import { FileText, Clock, AlertTriangle, AlertCircle, Calendar, Copy, Loader2, Pencil, Trash2 } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -7,6 +7,16 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import {
   Select,
   SelectContent,
@@ -129,6 +139,7 @@ export const EditingRequestDetail: React.FC<EditingRequestDetailProps> = ({
   const [isAssigning, setIsAssigning] = useState(false);
   const [editors, setEditors] = useState<UserDto[]>([]);
   const [conflictsBySession, setConflictsBySession] = useState<Record<number, ConflictDto[]>>({});
+  const [clearConfirmIndex, setClearConfirmIndex] = useState<number | null>(null);
   const [reportModalSession, setReportModalSession] = useState<EditingSession | null>(null);
   const [reportModalMode, setReportModalMode] = useState<'submit' | 'view'>('submit');
   const [editingSessionIndex, setEditingSessionIndex] = useState<number | null>(null);
@@ -204,6 +215,19 @@ export const EditingRequestDetail: React.FC<EditingRequestDetailProps> = ({
         next.sessionDurationMinutes = next.customHours * 60 + next.customMinutes;
       }
       updated[index] = next;
+      return updated;
+    });
+  };
+
+  const clearSessionForm = (index: number) => {
+    setSessionForms((prev) => {
+      const updated = [...prev];
+      updated[index] = {
+        ...updated[index],
+        editorId: '',
+        editRoomNumber: '',
+        availableDatetime: '',
+      };
       return updated;
     });
   };
@@ -389,12 +413,26 @@ export const EditingRequestDetail: React.FC<EditingRequestDetailProps> = ({
                             </p>
                           )}
                         </div>
-                        {canAssign && session?.availableDatetime && !isCancelled && (
-                          <Button variant="default" size="sm" onClick={() => setEditingSessionIndex(index)} className="gap-1.5 shrink-0">
-                            <Pencil size={14} />
-                            Edit Session
-                          </Button>
-                        )}
+                        <div className="flex items-center gap-1">
+                          {canAssign && session?.availableDatetime && !isCancelled && (
+                            <Button variant="default" size="sm" onClick={() => setEditingSessionIndex(index)} className="gap-1.5 shrink-0">
+                              <Pencil size={14} />
+                              Edit Session
+                            </Button>
+                          )}
+                          {canAssign && form && (editingSessionIndex === index || !session?.availableDatetime) &&
+                            (form.editorId || form.editRoomNumber || form.availableDatetime) && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setClearConfirmIndex(index)}
+                              className="gap-1.5 h-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                            >
+                              <Trash2 size={14} />
+                              Clear
+                            </Button>
+                          )}
+                        </div>
                         {/* {canAssign && index > 0 && (
                           <Button
                             variant="ghost"
@@ -731,6 +769,31 @@ export const EditingRequestDetail: React.FC<EditingRequestDetailProps> = ({
           </div>
         </div>
       </div>
+
+      <AlertDialog open={clearConfirmIndex !== null} onOpenChange={(open) => !open && setClearConfirmIndex(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Clear session fields?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will clear the editor, room, and date/time for Session {(clearConfirmIndex ?? 0) + 1}. You can re-fill them before saving.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (clearConfirmIndex !== null) {
+                  clearSessionForm(clearConfirmIndex);
+                  setClearConfirmIndex(null);
+                }
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Clear
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {reportModalSession && (
         <SessionReportModal
