@@ -234,6 +234,8 @@ export const EditorAssignmentForm: React.FC<EditorAssignmentFormProps> = ({
   const validateForm = (): boolean => {
     for (let i = 0; i < sessions.length; i++) {
       const session = sessions[i];
+      const isClearing = !session.editorId && !session.editRoomNumber && !session.availableDatetime;
+      if (isClearing) continue; // clearing a session is always valid
       if (!session.editorId) {
         showToast(`Session ${i + 1}: Editor Assigned is required`, 'error');
         return false;
@@ -263,13 +265,15 @@ export const EditorAssignmentForm: React.FC<EditorAssignmentFormProps> = ({
     try {
       for (let i = 0; i < sessions.length; i++) {
         const session = sessions[i];
+        const isClearing = !session.editorId && !session.editRoomNumber && !session.availableDatetime;
         const dto: UpdateEditorAssignmentDto = {
           sessionNumber: i + 1,
-          editorId: Number(session.editorId),
-          editRoomNumber: session.editRoomNumber.trim(),
-          availableDatetime: `${session.availableDatetime}:00.000Z`,
-          sessionDurationMinutes: session.sessionDurationMinutes,
+          editorId: session.editorId ? Number(session.editorId) : undefined,
+          editRoomNumber: session.editRoomNumber.trim() || undefined,
+          availableDatetime: session.availableDatetime ? `${session.availableDatetime}:00.000Z` : undefined,
+          sessionDurationMinutes: session.sessionDurationMinutes || undefined,
           editorComments: session.editorComments.trim() || undefined,
+          unassign: isClearing,
         };
         await editingApi.updateEditorAssignment(editingRequest.id, dto);
       }

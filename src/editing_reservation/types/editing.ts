@@ -114,6 +114,7 @@ export interface UpdateEditorAssignmentDto {
   availableDatetime?: string;
   sessionDurationMinutes?: number;
   editorComments?: string;
+  unassign?: boolean;
 }
 
 export interface UpdateEditingStatusDto {

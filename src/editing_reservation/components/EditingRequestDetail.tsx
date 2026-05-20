@@ -281,6 +281,7 @@ export const EditingRequestDetail: React.FC<EditingRequestDetailProps> = ({
     try {
       for (let i = 0; i < sessionForms.length; i++) {
         const form = sessionForms[i];
+        const isClearing = !form.editorId && !form.editRoomNumber && !form.availableDatetime;
         const dto: UpdateEditorAssignmentDto = {
           sessionNumber: i + 1,
           editorId: form.editorId ? Number(form.editorId) : undefined,
@@ -288,6 +289,7 @@ export const EditingRequestDetail: React.FC<EditingRequestDetailProps> = ({
           availableDatetime: form.availableDatetime ? `${form.availableDatetime}:00.000Z` : undefined,
           sessionDurationMinutes: form.sessionDurationMinutes || undefined,
           editorComments: form.editorComments.trim() || undefined,
+          unassign: isClearing,
         };
         await editingApi.updateEditorAssignment(request.id, dto);
       }
