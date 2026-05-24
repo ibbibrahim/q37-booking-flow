@@ -16,6 +16,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { formatDateTime, formatTime } from '@/studio_booking/utils/timeUtils';
 import { useToast } from '@/hooks/use-toast';
+import { CallSheetPageLoader } from './CallSheetPageLoader';
 
 export const CallSheetDetail: React.FC = () => {
   const { id } = useParams();
@@ -108,11 +109,7 @@ export const CallSheetDetail: React.FC = () => {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-16">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-      </div>
-    );
+    return <CallSheetPageLoader message="Loading call sheet..." className="text-center py-16" />;
   }
 
   if (!callSheet) {

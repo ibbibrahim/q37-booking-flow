@@ -32,6 +32,7 @@ import { CALL_SHEET_ROLES } from '../types/callsheet';
 import { callSheetApi } from '../services/mockCallSheetApi';
 import { format, subDays } from 'date-fns';
 import { DateRange } from 'react-day-picker';
+import { CallSheetPageLoader } from './CallSheetPageLoader';
 
 interface AnalyticsData {
   totalAssignments: number;
@@ -731,10 +732,7 @@ export const CallSheetAnalytics: React.FC = () => {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="text-center py-12">
-              <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent mb-4" />
-              <p className="text-muted-foreground">Loading analytics data...</p>
-            </div>
+            <CallSheetPageLoader message="Loading analytics data..." />
           ) : analytics.totalCallSheets === 0 ? (
             <div className="text-center py-12">
               <Users size={48} className="mx-auto text-muted-foreground mb-4" />

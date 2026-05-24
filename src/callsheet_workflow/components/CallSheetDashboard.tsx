@@ -14,6 +14,7 @@ import type { CallSheetRequest } from '../types/callsheet';
 import { formatQatarDateTime } from '../utils/timezone';
 import { CallsheetWeeklyCalendar } from './CallsheetWeeklyCalendar';
 import { formatDateTime } from '@/studio_booking/utils/timeUtils';
+import { CallSheetPageLoader } from './CallSheetPageLoader';
 
 type ViewMode = 'grid' | 'list';
 
@@ -52,7 +53,7 @@ export const CallSheetDashboard: React.FC = () => {
   }, [searchQuery]);
 
   const loadCallSheets = useCallback(async () => {
-    // setLoading(true);
+    setLoading(true);
     try {
       // Build filter object
       const filters: any = {
@@ -184,14 +185,6 @@ export const CallSheetDashboard: React.FC = () => {
     'Cancelled': 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
   };
 
-  // if (loading) {
-  //   return (
-  //     <div className="flex items-center justify-center py-16">
-  //       <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-  //     </div>
-  //   );
-  // }
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-3">
@@ -322,6 +315,10 @@ export const CallSheetDashboard: React.FC = () => {
         </div> */}
       </div>
 
+      {loading ? (
+        <CallSheetPageLoader message="Loading call sheets..." />
+      ) : (
+        <>
       {/* Studio Timeline - Weekly View (Outlook style) */}
       <CallsheetWeeklyCalendar
         callsheets={callSheets}
@@ -532,6 +529,8 @@ export const CallSheetDashboard: React.FC = () => {
           </table>
           </div>
         </div>
+      )}
+        </>
       )}
     </div>
   );
