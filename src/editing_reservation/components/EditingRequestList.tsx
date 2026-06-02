@@ -1,5 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Ban } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { EditingRequestCard } from './EditingRequestCard';
 import { getEditingStatusBadgeClass, getEditingStatusDisplayLabel } from '../utils/editingUtils';
 import type { EditingRequest } from '../types/editing';
@@ -13,6 +15,9 @@ interface EditingRequestListProps {
   viewMode?: ViewMode;
   showAssignButton?: boolean;
   onAssign?: (request: EditingRequest) => void;
+  canReject?: boolean;
+  onReject?: (request: EditingRequest) => void;
+  isRejectable?: (request: EditingRequest) => boolean;
 }
 
 export const EditingRequestList: React.FC<EditingRequestListProps> = ({
@@ -21,6 +26,9 @@ export const EditingRequestList: React.FC<EditingRequestListProps> = ({
   viewMode = 'list',
   showAssignButton = false,
   onAssign,
+  canReject = false,
+  onReject,
+  isRejectable,
 }) => {
   const navigate = useNavigate();
 
@@ -79,11 +87,26 @@ export const EditingRequestList: React.FC<EditingRequestListProps> = ({
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {requests.map((request) => (
-          <EditingRequestCard
-            key={request.id}
-            request={request}
-            onClick={() => navigate(`/editing/${request.id}`)}
-          />
+          <div key={request.id} className="relative">
+            <EditingRequestCard
+              request={request}
+              onClick={() => navigate(`/editing/${request.id}`)}
+            />
+            {canReject && isRejectable?.(request) && onReject && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="absolute top-3 right-3 gap-1 text-orange-700 border-orange-300 hover:bg-orange-50 dark:text-orange-400 dark:border-orange-700 dark:hover:bg-orange-950/30"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onReject(request);
+                }}
+              >
+                <Ban size={14} />
+                Cannot Accommodate
+              </Button>
+            )}
+          </div>
         ))}
       </div>
     );
@@ -113,6 +136,11 @@ export const EditingRequestList: React.FC<EditingRequestListProps> = ({
               <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground whitespace-nowrap">
                 Created By
               </th>
+              {canReject && (
+                <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground whitespace-nowrap">
+                  Actions
+                </th>
+              )}
             </tr>
           </thead>
           <tbody>
@@ -142,6 +170,23 @@ export const EditingRequestList: React.FC<EditingRequestListProps> = ({
                 <td className="py-3 px-4 text-sm text-muted-foreground">
                   {request.createdByUser?.displayName || request.createdByUser?.username || '—'}
                 </td>
+                {canReject && (
+                  <td className="py-3 px-4 text-sm" onClick={(e) => e.stopPropagation()}>
+                    {isRejectable?.(request) && onReject ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-1 text-orange-700 border-orange-300 hover:bg-orange-50 dark:text-orange-400 dark:border-orange-700 dark:hover:bg-orange-950/30"
+                        onClick={() => onReject(request)}
+                      >
+                        <Ban size={14} />
+                        Cannot Accommodate
+                      </Button>
+                    ) : (
+                      '—'
+                    )}
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>

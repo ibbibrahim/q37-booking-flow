@@ -62,7 +62,7 @@ export const EditorQueuePage: React.FC = () => {
         page: currentPage,
         pageSize: PAGE_SIZE,
       });
-      const items = result.items ?? [];
+      const items = (result.items ?? []).filter((r) => !r.isManualBlock);
       setRequests(items);
       setTotalCount(result.total ?? items.length);
     } catch (error) {

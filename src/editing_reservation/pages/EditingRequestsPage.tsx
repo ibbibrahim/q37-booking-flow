@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, Grid3x3, List } from 'lucide-react';
+import { Plus, Search, Grid3x3, List, Ban } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -10,10 +10,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+} from '@/components/ui/dialog';
 import { DateRangePicker } from '@/components/DateRangePicker';
 import { EditingRequestList } from '../components/EditingRequestList';
+import { ManualBlockForm } from '../components/ManualBlockForm';
+import { RejectRequestDialog } from '../components/RejectRequestDialog';
 import { editingApi } from '../api/editingApi';
+import { useAuth } from '@/contexts/AuthContext';
 import { useSignalR } from '@/contexts/SignalRContext';
+import { useToast } from '@/contexts/ToastContext';
 import type { EditingRequest } from '../types/editing';
 import { DateRange } from 'react-day-picker';
 
@@ -22,13 +30,17 @@ type ViewMode = 'grid' | 'list';
 const STATUS_OPTIONS = [
   { value: 'All States', label: 'All States' },
   { value: 'Pending', label: 'Pending' },
+  { value: 'Acknowledged', label: 'Acknowledged' },
   { value: 'Completed', label: 'Assignment Completed' },
+  { value: 'Rejected', label: 'Cannot Accommodate' },
   { value: 'Cancelled', label: 'Cancelled' },
 ];
 const PAGE_SIZE = 50;
 
 export const EditingRequestsPage: React.FC = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { showToast } = useToast();
   const { listen, isConnected } = useSignalR();
   const [requests, setRequests] = useState<EditingRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -38,10 +50,19 @@ export const EditingRequestsPage: React.FC = () => {
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [currentPage, setCurrentPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
+  const [showManualBlockModal, setShowManualBlockModal] = useState(false);
+  const [rejectTarget, setRejectTarget] = useState<EditingRequest | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
     const saved = localStorage.getItem('editing-view-mode');
     return (saved as ViewMode) || 'list';
   });
+
+  const canManageManualBlock =
+    user?.roles?.includes('Admin') || user?.roles?.includes('SuperEditor') || false;
+  const canRejectRequest = canManageManualBlock;
+
+  const filterManualBlocks = (items: EditingRequest[]) =>
+    items.filter((r) => !r.isManualBlock);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -62,8 +83,9 @@ export const EditingRequestsPage: React.FC = () => {
         page: currentPage,
         pageSize: PAGE_SIZE,
       });
-      setRequests(result.items ?? []);
-      setTotalCount(result.total ?? 0);
+      const items = filterManualBlocks(result.items ?? []);
+      setRequests(items);
+      setTotalCount(result.total ?? items.length);
     } catch (error) {
       console.error('Failed to load edit reservations:', error);
       setRequests([]);
@@ -81,6 +103,7 @@ export const EditingRequestsPage: React.FC = () => {
     if (!isConnected) return;
 
     const unsubscribeCreated = listen('EditingRequestCreated', (data: EditingRequest) => {
+      if (data.isManualBlock) return;
       setRequests((prev) => {
         const exists = prev.some((r) => r.id === data.id);
         if (exists) return prev;
@@ -89,6 +112,10 @@ export const EditingRequestsPage: React.FC = () => {
     });
 
     const unsubscribeUpdated = listen('EditingRequestUpdated', (data: EditingRequest) => {
+      if (data.isManualBlock) {
+        setRequests((prev) => prev.filter((r) => r.id !== data.id));
+        return;
+      }
       setRequests((prev) => prev.map((r) => (r.id === data.id ? data : r)));
     });
 
@@ -107,6 +134,25 @@ export const EditingRequestsPage: React.FC = () => {
     setViewMode(mode);
     localStorage.setItem('editing-view-mode', mode);
   };
+
+  const handleRejectRequest = async (reason: string) => {
+    if (!rejectTarget) return;
+    try {
+      const updated = await editingApi.rejectRequest(rejectTarget.id, { rejectionReason: reason });
+      setRequests((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
+      showToast('Request marked as cannot accommodate', 'success');
+    } catch (error: unknown) {
+      console.error('Failed to reject request:', error);
+      const err = error as { response?: { data?: { error?: string } } };
+      showToast(err.response?.data?.error || 'Failed to reject request', 'error');
+      throw error;
+    }
+  };
+
+  const canReject = (request: EditingRequest) =>
+    canRejectRequest &&
+    !request.isManualBlock &&
+    (request.status === 'Pending' || request.status === 'Acknowledged');
 
   return (
     <div className="space-y-6">
@@ -138,6 +184,16 @@ export const EditingRequestsPage: React.FC = () => {
         </div>
 
         <div className="flex-1" />
+
+        {canManageManualBlock && (
+          <button
+            onClick={() => setShowManualBlockModal(true)}
+            className="flex items-center gap-2 px-6 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition-colors font-medium whitespace-nowrap"
+          >
+            <Ban size={18} />
+            Manual Block
+          </button>
+        )}
 
         <button
           onClick={() => navigate('/editing/new')}
@@ -210,7 +266,14 @@ export const EditingRequestsPage: React.FC = () => {
         </div>
       ) : (
         <>
-          <EditingRequestList requests={requests} loading={loading} viewMode={viewMode} />
+          <EditingRequestList
+            requests={requests}
+            loading={loading}
+            viewMode={viewMode}
+            canReject={canRejectRequest}
+            onReject={(request) => setRejectTarget(request)}
+            isRejectable={canReject}
+          />
           {totalCount > PAGE_SIZE && (
             <div className="flex items-center justify-between text-sm text-muted-foreground pt-4">
               <span>
@@ -241,6 +304,26 @@ export const EditingRequestsPage: React.FC = () => {
           )}
         </>
       )}
+
+      <Dialog open={showManualBlockModal} onOpenChange={setShowManualBlockModal}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <ManualBlockForm
+            mode="create"
+            onSuccess={() => {
+              setShowManualBlockModal(false);
+              loadRequests();
+            }}
+            onCancel={() => setShowManualBlockModal(false)}
+          />
+        </DialogContent>
+      </Dialog>
+
+      <RejectRequestDialog
+        open={rejectTarget !== null}
+        onOpenChange={(open) => !open && setRejectTarget(null)}
+        programName={rejectTarget?.programName}
+        onConfirm={handleRejectRequest}
+      />
     </div>
   );
 };

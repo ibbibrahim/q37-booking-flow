@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FileText, Clock, AlertTriangle, AlertCircle, Calendar, Copy, Loader2, Pencil, Trash2 } from 'lucide-react';
+import { FileText, Clock, AlertTriangle, AlertCircle, Calendar, Copy, Loader2, Pencil, Trash2, Ban } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -81,6 +81,8 @@ export const EditingRequestDetail: React.FC<EditingRequestDetailProps> = ({
 }) => {
   const { showToast } = useToast();
   const isCancelled = request.status === 'Cancelled';
+  const isRejected = request.status === 'Rejected';
+  const isManualBlock = request.isManualBlock === true;
   const sessions = request.editingSessions ?? [];
   const sessionsPerWeek = request.sessionsPerWeek ?? 1;
   const hasSessions = sessions.length > 0;
@@ -316,6 +318,26 @@ export const EditingRequestDetail: React.FC<EditingRequestDetailProps> = ({
 
   return (
     <div className="space-y-6">
+      {isRejected && request.rejectionReason && (
+        <div className="bg-orange-50 dark:bg-orange-950/20 border-2 border-orange-400 dark:border-orange-600 rounded-lg p-4">
+          <div className="flex items-start gap-3">
+            <Ban className="h-6 w-6 text-orange-600 dark:text-orange-400 mt-0.5 flex-shrink-0" />
+            <div className="flex-1">
+              <h2 className="text-lg font-bold text-orange-700 dark:text-orange-300 mb-1">
+                CANNOT ACCOMMODATE
+              </h2>
+              <p className="text-sm text-card-foreground mb-2">{request.rejectionReason}</p>
+              {request.rejectedAt && (
+                <p className="text-xs text-muted-foreground">
+                  {request.rejectedByName ? `${request.rejectedByName} · ` : ''}
+                  {formatDateTime(request.rejectedAt)}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {isCancelled && request.cancellationReason && (
         <div className="bg-destructive/10 border-2 border-destructive rounded-lg p-4">
           <div className="flex items-start gap-3">
@@ -335,7 +357,9 @@ export const EditingRequestDetail: React.FC<EditingRequestDetailProps> = ({
               <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary/10">
                 <FileText className="h-4 w-4 text-primary" />
               </div>
-              <h2 className="text-base font-semibold text-card-foreground">Request Information</h2>
+              <h2 className="text-base font-semibold text-card-foreground">
+                {isManualBlock ? 'Block Information' : 'Request Information'}
+              </h2>
             </div>
             <div className="p-6">
               <dl className="space-y-0">
@@ -343,6 +367,8 @@ export const EditingRequestDetail: React.FC<EditingRequestDetailProps> = ({
                   <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1.5">Program Name</dt>
                   <dd className="text-base font-semibold text-card-foreground">{request.programName}</dd>
                 </div>
+                {!isManualBlock && (
+                  <>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4 py-4 border-b border-border/60">
                   <div>
                     <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1.5">Producer Name</dt>
@@ -353,10 +379,13 @@ export const EditingRequestDetail: React.FC<EditingRequestDetailProps> = ({
                     <dd className="text-sm font-medium text-card-foreground">{request.producerContact}</dd>
                   </div>
                 </div>
+                  </>
+                )}
                 <div className="py-4 border-b border-border/60">
                   <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1.5">Approximate Duration</dt>
                   <dd className="text-sm font-medium text-card-foreground">{request.approximateDuration}</dd>
                 </div>
+                {!isManualBlock && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4 py-4 border-b border-border/60">
                   <div>
                     <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1.5">Rushes Selected on Cloud UX</dt>
@@ -375,7 +404,8 @@ export const EditingRequestDetail: React.FC<EditingRequestDetailProps> = ({
                     </dd>
                   </div>
                 </div>
-                {request.producerComments && (
+                )}
+                {!isManualBlock && request.producerComments && (
                   <div className="py-4">
                     <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1.5">Producer Comments</dt>
                     <dd className="text-sm text-card-foreground leading-relaxed">{request.producerComments}</dd>

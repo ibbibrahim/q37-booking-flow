@@ -10,6 +10,9 @@ import type {
   CheckAvailabilityDto,
   AvailabilityResultDto,
   SubmitSessionReportDto,
+  CreateManualBlockDto,
+  UpdateManualBlockDto,
+  RejectEditingRequestDto,
 } from '../types/editing';
 
 const API_BASE = '/api/editing/requests';
@@ -27,6 +30,20 @@ const serializeCreateDto = (dto: CreateEditingRequestDto): Record<string, unknow
     sessionRequests: dto.sessionRequests.map((sr) => ({
       sessionNumber: sr.sessionNumber,
       requestedDate: `${sr.requestedDate}:00.000Z`,
+    })),
+  };
+};
+
+const serializeManualBlockDto = (
+  dto: CreateManualBlockDto | UpdateManualBlockDto
+): Record<string, unknown> => {
+  return {
+    ...dto,
+    sessions: dto.sessions.map((s) => ({
+      ...s,
+      availableDatetime: s.availableDatetime.includes('Z')
+        ? s.availableDatetime
+        : `${s.availableDatetime}:00.000Z`,
     })),
   };
 };
@@ -128,6 +145,25 @@ export const editingApi = {
       `${API_BASE}/${requestId}/sessions/${sessionNumber}/submit-report`,
       dto
     );
+    return data as EditingRequest;
+  },
+
+  // Manual block
+  createManualBlock: async (dto: CreateManualBlockDto): Promise<EditingRequest> => {
+    const payload = serializeManualBlockDto(dto);
+    const { data } = await apiClient.post(`${API_BASE}/manual-block`, payload);
+    return data as EditingRequest;
+  },
+
+  updateManualBlock: async (id: number, dto: UpdateManualBlockDto): Promise<EditingRequest> => {
+    const payload = serializeManualBlockDto(dto);
+    const { data } = await apiClient.put(`${API_BASE}/manual-block/${id}`, payload);
+    return data as EditingRequest;
+  },
+
+  // Reject request
+  rejectRequest: async (id: number, dto: RejectEditingRequestDto): Promise<EditingRequest> => {
+    const { data } = await apiClient.post(`${API_BASE}/${id}/reject`, dto);
     return data as EditingRequest;
   },
 };

@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { EditingScheduleCell } from './EditingScheduleCell';
 import {
@@ -22,6 +22,9 @@ interface EditingWeeklyScheduleProps {
   onPreviousWeek: () => void;
   onNextWeek: () => void;
   onThisWeek: () => void;
+  canManageManualBlock?: boolean;
+  onCreateManualBlock?: () => void;
+  onEditManualBlock?: (request: EditingRequest) => void;
 }
 
 const MIN_ROOM_COUNT = 11;
@@ -33,6 +36,9 @@ export const EditingWeeklySchedule: React.FC<EditingWeeklyScheduleProps> = ({
   onPreviousWeek,
   onNextWeek,
   onThisWeek,
+  canManageManualBlock = false,
+  onCreateManualBlock,
+  onEditManualBlock,
 }) => {
   const dashboardRequests = requests.filter((r) => isDashboardSchedulableStatus(r.status));
   const weekDates = getWeekDates(getSundayOfWeek(weekStart));
@@ -47,6 +53,12 @@ export const EditingWeeklySchedule: React.FC<EditingWeeklyScheduleProps> = ({
           <h1 className="text-2xl font-bold text-card-foreground">{getWeekLabel(weekDates)}</h1>
         </div>
         <div className="flex items-center gap-2">
+          {canManageManualBlock && onCreateManualBlock && (
+            <Button size="sm" onClick={onCreateManualBlock} className="gap-1.5">
+              <Plus className="h-4 w-4" />
+              Manual Block
+            </Button>
+          )}
           <Button variant="outline" size="sm" onClick={onPreviousWeek}>
             <ChevronLeft className="h-4 w-4 mr-1" />
             Previous
@@ -81,6 +93,10 @@ export const EditingWeeklySchedule: React.FC<EditingWeeklyScheduleProps> = ({
         <div className="flex items-center gap-1.5">
           <div className="w-4 h-4 rounded-sm border border-border bg-[#e0f2fe] dark:bg-sky-950/40" />
           <span>Booked Session</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="w-4 h-4 rounded-sm border border-violet-300 dark:border-violet-700 bg-violet-100 dark:bg-violet-950/50" />
+          <span>Manual Block</span>
         </div>
         <div className="flex items-center gap-1.5">
           <div className="w-4 h-4 rounded-sm border border-border bg-background" />
@@ -162,6 +178,8 @@ export const EditingWeeklySchedule: React.FC<EditingWeeklyScheduleProps> = ({
                             sessions={sessions}
                             isReserved={false}
                             reservedFor=""
+                            canManageManualBlock={canManageManualBlock}
+                            onManualBlockClick={onEditManualBlock}
                           />
                         </div>
                       );

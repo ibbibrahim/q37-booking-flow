@@ -231,7 +231,7 @@ function App() {
         <Route
           path="editing"
           element={
-            <ProtectedRoute allowedRoles={['Booking', 'Admin']}>
+            <ProtectedRoute allowedRoles={['Booking', 'Admin', 'SuperEditor']}>
               <EditingRequestsPage />
             </ProtectedRoute>
           }
@@ -239,7 +239,7 @@ function App() {
         <Route
           path="editing/dashboard"
           element={
-            <ProtectedRoute allowedRoles={['Admin', 'Booking', 'Editor']}>
+            <ProtectedRoute allowedRoles={['Admin', 'Booking', 'Editor', 'SuperEditor']}>
               <EditingDashboardPage />
             </ProtectedRoute>
           }
@@ -255,7 +255,7 @@ function App() {
         <Route
           path="editing/:id"
           element={
-            <ProtectedRoute allowedRoles={['Booking', 'Admin', 'Editor']}>
+            <ProtectedRoute allowedRoles={['Booking', 'Admin', 'Editor', 'SuperEditor']}>
               <EditingRequestDetailPage />
             </ProtectedRoute>
           }

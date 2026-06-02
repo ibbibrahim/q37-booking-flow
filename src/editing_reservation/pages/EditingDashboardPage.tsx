@@ -2,12 +2,17 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSignalR } from '@/contexts/SignalRContext';
+import {
+  Dialog,
+  DialogContent,
+} from '@/components/ui/dialog';
 import { editingApi } from '../api/editingApi';
 import type { EditingRequest } from '../types/editing';
 import { EditingWeeklySchedule } from '../components/EditingWeeklySchedule';
+import { ManualBlockForm } from '../components/ManualBlockForm';
 import { getSundayOfWeek, getWeekDates } from '../utils/scheduleUtils';
 
-const ALLOWED_ROLES = ['Admin', 'Booking', 'Editor'];
+const ALLOWED_ROLES = ['Admin', 'Booking', 'Editor', 'SuperEditor'];
 
 export const EditingDashboardPage: React.FC = () => {
   const { user } = useAuth();
@@ -17,16 +22,19 @@ export const EditingDashboardPage: React.FC = () => {
   const [weekStart, setWeekStart] = useState<Date>(() =>
     getSundayOfWeek(new Date())
   );
+  const [manualBlockModal, setManualBlockModal] = useState<'create' | 'edit' | null>(null);
+  const [editingManualBlock, setEditingManualBlock] = useState<EditingRequest | null>(null);
 
   const hasAccess =
     user?.roles?.some((r) => ALLOWED_ROLES.includes(r)) ?? false;
+  const canManageManualBlock =
+    user?.roles?.includes('Admin') || user?.roles?.includes('SuperEditor') || false;
 
   const fetchRequests = useCallback(async () => {
     try {
       setLoading(true);
       const weekDates = getWeekDates(getSundayOfWeek(weekStart));
       const dateFrom = weekDates[0];
-      // End of last day (Sat) so API range includes full day (avoids dropping sessions when dateTo was midnight start-of-day)
       const dateToEnd = new Date(weekDates[weekDates.length - 1]);
       dateToEnd.setHours(23, 59, 59, 999);
       const data = await editingApi.searchForDashboard(dateFrom, dateToEnd);
@@ -80,6 +88,17 @@ export const EditingDashboardPage: React.FC = () => {
     setWeekStart(getSundayOfWeek(new Date()));
   };
 
+  const handleManualBlockSuccess = () => {
+    setManualBlockModal(null);
+    setEditingManualBlock(null);
+    fetchRequests();
+  };
+
+  const handleEditManualBlock = (request: EditingRequest) => {
+    setEditingManualBlock(request);
+    setManualBlockModal('edit');
+  };
+
   if (!user) {
     return null;
   }
@@ -97,7 +116,34 @@ export const EditingDashboardPage: React.FC = () => {
         onPreviousWeek={handlePreviousWeek}
         onNextWeek={handleNextWeek}
         onThisWeek={handleThisWeek}
+        canManageManualBlock={canManageManualBlock}
+        onCreateManualBlock={
+          canManageManualBlock ? () => setManualBlockModal('create') : undefined
+        }
+        onEditManualBlock={canManageManualBlock ? handleEditManualBlock : undefined}
       />
+
+      <Dialog
+        open={manualBlockModal !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setManualBlockModal(null);
+            setEditingManualBlock(null);
+          }
+        }}
+      >
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <ManualBlockForm
+            mode={manualBlockModal === 'edit' ? 'edit' : 'create'}
+            initialRequest={editingManualBlock ?? undefined}
+            onSuccess={handleManualBlockSuccess}
+            onCancel={() => {
+              setManualBlockModal(null);
+              setEditingManualBlock(null);
+            }}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

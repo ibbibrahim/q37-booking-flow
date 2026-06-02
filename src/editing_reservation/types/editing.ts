@@ -75,7 +75,16 @@ export interface EditingRequest {
   editorComments?: string;
 
   // Status
-  status: 'Pending' | 'Acknowledged' | 'Completed' | 'Cancelled';
+  status: 'Pending' | 'Acknowledged' | 'Completed' | 'Cancelled' | 'Rejected';
+
+  // Manual block
+  isManualBlock?: boolean;
+
+  // Rejection
+  rejectionReason?: string;
+  rejectedBy?: number;
+  rejectedByName?: string;
+  rejectedAt?: string;
 
   // Cancellation
   cancellationReason?: string;
@@ -162,4 +171,31 @@ export interface ConflictDto {
 export interface AvailabilityResultDto {
   isAvailable: boolean;
   conflicts: ConflictDto[];
+}
+
+export interface ManualBlockSessionDto {
+  sessionNumber: number;
+  editorId: number;
+  editRoomNumber: string;
+  availableDatetime: string;
+  sessionDurationMinutes: number;
+  editorComments?: string;
+}
+
+export interface CreateManualBlockDto {
+  programName: string;
+  approximateDuration: string;
+  sessionsPerWeek: number;
+  sessions: ManualBlockSessionDto[];
+}
+
+export interface UpdateManualBlockDto {
+  programName: string;
+  approximateDuration: string;
+  sessionsPerWeek: number;
+  sessions: ManualBlockSessionDto[];
+}
+
+export interface RejectEditingRequestDto {
+  rejectionReason: string;
 }
