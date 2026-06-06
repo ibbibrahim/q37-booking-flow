@@ -146,6 +146,7 @@ export interface EditingSearchRequest {
   editorId?: number;
   page?: number;
   pageSize?: number;
+  includeManualBlocks?: boolean;
 }
 
 export interface EditingSearchResult {

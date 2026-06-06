@@ -21,6 +21,9 @@ const serializeSearchRequest = (dto: EditingSearchRequest): Record<string, unkno
   const payload: Record<string, unknown> = { ...dto };
   if (dto.dateFrom) payload.dateFrom = dto.dateFrom.toISOString();
   if (dto.dateTo) payload.dateTo = dto.dateTo.toISOString();
+  if (dto.includeManualBlocks !== undefined) {
+    payload.includeManualBlocks = dto.includeManualBlocks;
+  }
   return payload;
 };
 

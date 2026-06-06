@@ -37,8 +37,14 @@ export const EditingDashboardPage: React.FC = () => {
       const dateFrom = weekDates[0];
       const dateToEnd = new Date(weekDates[weekDates.length - 1]);
       dateToEnd.setHours(23, 59, 59, 999);
-      const data = await editingApi.searchForDashboard(dateFrom, dateToEnd);
-      setRequests(data);
+      const result = await editingApi.search({
+        dateFrom,
+        dateTo: dateToEnd,
+        page: 1,
+        pageSize: 100,
+        includeManualBlocks: true,
+      });
+      setRequests(result.items ?? []);
     } catch (error) {
       console.error('Failed to load editing requests:', error);
       setRequests([]);
