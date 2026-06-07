@@ -126,6 +126,10 @@ export interface UpdateEditorAssignmentDto {
   unassign?: boolean;
 }
 
+export interface BatchUpdateEditorAssignmentDto {
+  sessions: UpdateEditorAssignmentDto[];
+}
+
 export interface UpdateEditingStatusDto {
   status: string;
   comment?: string;

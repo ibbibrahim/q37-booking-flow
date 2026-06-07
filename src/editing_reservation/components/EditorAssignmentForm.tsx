@@ -263,20 +263,22 @@ export const EditorAssignmentForm: React.FC<EditorAssignmentFormProps> = ({
     setIsSubmitting(true);
 
     try {
-      for (let i = 0; i < sessions.length; i++) {
-        const session = sessions[i];
-        const isClearing = !session.editorId && !session.editRoomNumber && !session.availableDatetime;
-        const dto: UpdateEditorAssignmentDto = {
+      const sessionDtos: UpdateEditorAssignmentDto[] = sessions.map((session, i) => {
+        const isClearing =
+          !session.editorId && !session.editRoomNumber && !session.availableDatetime;
+        return {
           sessionNumber: i + 1,
           editorId: session.editorId ? Number(session.editorId) : undefined,
           editRoomNumber: session.editRoomNumber.trim() || undefined,
-          availableDatetime: session.availableDatetime ? `${session.availableDatetime}:00.000Z` : undefined,
+          availableDatetime: session.availableDatetime
+            ? `${session.availableDatetime}:00.000Z`
+            : undefined,
           sessionDurationMinutes: session.sessionDurationMinutes || undefined,
           editorComments: session.editorComments.trim() || undefined,
           unassign: isClearing,
         };
-        await editingApi.updateEditorAssignment(editingRequest.id, dto);
-      }
+      });
+      await editingApi.updateEditorAssignments(editingRequest.id, { sessions: sessionDtos });
 
       showToast(
         `All ${sessions.length} session(s) assigned and producer notified`,

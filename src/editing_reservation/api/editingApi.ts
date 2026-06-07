@@ -2,7 +2,7 @@ import apiClient from '@/utils/apiClient';
 import type {
   EditingRequest,
   CreateEditingRequestDto,
-  UpdateEditorAssignmentDto,
+  BatchUpdateEditorAssignmentDto,
   UpdateEditingStatusDto,
   CancelEditingRequestDto,
   EditingSearchRequest,
@@ -104,12 +104,12 @@ export const editingApi = {
     return data as EditingRequest;
   },
 
-  // Editor assignment
-  updateEditorAssignment: async (
+  // Editor assignment (batch — one email per save)
+  updateEditorAssignments: async (
     id: number,
-    dto: UpdateEditorAssignmentDto
+    dto: BatchUpdateEditorAssignmentDto
   ): Promise<EditingRequest> => {
-    const { data } = await apiClient.patch(`${API_BASE}/${id}/editor-assignment`, dto);
+    const { data } = await apiClient.patch(`${API_BASE}/${id}/editor-assignments`, dto);
     return data as EditingRequest;
   },
 

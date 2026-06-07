@@ -281,20 +281,21 @@ export const EditingRequestDetail: React.FC<EditingRequestDetailProps> = ({
     if (!validateAssignmentForm()) return;
     setIsAssigning(true);
     try {
-      for (let i = 0; i < sessionForms.length; i++) {
-        const form = sessionForms[i];
+      const sessionDtos: UpdateEditorAssignmentDto[] = sessionForms.map((form, i) => {
         const isClearing = !form.editorId && !form.editRoomNumber && !form.availableDatetime;
-        const dto: UpdateEditorAssignmentDto = {
+        return {
           sessionNumber: i + 1,
           editorId: form.editorId ? Number(form.editorId) : undefined,
           editRoomNumber: form.editRoomNumber.trim() || undefined,
-          availableDatetime: form.availableDatetime ? `${form.availableDatetime}:00.000Z` : undefined,
+          availableDatetime: form.availableDatetime
+            ? `${form.availableDatetime}:00.000Z`
+            : undefined,
           sessionDurationMinutes: form.sessionDurationMinutes || undefined,
           editorComments: form.editorComments.trim() || undefined,
           unassign: isClearing,
         };
-        await editingApi.updateEditorAssignment(request.id, dto);
-      }
+      });
+      await editingApi.updateEditorAssignments(request.id, { sessions: sessionDtos });
       const wasUpdate = sessions.some((s) => s.availableDatetime);
       showToast(
         wasUpdate
