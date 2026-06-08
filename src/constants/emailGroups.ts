@@ -8,28 +8,22 @@ export const EMAIL_GROUPS: EmailGroup[] = [
   {
     id: 'news-media-dept',
     label: 'NEWS MEDIA DEPT',
-    email: 'NEWSMEDIADEPT@QTV37.QA',
+    email: 'NEWSMEDIADEPT@qbc.news',
   },
   {
     id: 'newsroom-journalists',
     label: 'NEWSROOM JOURNALISTS',
-    email: 'newsroomjournalists@QTV37.QA',
-  },
-  {
-    id: '37-tv-production-team',
-    label: '37 TV PRODUCTION TEAM',
-    email: '37TVProductionTeam@QMC.QA',
+    email: 'newsroomjournalists@qbc.news',
   },
   {
     id: 'engineering-operations',
     label: 'ENGINEERING OPERATIONS',
-    email: 'EngineeringOperations@QTV37.QA',
+    email: 'EngineeringOperations@qbc.news',
   },
 ];
 
 export const DEFAULT_CC_EMAILS = [
-  'salderham@qtv37.qa',
-  'haldelfi@qtv37.qa',
-  'mabushanab@qtv37.qa',
-  'bgaben@qtv37.qa',
+  'salderham@qbc.news',
+  'haldelfi@qbc.news',
+  'mabushanab@qbc.news'
 ];
