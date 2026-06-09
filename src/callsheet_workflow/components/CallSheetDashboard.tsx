@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, FileText, Calendar, User, Search, Filter, Grid3x3, List, Check, Mail, Minus } from 'lucide-react';
 import { addDays, startOfToday, endOfToday, startOfTomorrow, endOfTomorrow, endOfDay, startOfMonth, endOfMonth, format } from 'date-fns';
@@ -15,6 +15,9 @@ import { formatQatarDateTime } from '../utils/timezone';
 import { CallsheetWeeklyCalendar } from './CallsheetWeeklyCalendar';
 import { formatDateTime } from '@/studio_booking/utils/timeUtils';
 import { CallSheetPageLoader } from './CallSheetPageLoader';
+import { ListPaginationBar, getInitialPage, getInitialPageSize } from '@/components/ui/list-pagination-bar';
+
+const PAGINATION_STORAGE_KEY = 'callsheet-workflow:list';
 
 type ViewMode = 'grid' | 'list';
 
@@ -23,7 +26,12 @@ export const CallSheetDashboard: React.FC = () => {
   const { user } = useAuth();
   const { listen, isConnected } = useSignalR();
   const [callSheets, setCallSheets] = useState<CallSheetRequest[]>([]);
+  const [calendarCallSheets, setCalendarCallSheets] = useState<CallSheetRequest[]>([]);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+
+  const [currentPage, setCurrentPage] = useState(() => getInitialPage(PAGINATION_STORAGE_KEY, 1));
+  const [pageSize, setPageSize] = useState(() => getInitialPageSize(PAGINATION_STORAGE_KEY, 10));
 
   // Filter states
   const [searchQuery, setSearchQuery] = useState('');
@@ -43,72 +51,102 @@ export const CallSheetDashboard: React.FC = () => {
     localStorage.setItem('callsheet_view_mode', mode);
   };
 
+  const skipSearchPageReset = useRef(true);
+
   // Debounce search query so we don't call API on every keystroke
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearchQuery(searchQuery);
-    }, 500); // 500ms pause
+    }, 500);
 
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  const loadCallSheets = useCallback(async () => {
-    setLoading(true);
-    try {
-      // Build filter object
-      const filters: any = {
-        page: 1,
-        pageSize: 1000
+  useEffect(() => {
+    if (skipSearchPageReset.current) {
+      skipSearchPageReset.current = false;
+      return;
+    }
+    setCurrentPage(1);
+  }, [debouncedSearchQuery]);
+
+  const buildFilterBody = useCallback(
+    (page: number, size: number) => {
+      const filters: Record<string, unknown> = {
+        page,
+        pageSize: size,
       };
 
-      // Search query
       if (debouncedSearchQuery.trim()) {
         filters.searchQuery = debouncedSearchQuery.trim();
       }
 
-      // Status filter
       if (statusFilter && statusFilter !== 'All') {
         filters.status = statusFilter;
       }
 
-      // Driver filter
       if (driverFilter !== 'All') {
         filters.driverNeeded = driverFilter === 'Yes';
       }
 
-      // Date range filter
       if (dateRange?.from) {
-        filters.dateFrom = format(dateRange.from, 'yyyy-MM-dd')
+        filters.dateFrom = format(dateRange.from, 'yyyy-MM-dd');
       }
       if (dateRange?.to) {
-        filters.dateTo = format(dateRange.to, 'yyyy-MM-dd')
+        filters.dateTo = format(dateRange.to, 'yyyy-MM-dd');
       }
 
-      
-      // Use search API if any filters are active, otherwise use default
-      const hasFilters = Object.keys(filters).length > 0;
+      return filters;
+    },
+    [debouncedSearchQuery, statusFilter, driverFilter, dateRange]
+  );
 
-      let data: CallSheetRequest[];
-      if (hasFilters) {
-        const response = await callSheetApi.searchCallSheets(filters);
-        data = response.items || response;
-      } else {
-        data = isTechnicalStore
-          ? await callSheetApi.getTechnicalStoreCallSheets()
-          : await callSheetApi.getCallSheets();
-      }
-
-      setCallSheets(data);
+  const runSearch = useCallback(async () => {
+    setLoading(true);
+    try {
+      const body = buildFilterBody(currentPage, pageSize);
+      const res = await callSheetApi.searchCallSheets(body);
+      setCallSheets(res.items ?? []);
+      setTotal(res.total ?? 0);
     } catch (error) {
       console.error('Failed to load call sheets:', error);
+      setCallSheets([]);
+      setTotal(0);
     } finally {
       setLoading(false);
     }
-  }, [isTechnicalStore, debouncedSearchQuery, statusFilter, driverFilter, dateRange]);
+  }, [buildFilterBody, currentPage, pageSize]);
+
+  const loadCalendarCallSheets = useCallback(async () => {
+    try {
+      const body = buildFilterBody(1, 1000);
+      const res = await callSheetApi.searchCallSheets(body);
+      setCalendarCallSheets(res.items ?? []);
+    } catch (error) {
+      console.error('Failed to load calendar call sheets:', error);
+      setCalendarCallSheets([]);
+    }
+  }, [buildFilterBody]);
 
   useEffect(() => {
-    loadCallSheets();
-  }, [loadCallSheets]);
+    runSearch();
+  }, [runSearch]);
+
+  useEffect(() => {
+    loadCalendarCallSheets();
+  }, [loadCalendarCallSheets]);
+
+  const totalPages = Math.max(1, Math.ceil(total / pageSize) || 1);
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
+  const handlePageSizeChange = (n: number) => {
+    setPageSize(n);
+    setCurrentPage(1);
+  };
 
   // SignalR listeners for real-time updates
   useEffect(() => {
@@ -119,27 +157,27 @@ export const CallSheetDashboard: React.FC = () => {
     const unsubscribeCreated = listen('CallSheetCreated', (newCallSheet: CallSheetRequest) => {
       console.log('CallSheetCreated event received:', newCallSheet);
 
+      const prependIfNew = (prev: CallSheetRequest[]) => {
+        const exists = prev.some((cs) => cs.id === newCallSheet.id);
+        if (exists) return prev;
+        return [newCallSheet, ...prev];
+      };
+
       if (isTechnicalStore) {
         if (newCallSheet.status === 'With Technical Store' && newCallSheet.driverNeeded) {
-          setCallSheets((prev) => {
-            const exists = prev.some((cs) => cs.id === newCallSheet.id);
-            if (exists) return prev;
-            return [newCallSheet, ...prev];
-          });
+          setCallSheets(prependIfNew);
+          setCalendarCallSheets(prependIfNew);
         }
       } else {
-        setCallSheets((prev) => {
-          const exists = prev.some((cs) => cs.id === newCallSheet.id);
-          if (exists) return prev;
-          return [newCallSheet, ...prev];
-        });
+        setCallSheets(prependIfNew);
+        setCalendarCallSheets(prependIfNew);
       }
     });
 
     const unsubscribeUpdatedByTechnicalStore = listen('CallSheetUpdatedByTechnicalStore', (updatedCallSheet: CallSheetRequest) => {
       console.log('CallSheetUpdatedByTechnicalStore event received:', updatedCallSheet);
 
-      setCallSheets((prev) => {
+      const applyUpdate = (prev: CallSheetRequest[]) => {
         if (isTechnicalStore) {
           if (updatedCallSheet.status !== 'Submitted' || !updatedCallSheet.driverNeeded) {
             return prev.filter((cs) => cs.id !== updatedCallSheet.id);
@@ -156,7 +194,10 @@ export const CallSheetDashboard: React.FC = () => {
         }
 
         return prev;
-      });
+      };
+
+      setCallSheets(applyUpdate);
+      setCalendarCallSheets(applyUpdate);
     });
 
     return () => {
@@ -243,14 +284,23 @@ export const CallSheetDashboard: React.FC = () => {
           <div className="md:col-span-3">
             <DateRangePicker
               value={dateRange}
-              onChange={setDateRange}
+              onChange={(r) => {
+                setCurrentPage(1);
+                setDateRange(r);
+              }}
               className="w-full"
             />
           </div>
 
           {/* Status Filter */}
           <div className="md:col-span-2">
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <Select
+              value={statusFilter}
+              onValueChange={(value) => {
+                setCurrentPage(1);
+                setStatusFilter(value);
+              }}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="All Statuses" />
               </SelectTrigger>
@@ -267,7 +317,13 @@ export const CallSheetDashboard: React.FC = () => {
 
           {/* Driver Filter */}
           <div className="md:col-span-2">
-            <Select value={driverFilter} onValueChange={setDriverFilter}>
+            <Select
+              value={driverFilter}
+              onValueChange={(value) => {
+                setCurrentPage(1);
+                setDriverFilter(value);
+              }}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Driver Needed" />
               </SelectTrigger>
@@ -315,22 +371,27 @@ export const CallSheetDashboard: React.FC = () => {
         </div> */}
       </div>
 
+      <ListPaginationBar
+        currentPage={currentPage}
+        totalItems={total}
+        pageSize={pageSize}
+        onPageChange={setCurrentPage}
+        onPageSizeChange={handlePageSizeChange}
+        storageKey={PAGINATION_STORAGE_KEY}
+        disabled={loading}
+      />
+
       {loading ? (
         <CallSheetPageLoader message="Loading call sheets..." />
       ) : (
         <>
       {/* Studio Timeline - Weekly View (Outlook style) */}
       <CallsheetWeeklyCalendar
-        callsheets={callSheets}
+        callsheets={calendarCallSheets}
         onOpenCallsheet={(id) => navigate(`/callsheet/${id}`)}
       />
 
-      {/* Results Count */}
-      <div className="text-sm text-muted-foreground">
-        Showing {callSheets.length} call sheet{callSheets.length !== 1 ? 's' : ''}
-      </div>
-
-      {callSheets.length === 0 ? (
+      {total === 0 ? (
         <div className="text-center py-16 bg-card rounded-lg border border-border">
           <FileText size={48} className="mx-auto text-muted-foreground mb-4" />
           <h3 className="text-lg font-semibold text-card-foreground mb-2">
