@@ -1,8 +1,8 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Grid3x3, List } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { ListPaginationBar, getInitialPage, getInitialPageSize } from '@/components/ui/list-pagination-bar';
 import { DateRangePicker } from '@/components/DateRangePicker';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { EditingRequestList } from '../components/EditingRequestList';
@@ -14,7 +14,7 @@ import { DateRange } from 'react-day-picker';
 
 type ViewMode = 'grid' | 'list';
 
-const PAGE_SIZE = 50;
+const PAGINATION_STORAGE_KEY = 'editing-workflow:editor-queue';
 
 function isAssignedToEditor(request: EditingRequest, editorId: number): boolean {
   if (request.editorId === editorId) return true;
@@ -31,20 +31,27 @@ export const EditorQueuePage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalCount, setTotalCount] = useState(0);
+  const [currentPage, setCurrentPage] = useState(() => getInitialPage(PAGINATION_STORAGE_KEY, 1));
+  const [pageSize, setPageSize] = useState(() => getInitialPageSize(PAGINATION_STORAGE_KEY, 50));
+  const [total, setTotal] = useState(0);
+  const skipSearchPageReset = useRef(true);
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
     const saved = localStorage.getItem('editing-view-mode');
     return (saved as ViewMode) || 'list';
   });
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearch(searchTerm);
-      setCurrentPage(1);
-    }, 500);
+    const timer = setTimeout(() => setDebouncedSearch(searchTerm), 500);
     return () => clearTimeout(timer);
   }, [searchTerm]);
+
+  useEffect(() => {
+    if (skipSearchPageReset.current) {
+      skipSearchPageReset.current = false;
+      return;
+    }
+    setCurrentPage(1);
+  }, [debouncedSearch]);
 
   const loadQueue = useCallback(async () => {
     setLoading(true);
@@ -60,23 +67,35 @@ export const EditorQueuePage: React.FC = () => {
         dateFrom: dateRange?.from,
         dateTo: dateRange?.to,
         page: currentPage,
-        pageSize: PAGE_SIZE,
+        pageSize,
       });
       const items = (result.items ?? []).filter((r) => !r.isManualBlock);
       setRequests(items);
-      setTotalCount(result.total ?? items.length);
+      setTotal(result.total ?? 0);
     } catch (error) {
       console.error('Failed to load edit suite assignments:', error);
       setRequests([]);
-      setTotalCount(0);
+      setTotal(0);
     } finally {
       setLoading(false);
     }
-  }, [activeTab, debouncedSearch, dateRange?.from, dateRange?.to, currentPage, user?.id]);
+  }, [activeTab, debouncedSearch, dateRange?.from, dateRange?.to, currentPage, pageSize, user?.id]);
 
   useEffect(() => {
     loadQueue();
   }, [loadQueue]);
+
+  const totalPages = Math.max(1, Math.ceil(total / pageSize) || 1);
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
+  const handlePageSizeChange = (n: number) => {
+    setPageSize(n);
+    setCurrentPage(1);
+  };
 
   useEffect(() => {
     if (!isConnected) return;
@@ -175,6 +194,16 @@ export const EditorQueuePage: React.FC = () => {
         </div>
       </div>
 
+      <ListPaginationBar
+        currentPage={currentPage}
+        totalItems={total}
+        pageSize={pageSize}
+        onPageChange={setCurrentPage}
+        onPageSizeChange={handlePageSizeChange}
+        storageKey={PAGINATION_STORAGE_KEY}
+        disabled={loading}
+      />
+
       {/* Filter tabs – same TabsList / TabsTrigger styling as existing segments */}
       <Tabs
         value={activeTab}
@@ -191,48 +220,22 @@ export const EditorQueuePage: React.FC = () => {
           <TabsTrigger value="Cancelled">Cancelled</TabsTrigger>
         </TabsList>
         <TabsContent value={activeTab} className="mt-6">
-          {requests.length === 0 && !loading ? (
+          {loading ? (
+            <div className="flex items-center justify-center py-16">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
+            </div>
+          ) : total === 0 ? (
             <div className="text-center py-16">
               <p className="text-muted-foreground text-lg">No assignments found</p>
             </div>
           ) : (
-            <>
-              <EditingRequestList
-                requests={requests}
-                loading={loading}
-                viewMode={viewMode}
-                showAssignButton
-                onAssign={handleAssign}
-              />
-              {totalCount > PAGE_SIZE && (
-                <div className="flex items-center justify-between text-sm text-muted-foreground pt-4">
-                  <span>
-                    Showing {requests.length} of {totalCount} result{totalCount !== 1 ? 's' : ''}
-                  </span>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                      disabled={currentPage <= 1 || loading}
-                    >
-                      Previous
-                    </Button>
-                    <span>
-                      Page {currentPage} of {Math.ceil(totalCount / PAGE_SIZE)}
-                    </span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage((p) => p + 1)}
-                      disabled={currentPage >= Math.ceil(totalCount / PAGE_SIZE) || loading}
-                    >
-                      Next
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </>
+            <EditingRequestList
+              requests={requests}
+              loading={loading}
+              viewMode={viewMode}
+              showAssignButton
+              onAssign={handleAssign}
+            />
           )}
         </TabsContent>
       </Tabs>

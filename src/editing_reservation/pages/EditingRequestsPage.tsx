@@ -1,8 +1,8 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Search, Grid3x3, List, Ban } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { ListPaginationBar, getInitialPage, getInitialPageSize } from '@/components/ui/list-pagination-bar';
 import {
   Select,
   SelectContent,
@@ -35,7 +35,7 @@ const STATUS_OPTIONS = [
   { value: 'Rejected', label: 'Cannot Accommodate' },
   { value: 'Cancelled', label: 'Cancelled' },
 ];
-const PAGE_SIZE = 50;
+const PAGINATION_STORAGE_KEY = 'editing-workflow:requests';
 
 export const EditingRequestsPage: React.FC = () => {
   const navigate = useNavigate();
@@ -48,8 +48,10 @@ export const EditingRequestsPage: React.FC = () => {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('All States');
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalCount, setTotalCount] = useState(0);
+  const [currentPage, setCurrentPage] = useState(() => getInitialPage(PAGINATION_STORAGE_KEY, 1));
+  const [pageSize, setPageSize] = useState(() => getInitialPageSize(PAGINATION_STORAGE_KEY, 50));
+  const [total, setTotal] = useState(0);
+  const skipSearchPageReset = useRef(true);
   const [showManualBlockModal, setShowManualBlockModal] = useState(false);
   const [rejectTarget, setRejectTarget] = useState<EditingRequest | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
@@ -65,12 +67,17 @@ export const EditingRequestsPage: React.FC = () => {
     items.filter((r) => !r.isManualBlock);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearch(searchTerm);
-      setCurrentPage(1);
-    }, 500);
+    const timer = setTimeout(() => setDebouncedSearch(searchTerm), 500);
     return () => clearTimeout(timer);
   }, [searchTerm]);
+
+  useEffect(() => {
+    if (skipSearchPageReset.current) {
+      skipSearchPageReset.current = false;
+      return;
+    }
+    setCurrentPage(1);
+  }, [debouncedSearch]);
 
   const loadRequests = useCallback(async () => {
     setLoading(true);
@@ -81,23 +88,35 @@ export const EditingRequestsPage: React.FC = () => {
         dateFrom: dateRange?.from,
         dateTo: dateRange?.to,
         page: currentPage,
-        pageSize: PAGE_SIZE,
+        pageSize,
       });
       const items = filterManualBlocks(result.items ?? []);
       setRequests(items);
-      setTotalCount(result.total ?? items.length);
+      setTotal(result.total ?? 0);
     } catch (error) {
       console.error('Failed to load edit reservations:', error);
       setRequests([]);
-      setTotalCount(0);
+      setTotal(0);
     } finally {
       setLoading(false);
     }
-  }, [debouncedSearch, statusFilter, dateRange?.from, dateRange?.to, currentPage]);
+  }, [debouncedSearch, statusFilter, dateRange?.from, dateRange?.to, currentPage, pageSize]);
 
   useEffect(() => {
     loadRequests();
   }, [loadRequests]);
+
+  const totalPages = Math.max(1, Math.ceil(total / pageSize) || 1);
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
+  const handlePageSizeChange = (n: number) => {
+    setPageSize(n);
+    setCurrentPage(1);
+  };
 
   useEffect(() => {
     if (!isConnected) return;
@@ -254,7 +273,21 @@ export const EditingRequestsPage: React.FC = () => {
         </div>
       </div>
 
-      {requests.length === 0 && !loading ? (
+      <ListPaginationBar
+        currentPage={currentPage}
+        totalItems={total}
+        pageSize={pageSize}
+        onPageChange={setCurrentPage}
+        onPageSizeChange={handlePageSizeChange}
+        storageKey={PAGINATION_STORAGE_KEY}
+        disabled={loading}
+      />
+
+      {loading ? (
+        <div className="flex items-center justify-center py-16">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
+        </div>
+      ) : total === 0 ? (
         <div className="text-center py-16">
           <p className="text-muted-foreground text-lg">No edit reservations found</p>
           <button
@@ -265,44 +298,14 @@ export const EditingRequestsPage: React.FC = () => {
           </button>
         </div>
       ) : (
-        <>
-          <EditingRequestList
-            requests={requests}
-            loading={loading}
-            viewMode={viewMode}
-            canReject={canRejectRequest}
-            onReject={(request) => setRejectTarget(request)}
-            isRejectable={canReject}
-          />
-          {totalCount > PAGE_SIZE && (
-            <div className="flex items-center justify-between text-sm text-muted-foreground pt-4">
-              <span>
-                Showing {requests.length} of {totalCount} result{totalCount !== 1 ? 's' : ''}
-              </span>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                  disabled={currentPage <= 1 || loading}
-                >
-                  Previous
-                </Button>
-                <span>
-                  Page {currentPage} of {Math.ceil(totalCount / PAGE_SIZE)}
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage((p) => p + 1)}
-                  disabled={currentPage >= Math.ceil(totalCount / PAGE_SIZE) || loading}
-                >
-                  Next
-                </Button>
-              </div>
-            </div>
-          )}
-        </>
+        <EditingRequestList
+          requests={requests}
+          loading={loading}
+          viewMode={viewMode}
+          canReject={canRejectRequest}
+          onReject={(request) => setRejectTarget(request)}
+          isRejectable={canReject}
+        />
       )}
 
       <Dialog open={showManualBlockModal} onOpenChange={setShowManualBlockModal}>
