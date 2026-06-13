@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { Send, ArrowLeft, Calendar, Info, AlertCircle, Plus, X } from "lucide-react";
+import { Send, ArrowLeft, Calendar, Info, AlertCircle, Plus, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,7 +26,7 @@ import {
 } from "../types/workflow";
 
 interface WorkflowFormProps {
-  onSubmit: (data: Partial<WorkflowRequest>, status: WorkflowStatus) => void;
+  onSubmit: (data: Partial<WorkflowRequest>, status: WorkflowStatus) => void | Promise<void>;
   onCancel: () => void;
   initialData?: WorkflowRequest | null;
   isEditMode?: boolean;
@@ -188,6 +188,7 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
     };
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Bulk booking state
   const [bulkOptions, setBulkOptions] = useState({
@@ -424,12 +425,13 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
   };
 
   const handleSubmit = (status: WorkflowStatus, skipValidation = false) => {
+    if (isSubmitting) return;
     if (skipValidation || validateForm()) {
       if (bookingMode === 'bulk' && bulkDates.length > 1) {
         setPendingSubmit(status);
         setShowConfirmModal(true);
       } else {
-        executeSubmit(status);
+        void executeSubmit(status);
       }
     }
   };
@@ -449,95 +451,104 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
     return cleaned;
   };
 
-  const executeSubmit = (status: WorkflowStatus) => {
-    const hidePriorityTypes = ['Incoming Feed', 'Invite Guest for News', 'Invite Guest for Program'];
+  const executeSubmit = async (status: WorkflowStatus) => {
+    if (isSubmitting) return;
 
-    const basePayload: any = {
-      ...formData,
-      priority: hidePriorityTypes.includes(formData.bookingType) ? 'Normal' : formData.priority,
-    };
+    setIsSubmitting(true);
 
-    switch (formData.bookingType) {
-      case "Invite Guest for News":
-      case "Invite Guest for Program":
-        basePayload.guestDetail = {
-          guestName: formData.guestName,
-          guestContact: formData.guestContact,
-        };
-        break;
+    try {
+      const hidePriorityTypes = ['Incoming Feed', 'Invite Guest for News', 'Invite Guest for Program'];
 
-      case "Download and Ingest":
-        basePayload.downloadLinks = downloadLinks.map(link => ({
-          source: link.source,
-          url: link.url,
-          ingestStatus: 'Pending'
-        }));
-        break;
-
-      case "Camera Card and Ingest":
-        basePayload.cameraCardDetail = {
-          videoQuantity: Number(formData.cameraCardVideoQuantity),
-          audioQuantity: Number(formData.cameraCardAudioQuantity),
-        };
-        break;
-    }
-
-    if (bookingMode === 'single') {
-      const isDownloadOrCameraCard = formData.bookingType === "Download and Ingest" ||
-                                      formData.bookingType === "Camera Card and Ingest";
-
-      let finalAirDateTime;
-      if (isDownloadOrCameraCard) {
-        finalAirDateTime = plainLocalNowDateTime();
-      } else if (formData.airDate && formData.airTimeSingle) {
-        finalAirDateTime = formatBookingPlainDateTime(formData.airDate, formData.airTimeSingle);
-      }
-
-      let newFeedStartTime: string | undefined;
-      let newFeedEndTime: string | undefined;
-
-      if (formData.feedStartTimeOnly && formData.feedEndTimeOnly && formData.airDate) {
-        newFeedStartTime = formatBookingPlainDateTime(formData.airDate, formData.feedStartTimeOnly);
-        newFeedEndTime = formatBookingPlainDateTime(formData.airDate, formData.feedEndTimeOnly);
-      }
-
-      const singlePayload = {
-        ...basePayload,
-        airDateTime: finalAirDateTime,
-        feedStartTime: newFeedStartTime,
-        feedEndTime: newFeedEndTime,
+      const basePayload: any = {
+        ...formData,
+        priority: hidePriorityTypes.includes(formData.bookingType) ? 'Normal' : formData.priority,
       };
 
-      const payload = normalizePayload(singlePayload);
-      onSubmit(payload as any, status);
-    } else {
-      bulkDates.forEach((date, index) => {
-        const dateYmd = localDateToYmd(date);
-        const newAirDateTime = formatBookingPlainDateTime(dateYmd, formData.airTime);
+      switch (formData.bookingType) {
+        case "Invite Guest for News":
+        case "Invite Guest for Program":
+          basePayload.guestDetail = {
+            guestName: formData.guestName,
+            guestContact: formData.guestContact,
+          };
+          break;
+
+        case "Download and Ingest":
+          basePayload.downloadLinks = downloadLinks.map(link => ({
+            source: link.source,
+            url: link.url,
+            ingestStatus: 'Pending'
+          }));
+          break;
+
+        case "Camera Card and Ingest":
+          basePayload.cameraCardDetail = {
+            videoQuantity: Number(formData.cameraCardVideoQuantity),
+            audioQuantity: Number(formData.cameraCardAudioQuantity),
+          };
+          break;
+      }
+
+      if (bookingMode === 'single') {
+        const isDownloadOrCameraCard = formData.bookingType === "Download and Ingest" ||
+                                        formData.bookingType === "Camera Card and Ingest";
+
+        let finalAirDateTime;
+        if (isDownloadOrCameraCard) {
+          finalAirDateTime = plainLocalNowDateTime();
+        } else if (formData.airDate && formData.airTimeSingle) {
+          finalAirDateTime = formatBookingPlainDateTime(formData.airDate, formData.airTimeSingle);
+        }
 
         let newFeedStartTime: string | undefined;
         let newFeedEndTime: string | undefined;
 
-        if (formData.feedStartTimeOnly && formData.feedEndTimeOnly) {
-          newFeedStartTime = formatBookingPlainDateTime(dateYmd, formData.feedStartTimeOnly);
-          newFeedEndTime = formatBookingPlainDateTime(dateYmd, formData.feedEndTimeOnly);
+        if (formData.feedStartTimeOnly && formData.feedEndTimeOnly && formData.airDate) {
+          newFeedStartTime = formatBookingPlainDateTime(formData.airDate, formData.feedStartTimeOnly);
+          newFeedEndTime = formatBookingPlainDateTime(formData.airDate, formData.feedEndTimeOnly);
         }
 
-        const bulkPayload = {
+        const singlePayload = {
           ...basePayload,
-          title: generateTitleForDate(date, index),
-          airDateTime: newAirDateTime,
-          feedStartTime: newFeedStartTime ?? formData.feedStartTime,
-          feedEndTime: newFeedEndTime ?? formData.feedEndTime,
+          airDateTime: finalAirDateTime,
+          feedStartTime: newFeedStartTime,
+          feedEndTime: newFeedEndTime,
         };
 
-        const payload = normalizePayload(bulkPayload);
-        onSubmit(payload as any, status);
-      });
-    }
+        const payload = normalizePayload(singlePayload);
+        await Promise.resolve(onSubmit(payload as any, status));
+      } else {
+        for (let index = 0; index < bulkDates.length; index++) {
+          const date = bulkDates[index];
+          const dateYmd = localDateToYmd(date);
+          const newAirDateTime = formatBookingPlainDateTime(dateYmd, formData.airTime);
 
-    setShowConfirmModal(false);
-    setPendingSubmit(null);
+          let newFeedStartTime: string | undefined;
+          let newFeedEndTime: string | undefined;
+
+          if (formData.feedStartTimeOnly && formData.feedEndTimeOnly) {
+            newFeedStartTime = formatBookingPlainDateTime(dateYmd, formData.feedStartTimeOnly);
+            newFeedEndTime = formatBookingPlainDateTime(dateYmd, formData.feedEndTimeOnly);
+          }
+
+          const bulkPayload = {
+            ...basePayload,
+            title: generateTitleForDate(date, index),
+            airDateTime: newAirDateTime,
+            feedStartTime: newFeedStartTime ?? formData.feedStartTime,
+            feedEndTime: newFeedEndTime ?? formData.feedEndTime,
+          };
+
+          const payload = normalizePayload(bulkPayload);
+          await Promise.resolve(onSubmit(payload as any, status));
+        }
+      }
+
+      setShowConfirmModal(false);
+      setPendingSubmit(null);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
 
@@ -716,12 +727,27 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
   );
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
+    <div className="max-w-5xl mx-auto space-y-6 relative">
+      {isSubmitting && (
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
+          <div className="bg-card p-8 rounded-lg shadow-lg border flex flex-col items-center gap-4">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+            <div className="text-center">
+              <h3 className="text-lg font-semibold">
+                {isEditMode ? 'Updating Request...' : 'Submitting Request...'}
+              </h3>
+              <p className="text-sm text-muted-foreground">Please wait</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center gap-3">
         <Button
           variant="ghost"
           size="icon"
           onClick={onCancel}
+          disabled={isSubmitting}
           className="hover:bg-muted"
         >
           <ArrowLeft className="h-5 w-5" />
@@ -1220,13 +1246,20 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
         </Card>
 
         <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 pt-4 pb-0">
-          <Button type="button" variant="outline" onClick={onCancel} className="w-full sm:w-auto">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onCancel}
+            disabled={isSubmitting}
+            className="w-full sm:w-auto"
+          >
             Cancel
           </Button>
 
           <Button
             type="button"
-            className="w-full sm:w-auto"
+            className="w-full sm:w-auto gap-1.5"
+            disabled={isSubmitting}
             onClick={() => {
               if (
                 formData.bookingType === "Download and Ingest" ||
@@ -1238,15 +1271,24 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
               }
             }}
           >
-            <Send className="mr-2 h-4 w-4" />
-            {isEditMode
-              ? "Update Request"
-              : bookingMode === 'bulk' && bulkDates.length > 1
-              ? `Create ${bulkDates.length} Bookings`
-              : formData.bookingType === "Download and Ingest" ||
-                formData.bookingType === "Camera Card and Ingest"
-              ? "Submit Request to Ingest"
-              : "Submit Request to NOC"}
+            {isSubmitting ? (
+              <>
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                {isEditMode ? 'Updating...' : 'Submitting...'}
+              </>
+            ) : (
+              <>
+                <Send className="h-4 w-4" />
+                {isEditMode
+                  ? "Update Request"
+                  : bookingMode === 'bulk' && bulkDates.length > 1
+                  ? `Create ${bulkDates.length} Bookings`
+                  : formData.bookingType === "Download and Ingest" ||
+                    formData.bookingType === "Camera Card and Ingest"
+                  ? "Submit Request to Ingest"
+                  : "Submit Request to NOC"}
+              </>
+            )}
           </Button>
         </div>
       </form>
@@ -1273,11 +1315,26 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowConfirmModal(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setShowConfirmModal(false)}
+              disabled={isSubmitting}
+            >
               Cancel
             </Button>
-            <Button onClick={() => pendingSubmit && executeSubmit(pendingSubmit)}>
-              Create {bulkDates.length} Bookings
+            <Button
+              onClick={() => pendingSubmit && void executeSubmit(pendingSubmit)}
+              disabled={isSubmitting}
+              className="gap-1.5"
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  Submitting...
+                </>
+              ) : (
+                `Create ${bulkDates.length} Bookings`
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
