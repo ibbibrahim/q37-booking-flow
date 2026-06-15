@@ -24,6 +24,5 @@ export const EMAIL_GROUPS: EmailGroup[] = [
 
 export const DEFAULT_CC_EMAILS = [
   'salderham@qbc.news',
-  'haldelfi@qbc.news',
   'mabushanab@qbc.news'
 ];
