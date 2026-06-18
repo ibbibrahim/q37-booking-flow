@@ -20,9 +20,15 @@ export const EMAIL_GROUPS: EmailGroup[] = [
     label: 'ENGINEERING OPERATIONS',
     email: 'EngineeringOperations@qbc.news',
   },
+  {
+    id: '37TVProductionTeam',
+    label: '37TV PRODUCTION TEAM',
+    email: '37TVProductionTeam@QMC.QA',
+  },
 ];
 
 export const DEFAULT_CC_EMAILS = [
   'salderham@qbc.news',
-  'mabushanab@qbc.news'
+  'mabushanab@qbc.news',
+  'kabderrahmane@qbc.news'
 ];
