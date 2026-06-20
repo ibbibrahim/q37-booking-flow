@@ -25,6 +25,11 @@ export const EMAIL_GROUPS: EmailGroup[] = [
     label: '37TV PRODUCTION TEAM',
     email: '37TVProductionTeam@QMC.QA',
   },
+  {
+    id: 'producers',
+    label: 'Producers',
+    email: 'QBCNewsProducers@QBC.NEWS',
+  },
 ];
 
 export const DEFAULT_CC_EMAILS = [
