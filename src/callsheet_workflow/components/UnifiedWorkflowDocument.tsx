@@ -1,7 +1,8 @@
 import React from 'react';
 import type { CallSheetRequest } from '../types/callsheet';
 import { formatQatarDateTime } from '../utils/timezone';
-import qBusinessLogo from '../../assets/Qbusiness_Logo_NEG_POS-02.png';
+import qbcLight from '../../assets/QBC-light.png';
+import qbcLightAr from '../../assets/QBC-light-ar.png';
 import { formatDateTime, formatTime } from '@/studio_booking/utils/timeUtils';
 
 interface UnifiedWorkflowDocumentProps {
@@ -46,8 +47,10 @@ export const UnifiedWorkflowDocument: React.FC<UnifiedWorkflowDocumentProps> = (
 
       {/* ============ UNIFIED HEADER (appears once at top) ============ */}
       <div className="flex justify-between items-start mb-6" style={{ pageBreakAfter: 'avoid' }}>
-        <div className="flex-shrink-0">
-          <img src={qBusinessLogo} alt="QBusiness Logo" style={{ height: '60px', width: 'auto' }} />
+        <div className="flex-shrink-0 flex items-center gap-2">
+          <img src={qbcLight} alt="QBC" style={{ height: '60px', width: 'auto' }} />
+          <div style={{ width: '1px', height: '48px', backgroundColor: '#ccc' }} />
+          <img src={qbcLightAr} alt="كيو بي سي" style={{ height: '60px', width: 'auto' }} />
         </div>
         <div className="text-center flex-grow">
           <div className="text-lg font-semibold uppercase tracking-wider">QATAR MEDIA CORPORATION – 37TV PRODUCTION</div>

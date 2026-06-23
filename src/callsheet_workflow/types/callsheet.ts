@@ -114,7 +114,7 @@ export interface CallSheetRequest {
 export const DEPARTMENTS = [
   'News and Digital Media',
   'QTV37 Production',
-  'QBusiness',
+  'QBC',
 ];
 
 export const INDOOR_FACILITIES: IndoorFacility[] = [
