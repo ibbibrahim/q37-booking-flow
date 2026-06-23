@@ -7,6 +7,7 @@ export type CallSheetStatus =
 
 export type ShootType = 'Indoor' | 'Outdoor';
 export type IndoorFacility = 'News Studio' | 'Program Studio' | 'Other Facilities';
+export type EventType = 'Live' | 'Recorded';
 
 export interface CrewAssignment {
   id: number;             // DB PK → number, not string
@@ -75,6 +76,8 @@ export interface CallSheetRequest {
   location: string | null;
   indoorFacility: IndoorFacility | null;
   equipmentNeeded: boolean;
+  eventType?: string;
+  sitePermitApproval?: 'Yes' | 'No';
 
   focalPoint: string;
   focalPointContact: string;
@@ -113,8 +116,8 @@ export interface CallSheetRequest {
 // -----------------------------
 export const DEPARTMENTS = [
   'News and Digital Media',
-  'QTV37 Production',
-  'QBC',
+  'Programs',
+  'Creative',
 ];
 
 export const INDOOR_FACILITIES: IndoorFacility[] = [
@@ -128,10 +131,9 @@ export const CALL_SHEET_ROLES = [
   'Producer',
   'Presenter',
   'Assistant Director',
-  'Camera 1',
-  'Camera 2',
-  'Camera 3',
+  'Camera Man',
   'Camera Assistant',
+  'Light Technician',
   'Sound Technician',
   'Studio Operator',
 ];

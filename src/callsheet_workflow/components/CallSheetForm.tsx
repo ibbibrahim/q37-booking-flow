@@ -19,7 +19,7 @@ import { CallSheetPreview } from './CallSheetPreview';
 import { CallSheetEmailModal } from './CallSheetEmailModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/contexts/ToastContext';
-import type { CallSheetRequest, CrewAssignment, Equipment, DepartmentAcknowledgement, TransportRequest, Notification, ShootType, IndoorFacility } from '../types/callsheet';
+import type { CallSheetRequest, CrewAssignment, Equipment, DepartmentAcknowledgement, TransportRequest, Notification, ShootType, IndoorFacility, EventType } from '../types/callsheet';
 import { DEPARTMENTS, DEFAULT_NOTIFICATIONS, DEPARTMENT_ACKNOWLEDGEMENTS, CALL_SHEET_ROLES, INDOOR_FACILITIES  } from '../types/callsheet';
 import { getCurrentQatarDateTime } from '../utils/timezone';
 import type { EquipmentRow } from '../types/equipmentRow';
@@ -60,11 +60,24 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
     location: '',
     focalPoint: '',
     focalPointContact: '',
-    driverNeeded: false
+    driverNeeded: false,
+    sitePermitApproval: '' as 'Yes' | 'No' | '',
   });
 
   const [shootType, setShootType] = useState<ShootType>('Outdoor');
   const [indoorFacility, setIndoorFacility] = useState<IndoorFacility | null>(null);
+  const EVENT_TYPE_PRESETS = ['Live', 'Recorded'] as const;
+  // Tracks what the Select shows ('Live' | 'Recorded' | 'Other' | '')
+  const [eventTypeDropdown, setEventTypeDropdown] = useState<string>('');
+  // Tracks the free-text when 'Other' is chosen
+  const [customEventTypeInput, setCustomEventTypeInput] = useState('');
+  // The value that gets submitted
+  const eventType = eventTypeDropdown === 'Other' ? customEventTypeInput : eventTypeDropdown;
+
+  const handleEventTypeSelectChange = (value: string) => {
+    setEventTypeDropdown(value);
+    if (value !== 'Other') setCustomEventTypeInput('');
+  };
   const [equipmentNeeded, setEquipmentNeeded] = useState<boolean>(false);
   const [startDateError, setStartDateError] = useState<string>('');
   const [returnDateError, setReturnDateError] = useState<string>('');
@@ -113,9 +126,18 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
         location: editData.location || '',
         focalPoint: editData.focalPoint || '',
         focalPointContact: editData.focalPointContact || '',
-        driverNeeded: editData.driverNeeded || false
+        driverNeeded: editData.driverNeeded || false,
+        sitePermitApproval: (editData.sitePermitApproval as 'Yes' | 'No' | '') || '',
       });
 
+      if (editData.eventType) {
+        if (EVENT_TYPE_PRESETS.includes(editData.eventType as typeof EVENT_TYPE_PRESETS[number])) {
+          setEventTypeDropdown(editData.eventType);
+        } else {
+          setEventTypeDropdown('Other');
+          setCustomEventTypeInput(editData.eventType);
+        }
+      }
       if (editData.shootType) setShootType(editData.shootType);
       if (editData.shootType === 'Indoor' && editData.location) setIndoorFacility(editData.location as IndoorFacility);
       if (editData.equipmentNeeded !== undefined) setEquipmentNeeded(editData.equipmentNeeded);
@@ -164,9 +186,18 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
         location: duplicateData.location || '',
         focalPoint: duplicateData.focalPoint || '',
         focalPointContact: duplicateData.focalPointContact || '',
-        driverNeeded: duplicateData.driverNeeded || false
+        driverNeeded: duplicateData.driverNeeded || false,
+        sitePermitApproval: (duplicateData.sitePermitApproval as 'Yes' | 'No' | '') || '',
       });
 
+      if (duplicateData.eventType) {
+        if (EVENT_TYPE_PRESETS.includes(duplicateData.eventType as typeof EVENT_TYPE_PRESETS[number])) {
+          setEventTypeDropdown(duplicateData.eventType);
+        } else {
+          setEventTypeDropdown('Other');
+          setCustomEventTypeInput(duplicateData.eventType);
+        }
+      }
       if (duplicateData.shootType) setShootType(duplicateData.shootType);
       if (duplicateData.shootType === 'Indoor' && duplicateData.location) setIndoorFacility(duplicateData.location as IndoorFacility);
       if (duplicateData.equipmentNeeded !== undefined) setEquipmentNeeded(duplicateData.equipmentNeeded);
@@ -219,8 +250,18 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
         location: initialCallSheet.location || '',
         focalPoint: initialCallSheet.focalPoint || '',
         focalPointContact: initialCallSheet.focalPointContact || '',
-        driverNeeded: initialCallSheet.driverNeeded || false
+        driverNeeded: initialCallSheet.driverNeeded || false,
+        sitePermitApproval: (initialCallSheet.sitePermitApproval as 'Yes' | 'No' | '') || '',
       });
+
+      if (initialCallSheet.eventType) {
+        if (EVENT_TYPE_PRESETS.includes(initialCallSheet.eventType as typeof EVENT_TYPE_PRESETS[number])) {
+          setEventTypeDropdown(initialCallSheet.eventType);
+        } else {
+          setEventTypeDropdown('Other');
+          setCustomEventTypeInput(initialCallSheet.eventType);
+        }
+      }
 
       if (initialCallSheet.crewAssignments) {
         setCrewAssignments(initialCallSheet.crewAssignments);
@@ -412,6 +453,7 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
     if (!formData.returnDateTime) missing.push('Return Date & Time');
     if (shootType === 'Outdoor' && !formData.location.trim()) missing.push('Location');
     if (shootType === 'Indoor' && !indoorFacility) missing.push('Indoor Facility');
+    if (!formData.sitePermitApproval) missing.push('Site Permit Approval');
 
     if (startDateError) {
       showToast(startDateError, 'warning', 6000);
@@ -512,6 +554,8 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
         shootType: shootType,
         location: finalLocation,
         equipmentNeeded: shootType === 'Indoor' ? equipmentNeeded : false,
+        eventType: eventType || undefined,
+        sitePermitApproval: formData.sitePermitApproval || undefined,
         focalPoint: formData.focalPoint,
         focalPointContact: formData.focalPointContact,
         driverNeeded: formData.driverNeeded,
@@ -733,32 +777,33 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
           )}
           <Card>
             <CardHeader>
-              <CardTitle>Booking Information</CardTitle>
+              <CardTitle>Production Details</CardTitle>
             </CardHeader>
 
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Department */}
-                <div className="space-y-2">
-                  <Label htmlFor="department">
+                <div className="space-y-2 md:col-span-2">
+                  <Label>
                     Department <span className="text-red-500">*</span>
                   </Label>
-                  <Select
-                    value={formData.department}
-                    onValueChange={(value) => handleChange('department', value)}
-                    disabled={isTechnicalStoreMode}
-                  >
-                    <SelectTrigger id="department">
-                      <SelectValue placeholder="Select department" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {DEPARTMENTS.map((dept) => (
-                        <SelectItem key={dept} value={dept}>
-                          {dept}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <div className="grid grid-cols-3 gap-3">
+                    {DEPARTMENTS.map((dept) => (
+                      <button
+                        key={dept}
+                        type="button"
+                        onClick={() => !isTechnicalStoreMode && handleChange('department', dept)}
+                        disabled={isTechnicalStoreMode}
+                        className={`flex items-center justify-center px-3 py-2.5 rounded-lg border-2 transition-all text-sm font-medium ${
+                          formData.department === dept
+                            ? 'border-primary bg-primary/5 text-primary'
+                            : 'border-border hover:border-primary/50 text-muted-foreground'
+                        } ${isTechnicalStoreMode ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                      >
+                        {dept}
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
                 {/* Title */}
@@ -773,6 +818,35 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
                     placeholder="Enter call sheet title"
                     readOnly={isTechnicalStoreMode}
                   />
+                </div>
+
+                {/* Event Type */}
+                <div className="space-y-2">
+                  <Label htmlFor="eventType">Event Type</Label>
+                  <Select
+                    value={eventTypeDropdown}
+                    onValueChange={handleEventTypeSelectChange}
+                    disabled={isTechnicalStoreMode}
+                  >
+                    <SelectTrigger id="eventType">
+                      <SelectValue placeholder="Select event type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Live">Live</SelectItem>
+                      <SelectItem value="Recorded">Recorded</SelectItem>
+                      <SelectItem value="Other">Other…</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {eventTypeDropdown === 'Other' && (
+                    <Input
+                      value={customEventTypeInput}
+                      onChange={(e) => setCustomEventTypeInput(e.target.value)}
+                      placeholder="Describe event type"
+                      readOnly={isTechnicalStoreMode}
+                      autoFocus
+                      className="mt-2"
+                    />
+                  )}
                 </div>
 
                 {/* Start Date & Time */}
@@ -952,6 +1026,26 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
                     placeholder="Phone number"
                     readOnly={isTechnicalStoreMode}
                   />
+                </div>
+
+                {/* Site Permit Approval */}
+                <div className="space-y-2">
+                  <Label htmlFor="sitePermitApproval">
+                    Site Permit Approval <span className="text-red-500">*</span>
+                  </Label>
+                  <Select
+                    value={formData.sitePermitApproval}
+                    onValueChange={(value) => handleChange('sitePermitApproval', value)}
+                    disabled={isTechnicalStoreMode}
+                  >
+                    <SelectTrigger id="sitePermitApproval">
+                      <SelectValue placeholder="Select" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Yes">Yes</SelectItem>
+                      <SelectItem value="No">No</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 {/* Equipment Needed - Only show when Indoor is selected */}
@@ -1185,6 +1279,9 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
             <CallSheetPreview
               callSheet={{
                 ...formData,
+                shootType,
+                eventType: eventType || undefined,
+                sitePermitApproval: formData.sitePermitApproval || undefined,
                 crewAssignments,
                 departmentAcknowledgements,
                 equipment: equipmentRows

@@ -1,9 +1,9 @@
 import React from 'react';
 import type { CallSheetRequest } from '../types/callsheet';
-import { formatQatarDateTime } from '../utils/timezone';
+import { CALL_SHEET_ROLES } from '../types/callsheet';
 import qbcLight from '../../assets/QBC-light.png';
 import qbcLightAr from '../../assets/QBC-light-ar.png';
-import { formatDateTime, formatTime } from '@/studio_booking/utils/timeUtils';
+import { formatDateTime } from '@/studio_booking/utils/timeUtils';
 
 interface UnifiedWorkflowDocumentProps {
   callSheet: Partial<CallSheetRequest>;
@@ -42,6 +42,54 @@ export const UnifiedWorkflowDocument: React.FC<UnifiedWorkflowDocumentProps> = (
       }, {} as Record<string, typeof callSheet.equipment>)
     : {};
 
+  const displayValue = (value?: string | null) => (value && value.trim() ? value : 'N/A');
+
+  const getAssignmentsForRole = (role: string) => {
+    const assignments = callSheet.crewAssignments ?? [];
+    if (role === 'Camera Man') {
+      return assignments.filter(
+        (c) => c.role === 'Camera Man' || c.role === 'Camera 1' || c.role === 'Camera 2' || c.role === 'Camera 3'
+      );
+    }
+    return assignments.filter((c) => c.role === role);
+  };
+
+  const locationLabel = callSheet.shootType === 'Indoor' ? 'Indoor Facility' : 'Location';
+  const locationValue = displayValue(callSheet.location);
+
+  const productionDetailRows: Array<
+    [{ label: string; value: string; highlight?: boolean }, { label: string; value: string; highlight?: boolean }?]
+  > = [
+    [
+      { label: 'Department', value: displayValue(callSheet.department) },
+      undefined,
+    ],
+    [
+      { label: 'Title', value: displayValue(callSheet.title), highlight: true },
+      { label: 'Event Type', value: displayValue(callSheet.eventType) },
+    ],
+    [
+      { label: 'Start Date & Time', value: formatDateTime(callSheet.startDateTime) || 'N/A' },
+      { label: 'Return Date & Time', value: formatDateTime(callSheet.returnDateTime) || 'N/A' },
+    ],
+    [
+      { label: 'Shoot Type', value: displayValue(callSheet.shootType) },
+      { label: locationLabel, value: locationValue },
+    ],
+    [
+      { label: 'Focal Point', value: displayValue(callSheet.focalPoint) },
+      { label: 'Focal Contact', value: displayValue(callSheet.focalPointContact) },
+    ],
+    [
+      { label: 'Site Permit Approval', value: displayValue(callSheet.sitePermitApproval) },
+      callSheet.shootType !== 'Indoor'
+        ? { label: 'Driver Needed', value: callSheet.driverNeeded ? '✓ Yes' : '✗ No' }
+        : undefined,
+    ],
+  ];
+
+  const crewRoles = CALL_SHEET_ROLES;
+
   return (
     <div className="bg-white rounded-lg border border-border print:border-0 p-8 print:p-0 space-y-0 font-sans text-gray-900" style={{ fontSize: '14px' }}>
 
@@ -53,7 +101,7 @@ export const UnifiedWorkflowDocument: React.FC<UnifiedWorkflowDocumentProps> = (
           <img src={qbcLightAr} alt="كيو بي سي" style={{ height: '60px', width: 'auto' }} />
         </div>
         <div className="text-center flex-grow">
-          <div className="text-lg font-semibold uppercase tracking-wider">QATAR MEDIA CORPORATION – 37TV PRODUCTION</div>
+          <div className="text-lg font-semibold uppercase tracking-wider">QBC Business Channel</div>
           <div className="text-xs text-gray-600 mt-1">SC Classification: GENERAL BUSINESS / Internal Only</div>
         </div>
       </div>
@@ -64,26 +112,33 @@ export const UnifiedWorkflowDocument: React.FC<UnifiedWorkflowDocumentProps> = (
       <div style={{ marginBottom: '30px', pageBreakInside: 'avoid' }}>
         <h2 style={{ fontSize: '16px', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '15px' }}>CALL SHEET</h2>
 
-        {/* Booking Information Table */}
+        {/* Production Details */}
+        <h3 style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '12px' }}>Production Details</h3>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: '60px', rowGap: '10px', marginBottom: '20px' }}>
-          {[
-            [['Department', callSheet.department || 'N/A'], ['Title', callSheet.title || 'N/A', true]],
-            [['Start Date & Time', formatDateTime(callSheet.startDateTime)], ['Return Date & Time', formatDateTime(callSheet.returnDateTime)]],
-            [['Call Time', formatTime(callSheet.startDateTime) || 'N/A'], ['Wrap Time', formatTime(callSheet.returnDateTime) || 'N/A']],
-            [['Focal Point', callSheet.focalPoint || 'N/A'], ['Contact', callSheet.focalPointContact || 'N/A']],
-          ].map((pair, rowIdx) => (
-            <React.Fragment key={rowIdx}>
-              {pair.map(([label, value, highlight], colIdx) => (
-                <div key={colIdx} style={{ display: 'flex', flexDirection: 'column', marginBottom: '10px' }}>
-                  <span style={{ fontSize: '13px', marginBottom: '2px' }}>{label}:</span>
-                  <div style={{ borderBottom: '1px solid #999', minHeight: '20px', color: '#000', fontWeight: 'bold', backgroundColor: highlight ? '#ffff99' : 'transparent', paddingBottom: '2px', fontSize: '13px' }}>{value}</div>
+          {productionDetailRows.map((pair, rowIdx) => {
+            const [left, right] = pair;
+            if (!right) {
+              return (
+                <div key={rowIdx} style={{ gridColumn: '1 / -1', display: 'flex', flexDirection: 'column', marginBottom: '10px' }}>
+                  <span style={{ fontSize: '13px', marginBottom: '2px' }}>{left.label}:</span>
+                  <div style={{ borderBottom: '1px solid #999', minHeight: '20px', color: '#000', fontWeight: 'bold', backgroundColor: left.highlight ? '#ffff99' : 'transparent', paddingBottom: '2px', fontSize: '13px' }}>{left.value}</div>
                 </div>
-              ))}
-            </React.Fragment>
-          ))}
+              );
+            }
+            return (
+              <React.Fragment key={rowIdx}>
+                {[left, right].map((field, colIdx) => (
+                  <div key={colIdx} style={{ display: 'flex', flexDirection: 'column', marginBottom: '10px' }}>
+                    <span style={{ fontSize: '13px', marginBottom: '2px' }}>{field.label}:</span>
+                    <div style={{ borderBottom: '1px solid #999', minHeight: '20px', color: '#000', fontWeight: 'bold', backgroundColor: field.highlight ? '#ffff99' : 'transparent', paddingBottom: '2px', fontSize: '13px' }}>{field.value}</div>
+                  </div>
+                ))}
+              </React.Fragment>
+            );
+          })}
         </div>
 
-        {/* Crew Assignments Table */}
+        <h3 style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '12px' }}>Crew Assignments</h3>
         <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '15px' }}>
           <thead>
             <tr style={{ backgroundColor: '#2F459E', color: '#fff', textTransform: 'uppercase' }}>
@@ -95,33 +150,10 @@ export const UnifiedWorkflowDocument: React.FC<UnifiedWorkflowDocumentProps> = (
           </thead>
           <tbody>
             {(() => {
-              const roles = [
-                'Director',
-                'Producer',
-                'Presenter',
-                'Assistant Director',
-                'Camera 1',
-                'Camera 2',
-                'Camera 3',
-                'Camera Assistant',
-                'Sound Technician',
-                'Studio Operator',
-                'Driver Needed',
-              ];
               let rowNumber = 1;
-              return roles.flatMap((role) => {
-                const isDriver = role === 'Driver Needed';
+              return crewRoles.flatMap((role) => {
                 const currentNumber = rowNumber++;
-                if (isDriver) {
-                  return [
-                    <tr key={`${role}-0`}>
-                      <td style={{ border: '1px solid #000', padding: '5px 6px', textAlign: 'center' }}>{currentNumber}</td>
-                      <td style={{ border: '1px solid #000', padding: '5px 6px', fontWeight: 'bold' }}>{role}</td>
-                      <td colSpan={2} style={{ border: '1px solid #000', padding: '5px 6px' }}>{callSheet.driverNeeded ? '✓ Yes' : '✗ No'}</td>
-                    </tr>,
-                  ];
-                }
-                const assignments = callSheet.crewAssignments?.filter((c) => c.role === role) || [];
+                const assignments = getAssignmentsForRole(role);
                 if (assignments.length === 0) {
                   return [
                     <tr key={`${role}-empty`}>
