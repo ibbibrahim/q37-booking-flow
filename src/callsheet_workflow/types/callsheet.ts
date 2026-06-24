@@ -77,7 +77,7 @@ export interface CallSheetRequest {
   indoorFacility: IndoorFacility | null;
   equipmentNeeded: boolean;
   eventType?: string;
-  sitePermitApproval?: SitePermitStatus;
+  sitePermitApproval?: 'Yes' | 'No';
 
   focalPoint: string;
   focalPointContact: string;
@@ -114,22 +114,6 @@ export interface CallSheetRequest {
 // -----------------------------
 // Static Lists
 // -----------------------------
-export type SitePermitStatus =
-  | 'Not Required'
-  | 'Required - Approved'
-  | 'Required - Not Approved';
-
-export const SITE_PERMIT_OPTIONS: { value: SitePermitStatus; label: string }[] = [
-  { value: 'Not Required', label: 'Not required for this shoot' },
-  { value: 'Required - Approved', label: 'Required — Yes, we have approval' },
-  { value: 'Required - Not Approved', label: 'Required — No, not approved yet' },
-];
-
-export function getSitePermitDisplayLabel(value?: string | null): string {
-  if (!value?.trim()) return 'N/A';
-  return SITE_PERMIT_OPTIONS.find((o) => o.value === value)?.label ?? value;
-}
-
 export const DEPARTMENTS = [
   'News and Digital Media',
   'Programs',

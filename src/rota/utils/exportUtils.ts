@@ -4,14 +4,66 @@ import ExcelJS from 'exceljs';
 import type { RotaWeek, RotaDepartment, RotaEmployee, RotaAssignment, RotaShiftType } from '../types/rota';
 import { formatDateForApi, parseLocalDate, normalizeDateString } from './dateUtils';
 import { getAssignmentDisplay, formatShiftTiming } from './rotaUtils';
-import logoUrl from '../../assets/Qbusiness_Logo_NEG_POS-02.png';
+import qbcLightUrl from '../../assets/QBC-light.png';
+import qbcLightArUrl from '../../assets/QBC-light-ar.png';
 import q37LogoUrl from '../../assets/q37.png';
 
-/** PDF header logo: Q37 for News and Digital, otherwise Q Business. */
-function getPdfExportLogoSrc(department: RotaDepartment): string {
+type ExportBrand =
+  | { kind: 'q37'; logo: string }
+  | { kind: 'qbc'; logoEn: string; logoAr: string };
+
+/** Export header logo: Q37 for News and Digital, otherwise QBC (login/dashboard branding). */
+function getExportBrand(department: RotaDepartment): ExportBrand {
   const name = department.name?.trim().toLowerCase() ?? '';
-  if (name === 'news and digital') return q37LogoUrl;
-  return logoUrl;
+  if (name === 'news and digital') return { kind: 'q37', logo: q37LogoUrl };
+  return { kind: 'qbc', logoEn: qbcLightUrl, logoAr: qbcLightArUrl };
+}
+
+function buildPdfLogoHtml(department: RotaDepartment): string {
+  const brand = getExportBrand(department);
+  if (brand.kind === 'q37') {
+    return `<img class="pdf-logo" src="${brand.logo}" alt="" crossorigin="anonymous" />`;
+  }
+  return `<div class="pdf-logo-group">
+  <img class="pdf-logo" src="${brand.logoEn}" alt="QBC" crossorigin="anonymous" />
+  <div class="pdf-logo-divider"></div>
+  <img class="pdf-logo" src="${brand.logoAr}" alt="كيو بي سي" crossorigin="anonymous" />
+</div>`;
+}
+
+async function addExportLogosToSheet(
+  workbook: ExcelJS.Workbook,
+  sheet: ExcelJS.Worksheet,
+  department: RotaDepartment
+): Promise<void> {
+  const brand = getExportBrand(department);
+  sheet.getRow(1).height = 44;
+  sheet.getRow(2).height = 6;
+
+  if (brand.kind === 'q37') {
+    const buffer = await fetch(brand.logo).then((r) => r.arrayBuffer());
+    const imageId = workbook.addImage({ buffer, extension: 'png' });
+    sheet.addImage(imageId, {
+      tl: { col: 0, row: 0 },
+      ext: { width: 72, height: 36 },
+    });
+    return;
+  }
+
+  const [bufferEn, bufferAr] = await Promise.all([
+    fetch(brand.logoEn).then((r) => r.arrayBuffer()),
+    fetch(brand.logoAr).then((r) => r.arrayBuffer()),
+  ]);
+  const imageIdEn = workbook.addImage({ buffer: bufferEn, extension: 'png' });
+  const imageIdAr = workbook.addImage({ buffer: bufferAr, extension: 'png' });
+  sheet.addImage(imageIdEn, {
+    tl: { col: 0, row: 0 },
+    ext: { width: 100, height: 36 },
+  });
+  sheet.addImage(imageIdAr, {
+    tl: { col: 1.4, row: 0 },
+    ext: { width: 96, height: 36 },
+  });
 }
 
 /** Format date for display, e.g. "22 Mar 2026" */
@@ -343,6 +395,8 @@ function buildPdfDom(params: {
   border-bottom: 2px solid #1e40af;
 }
 .pdf-logo { height: 52px; width: auto; object-fit: contain; }
+.pdf-logo-group { display: flex; align-items: center; gap: 8px; }
+.pdf-logo-divider { width: 1px; height: 40px; background: #ccc; flex-shrink: 0; }
 .pdf-title-block { flex: 1; text-align: center; }
 .pdf-title { margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -0.02em; }
 .pdf-sub { margin: 6px 0 0; font-size: 13px; color: #4b5563; }
@@ -421,7 +475,7 @@ function buildPdfDom(params: {
 }
 </style>
 <div class="pdf-header">
-  <img class="pdf-logo" src="${getPdfExportLogoSrc(department)}" alt="" crossorigin="anonymous" />
+  ${buildPdfLogoHtml(department)}
   <div class="pdf-title-block">
     <h1 class="pdf-title">${escapeHtml(department.name)} — Weekly rota</h1>
     <p class="pdf-sub">${escapeHtml(weekStartStr)} – ${escapeHtml(weekEndStr)}</p>
@@ -479,17 +533,21 @@ export async function exportRotaToPDF(
   document.body.appendChild(root);
 
   try {
-    const logoEl = root.querySelector('.pdf-logo') as HTMLImageElement | null;
-    if (logoEl?.src) {
-      try {
-        await logoEl.decode();
-      } catch {
-        await new Promise<void>((resolve) => {
-          logoEl.onload = () => resolve();
-          logoEl.onerror = () => resolve();
-        });
-      }
-    }
+    const logoEls = root.querySelectorAll('.pdf-logo');
+    await Promise.all(
+      Array.from(logoEls).map(async (el) => {
+        const logoEl = el as HTMLImageElement;
+        if (!logoEl.src) return;
+        try {
+          await logoEl.decode();
+        } catch {
+          await new Promise<void>((resolve) => {
+            logoEl.onload = () => resolve();
+            logoEl.onerror = () => resolve();
+          });
+        }
+      })
+    );
 
     await document.fonts.ready;
     await new Promise((r) => setTimeout(r, 200));
@@ -539,8 +597,17 @@ export async function exportRotaToExcel(
   const lastCol = 9;
   const lastColLetter = 'I';
 
-  sheet.mergeCells(`A1:${lastColLetter}1`);
-  const titleCell = sheet.getCell('A1');
+  const logoRowOffset = 2;
+  const titleRow = 1 + logoRowOffset;
+  const subRow = 2 + logoRowOffset;
+  const headerRow = 4 + logoRowOffset;
+  const dateRow = 5 + logoRowOffset;
+  let currentRow = 6 + logoRowOffset;
+
+  await addExportLogosToSheet(workbook, sheet, department);
+
+  sheet.mergeCells(`A${titleRow}:${lastColLetter}${titleRow}`);
+  const titleCell = sheet.getCell(`A${titleRow}`);
   titleCell.value = `${department.name} Schedule`;
   titleCell.font = { bold: true, size: 16, color: { argb: 'FF1F2937' } };
   titleCell.fill = {
@@ -549,16 +616,15 @@ export async function exportRotaToExcel(
     fgColor: { argb: 'FFFFFFCC' },
   };
   titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
-  sheet.getRow(1).height = 32;
+  sheet.getRow(titleRow).height = 32;
 
-  sheet.mergeCells(`A2:${lastColLetter}2`);
-  const subCell = sheet.getCell('A2');
+  sheet.mergeCells(`A${subRow}:${lastColLetter}${subRow}`);
+  const subCell = sheet.getCell(`A${subRow}`);
   subCell.value = `${weekStartStr} – ${weekEndStr}`;
   subCell.font = { size: 12, color: { argb: 'FF4B5563' } };
   subCell.alignment = { horizontal: 'center', vertical: 'middle' };
-  sheet.getRow(2).height = 22;
+  sheet.getRow(subRow).height = 22;
 
-  const headerRow = 4;
   const headers = ['Unit', 'Employee', 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   headers.forEach((h, i) => {
     const cell = sheet.getCell(headerRow, i + 1);
@@ -578,7 +644,6 @@ export async function exportRotaToExcel(
     };
   });
 
-  const dateRow = 5;
   sheet.getCell(dateRow, 1).value = '';
   sheet.getCell(dateRow, 2).value = '';
   for (let i = 0; i < 7; i++) {
@@ -602,7 +667,6 @@ export async function exportRotaToExcel(
   }
   sheet.getRow(dateRow).height = 20;
 
-  let currentRow = 6;
   const thinBorder = {
     top: { style: 'thin' as const, color: { argb: 'FF000000' } },
     left: { style: 'thin' as const, color: { argb: 'FF000000' } },

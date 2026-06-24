@@ -194,7 +194,7 @@ export const Login: React.FC = () => {
 
           <div className="mt-6 text-center">
             <p className="text-xs text-muted-foreground">
-              © 2024 QBusiness. All rights reserved.
+              © 2024 QBC. All rights reserved.
             </p>
           </div>
         </CardContent>

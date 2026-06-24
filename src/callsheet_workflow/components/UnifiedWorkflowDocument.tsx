@@ -1,6 +1,6 @@
 import React from 'react';
 import type { CallSheetRequest } from '../types/callsheet';
-import { CALL_SHEET_ROLES, getSitePermitDisplayLabel } from '../types/callsheet';
+import { CALL_SHEET_ROLES } from '../types/callsheet';
 import qbcLight from '../../assets/QBC-light.png';
 import qbcLightAr from '../../assets/QBC-light-ar.png';
 import { formatDateTime } from '@/studio_booking/utils/timeUtils';
@@ -81,7 +81,7 @@ export const UnifiedWorkflowDocument: React.FC<UnifiedWorkflowDocumentProps> = (
       { label: 'Focal Contact', value: displayValue(callSheet.focalPointContact) },
     ],
     [
-      { label: 'Site Filming Permit', value: getSitePermitDisplayLabel(callSheet.sitePermitApproval) },
+      { label: 'Site Filming Permit', value: displayValue(callSheet.sitePermitApproval) },
       callSheet.shootType !== 'Indoor'
         ? { label: 'Driver Needed', value: callSheet.driverNeeded ? '✓ Yes' : '✗ No' }
         : undefined,
