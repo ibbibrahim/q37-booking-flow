@@ -1039,13 +1039,16 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
                     disabled={isTechnicalStoreMode}
                   >
                     <SelectTrigger id="sitePermitApproval">
-                      <SelectValue placeholder="Select" />
+                      <SelectValue placeholder="Is a site permit needed for this shoot?" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Yes">Yes</SelectItem>
                       <SelectItem value="No">No</SelectItem>
                     </SelectContent>
                   </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Choose whether a location permit is needed, and if required, whether approval is already in place.
+                  </p>
                 </div>
 
                 {/* Equipment Needed - Only show when Indoor is selected */}
