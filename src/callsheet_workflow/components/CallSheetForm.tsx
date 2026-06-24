@@ -19,8 +19,8 @@ import { CallSheetPreview } from './CallSheetPreview';
 import { CallSheetEmailModal } from './CallSheetEmailModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/contexts/ToastContext';
-import type { CallSheetRequest, CrewAssignment, Equipment, DepartmentAcknowledgement, TransportRequest, Notification, ShootType, IndoorFacility, EventType } from '../types/callsheet';
-import { DEPARTMENTS, DEFAULT_NOTIFICATIONS, DEPARTMENT_ACKNOWLEDGEMENTS, CALL_SHEET_ROLES, INDOOR_FACILITIES  } from '../types/callsheet';
+import type { CallSheetRequest, CrewAssignment, Equipment, DepartmentAcknowledgement, TransportRequest, Notification, ShootType, IndoorFacility, SitePermitStatus } from '../types/callsheet';
+import { DEPARTMENTS, DEFAULT_NOTIFICATIONS, DEPARTMENT_ACKNOWLEDGEMENTS, CALL_SHEET_ROLES, INDOOR_FACILITIES, SITE_PERMIT_OPTIONS } from '../types/callsheet';
 import { getCurrentQatarDateTime } from '../utils/timezone';
 import type { EquipmentRow } from '../types/equipmentRow';
 import { createEmptyRow } from '../types/equipmentRow';
@@ -61,7 +61,7 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
     focalPoint: '',
     focalPointContact: '',
     driverNeeded: false,
-    sitePermitApproval: '' as 'Yes' | 'No' | '',
+    sitePermitApproval: '' as SitePermitStatus | '',
   });
 
   const [shootType, setShootType] = useState<ShootType>('Outdoor');
@@ -127,7 +127,7 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
         focalPoint: editData.focalPoint || '',
         focalPointContact: editData.focalPointContact || '',
         driverNeeded: editData.driverNeeded || false,
-        sitePermitApproval: (editData.sitePermitApproval as 'Yes' | 'No' | '') || '',
+        sitePermitApproval: (editData.sitePermitApproval as SitePermitStatus) || '',
       });
 
       if (editData.eventType) {
@@ -187,7 +187,7 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
         focalPoint: duplicateData.focalPoint || '',
         focalPointContact: duplicateData.focalPointContact || '',
         driverNeeded: duplicateData.driverNeeded || false,
-        sitePermitApproval: (duplicateData.sitePermitApproval as 'Yes' | 'No' | '') || '',
+        sitePermitApproval: (duplicateData.sitePermitApproval as SitePermitStatus) || '',
       });
 
       if (duplicateData.eventType) {
@@ -251,7 +251,7 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
         focalPoint: initialCallSheet.focalPoint || '',
         focalPointContact: initialCallSheet.focalPointContact || '',
         driverNeeded: initialCallSheet.driverNeeded || false,
-        sitePermitApproval: (initialCallSheet.sitePermitApproval as 'Yes' | 'No' | '') || '',
+        sitePermitApproval: (initialCallSheet.sitePermitApproval as SitePermitStatus) || '',
       });
 
       if (initialCallSheet.eventType) {
@@ -453,7 +453,7 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
     if (!formData.returnDateTime) missing.push('Return Date & Time');
     if (shootType === 'Outdoor' && !formData.location.trim()) missing.push('Location');
     if (shootType === 'Indoor' && !indoorFacility) missing.push('Indoor Facility');
-    if (!formData.sitePermitApproval) missing.push('Site Permit Approval');
+    if (!formData.sitePermitApproval) missing.push('Site Filming Permit');
 
     if (startDateError) {
       showToast(startDateError, 'warning', 6000);
@@ -1028,10 +1028,10 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
                   />
                 </div>
 
-                {/* Site Permit Approval */}
-                <div className="space-y-2">
+                {/* Site Filming Permit */}
+                <div className="space-y-2 md:col-span-2">
                   <Label htmlFor="sitePermitApproval">
-                    Site Permit Approval <span className="text-red-500">*</span>
+                    Site Filming Permit <span className="text-red-500">*</span>
                   </Label>
                   <Select
                     value={formData.sitePermitApproval}
@@ -1039,13 +1039,19 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
                     disabled={isTechnicalStoreMode}
                   >
                     <SelectTrigger id="sitePermitApproval">
-                      <SelectValue placeholder="Select" />
+                      <SelectValue placeholder="Is a site permit needed for this shoot?" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Yes">Yes</SelectItem>
-                      <SelectItem value="No">No</SelectItem>
+                      {SITE_PERMIT_OPTIONS.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Choose whether a location permit is needed, and if required, whether approval is already in place.
+                  </p>
                 </div>
 
                 {/* Equipment Needed - Only show when Indoor is selected */}
