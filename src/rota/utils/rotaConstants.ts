@@ -1,15 +1,13 @@
 export const PREDEFINED_PROGRAMS = [
-  'هدي وإقتصاد',
+  'هي والاقتصاد',
   'الميزان',
   'Eco motion',
-  'كلاست',
+  'كلاكيت',
   'برنامج 360',
   'القيمة',
   'مكانتهم',
-  'صناعات خليجية',
-  'بناء القرار',
-  'هالة الإبداع',
-  'حديث الأسواق',
+  'صناعات قطرية',
+  'صناع القرار',
 ] as const;
 
 export type PredefinedProgram = (typeof PREDEFINED_PROGRAMS)[number];
