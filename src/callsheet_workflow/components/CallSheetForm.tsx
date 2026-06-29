@@ -918,7 +918,7 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
                             {Icon && (
                               <Icon className={`relative z-10 w-4 h-4 shrink-0 ${ICON_TRANSITION} ${isSelected ? 'text-white' : (config?.iconUnselected ?? 'text-muted-foreground')}`} />
                             )}
-                            <span className="relative z-10 truncate leading-none">{dept}</span>
+                            <span className="relative z-10 truncate leading-snug">{dept}</span>
                           </motion.button>
                         );
                       })}
@@ -1082,7 +1082,7 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
                               />
                             )}
                             <Icon className={`relative z-10 w-4 h-4 shrink-0 ${ICON_TRANSITION} ${isSelected ? 'text-white' : cfg.iconUnselected}`} />
-                            <span className="relative z-10">{type}</span>
+                            <span className="relative z-10 leading-snug">{type}</span>
                           </motion.button>
                         );
                       })}
@@ -1143,7 +1143,7 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
                               {Icon && (
                                 <Icon className={`relative z-10 w-4 h-4 shrink-0 ${ICON_TRANSITION} ${isSelected ? 'text-white' : (cfg?.iconUnselected ?? '')}`} />
                               )}
-                              <span className="relative z-10 truncate">{facility}</span>
+                              <span className="relative z-10 truncate leading-snug">{facility}</span>
                             </motion.button>
                           );
                         })}
