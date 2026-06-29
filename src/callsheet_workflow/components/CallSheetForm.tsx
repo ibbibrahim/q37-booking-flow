@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion, LayoutGroup } from 'motion/react';
+import { motion, LayoutGroup, AnimatePresence } from 'motion/react';
 import { ArrowLeft, Plus, Trash2, Upload, X, MapPin, AlertCircle, Building2, Mail, Loader2, Info, ChevronLeft, ChevronRight, Newspaper, Tv, Palette, Wrench, ClipboardList, Monitor, Film, Building } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -25,103 +25,56 @@ import { getCurrentQatarDateTime } from '../utils/timezone';
 import type { EquipmentRow } from '../types/equipmentRow';
 import { createEmptyRow } from '../types/equipmentRow';
 
-const DEPARTMENT_CONFIG: Record<string, {
-  icon: React.ElementType;
-  selected: string;
-  unselected: string;
-  iconSelected: string;
-  iconUnselected: string;
-}> = {
-  'News and Digital Media': {
-    icon: Newspaper,
-    selected: 'border-blue-500 bg-blue-100 text-blue-800 shadow-2xl shadow-blue-500/35 ring-2 ring-blue-400/60 ring-offset-2 scale-[1.02]',
-    unselected: 'border-blue-400 bg-blue-100 text-blue-600 shadow-xl shadow-blue-500/30 -translate-y-0.5 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600 hover:shadow-none hover:translate-y-0',
-    iconSelected: 'text-blue-700',
-    iconUnselected: 'text-blue-600 group-hover:text-blue-400',
-  },
-  'Programs': {
-    icon: Tv,
-    selected: 'border-violet-500 bg-violet-100 text-violet-800 shadow-2xl shadow-violet-500/35 ring-2 ring-violet-400/60 ring-offset-2 scale-[1.02]',
-    unselected: 'border-violet-400 bg-violet-100 text-violet-600 shadow-xl shadow-violet-500/30 -translate-y-0.5 hover:border-violet-200 hover:bg-violet-50 hover:text-violet-600 hover:shadow-none hover:translate-y-0',
-    iconSelected: 'text-violet-700',
-    iconUnselected: 'text-violet-600 group-hover:text-violet-400',
-  },
-  'Creative': {
-    icon: Palette,
-    selected: 'border-orange-500 bg-orange-100 text-orange-800 shadow-2xl shadow-orange-500/35 ring-2 ring-orange-400/60 ring-offset-2 scale-[1.02]',
-    unselected: 'border-orange-400 bg-orange-100 text-orange-600 shadow-xl shadow-orange-500/30 -translate-y-0.5 hover:border-orange-200 hover:bg-orange-50 hover:text-orange-600 hover:shadow-none hover:translate-y-0',
-    iconSelected: 'text-orange-700',
-    iconUnselected: 'text-orange-600 group-hover:text-orange-400',
-  },
-  'Engineering': {
-    icon: Wrench,
-    selected: 'border-emerald-500 bg-emerald-100 text-emerald-800 shadow-2xl shadow-emerald-500/35 ring-2 ring-emerald-400/60 ring-offset-2 scale-[1.02]',
-    unselected: 'border-emerald-400 bg-emerald-100 text-emerald-600 shadow-xl shadow-emerald-500/30 -translate-y-0.5 hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-600 hover:shadow-none hover:translate-y-0',
-    iconSelected: 'text-emerald-700',
-    iconUnselected: 'text-emerald-600 group-hover:text-emerald-400',
-  },
-  'Operations': {
-    icon: ClipboardList,
-    selected: 'border-rose-500 bg-rose-100 text-rose-800 shadow-2xl shadow-rose-500/35 ring-2 ring-rose-400/60 ring-offset-2 scale-[1.02]',
-    unselected: 'border-rose-400 bg-rose-100 text-rose-600 shadow-xl shadow-rose-500/30 -translate-y-0.5 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 hover:shadow-none hover:translate-y-0',
-    iconSelected: 'text-rose-700',
-    iconUnselected: 'text-rose-600 group-hover:text-rose-400',
-  },
+const SELECTED_BTN = 'border-gray-900 text-white shadow-xl shadow-black/20 z-10';
+
+/** QBC brand blue default (same shadow/lift as before), yellow on hover */
+const BRAND_UNSELECTED =
+  'border-primary/50 bg-primary/10 text-primary shadow-xl shadow-primary/30 -translate-y-0.5 hover:border-accent hover:bg-accent/15 hover:text-[hsl(38,92%,28%)] hover:shadow-xl hover:shadow-accent/30';
+
+const BRAND_ICON_UNSELECTED =
+  'text-primary group-hover:text-[hsl(38,92%,38%)]';
+
+const DEPARTMENT_CONFIG: Record<string, { icon: React.ElementType }> = {
+  'News and Digital Media': { icon: Newspaper },
+  'Programs': { icon: Tv },
+  'Creative': { icon: Palette },
+  'Engineering': { icon: Wrench },
+  'Operations': { icon: ClipboardList },
 };
 
 const SHOOT_TYPE_CONFIG = {
-  Outdoor: {
-    icon: MapPin,
-    selected: 'border-sky-500 bg-sky-100 text-sky-800 shadow-2xl shadow-sky-500/35 ring-2 ring-sky-400/60 ring-offset-2 scale-[1.02]',
-    unselected: 'border-sky-400 bg-sky-100 text-sky-600 shadow-xl shadow-sky-500/30 -translate-y-0.5 hover:border-sky-200 hover:bg-sky-50 hover:text-sky-600 hover:shadow-none hover:translate-y-0',
-    iconSelected: 'text-sky-700',
-    iconUnselected: 'text-sky-600 group-hover:text-sky-400',
-  },
-  Indoor: {
-    icon: Building2,
-    selected: 'border-indigo-500 bg-indigo-100 text-indigo-800 shadow-2xl shadow-indigo-500/35 ring-2 ring-indigo-400/60 ring-offset-2 scale-[1.02]',
-    unselected: 'border-indigo-400 bg-indigo-100 text-indigo-600 shadow-xl shadow-indigo-500/30 -translate-y-0.5 hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600 hover:shadow-none hover:translate-y-0',
-    iconSelected: 'text-indigo-700',
-    iconUnselected: 'text-indigo-600 group-hover:text-indigo-400',
-  },
+  Outdoor: { icon: MapPin },
+  Indoor: { icon: Building2 },
 } as const;
 
-const INDOOR_FACILITY_CONFIG: Record<string, {
-  icon: React.ElementType;
-  selected: string;
-  unselected: string;
-  iconSelected: string;
-  iconUnselected: string;
-}> = {
-  'News Studio': {
-    icon: Monitor,
-    selected: 'border-teal-500 bg-teal-100 text-teal-800 shadow-2xl shadow-teal-500/35 ring-2 ring-teal-400/60 ring-offset-2 scale-[1.02]',
-    unselected: 'border-teal-400 bg-teal-100 text-teal-600 shadow-xl shadow-teal-500/30 -translate-y-0.5 hover:border-teal-200 hover:bg-teal-50 hover:text-teal-600 hover:shadow-none hover:translate-y-0',
-    iconSelected: 'text-teal-700',
-    iconUnselected: 'text-teal-600 group-hover:text-teal-400',
-  },
-  'Program Studio': {
-    icon: Film,
-    selected: 'border-purple-500 bg-purple-100 text-purple-800 shadow-2xl shadow-purple-500/35 ring-2 ring-purple-400/60 ring-offset-2 scale-[1.02]',
-    unselected: 'border-purple-400 bg-purple-100 text-purple-600 shadow-xl shadow-purple-500/30 -translate-y-0.5 hover:border-purple-200 hover:bg-purple-50 hover:text-purple-600 hover:shadow-none hover:translate-y-0',
-    iconSelected: 'text-purple-700',
-    iconUnselected: 'text-purple-600 group-hover:text-purple-400',
-  },
-  'Other Facilities': {
-    icon: Building,
-    selected: 'border-slate-500 bg-slate-100 text-slate-800 shadow-2xl shadow-slate-500/35 ring-2 ring-slate-400/60 ring-offset-2 scale-[1.02]',
-    unselected: 'border-slate-400 bg-slate-100 text-slate-600 shadow-xl shadow-slate-500/30 -translate-y-0.5 hover:border-slate-200 hover:bg-slate-50 hover:text-slate-600 hover:shadow-none hover:translate-y-0',
-    iconSelected: 'text-slate-700',
-    iconUnselected: 'text-slate-600 group-hover:text-slate-400',
-  },
+const INDOOR_FACILITY_CONFIG: Record<string, { icon: React.ElementType }> = {
+  'News Studio': { icon: Monitor },
+  'Program Studio': { icon: Film },
+  'Other Facilities': { icon: Building },
 };
 
 const SELECTION_BTN_BASE = 'transition-all duration-300 ease-out text-sm font-medium w-full';
+const FORM_HALF_COL = 'w-full md:max-w-[calc(50%-0.5rem)]';
 const ICON_TRANSITION = 'transition-colors duration-300 ease-out';
 const FIELD_REVEAL = 'animate-in fade-in-0 slide-in-from-top-2 duration-300 ease-out';
 const PANEL_REVEAL = 'animate-in fade-in-0 slide-in-from-bottom-2 duration-500 ease-out';
 const SPRING = { type: 'spring', stiffness: 380, damping: 32 } as const;
 const TAP_EASE = [0.16, 1, 0.3, 1] as const;
+
+function resolveShootTypeState(data: Pick<CallSheetRequest, 'shootType' | 'location' | 'indoorFacility'>) {
+  const indoorFacility =
+    data.indoorFacility ??
+    (data.location && INDOOR_FACILITIES.includes(data.location as IndoorFacility)
+      ? (data.location as IndoorFacility)
+      : null);
+
+  const shootType: ShootType = data.shootType ?? (indoorFacility ? 'Indoor' : 'Outdoor');
+
+  return {
+    shootType,
+    indoorFacility: shootType === 'Indoor' ? indoorFacility : null,
+  };
+}
 
 interface CallSheetFormProps {
   onSubmit: (data: Partial<CallSheetRequest>) => void;
@@ -330,13 +283,22 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
       if (duplicateData.notifications) setNotifications(duplicateData.notifications);
 
     } else if (initialCallSheet) {
-      // EXISTING LOGIC: Keep as is (for technicalStore mode or other uses)
+      // technicalStore mode and other uses of initialCallSheet
+      const { shootType: resolvedShootType, indoorFacility: resolvedIndoorFacility } =
+        resolveShootTypeState(initialCallSheet);
+
       const startDateTime = initialCallSheet.startDateTime
         ? initialCallSheet.startDateTime.substring(0, 16)
         : '';
       const returnDateTime = initialCallSheet.returnDateTime
         ? initialCallSheet.returnDateTime.substring(0, 16)
         : '';
+
+      setShootType(resolvedShootType);
+      setIndoorFacility(resolvedIndoorFacility);
+      if (initialCallSheet.equipmentNeeded !== undefined) {
+        setEquipmentNeeded(initialCallSheet.equipmentNeeded);
+      }
 
       setFormData({
         department: initialCallSheet.department || '',
@@ -345,11 +307,14 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
         returnDateTime: returnDateTime,
         callTime: initialCallSheet.callTime || '',
         wrapTime: initialCallSheet.wrapTime || '',
-        location: initialCallSheet.location || '',
+        location: resolvedShootType === 'Outdoor' ? (initialCallSheet.location || '') : '',
         focalPoint: initialCallSheet.focalPoint || '',
         focalPointContact: initialCallSheet.focalPointContact || '',
-        driverNeeded: initialCallSheet.driverNeeded || false,
-        sitePermitApproval: (initialCallSheet.sitePermitApproval as 'Yes' | 'No') || '',
+        driverNeeded: resolvedShootType === 'Indoor' ? false : (initialCallSheet.driverNeeded || false),
+        sitePermitApproval:
+          resolvedShootType === 'Outdoor'
+            ? ((initialCallSheet.sitePermitApproval as 'Yes' | 'No') || '')
+            : '',
       });
 
       if (initialCallSheet.eventType) {
@@ -596,7 +561,7 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
       return;
     }
 
-    if (!validateStep1()) {
+    if (!isTechnicalStoreMode && !validateStep1()) {
       setActiveTab('request');
       return;
     }
@@ -903,8 +868,8 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
                               'group relative flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border-2',
                               SELECTION_BTN_BASE,
                               isSelected
-                                ? 'border-gray-900 text-white shadow-xl shadow-black/20 z-10'
-                                : (config?.unselected ?? 'border-border bg-background text-muted-foreground'),
+                                ? SELECTED_BTN
+                                : BRAND_UNSELECTED,
                               isTechnicalStoreMode ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer',
                             ].join(' ')}
                           >
@@ -916,7 +881,7 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
                               />
                             )}
                             {Icon && (
-                              <Icon className={`relative z-10 w-4 h-4 shrink-0 ${ICON_TRANSITION} ${isSelected ? 'text-white' : (config?.iconUnselected ?? 'text-muted-foreground')}`} />
+                              <Icon className={`relative z-10 w-4 h-4 shrink-0 ${ICON_TRANSITION} ${isSelected ? 'text-white' : BRAND_ICON_UNSELECTED}`} />
                             )}
                             <span className="relative z-10 truncate leading-snug">{dept}</span>
                           </motion.button>
@@ -1046,111 +1011,131 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
                   )}
                 </div>
 
-                {/* Shoot Type */}
-                <div className="space-y-2">
-                  <Label>
-                    Shoot Type <span className="text-red-500">*</span>
-                  </Label>
-                  <LayoutGroup id="shoot">
-                    <div className="grid grid-cols-2 gap-2">
-                      {(['Outdoor', 'Indoor'] as const).map((type) => {
-                        const cfg = SHOOT_TYPE_CONFIG[type];
-                        const isSelected = shootType === type;
-                        const Icon = cfg.icon;
-                        return (
-                          <motion.button
-                            key={type}
-                            type="button"
-                            onClick={() => handleShootTypeChange(type)}
-                            disabled={isTechnicalStoreMode}
-                            whileTap={!isTechnicalStoreMode ? { scale: 0.97 } : {}}
-                            transition={{ duration: 0.2, ease: TAP_EASE }}
-                            className={[
-                              'group relative flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border-2 overflow-hidden',
-                              SELECTION_BTN_BASE,
-                              isSelected
-                                ? 'border-gray-900 text-white shadow-xl shadow-black/20'
-                                : cfg.unselected,
-                              isTechnicalStoreMode ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer',
-                            ].join(' ')}
-                          >
-                            {isSelected && (
-                              <motion.span
-                                layoutId="shoot-pill"
-                                className="absolute inset-0 bg-gray-900"
-                                transition={SPRING}
-                              />
-                            )}
-                            <Icon className={`relative z-10 w-4 h-4 shrink-0 ${ICON_TRANSITION} ${isSelected ? 'text-white' : cfg.iconUnselected}`} />
-                            <span className="relative z-10 leading-snug">{type}</span>
-                          </motion.button>
-                        );
-                      })}
-                    </div>
-                  </LayoutGroup>
-                </div>
-
-                {/* Location - Only show when Outdoor is selected */}
-                {shootType === 'Outdoor' && (
-                  <div className={`space-y-2 ${FIELD_REVEAL}`}>
-                    <Label htmlFor="location">Location</Label>
-                    <Input
-                      id="location"
-                      value={formData.location}
-                      onChange={(e) => handleChange('location', e.target.value)}
-                      placeholder="Filming location"
-                      readOnly={isTechnicalStoreMode}
-                    />
-                  </div>
-                )}
-
-                {/* Indoor Facility - Only show when Indoor is selected */}
-                {shootType === 'Indoor' && (
-                  <div className={`space-y-2 ${FIELD_REVEAL}`}>
+                {/* Shoot Type + conditional Location / Indoor Facility below */}
+                <div className={`space-y-4 md:col-span-2 ${FORM_HALF_COL}`}>
+                  <div className="space-y-2">
                     <Label>
-                      Indoor Facility <span className="text-red-500">*</span>
+                      Shoot Type <span className="text-red-500">*</span>
                     </Label>
-                    <LayoutGroup id="facility">
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                        {INDOOR_FACILITIES.map((facility) => {
-                          const cfg = INDOOR_FACILITY_CONFIG[facility];
-                          const isSelected = indoorFacility === facility;
-                          const Icon = cfg?.icon;
+                    <LayoutGroup id="shoot">
+                      <div className="grid grid-cols-2 gap-2">
+                        {(['Outdoor', 'Indoor'] as const).map((type) => {
+                          const cfg = SHOOT_TYPE_CONFIG[type];
+                          const isSelected = shootType === type;
+                          const Icon = cfg.icon;
                           return (
                             <motion.button
-                              key={facility}
+                              key={type}
                               type="button"
-                              onClick={() => !isTechnicalStoreMode && setIndoorFacility(facility as IndoorFacility)}
+                              onClick={() => handleShootTypeChange(type)}
                               disabled={isTechnicalStoreMode}
                               whileTap={!isTechnicalStoreMode ? { scale: 0.97 } : {}}
                               transition={{ duration: 0.2, ease: TAP_EASE }}
                               className={[
-                                'group relative flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border-2 overflow-hidden',
+                                'group relative flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border-2',
                                 SELECTION_BTN_BASE,
                                 isSelected
-                                  ? 'border-gray-900 text-white shadow-xl shadow-black/20'
-                                  : (cfg?.unselected ?? ''),
+                                  ? SELECTED_BTN
+                                  : BRAND_UNSELECTED,
                                 isTechnicalStoreMode ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer',
                               ].join(' ')}
                             >
                               {isSelected && (
                                 <motion.span
-                                  layoutId="facility-pill"
+                                  layoutId="shoot-pill"
                                   className="absolute inset-0 bg-gray-900"
                                   transition={SPRING}
                                 />
                               )}
-                              {Icon && (
-                                <Icon className={`relative z-10 w-4 h-4 shrink-0 ${ICON_TRANSITION} ${isSelected ? 'text-white' : (cfg?.iconUnselected ?? '')}`} />
-                              )}
-                              <span className="relative z-10 truncate leading-snug">{facility}</span>
+                              <Icon className={`relative z-10 w-4 h-4 shrink-0 ${ICON_TRANSITION} ${isSelected ? 'text-white' : BRAND_ICON_UNSELECTED}`} />
+                              <span className="relative z-10 leading-snug">{type}</span>
                             </motion.button>
                           );
                         })}
                       </div>
                     </LayoutGroup>
                   </div>
-                )}
+
+                  <AnimatePresence mode="wait" initial={false}>
+                    {shootType === 'Outdoor' && (
+                      <motion.div
+                        key="outdoor-location"
+                        initial={{ opacity: 0, height: 0, y: -8 }}
+                        animate={{ opacity: 1, height: 'auto', y: 0 }}
+                        exit={{ opacity: 0, height: 0, y: -8 }}
+                        transition={{ duration: 0.3, ease: TAP_EASE }}
+                        className="overflow-hidden"
+                      >
+                        <div className="space-y-2">
+                          <Label htmlFor="location">Location</Label>
+                          <Input
+                            id="location"
+                            value={formData.location}
+                            onChange={(e) => handleChange('location', e.target.value)}
+                            placeholder="Filming location"
+                            readOnly={isTechnicalStoreMode}
+                          />
+                        </div>
+                      </motion.div>
+                    )}
+
+                    {shootType === 'Indoor' && (
+                      <motion.div
+                        key="indoor-facility"
+                        initial={{ opacity: 0, height: 0, y: -8 }}
+                        animate={{ opacity: 1, height: 'auto', y: 0 }}
+                        exit={{ opacity: 0, height: 0, y: -8 }}
+                        transition={{ duration: 0.3, ease: TAP_EASE }}
+                        className="overflow-hidden"
+                      >
+                        <div className="space-y-2">
+                          <Label>
+                            Indoor Facility <span className="text-red-500">*</span>
+                          </Label>
+                          <LayoutGroup id="facility">
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                              {INDOOR_FACILITIES.map((facility) => {
+                                const cfg = INDOOR_FACILITY_CONFIG[facility];
+                                const isSelected = indoorFacility === facility;
+                                const Icon = cfg?.icon;
+                                return (
+                                  <motion.button
+                                    key={facility}
+                                    type="button"
+                                    onClick={() => !isTechnicalStoreMode && setIndoorFacility(facility as IndoorFacility)}
+                                    disabled={isTechnicalStoreMode}
+                                    whileTap={!isTechnicalStoreMode ? { scale: 0.97 } : {}}
+                                    transition={{ duration: 0.2, ease: TAP_EASE }}
+                                    className={[
+                                      'group relative flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border-2',
+                                      SELECTION_BTN_BASE,
+                                      isSelected
+                                        ? SELECTED_BTN
+                                        : BRAND_UNSELECTED,
+                                      isTechnicalStoreMode ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer',
+                                    ].join(' ')}
+                                  >
+                                    {isSelected && (
+                                      <motion.span
+                                        layoutId="facility-pill"
+                                        className="absolute inset-0 bg-gray-900"
+                                        transition={SPRING}
+                                      />
+                                    )}
+                                    {Icon && (
+                                      <Icon className={`relative z-10 w-4 h-4 shrink-0 ${ICON_TRANSITION} ${isSelected ? 'text-white' : BRAND_ICON_UNSELECTED}`} />
+                                    )}
+                                    <span className="relative z-10 truncate leading-snug">{facility}</span>
+                                  </motion.button>
+                                );
+                              })}
+                            </div>
+                          </LayoutGroup>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
 
                 {/* Focal Point */}
                 <div className="space-y-2">
