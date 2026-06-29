@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Plus, Trash2, Upload, X, MapPin, AlertCircle, Building2, Mail, Loader2, Info, ChevronLeft, ChevronRight } from 'lucide-react';
+import { motion, LayoutGroup } from 'motion/react';
+import { ArrowLeft, Plus, Trash2, Upload, X, MapPin, AlertCircle, Building2, Mail, Loader2, Info, ChevronLeft, ChevronRight, Newspaper, Tv, Palette, Wrench, ClipboardList, Monitor, Film, Building } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,8 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Switch } from '@/components/ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -24,6 +24,104 @@ import { DEPARTMENTS, DEFAULT_NOTIFICATIONS, DEPARTMENT_ACKNOWLEDGEMENTS, CALL_S
 import { getCurrentQatarDateTime } from '../utils/timezone';
 import type { EquipmentRow } from '../types/equipmentRow';
 import { createEmptyRow } from '../types/equipmentRow';
+
+const DEPARTMENT_CONFIG: Record<string, {
+  icon: React.ElementType;
+  selected: string;
+  unselected: string;
+  iconSelected: string;
+  iconUnselected: string;
+}> = {
+  'News and Digital Media': {
+    icon: Newspaper,
+    selected: 'border-blue-500 bg-blue-100 text-blue-800 shadow-2xl shadow-blue-500/35 ring-2 ring-blue-400/60 ring-offset-2 scale-[1.02]',
+    unselected: 'border-blue-400 bg-blue-100 text-blue-600 shadow-xl shadow-blue-500/30 -translate-y-0.5 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600 hover:shadow-none hover:translate-y-0',
+    iconSelected: 'text-blue-700',
+    iconUnselected: 'text-blue-600 group-hover:text-blue-400',
+  },
+  'Programs': {
+    icon: Tv,
+    selected: 'border-violet-500 bg-violet-100 text-violet-800 shadow-2xl shadow-violet-500/35 ring-2 ring-violet-400/60 ring-offset-2 scale-[1.02]',
+    unselected: 'border-violet-400 bg-violet-100 text-violet-600 shadow-xl shadow-violet-500/30 -translate-y-0.5 hover:border-violet-200 hover:bg-violet-50 hover:text-violet-600 hover:shadow-none hover:translate-y-0',
+    iconSelected: 'text-violet-700',
+    iconUnselected: 'text-violet-600 group-hover:text-violet-400',
+  },
+  'Creative': {
+    icon: Palette,
+    selected: 'border-orange-500 bg-orange-100 text-orange-800 shadow-2xl shadow-orange-500/35 ring-2 ring-orange-400/60 ring-offset-2 scale-[1.02]',
+    unselected: 'border-orange-400 bg-orange-100 text-orange-600 shadow-xl shadow-orange-500/30 -translate-y-0.5 hover:border-orange-200 hover:bg-orange-50 hover:text-orange-600 hover:shadow-none hover:translate-y-0',
+    iconSelected: 'text-orange-700',
+    iconUnselected: 'text-orange-600 group-hover:text-orange-400',
+  },
+  'Engineering': {
+    icon: Wrench,
+    selected: 'border-emerald-500 bg-emerald-100 text-emerald-800 shadow-2xl shadow-emerald-500/35 ring-2 ring-emerald-400/60 ring-offset-2 scale-[1.02]',
+    unselected: 'border-emerald-400 bg-emerald-100 text-emerald-600 shadow-xl shadow-emerald-500/30 -translate-y-0.5 hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-600 hover:shadow-none hover:translate-y-0',
+    iconSelected: 'text-emerald-700',
+    iconUnselected: 'text-emerald-600 group-hover:text-emerald-400',
+  },
+  'Operations': {
+    icon: ClipboardList,
+    selected: 'border-rose-500 bg-rose-100 text-rose-800 shadow-2xl shadow-rose-500/35 ring-2 ring-rose-400/60 ring-offset-2 scale-[1.02]',
+    unselected: 'border-rose-400 bg-rose-100 text-rose-600 shadow-xl shadow-rose-500/30 -translate-y-0.5 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 hover:shadow-none hover:translate-y-0',
+    iconSelected: 'text-rose-700',
+    iconUnselected: 'text-rose-600 group-hover:text-rose-400',
+  },
+};
+
+const SHOOT_TYPE_CONFIG = {
+  Outdoor: {
+    icon: MapPin,
+    selected: 'border-sky-500 bg-sky-100 text-sky-800 shadow-2xl shadow-sky-500/35 ring-2 ring-sky-400/60 ring-offset-2 scale-[1.02]',
+    unselected: 'border-sky-400 bg-sky-100 text-sky-600 shadow-xl shadow-sky-500/30 -translate-y-0.5 hover:border-sky-200 hover:bg-sky-50 hover:text-sky-600 hover:shadow-none hover:translate-y-0',
+    iconSelected: 'text-sky-700',
+    iconUnselected: 'text-sky-600 group-hover:text-sky-400',
+  },
+  Indoor: {
+    icon: Building2,
+    selected: 'border-indigo-500 bg-indigo-100 text-indigo-800 shadow-2xl shadow-indigo-500/35 ring-2 ring-indigo-400/60 ring-offset-2 scale-[1.02]',
+    unselected: 'border-indigo-400 bg-indigo-100 text-indigo-600 shadow-xl shadow-indigo-500/30 -translate-y-0.5 hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600 hover:shadow-none hover:translate-y-0',
+    iconSelected: 'text-indigo-700',
+    iconUnselected: 'text-indigo-600 group-hover:text-indigo-400',
+  },
+} as const;
+
+const INDOOR_FACILITY_CONFIG: Record<string, {
+  icon: React.ElementType;
+  selected: string;
+  unselected: string;
+  iconSelected: string;
+  iconUnselected: string;
+}> = {
+  'News Studio': {
+    icon: Monitor,
+    selected: 'border-teal-500 bg-teal-100 text-teal-800 shadow-2xl shadow-teal-500/35 ring-2 ring-teal-400/60 ring-offset-2 scale-[1.02]',
+    unselected: 'border-teal-400 bg-teal-100 text-teal-600 shadow-xl shadow-teal-500/30 -translate-y-0.5 hover:border-teal-200 hover:bg-teal-50 hover:text-teal-600 hover:shadow-none hover:translate-y-0',
+    iconSelected: 'text-teal-700',
+    iconUnselected: 'text-teal-600 group-hover:text-teal-400',
+  },
+  'Program Studio': {
+    icon: Film,
+    selected: 'border-purple-500 bg-purple-100 text-purple-800 shadow-2xl shadow-purple-500/35 ring-2 ring-purple-400/60 ring-offset-2 scale-[1.02]',
+    unselected: 'border-purple-400 bg-purple-100 text-purple-600 shadow-xl shadow-purple-500/30 -translate-y-0.5 hover:border-purple-200 hover:bg-purple-50 hover:text-purple-600 hover:shadow-none hover:translate-y-0',
+    iconSelected: 'text-purple-700',
+    iconUnselected: 'text-purple-600 group-hover:text-purple-400',
+  },
+  'Other Facilities': {
+    icon: Building,
+    selected: 'border-slate-500 bg-slate-100 text-slate-800 shadow-2xl shadow-slate-500/35 ring-2 ring-slate-400/60 ring-offset-2 scale-[1.02]',
+    unselected: 'border-slate-400 bg-slate-100 text-slate-600 shadow-xl shadow-slate-500/30 -translate-y-0.5 hover:border-slate-200 hover:bg-slate-50 hover:text-slate-600 hover:shadow-none hover:translate-y-0',
+    iconSelected: 'text-slate-700',
+    iconUnselected: 'text-slate-600 group-hover:text-slate-400',
+  },
+};
+
+const SELECTION_BTN_BASE = 'transition-all duration-300 ease-out text-sm font-medium w-full';
+const ICON_TRANSITION = 'transition-colors duration-300 ease-out';
+const FIELD_REVEAL = 'animate-in fade-in-0 slide-in-from-top-2 duration-300 ease-out';
+const PANEL_REVEAL = 'animate-in fade-in-0 slide-in-from-bottom-2 duration-500 ease-out';
+const SPRING = { type: 'spring', stiffness: 380, damping: 32 } as const;
+const TAP_EASE = [0.16, 1, 0.3, 1] as const;
 
 interface CallSheetFormProps {
   onSubmit: (data: Partial<CallSheetRequest>) => void;
@@ -392,7 +490,7 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
       setIndoorFacility(null);
       setEquipmentNeeded(false);
     } else {
-      setFormData(prev => ({ ...prev, location: '', driverNeeded: false }));
+      setFormData(prev => ({ ...prev, location: '', driverNeeded: false, sitePermitApproval: '' }));
     }
   };
 
@@ -453,7 +551,7 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
     if (!formData.returnDateTime) missing.push('Return Date & Time');
     if (shootType === 'Outdoor' && !formData.location.trim()) missing.push('Location');
     if (shootType === 'Indoor' && !indoorFacility) missing.push('Indoor Facility');
-    if (!formData.sitePermitApproval) missing.push('Site Filming Permit');
+    if (shootType === 'Outdoor' && !formData.sitePermitApproval) missing.push('Site Filming Permit');
 
     if (startDateError) {
       showToast(startDateError, 'warning', 6000);
@@ -555,7 +653,7 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
         location: finalLocation,
         equipmentNeeded: shootType === 'Indoor' ? equipmentNeeded : false,
         eventType: eventType || undefined,
-        sitePermitApproval: formData.sitePermitApproval || undefined,
+        sitePermitApproval: shootType === 'Outdoor' ? (formData.sitePermitApproval || undefined) : undefined,
         focalPoint: formData.focalPoint,
         focalPointContact: formData.focalPointContact,
         driverNeeded: formData.driverNeeded,
@@ -765,7 +863,7 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
           <TabsTrigger value="preview" disabled={isSubmitting}>Transportation</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="request" forceMount className={activeTab !== 'request' ? 'hidden space-y-6' : 'space-y-6'}>
+        <TabsContent value="request" forceMount className={activeTab !== 'request' ? 'hidden space-y-6' : `space-y-6 ${PANEL_REVEAL}`}>
           {isDuplicateMode && duplicateData && (
             <Alert className="mb-4">
               <AlertCircle className="h-4 w-4" />
@@ -775,7 +873,7 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
               </AlertDescription>
             </Alert>
           )}
-          <Card>
+          <Card className={`${PANEL_REVEAL}`}>
             <CardHeader>
               <CardTitle>Production Details</CardTitle>
             </CardHeader>
@@ -787,23 +885,50 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
                   <Label>
                     Department <span className="text-red-500">*</span>
                   </Label>
-                  <div className="grid grid-cols-3 gap-3">
-                    {DEPARTMENTS.map((dept) => (
-                      <button
-                        key={dept}
-                        type="button"
-                        onClick={() => !isTechnicalStoreMode && handleChange('department', dept)}
-                        disabled={isTechnicalStoreMode}
-                        className={`flex items-center justify-center px-3 py-2.5 rounded-lg border-2 transition-all text-sm font-medium ${
-                          formData.department === dept
-                            ? 'border-primary bg-primary/5 text-primary'
-                            : 'border-border hover:border-primary/50 text-muted-foreground'
-                        } ${isTechnicalStoreMode ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-                      >
-                        {dept}
-                      </button>
-                    ))}
-                  </div>
+                  <LayoutGroup id="dept">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+                      {DEPARTMENTS.map((dept) => {
+                        const config = DEPARTMENT_CONFIG[dept];
+                        const isSelected = formData.department === dept;
+                        const Icon = config?.icon;
+                        return (
+                          <motion.button
+                            key={dept}
+                            type="button"
+                            onClick={() => !isTechnicalStoreMode && handleChange('department', dept)}
+                            disabled={isTechnicalStoreMode}
+                            whileTap={!isTechnicalStoreMode ? { scale: 0.96 } : {}}
+                            transition={{ duration: 0.2, ease: TAP_EASE }}
+                            className={[
+                              'group relative flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border-2',
+                              SELECTION_BTN_BASE,
+                              isSelected
+                                ? 'border-gray-900 text-white shadow-xl shadow-black/20 z-10'
+                                : (config?.unselected ?? 'border-border bg-background text-muted-foreground'),
+                              isTechnicalStoreMode ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer',
+                            ].join(' ')}
+                          >
+                            {isSelected && (
+                              <motion.span
+                                layoutId="dept-pill"
+                                className="absolute inset-0 bg-gray-900"
+                                transition={SPRING}
+                              />
+                            )}
+                            {Icon && (
+                              <Icon className={`relative z-10 w-4 h-4 shrink-0 ${ICON_TRANSITION} ${isSelected ? 'text-white' : (config?.iconUnselected ?? 'text-muted-foreground')}`} />
+                            )}
+                            <span className="relative z-10 truncate leading-none">{dept}</span>
+                          </motion.button>
+                        );
+                      })}
+                    </div>
+                  </LayoutGroup>
+                </div>
+
+                {/* Separator after department */}
+                <div className="md:col-span-2 -mx-6 px-6 pt-1">
+                  <div className="h-0.5 bg-border" />
                 </div>
 
                 {/* Title */}
@@ -926,39 +1051,48 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
                   <Label>
                     Shoot Type <span className="text-red-500">*</span>
                   </Label>
-                  <div className="grid grid-cols-2 gap-3">
-                    <button
-                      type="button"
-                      onClick={() => handleShootTypeChange('Outdoor')}
-                      disabled={isTechnicalStoreMode}
-                      className={`flex items-center justify-center gap-2 px-2 py-2 rounded-lg border-2 transition-all ${
-                        shootType === 'Outdoor'
-                          ? 'border-primary bg-primary/5 text-primary'
-                          : 'border-border hover:border-primary/50 text-muted-foreground'
-                      } ${isTechnicalStoreMode ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-                    >
-                      <MapPin className="w-5 h-5" />
-                      <span className="font-medium">Outdoor</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleShootTypeChange('Indoor')}
-                      disabled={isTechnicalStoreMode}
-                      className={`flex items-center justify-center gap-2 px-2 py-2 rounded-lg border-2 transition-all ${
-                        shootType === 'Indoor'
-                          ? 'border-primary bg-primary/5 text-primary'
-                          : 'border-border hover:border-primary/50 text-muted-foreground'
-                      } ${isTechnicalStoreMode ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-                    >
-                      <Building2 className="w-5 h-5" />
-                      <span className="font-medium">Indoor</span>
-                    </button>
-                  </div>
+                  <LayoutGroup id="shoot">
+                    <div className="grid grid-cols-2 gap-2">
+                      {(['Outdoor', 'Indoor'] as const).map((type) => {
+                        const cfg = SHOOT_TYPE_CONFIG[type];
+                        const isSelected = shootType === type;
+                        const Icon = cfg.icon;
+                        return (
+                          <motion.button
+                            key={type}
+                            type="button"
+                            onClick={() => handleShootTypeChange(type)}
+                            disabled={isTechnicalStoreMode}
+                            whileTap={!isTechnicalStoreMode ? { scale: 0.97 } : {}}
+                            transition={{ duration: 0.2, ease: TAP_EASE }}
+                            className={[
+                              'group relative flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border-2 overflow-hidden',
+                              SELECTION_BTN_BASE,
+                              isSelected
+                                ? 'border-gray-900 text-white shadow-xl shadow-black/20'
+                                : cfg.unselected,
+                              isTechnicalStoreMode ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer',
+                            ].join(' ')}
+                          >
+                            {isSelected && (
+                              <motion.span
+                                layoutId="shoot-pill"
+                                className="absolute inset-0 bg-gray-900"
+                                transition={SPRING}
+                              />
+                            )}
+                            <Icon className={`relative z-10 w-4 h-4 shrink-0 ${ICON_TRANSITION} ${isSelected ? 'text-white' : cfg.iconUnselected}`} />
+                            <span className="relative z-10">{type}</span>
+                          </motion.button>
+                        );
+                      })}
+                    </div>
+                  </LayoutGroup>
                 </div>
 
                 {/* Location - Only show when Outdoor is selected */}
                 {shootType === 'Outdoor' && (
-                  <div className="space-y-2">
+                  <div className={`space-y-2 ${FIELD_REVEAL}`}>
                     <Label htmlFor="location">Location</Label>
                     <Input
                       id="location"
@@ -972,35 +1106,49 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
 
                 {/* Indoor Facility - Only show when Indoor is selected */}
                 {shootType === 'Indoor' && (
-                  <div className="space-y-2">
+                  <div className={`space-y-2 ${FIELD_REVEAL}`}>
                     <Label>
                       Indoor Facility <span className="text-red-500">*</span>
                     </Label>
-                    <RadioGroup
-                      value={indoorFacility || ''}
-                      onValueChange={(value) => setIndoorFacility(value as IndoorFacility)}
-                      disabled={isTechnicalStoreMode}
-                      className="flex flex-col gap-3"
-                    >
-                      {INDOOR_FACILITIES.map((facility) => (
-                        <label
-                          key={facility}
-                          htmlFor={facility.toLowerCase().replace(/\s+/g, '-')}
-                          className={`flex items-center gap-3 px-4 py-3 rounded-lg border-2 transition-all cursor-pointer ${
-                            indoorFacility === facility
-                              ? 'border-primary bg-primary/5'
-                              : 'border-border hover:border-primary/50'
-                          } ${isTechnicalStoreMode ? 'opacity-50 cursor-not-allowed' : ''}`}
-                        >
-                          <RadioGroupItem
-                            value={facility}
-                            id={facility.toLowerCase().replace(/\s+/g, '-')}
-                            className="flex-shrink-0"
-                          />
-                          <span className="font-medium text-sm">{facility}</span>
-                        </label>
-                      ))}
-                    </RadioGroup>
+                    <LayoutGroup id="facility">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        {INDOOR_FACILITIES.map((facility) => {
+                          const cfg = INDOOR_FACILITY_CONFIG[facility];
+                          const isSelected = indoorFacility === facility;
+                          const Icon = cfg?.icon;
+                          return (
+                            <motion.button
+                              key={facility}
+                              type="button"
+                              onClick={() => !isTechnicalStoreMode && setIndoorFacility(facility as IndoorFacility)}
+                              disabled={isTechnicalStoreMode}
+                              whileTap={!isTechnicalStoreMode ? { scale: 0.97 } : {}}
+                              transition={{ duration: 0.2, ease: TAP_EASE }}
+                              className={[
+                                'group relative flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border-2 overflow-hidden',
+                                SELECTION_BTN_BASE,
+                                isSelected
+                                  ? 'border-gray-900 text-white shadow-xl shadow-black/20'
+                                  : (cfg?.unselected ?? ''),
+                                isTechnicalStoreMode ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer',
+                              ].join(' ')}
+                            >
+                              {isSelected && (
+                                <motion.span
+                                  layoutId="facility-pill"
+                                  className="absolute inset-0 bg-gray-900"
+                                  transition={SPRING}
+                                />
+                              )}
+                              {Icon && (
+                                <Icon className={`relative z-10 w-4 h-4 shrink-0 ${ICON_TRANSITION} ${isSelected ? 'text-white' : (cfg?.iconUnselected ?? '')}`} />
+                              )}
+                              <span className="relative z-10 truncate">{facility}</span>
+                            </motion.button>
+                          );
+                        })}
+                      </div>
+                    </LayoutGroup>
                   </div>
                 )}
 
@@ -1028,72 +1176,48 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
                   />
                 </div>
 
-                {/* Site Filming Permit */}
-                <div className="space-y-2">
-                  <Label htmlFor="sitePermitApproval">
-                    Site Filming Permit <span className="text-red-500">*</span>
-                  </Label>
-                  <Select
-                    value={formData.sitePermitApproval}
-                    onValueChange={(value) => handleChange('sitePermitApproval', value)}
-                    disabled={isTechnicalStoreMode}
-                  >
-                    <SelectTrigger id="sitePermitApproval">
-                      <SelectValue placeholder="Is a site permit needed for this shoot?" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Yes">Yes</SelectItem>
-                      <SelectItem value="No">No</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground">
-                    Choose whether a location permit is needed, and if required, whether approval is already in place.
-                  </p>
-                </div>
-
-                {/* Equipment Needed - Only show when Indoor is selected */}
-                {/* {shootType === 'Indoor' && (
-                  <div className="md:col-span-2 space-y-2">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="equipmentNeeded"
-                        checked={equipmentNeeded}
-                        onCheckedChange={(checked) => setEquipmentNeeded(checked as boolean)}
-                        disabled={isTechnicalStoreMode}
-                      />
-                      <Label
-                        htmlFor="equipmentNeeded"
-                        className="text-sm font-normal cursor-pointer"
-                      >
-                        Equipment Needed
-                      </Label>
-                    </div>
-                    <p className="text-xs text-muted-foreground ml-6">
-                      If equipment is needed, this request will go to the Technical Store for confirmation. If no equipment is needed, it will be submitted directly and the announcement can be made without Technical Store approval.
-                    </p>
-                  </div>
-                )} */}
-
-                {/* Driver Needed - Hide when Indoor is selected */}
+                {/* Site Filming Permit + Driver Needed - Outdoor only, side by side */}
                 {shootType !== 'Indoor' && (
-                  <div className="md:col-span-2">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="driverNeeded"
-                        checked={formData.driverNeeded}
-                        onCheckedChange={(checked) =>
-                          handleChange('driverNeeded', checked as boolean)
-                        }
-                        disabled={isTechnicalStoreMode}
-                      />
-                      <Label
-                        htmlFor="driverNeeded"
-                        className="text-sm font-normal cursor-pointer"
-                      >
-                        Driver Needed
+                  <>
+                    <div className={`space-y-2 ${FIELD_REVEAL}`}>
+                      <Label htmlFor="sitePermitApproval">
+                        Site Filming Permit <span className="text-red-500">*</span>
                       </Label>
+                      <Select
+                        value={formData.sitePermitApproval}
+                        onValueChange={(value) => handleChange('sitePermitApproval', value)}
+                        disabled={isTechnicalStoreMode}
+                      >
+                        <SelectTrigger id="sitePermitApproval">
+                          <SelectValue placeholder="Is a site permit needed for this shoot?" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Yes">Yes</SelectItem>
+                          <SelectItem value="No">No</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground">
+                        Choose whether a location permit is needed, and if required, whether approval is already in place.
+                      </p>
                     </div>
-                  </div>
+
+                    <div className={`space-y-2 ${FIELD_REVEAL}`}>
+                      <Label htmlFor="driverNeeded">Driver Needed</Label>
+                      <div className="flex h-10 items-center gap-3">
+                        <Switch
+                          id="driverNeeded"
+                          checked={formData.driverNeeded}
+                          onCheckedChange={(checked) =>
+                            handleChange('driverNeeded', checked)
+                          }
+                          disabled={isTechnicalStoreMode}
+                        />
+                        <span className="text-sm text-muted-foreground">
+                          {formData.driverNeeded ? 'Yes' : 'No'}
+                        </span>
+                      </div>
+                    </div>
+                  </>
                 )}
 
               </div>
@@ -1168,7 +1292,7 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
             </CardContent>
           </Card> */}
 
-          <Card>
+          <Card className={`${PANEL_REVEAL} [animation-delay:150ms]`}>
             <CardHeader>
               <CardTitle>Crew Assignments</CardTitle>
             </CardHeader>
@@ -1253,7 +1377,7 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
         </TabsContent>
 
 
-        <TabsContent value="equipment" forceMount className={activeTab !== 'equipment' ? 'hidden space-y-6' : 'space-y-6'}>
+        <TabsContent value="equipment" forceMount className={activeTab !== 'equipment' ? 'hidden space-y-6' : `space-y-6 ${PANEL_REVEAL}`}>
           <EquipmentForm
             equipmentRows={equipmentRows}
             setEquipmentRows={setEquipmentRows}
@@ -1267,7 +1391,7 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
           />
         </TabsContent>
 
-        <TabsContent value="preview" forceMount className={activeTab !== 'preview' ? 'hidden space-y-6' : 'space-y-6'}>
+        <TabsContent value="preview" forceMount className={activeTab !== 'preview' ? 'hidden space-y-6' : `space-y-6 ${PANEL_REVEAL}`}>
           {formData.driverNeeded && (
             <TransportForm
               transportRequest={transportRequest}
@@ -1284,7 +1408,7 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
                 ...formData,
                 shootType,
                 eventType: eventType || undefined,
-                sitePermitApproval: formData.sitePermitApproval || undefined,
+                sitePermitApproval: shootType === 'Outdoor' ? (formData.sitePermitApproval || undefined) : undefined,
                 crewAssignments,
                 departmentAcknowledgements,
                 equipment: equipmentRows

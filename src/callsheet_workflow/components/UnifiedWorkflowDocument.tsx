@@ -46,9 +46,9 @@ export const UnifiedWorkflowDocument: React.FC<UnifiedWorkflowDocumentProps> = (
 
   const getAssignmentsForRole = (role: string) => {
     const assignments = callSheet.crewAssignments ?? [];
-    if (role === 'Camera Man') {
+    if (role === 'Cameraman') {
       return assignments.filter(
-        (c) => c.role === 'Camera Man' || c.role === 'Camera 1' || c.role === 'Camera 2' || c.role === 'Camera 3'
+        (c) => c.role === 'Cameraman' || c.role === 'Camera Man' || c.role === 'Camera 1' || c.role === 'Camera 2' || c.role === 'Camera 3'
       );
     }
     return assignments.filter((c) => c.role === role);

@@ -118,6 +118,8 @@ export const DEPARTMENTS = [
   'News and Digital Media',
   'Programs',
   'Creative',
+  'Engineering',
+  'Operations',
 ];
 
 export const INDOOR_FACILITIES: IndoorFacility[] = [
@@ -131,7 +133,7 @@ export const CALL_SHEET_ROLES = [
   'Producer',
   'Presenter',
   'Assistant Director',
-  'Camera Man',
+  'Cameraman',
   'Camera Assistant',
   'Light Technician',
   'Sound Technician',
