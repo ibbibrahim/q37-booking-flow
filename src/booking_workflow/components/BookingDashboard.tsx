@@ -167,7 +167,7 @@ export const BookingDashboard: React.FC = () => {
       case 'editor-queue': return 'View and assign edit suite booking requests';
       case 'rota': return 'Manage department rotas and shift assignments';
       case 'studio-booking': return 'Manage studio bookings and schedules';
-      case 'schedule': return 'QBusiness channel programme guide from BCM';
+      case 'schedule': return 'QBC channel programme guide from BCM';
       case 'admin-users': return 'Manage system users, roles, and permissions';
       default: return getRoleDescription(currentRole);
     }

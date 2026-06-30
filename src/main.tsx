@@ -4,11 +4,15 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter } from 'react-router-dom';
 import App from './App.tsx';
 import './index.css';
+import { AppUpdateBanner } from './components/AppUpdateBanner';
 import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { SignalRProvider } from './contexts/SignalRContext';
 import { ToastProvider } from './contexts/ToastContext';
 import { NotificationProvider } from './contexts/NotificationContext';
+import { registerChunkLoadRecovery } from './lib/appVersion';
+
+registerChunkLoadRecovery();
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -25,6 +29,7 @@ createRoot(document.getElementById('root')!).render(
           <ToastProvider>
             <SignalRProvider>
               <NotificationProvider>
+                <AppUpdateBanner />
                 <App />
               </NotificationProvider>
             </SignalRProvider>

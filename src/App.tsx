@@ -21,6 +21,7 @@ import { UsersPage } from './admin/components/UsersPage';
 import { RotaManagementPage } from './rota/pages/RotaManagementPage';
 import { PublicRotaPage } from './rota/pages/PublicRotaPage';
 import { RotaDepartmentSettingsPage } from './rota/pages/RotaDepartmentSettingsPage';
+import { EPGViewer } from './epg_workflow/components/EPGViewer';
 
 function App() {
   const { isAuthenticated, user, isLoading } = useAuth();
@@ -290,14 +291,14 @@ function App() {
         />
 
         {/** STUDIO BOOKING */}
-        <Route
+        {/* <Route
           path="studio-booking"
           element={
             <ProtectedRoute>
               <StudioBookingDashboard />
             </ProtectedRoute>
           }
-        />
+        /> */}
 
         {/** ROTA MANAGEMENT */}
         <Route
@@ -313,6 +314,16 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={['Admin', 'RotaTeamLead']}>
               <RotaDepartmentSettingsPage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/** PROGRAMME SCHEDULE (EPG) */}
+        <Route
+          path="schedule"
+          element={
+            <ProtectedRoute>
+              <EPGViewer />
             </ProtectedRoute>
           }
         />
