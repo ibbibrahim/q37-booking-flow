@@ -2,22 +2,17 @@ import React from 'react';
 import { motion } from 'motion/react';
 import { format, parseISO, isToday, startOfWeek, addDays } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import type { Programme } from '../types/epg.types';
 
 interface WeekNavigatorProps {
   currentDate: string;
-  weekData: Map<string, Programme[]>;
   onDayClick: (date: string) => void;
   onNavigateWeek: (direction: -1 | 1) => void;
-  isLoading?: boolean;
 }
 
 export const WeekNavigator: React.FC<WeekNavigatorProps> = ({
   currentDate,
-  weekData,
   onDayClick,
   onNavigateWeek,
-  isLoading,
 }) => {
   const base = parseISO(currentDate);
   const weekStart = startOfWeek(base, { weekStartsOn: 1 });
@@ -42,10 +37,6 @@ export const WeekNavigator: React.FC<WeekNavigatorProps> = ({
           const dayDate = parseISO(dateStr);
           const today = isToday(dayDate);
           const isSelected = dateStr === currentDate;
-          const progs = weekData.get(dateStr);
-          const count = progs?.length ?? null;
-          const liveCount = progs?.filter(p => p.isLive).length ?? 0;
-
           return (
             <motion.button
               key={dateStr}
@@ -78,24 +69,6 @@ export const WeekNavigator: React.FC<WeekNavigatorProps> = ({
               }`}>
                 {format(dayDate, 'MMM')}
               </span>
-
-              {/* Programme count badge */}
-              {isLoading ? (
-                <div className="w-6 h-3 rounded-full bg-current/20 animate-pulse mt-0.5" />
-              ) : count !== null ? (
-                <div className={`flex items-center gap-0.5 mt-0.5 ${
-                  isSelected ? 'text-primary-foreground/80' : 'text-muted-foreground'
-                }`}>
-                  <span className="text-[8px] font-semibold">{count} ev</span>
-                  {liveCount > 0 && (
-                    <span className={`text-[8px] font-bold ${
-                      isSelected ? 'text-yellow-300' : 'text-green-600 dark:text-green-400'
-                    }`}>
-                      · {liveCount}L
-                    </span>
-                  )}
-                </div>
-              ) : null}
             </motion.button>
           );
         })}

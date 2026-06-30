@@ -32,7 +32,7 @@ export const EPGViewer: React.FC = () => {
     invalidateWeek,
   } = useEPGData();
 
-  // Always load week data for the WeekNavigator counts
+  // Prefetch week data for weekly view
   useEffect(() => {
     loadWeek(currentDate);
   }, [currentDate, loadWeek]);
@@ -116,10 +116,8 @@ export const EPGViewer: React.FC = () => {
       {/* ── 3. Week Navigator card ───────────────────────────── */}
       <WeekNavigator
         currentDate={currentDate}
-        weekData={weekData}
         onDayClick={handleDayClick}
         onNavigateWeek={handleNavigateWeek}
-        isLoading={isLoading && weekData.size === 0}
       />
 
       {/* ── 4. Main content cards (timeline or weekly grid) ────── */}
