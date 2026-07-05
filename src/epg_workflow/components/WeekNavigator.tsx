@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'motion/react';
 import { format, parseISO, isToday, startOfWeek, addDays } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { WEEK_STARTS_ON } from '../types/epg.types';
 
 interface WeekNavigatorProps {
   currentDate: string;
@@ -15,7 +16,7 @@ export const WeekNavigator: React.FC<WeekNavigatorProps> = ({
   onNavigateWeek,
 }) => {
   const base = parseISO(currentDate);
-  const weekStart = startOfWeek(base, { weekStartsOn: 1 });
+  const weekStart = startOfWeek(base, { weekStartsOn: WEEK_STARTS_ON });
   const weekDates = Array.from({ length: 7 }, (_, i) =>
     format(addDays(weekStart, i), 'yyyy-MM-dd')
   );

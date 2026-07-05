@@ -56,6 +56,9 @@ export interface Programme {
 
 export type ViewMode = 'daily' | 'weekly';
 
+/** Qatar week: Sunday–Saturday (date-fns `weekStartsOn`: 0 = Sunday). */
+export const WEEK_STARTS_ON = 0;
+
 export interface CategoryStyle {
   bg: string;
   color: string;
@@ -89,3 +92,14 @@ export const CARD_INSET_Y = 6;
 export const MIN_CARD_WIDTH = 36;
 export const NARROW_CARD_WIDTH = 90;
 export const COMFORTABLE_CARD_WIDTH = 140;
+
+/** Weekly grid (Excel-style) layout */
+export const WEEKLY_PX_PER_MIN = 3.2;
+export const WEEKLY_SLOT_MINUTES = 15;
+export const WEEKLY_GRID_HEIGHT = 24 * 60 * WEEKLY_PX_PER_MIN;
+export const WEEKLY_GMT_COL_WIDTH = 52;
+export const WEEKLY_DOH_COL_WIDTH = 52;
+export const WEEKLY_DAY_MIN_WIDTH = 148;
+export const WEEKLY_TIME_HEADER_HEIGHT = 44;
+export const WEEKLY_BLOCK_INSET = 1;
+export const QATAR_UTC_OFFSET_HOURS = 3;

@@ -2,7 +2,7 @@ import { useState, useRef, useCallback } from 'react';
 import { format, addDays, startOfWeek, parseISO } from 'date-fns';
 import axios from 'axios';
 import apiClient from '@/utils/apiClient';
-import type { Programme, BcmResponse } from '../types/epg.types';
+import { WEEK_STARTS_ON, type Programme, type BcmResponse } from '../types/epg.types';
 
 const CHANNEL_ID = 1;
 
@@ -53,6 +53,54 @@ function parseBoolFlag(value: unknown): boolean {
   return s !== '' && s !== 'no' && s !== 'false' && s !== '0';
 }
 
+/** BCM uses firstRun "*" on live slots — premiereMode is the reliable first-run signal. */
+function parseFirstRun(firstRun: unknown, premiereMode?: string): boolean {
+  const mode = premiereMode?.trim().toLowerCase();
+  if (mode === 'first run') return true;
+  if (mode === 're-run' || mode === 'live') return false;
+  if (firstRun == null) return false;
+  const s = String(firstRun).trim();
+  if (s === '' || s === '*' || s.toLowerCase() === 'no') return false;
+  return parseBoolFlag(firstRun);
+}
+
+function normalizeApiDate(date?: string): string | null {
+  if (!date) return null;
+  const normalized = date.replace(/\//g, '-').slice(0, 10);
+  try {
+    return format(parseISO(normalized), 'yyyy-MM-dd');
+  } catch {
+    return null;
+  }
+}
+
+function extractDaysFromResponse(data: BcmResponse): Map<string, unknown[]> {
+  const byDate = new Map<string, unknown[]>();
+  const channel = data?.[0];
+  if (!channel) return byDate;
+
+  if (Array.isArray(channel.day)) {
+    for (const day of channel.day) {
+      const key = normalizeApiDate(day.date);
+      if (key && Array.isArray(day.items)) {
+        byDate.set(key, day.items);
+      }
+    }
+  }
+
+  // Some responses only populate the flat items list for a single day
+  if (byDate.size === 0 && Array.isArray(channel.items) && channel.items.length > 0) {
+    const sample = channel.items[0] as Record<string, unknown>;
+    const key = normalizeApiDate(
+      (sample.tvGuideDate as string | undefined)?.replace(/\//g, '-')
+        ?? (sample.startDate as string | undefined)?.replace(/\//g, '-'),
+    );
+    if (key) byDate.set(key, channel.items);
+  }
+
+  return byDate;
+}
+
 function formatCast(cast: unknown): string | undefined {
   if (cast == null) return undefined;
   if (typeof cast === 'string') return cast || undefined;
@@ -86,7 +134,7 @@ function parseItems(items: unknown[]): Programme[] {
       genre: (i.genre as { value?: string } | undefined)?.value || '',
       isLive: parseBoolFlag(i.live),
       isRepeat: parseBoolFlag(i.repeat),
-      isFirstRun: parseBoolFlag(i.firstRun),
+      isFirstRun: parseFirstRun(i.firstRun, i.premiereMode as string | undefined),
       premiereMode: i.premiereMode as string | undefined,
       nominalDuration: i.nominalDuration as string | undefined,
       houseNumber: ((i.houseNo ?? i.houseNumber) as string | undefined) || undefined,
@@ -99,9 +147,22 @@ function parseItems(items: unknown[]): Programme[] {
 async function fetchDayFromApi(date: string): Promise<Programme[]> {
   const url = buildUrl(date, date);
   const res = await apiClient.get<BcmResponse>(url);
-  const data = res.data;
-  const items = data?.[0]?.day?.[0]?.items ?? data?.[0]?.items ?? [];
+  const byDate = extractDaysFromResponse(res.data);
+  const items = byDate.get(date) ?? res.data?.[0]?.day?.[0]?.items ?? res.data?.[0]?.items ?? [];
   return parseItems(Array.isArray(items) ? items : []);
+}
+
+async function fetchWeekFromApi(weekStart: string, weekEnd: string): Promise<Map<string, Programme[]>> {
+  const url = buildUrl(weekStart, weekEnd);
+  const res = await apiClient.get<BcmResponse>(url);
+  const byDate = extractDaysFromResponse(res.data);
+  const result = new Map<string, Programme[]>();
+
+  for (const [date, items] of byDate.entries()) {
+    result.set(date, parseItems(items));
+  }
+
+  return result;
 }
 
 export interface EpgDataState {
@@ -144,12 +205,13 @@ export function useEPGData() {
   }, []);
 
   const loadWeek = useCallback(async (date: string) => {
-    const weekStart = format(startOfWeek(parseISO(date), { weekStartsOn: 1 }), 'yyyy-MM-dd');
+    const weekStartDate = startOfWeek(parseISO(date), { weekStartsOn: WEEK_STARTS_ON });
+    const weekStart = format(weekStartDate, 'yyyy-MM-dd');
+    const weekEnd = format(addDays(weekStartDate, 6), 'yyyy-MM-dd');
     const dates = Array.from({ length: 7 }, (_, i) =>
-      format(addDays(parseISO(weekStart), i), 'yyyy-MM-dd')
+      format(addDays(weekStartDate, i), 'yyyy-MM-dd')
     );
 
-    // Check if all days already cached
     const allCached = dates.every(d => cache.current.has(d));
     if (allCached) {
       const result = new Map<string, Programme[]>();
@@ -162,19 +224,37 @@ export function useEPGData() {
     setIsLoading(true);
     setError(null);
     try {
+      const fetched = await fetchWeekFromApi(weekStart, weekEnd);
+
+      dates.forEach(d => {
+        const progs = fetched.get(d) ?? [];
+        cache.current.set(d, progs);
+      });
+
+      // Fallback: fill any missing days with individual requests
       await Promise.all(
         dates.map(async (d) => {
-          if (!cache.current.has(d)) {
+          if (cache.current.get(d)?.length) return;
+          try {
             const progs = await fetchDayFromApi(d);
             cache.current.set(d, progs);
+          } catch {
+            cache.current.set(d, []);
           }
-        })
+        }),
       );
+
       const result = new Map<string, Programme[]>();
       dates.forEach(d => result.set(d, cache.current.get(d) ?? []));
       setWeekData(result);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load week schedule');
+      const message = axios.isAxiosError(e)
+        ? (e.response?.data as { message?: string } | undefined)?.message
+          ?? `Schedule request failed: HTTP ${e.response?.status ?? 'unknown'}`
+        : e instanceof Error
+          ? e.message
+          : 'Failed to load week schedule';
+      setError(message);
     } finally {
       setIsLoading(false);
     }
@@ -185,7 +265,7 @@ export function useEPGData() {
   }, []);
 
   const invalidateWeek = useCallback((date: string) => {
-    const weekStart = format(startOfWeek(parseISO(date), { weekStartsOn: 1 }), 'yyyy-MM-dd');
+    const weekStart = format(startOfWeek(parseISO(date), { weekStartsOn: WEEK_STARTS_ON }), 'yyyy-MM-dd');
     for (let i = 0; i < 7; i++) {
       cache.current.delete(format(addDays(parseISO(weekStart), i), 'yyyy-MM-dd'));
     }
