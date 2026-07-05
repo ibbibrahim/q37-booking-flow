@@ -34,9 +34,9 @@ export const Unauthorized: React.FC = () => {
             </Button>
             <Button
               className="flex-1"
-              onClick={() => navigate('/booking')}
+              onClick={() => navigate('/schedule')}
             >
-              Go to Dashboard
+              Programme Schedule
             </Button>
           </div>
         </CardContent>

@@ -26,20 +26,23 @@ import { EPGViewer } from './epg_workflow/components/EPGViewer';
 function App() {
   const { isAuthenticated, user, isLoading } = useAuth();
 
-  // 🔥 1. Choose default route based on ROLE
+  // Default landing page after login — role-specific routes, or Programme Schedule for everyone else
   const getDefaultRoute = () => {
-    if (!user || !user.roles) return "/login";
+    if (!user) return "/login";
 
-    if (user.roles.includes("Admin")) return "/admin";
-    if (user.roles.includes("NOC")) return "/noc";
-    if (user.roles.includes("Ingest")) return "/ingest";
-    if (user.roles.includes("Booking")) return "/booking";
-    if (user.roles.includes("TechnicalStore")) return "/inventory";
-    if (user.roles.includes("Callsheet")) return "/callsheet";
-    if (user.roles.includes("Editor")) return "/editor-queue";
-    if (user.roles.includes("RotaTeamLead")) return "/rota";
+    const roles = user.roles ?? [];
 
-    return "/unauthorized";
+    if (roles.includes("Admin")) return "/admin";
+    if (roles.includes("NOC")) return "/noc";
+    if (roles.includes("Ingest")) return "/ingest";
+    if (roles.includes("Booking")) return "/booking";
+    if (roles.includes("TechnicalStore")) return "/inventory";
+    if (roles.includes("Callsheet")) return "/callsheet";
+    if (roles.includes("Editor")) return "/editor-queue";
+    if (roles.includes("RotaTeamLead")) return "/rota";
+
+    // No workflow role — still allowed to view the programme schedule
+    return "/schedule";
   };
 
   // 🔄 While auth is restoring
@@ -318,15 +321,8 @@ function App() {
           }
         />
 
-        {/** PROGRAMME SCHEDULE (EPG) */}
-        <Route
-          path="schedule"
-          element={
-            <ProtectedRoute>
-              <EPGViewer />
-            </ProtectedRoute>
-          }
-        />
+        {/** PROGRAMME SCHEDULE (EPG) — any authenticated user, no role required */}
+        <Route path="schedule" element={<EPGViewer />} />
 
         <Route path="*" element={<Navigate to={getDefaultRoute()} replace />} />
       </Route>

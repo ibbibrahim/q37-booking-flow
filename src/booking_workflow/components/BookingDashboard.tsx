@@ -18,6 +18,27 @@ import qbcLight from '../../assets/QBC-light.png';
 import qbcLightAr from '../../assets/QBC-light-ar.png';
 import { ChangePasswordModal } from './ChangePasswordModal';
 
+function ScheduleNewBadge({ compact = false }: { compact?: boolean }) {
+  if (compact) {
+    return (
+      <span
+        className="h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-sidebar-background animate-nav-new-dot"
+        aria-label="New module"
+      />
+    );
+  }
+
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white animate-nav-new-glow">
+      <span className="relative flex h-1.5 w-1.5">
+        <span className="absolute inline-flex h-full w-full rounded-full bg-white/70 animate-ping" />
+        <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-white" />
+      </span>
+      New
+    </span>
+  );
+}
+
 export const BookingDashboard: React.FC = () => {
   const { theme, toggleTheme } = useTheme();
   const { user, logout } = useAuth();
@@ -119,11 +140,13 @@ export const BookingDashboard: React.FC = () => {
     label,
     isActive,
     onClick,
+    badge,
   }: {
     icon: React.ElementType;
     label: string;
     isActive: boolean;
     onClick: () => void;
+    badge?: React.ReactNode;
   }) => (
     <button
       title={sidebarCollapsed ? label : undefined}
@@ -136,10 +159,22 @@ export const BookingDashboard: React.FC = () => {
           : 'text-sidebar-foreground hover:bg-sidebar-accent'
       )}
     >
-      <Icon size={20} className="shrink-0" />
-      <span className={cn('font-medium text-sm truncate', sidebarCollapsed && 'lg:hidden')}>
+      <span className="relative shrink-0">
+        <Icon size={20} />
+        {badge && sidebarCollapsed && (
+          <span className="absolute -top-0.5 -right-0.5 hidden lg:block">
+            <ScheduleNewBadge compact />
+          </span>
+        )}
+      </span>
+      <span className={cn('font-medium text-sm truncate flex-1 min-w-0', sidebarCollapsed && 'lg:hidden')}>
         {label}
       </span>
+      {badge && (
+        <span className={cn('shrink-0', sidebarCollapsed && 'lg:hidden')}>
+          {badge}
+        </span>
+      )}
     </button>
   );
 
@@ -320,6 +355,7 @@ export const BookingDashboard: React.FC = () => {
               label="Programme Schedule"
               isActive={currentSection === 'schedule'}
               onClick={() => navigate('/schedule')}
+              badge={<ScheduleNewBadge />}
             />
 
             {hasAdminAccess && (

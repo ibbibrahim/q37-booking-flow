@@ -159,3 +159,27 @@
 .dark .schedule-cell-scroll::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--muted-foreground) / 0.5);
 }
+
+@keyframes nav-new-glow {
+  0%, 100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.35);
+  }
+  50% {
+    opacity: 0.88;
+    box-shadow: 0 0 10px 2px rgba(16, 185, 129, 0.45);
+  }
+}
+
+@keyframes nav-new-dot {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.15); opacity: 0.75; }
+}
+
+.animate-nav-new-glow {
+  animation: nav-new-glow 2.4s ease-in-out infinite;
+}
+
+.animate-nav-new-dot {
+  animation: nav-new-dot 2.4s ease-in-out infinite;
+}
