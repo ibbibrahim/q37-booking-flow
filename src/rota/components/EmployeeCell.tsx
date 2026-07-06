@@ -1,5 +1,6 @@
 import { memo } from 'react';
 import { useDndContext, useDroppable } from '@dnd-kit/core';
+import { motion, AnimatePresence } from 'motion/react';
 import { ArrowLeftRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { AssignmentBadge } from './AssignmentBadge';
@@ -11,6 +12,7 @@ import type {
 } from '../types/rota';
 import { formatDateForApi } from '../utils/dateUtils';
 import { getAssignmentForEmployeeDay, getAssignmentDisplay } from '../utils/rotaUtils';
+import { dropHintVariants, dropRingVariants, swapOverlayVariants } from '../utils/rotaMotion';
 
 export interface EmployeeCellProps {
   employee: RotaEmployee;
@@ -45,7 +47,7 @@ export const EmployeeCell = memo(function EmployeeCell({
   });
 
   const { active } = useDndContext();
-  const activeData = active?.data?.current as
+  const activeData = active?.data.current as
     | { type?: string; assignment?: RotaAssignment }
     | undefined;
   const draggedAssignment =
@@ -61,6 +63,8 @@ export const EmployeeCell = memo(function EmployeeCell({
     draggedAssignment &&
     draggedAssignment.id !== assignment?.id;
 
+  const isDropTarget = isOver && !disabled && !showSwapOverlay && Boolean(active);
+
   const handleDoubleClick = () => {
     if (readOnly || disabled) return;
     onEdit(assignment ?? null, employee.id, date);
@@ -71,20 +75,48 @@ export const EmployeeCell = memo(function EmployeeCell({
       ref={setNodeRef}
       onDoubleClick={handleDoubleClick}
       className={cn(
-        'relative border p-2 min-w-28 h-20 align-top',
+        'relative border p-2 min-w-28 h-20 align-top transition-colors duration-200 ease-out',
         disabled && 'bg-muted cursor-not-allowed',
-        isOver && !disabled && !showSwapOverlay && 'bg-primary/10 border-primary border-2',
+        isDropTarget && 'bg-primary/8 border-primary/60',
         !readOnly && !disabled && 'cursor-pointer'
       )}
     >
-      {showSwapOverlay && (
-        <div
-          className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded border-2 border-blue-500 bg-blue-50"
-          aria-hidden
-        >
-          <ArrowLeftRight className="h-6 w-6 text-blue-600" />
-        </div>
-      )}
+      <AnimatePresence>
+        {isDropTarget && (
+          <motion.div
+            key="drop-ring"
+            variants={dropRingVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            className="pointer-events-none absolute inset-1 rounded-md ring-2 ring-primary/25 ring-inset"
+            aria-hidden
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showSwapOverlay && (
+          <motion.div
+            key="swap"
+            variants={swapOverlayVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded border-2 border-blue-400/80 bg-blue-50/90 backdrop-blur-[1px]"
+            aria-hidden
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: 'spring', stiffness: 380, damping: 28 }}
+            >
+              <ArrowLeftRight className="h-5 w-5 text-blue-600" />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {disabled ? (
         <div className="flex items-center justify-center h-full text-muted-foreground text-xs">
           OFF
@@ -111,11 +143,20 @@ export const EmployeeCell = memo(function EmployeeCell({
           )}
         </div>
       ) : (
-        <>
-          {isOver && (
-            <div className="text-xs text-primary font-medium">Drop here</div>
+        <AnimatePresence>
+          {isDropTarget && (
+            <motion.div
+              key="drop-hint"
+              variants={dropHintVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              className="text-xs text-primary/80 font-medium"
+            >
+              Drop here
+            </motion.div>
           )}
-        </>
+        </AnimatePresence>
       )}
     </td>
   );

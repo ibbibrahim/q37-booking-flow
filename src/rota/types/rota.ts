@@ -33,6 +33,8 @@ export interface RotaDepartment {
   requiresTimeRange?: boolean;
   usesShifts?: boolean;
   allowsCustomLabels?: boolean;
+  /** Ordered sub-department header names (from public week API). */
+  subDepartmentNames?: string[];
   /** Department-defined shift types (required for scheduling) */
   shiftTypes: RotaShiftType[];
 }
@@ -72,6 +74,10 @@ export interface RotaWeek {
   weekStartDate: string;
   departmentId: number;
   departmentName: string;
+  /** Populated on public week responses when the department has sub-teams. */
+  hasSubDepartments?: boolean;
+  /** Ordered sub-department names, e.g. ["BIT", "Dev"]. */
+  subDepartments?: string[];
   status: 'draft' | 'published' | 'archived';
   publicShareUuid?: string;
   shareExpiresAt?: string;

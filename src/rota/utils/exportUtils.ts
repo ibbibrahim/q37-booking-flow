@@ -141,6 +141,9 @@ const getCellText = (assignment: RotaAssignment, shiftTypes?: RotaShiftType[]): 
   if (assignment.programName && display.label !== assignment.programName) {
     text += `\n${assignment.programName}`;
   }
+  if (assignment.assignmentComments) {
+    text += `\n${assignment.assignmentComments}`;
+  }
   return text;
 };
 
@@ -714,12 +717,7 @@ export async function exportRotaToExcel(
           c.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
           c.border = thinBorder;
           if (assignment) {
-            const display = getAssignmentDisplay(assignment, types);
-            let val = display?.label ?? '';
-            if (assignment.programName && display?.label !== assignment.programName) {
-              val += `\n${assignment.programName}`;
-            }
-            c.value = val;
+            c.value = getCellText(assignment, types);
             const fill = fillRgbForAssignment(assignment, types);
             if (fill) {
               c.fill = {
@@ -773,12 +771,7 @@ export async function exportRotaToExcel(
           c.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
           c.border = thinBorder;
           if (assignment) {
-            const display = getAssignmentDisplay(assignment, types);
-            let val = display?.label ?? '';
-            if (assignment.programName && display?.label !== assignment.programName) {
-              val += `\n${assignment.programName}`;
-            }
-            c.value = val;
+            c.value = getCellText(assignment, types);
             const fill = fillRgbForAssignment(assignment, types);
             if (fill) {
               c.fill = {

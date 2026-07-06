@@ -91,6 +91,8 @@ export function PublicRotaPage() {
     color: '#6366f1',
     isActive: true,
     shiftTypes: [],
+    hasSubDepartments: week.hasSubDepartments ?? false,
+    subDepartmentNames: week.subDepartments,
   };
 
   // Use employees from API if available, otherwise derive from assignments (employee-first layout)
@@ -112,8 +114,9 @@ export function PublicRotaPage() {
         );
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-8 print:p-4">
-      <div className="max-w-6xl mx-auto space-y-4 print:max-w-none">
+    <div className="h-screen overflow-y-auto overflow-x-hidden bg-background">
+      <div className="p-4 md:p-8 print:p-4 print:h-auto print:overflow-visible">
+        <div className="max-w-6xl mx-auto space-y-4 print:max-w-none">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between print:flex-row">
           <div>
             <h1 className="text-2xl font-bold text-foreground">
@@ -141,10 +144,12 @@ export function PublicRotaPage() {
           weekDates={weekDates}
           isLoading={false}
           readOnly
+          collapsibleSubTeams={false}
           onAssign={() => {}}
           onRemove={() => {}}
           onEdit={() => {}}
         />
+        </div>
       </div>
     </div>
   );

@@ -4,9 +4,13 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   DndContext,
   DragEndEvent,
+  DragStartEvent,
+  DragCancelEvent,
+  DragOverlay,
   PointerSensor,
   useSensor,
   useSensors,
+  type Active,
 } from '@dnd-kit/core';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/contexts/ToastContext';
@@ -32,6 +36,8 @@ import {
 import { AlertCircle, Copy, Trash2, Settings } from 'lucide-react';
 import { RotaCalendar } from '../components/RotaCalendar';
 import { ShiftOptionsPool } from '../components/ShiftOptionsPool';
+import { RotaDragOverlay } from '../components/RotaDragOverlay';
+import { dndDropAnimation } from '../utils/rotaMotion';
 import { EditAssignmentModal } from '../components/EditAssignmentModal';
 import { WeekNavigator } from '../components/WeekNavigator';
 import { AutoRotateModal } from '../components/AutoRotateModal';
@@ -105,6 +111,7 @@ export function RotaManagementPage() {
     employeeId: number | null;
     date: Date | null;
   }>({ assignment: null, employeeId: null, date: null });
+  const [activeDrag, setActiveDrag] = useState<Active | null>(null);
 
   const { data: departments = [], isLoading: departmentsLoading } = useQuery({
     queryKey: ['rotaDepartments'],
@@ -443,9 +450,9 @@ export function RotaManagementPage() {
     }
   };
 
-  const handleGenerateShareLink = async (expiresAt?: string) => {
+  const handleGenerateShareLink = async () => {
     if (!week) throw new Error('No week selected');
-    return rotaApi.generateShareLink(week.id, expiresAt);
+    return rotaApi.generateShareLink(week.id);
   };
 
   const handleClearAll = useCallback(async () => {
@@ -475,8 +482,17 @@ export function RotaManagementPage() {
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
   );
 
+  const handleDragStart = useCallback((event: DragStartEvent) => {
+    setActiveDrag(event.active);
+  }, []);
+
+  const handleDragCancel = useCallback((_event: DragCancelEvent) => {
+    setActiveDrag(null);
+  }, []);
+
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
+      setActiveDrag(null);
       const { active, over } = event;
       if (!over || !week) return;
 
@@ -636,7 +652,12 @@ export function RotaManagementPage() {
         </div>
       </div>
 
-      <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+      <DndContext
+        sensors={sensors}
+        onDragStart={handleDragStart}
+        onDragCancel={handleDragCancel}
+        onDragEnd={handleDragEnd}
+      >
         <div className="flex gap-4">
           <aside className="hidden lg:block shrink-0">
             <ShiftOptionsPool
@@ -661,6 +682,9 @@ export function RotaManagementPage() {
             />
           </div>
         </div>
+        <DragOverlay dropAnimation={dndDropAnimation}>
+          <RotaDragOverlay active={activeDrag} shiftTypes={shiftTypes} />
+        </DragOverlay>
       </DndContext>
 
       <EditAssignmentModal

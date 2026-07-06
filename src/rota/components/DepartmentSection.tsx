@@ -73,11 +73,22 @@ export const DepartmentSection = memo(function DepartmentSection({
       {} as Record<string, RotaEmployee[]>
     );
 
-    return Object.entries(groups).map(([departmentName, emps]) => ({
+    let entries = Object.entries(groups);
+    const order = department.subDepartmentNames;
+    if (order?.length) {
+      const orderMap = new Map(order.map((name, index) => [name, index]));
+      entries = [...entries].sort(
+        ([a], [b]) =>
+          (orderMap.get(a) ?? Number.MAX_SAFE_INTEGER) -
+          (orderMap.get(b) ?? Number.MAX_SAFE_INTEGER)
+      );
+    }
+
+    return entries.map(([departmentName, emps]) => ({
       departmentName,
       employees: emps,
     }));
-  }, [employees, department.hasSubDepartments]);
+  }, [employees, department.hasSubDepartments, department.subDepartmentNames]);
 
   const colSpan = weekDates.length + 1;
 

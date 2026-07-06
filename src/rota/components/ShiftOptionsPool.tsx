@@ -48,8 +48,8 @@ export function ShiftOptionsPool({
                 department settings.
               </p>
             )}
-            {activeSorted.map((shift) => (
-              <DynamicShiftChip key={shift.id} shift={shift} />
+            {activeSorted.map((shift, index) => (
+              <DynamicShiftChip key={shift.id} shift={shift} index={index} />
             ))}
             <ShiftOptionChip optionType="off" />
             {/* <Button
@@ -70,8 +70,8 @@ export function ShiftOptionsPool({
               PROGRAM NAMES
             </Label>
             <div className="space-y-1 max-h-64 overflow-y-auto">
-              {PREDEFINED_PROGRAMS.map((program) => (
-                <DraggableProgramChip key={program} programName={program} />
+              {PREDEFINED_PROGRAMS.map((program, index) => (
+                <DraggableProgramChip key={program} programName={program} index={index} />
               ))}
             </div>
           </div>

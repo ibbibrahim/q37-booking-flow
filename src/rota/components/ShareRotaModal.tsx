@@ -23,7 +23,7 @@ export interface ShareRotaModalProps {
   department?: RotaDepartment | null;
   employees?: RotaEmployee[];
   shiftTypes?: RotaShiftType[];
-  onGenerateLink: (expiresAt?: string) => Promise<{ publicUrl: string; uuid: string }>;
+  onGenerateLink: () => Promise<{ publicUrl: string; uuid: string }>;
   onCopySuccess?: () => void;
 }
 
@@ -39,7 +39,6 @@ export function ShareRotaModal({
   onCopySuccess,
 }: ShareRotaModalProps) {
   const { showToast } = useToast();
-  const [expiryDate, setExpiryDate] = useState('');
   const [shareResult, setShareResult] = useState<{
     publicUrl: string;
     uuid: string;
@@ -51,8 +50,7 @@ export function ShareRotaModal({
     if (!weekId) return;
     setIsLoading(true);
     try {
-      const result = await onGenerateLink(expiryDate || undefined);
-      // Always use frontend origin so the link opens our employee-first PublicRotaPage
+      const result = await onGenerateLink();
       const publicUrl = `${window.location.origin}/rota/public/${result.uuid}`;
       setShareResult({ ...result, publicUrl });
     } finally {
@@ -102,7 +100,6 @@ export function ShareRotaModal({
   const handleClose = (open: boolean) => {
     if (!open) {
       setShareResult(null);
-      setExpiryDate('');
     }
     onOpenChange(open);
   };
@@ -113,26 +110,15 @@ export function ShareRotaModal({
         <DialogHeader>
           <DialogTitle>Share Rota</DialogTitle>
           <DialogDescription>
-            Generate a public link for employees to view this week&apos;s rota
+            Generate a permanent public link for employees to view this week&apos;s rota
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
           {!shareResult ? (
-            <>
-              <div className="space-y-2">
-                <Label htmlFor="expiry">Link Expiry (Optional)</Label>
-                <Input
-                  id="expiry"
-                  type="datetime-local"
-                  value={expiryDate}
-                  onChange={(e) => setExpiryDate(e.target.value)}
-                />
-              </div>
-              <Button onClick={handleGenerate} disabled={isLoading || !weekId}>
-                {isLoading ? 'Generating...' : 'Generate Link'}
-              </Button>
-            </>
+            <Button onClick={handleGenerate} disabled={isLoading || !weekId}>
+              {isLoading ? 'Generating...' : 'Generate Link'}
+            </Button>
           ) : (
             <>
               <div className="space-y-2">
@@ -151,7 +137,7 @@ export function ShareRotaModal({
               <Alert>
                 <Info className="h-4 w-4" />
                 <AlertDescription>
-                  Anyone with this link can view this week&apos;s rota (read-only). Rows show employees; cells show shift types (Shift A, B, C) or programs.
+                  Anyone with this link can view this week&apos;s rota (read-only). The link does not expire.
                 </AlertDescription>
               </Alert>
             </>

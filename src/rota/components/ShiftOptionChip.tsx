@@ -1,7 +1,9 @@
 import { memo } from 'react';
 import { useDraggable } from '@dnd-kit/core';
+import { motion } from 'motion/react';
 import { Ban, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { chipMotionVariants } from '../utils/rotaMotion';
 
 /** OFF (special) or Custom (opens modal — not draggable) */
 export type ShiftOptionType = 'off' | 'custom';
@@ -55,33 +57,42 @@ export const ShiftOptionChip = memo(function ShiftOptionChip({
 
   if (optionType === 'custom') {
     return (
-      <button
+      <motion.button
         type="button"
         onClick={handleClick}
         disabled={disabled}
+        variants={chipMotionVariants}
+        initial="initial"
+        animate="idle"
+        whileHover={!disabled ? 'hover' : undefined}
+        whileTap={!disabled ? 'tap' : undefined}
         className={cn(
-          'inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium border cursor-pointer transition-colors',
+          'inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium border cursor-pointer will-change-transform',
           CUSTOM_CONFIG.colorClass,
-          'hover:opacity-90',
           disabled && 'opacity-50 cursor-not-allowed'
         )}
       >
         <Icon className="h-3.5 w-3.5" />
         {config.label}
-      </button>
+      </motion.button>
     );
   }
 
+  const canInteract = !isDragging && !disabled;
+
   return (
-    <div
+    <motion.div
       ref={setNodeRef}
       {...listeners}
       {...attributes}
+      variants={chipMotionVariants}
+      initial="initial"
+      animate={isDragging ? 'dragging' : 'idle'}
+      whileHover={canInteract ? 'hover' : undefined}
+      whileTap={canInteract ? 'tap' : undefined}
       className={cn(
-        'inline-flex flex-col items-start gap-0.5 rounded-lg px-3 py-2 text-xs font-medium border cursor-grab active:cursor-grabbing transition-colors min-w-0',
+        'inline-flex flex-col items-start gap-0.5 rounded-lg px-3 py-2 text-xs font-medium border cursor-grab active:cursor-grabbing min-w-0 touch-none will-change-transform',
         OFF_CONFIG.colorClass,
-        'hover:opacity-90',
-        isDragging && 'opacity-50',
         disabled && 'opacity-50 cursor-not-allowed'
       )}
     >
@@ -89,6 +100,6 @@ export const ShiftOptionChip = memo(function ShiftOptionChip({
         <Icon className="h-3.5 w-3.5 shrink-0" />
         <span className="font-semibold">{OFF_CONFIG.label}</span>
       </div>
-    </div>
+    </motion.div>
   );
 });
