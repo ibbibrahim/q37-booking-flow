@@ -4,7 +4,9 @@ import type { UserRole } from '../types/workflow';
 import {
   User, Radio, Package, Shield, Menu, X, Sun, Moon, FileText,
   LogOut, UserCircle, BarChart3, Boxes, Tv, Users, KeyRound,
-  Film, Inbox, CalendarDays, ChevronLeft, ChevronRight,
+  Film, Inbox, CalendarDays, ChevronLeft, ChevronRight, Briefcase,
+  LayoutDashboard, ClipboardList, FileBarChart, Search, CalendarCheck,
+  Handshake, ChevronDown,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -53,6 +55,8 @@ export const BookingDashboard: React.FC = () => {
   });
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
+  const [hrOpen, setHrOpen] = useState(() => location.pathname.startsWith('/hr'));
+  const [hrReportsOpen, setHrReportsOpen] = useState(() => location.pathname.startsWith('/hr/reports'));
 
   const toggleCollapsed = () => {
     const next = !sidebarCollapsed;
@@ -65,6 +69,7 @@ export const BookingDashboard: React.FC = () => {
     if (pathParts[0] === 'admin' && pathParts[1] === 'users') return 'admin-users';
     if (pathParts[0] === 'rota') return 'rota';
     if (pathParts[0] === 'schedule') return 'schedule';
+    if (pathParts[0] === 'hr') return 'hr';
     if (pathParts[0] === 'studio-booking') return 'studio-booking';
     if (pathParts[0] === 'editing' && pathParts[1] === 'dashboard') return 'editing-dashboard';
     if (pathParts[0] === 'editing' || pathParts[0] === 'editor-queue') {
@@ -178,6 +183,36 @@ export const BookingDashboard: React.FC = () => {
     </button>
   );
 
+  // HR System sub-nav link (indented item inside the expandable HR System group)
+  const HrSubNavBtn = ({
+    icon: Icon,
+    label,
+    path,
+    small,
+  }: {
+    icon: React.ElementType;
+    label: string;
+    path: string;
+    small?: boolean;
+  }) => {
+    const active = location.pathname === path;
+    return (
+      <button
+        onClick={() => { navigate(path); setSidebarOpen(false); }}
+        className={cn(
+          'w-full flex items-center gap-2.5 rounded-md text-left transition-colors',
+          small ? 'py-1.5 px-2.5 text-xs' : 'py-2 px-2.5 text-sm',
+          active
+            ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+            : 'text-sidebar-foreground/90 hover:bg-sidebar-accent'
+        )}
+      >
+        <Icon size={small ? 14 : 16} className="shrink-0" />
+        <span className="truncate">{label}</span>
+      </button>
+    );
+  };
+
   const headerTitle = (() => {
     switch (currentSection) {
       case 'callsheet': return 'Call Sheet Workflow';
@@ -189,6 +224,7 @@ export const BookingDashboard: React.FC = () => {
       case 'studio-booking': return 'Studio Booking';
       case 'schedule': return 'Programme Schedule';
       case 'admin-users': return 'User Management';
+      case 'hr': return 'HR System';
       default: return currentRole;
     }
   })();
@@ -204,6 +240,7 @@ export const BookingDashboard: React.FC = () => {
       case 'studio-booking': return 'Manage studio bookings and schedules';
       case 'schedule': return 'QBC channel programme guide from BCM';
       case 'admin-users': return 'Manage system users, roles, and permissions';
+      case 'hr': return 'Employee records, leave, hiring requests, and workforce reports';
       default: return getRoleDescription(currentRole);
     }
   })();
@@ -357,6 +394,71 @@ export const BookingDashboard: React.FC = () => {
               onClick={() => navigate('/schedule')}
               badge={<ScheduleNewBadge />}
             />
+
+            <div>
+              <button
+                title={sidebarCollapsed ? 'HR System' : undefined}
+                onClick={() => {
+                  if (sidebarCollapsed) {
+                    navigate('/hr/dashboard');
+                    setSidebarOpen(false);
+                    return;
+                  }
+                  setHrOpen((v) => !v);
+                }}
+                className={cn(
+                  'w-full flex items-center rounded-lg text-left transition-colors py-2.5',
+                  sidebarCollapsed ? 'lg:justify-center lg:px-2 gap-3 px-3' : 'gap-3 px-3',
+                  currentSection === 'hr'
+                    ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+                    : 'text-sidebar-foreground hover:bg-sidebar-accent'
+                )}
+              >
+                <Briefcase size={20} className="shrink-0" />
+                <span className={cn('font-medium text-sm truncate flex-1 min-w-0', sidebarCollapsed && 'lg:hidden')}>
+                  HR System
+                </span>
+                <ChevronDown
+                  size={16}
+                  className={cn('shrink-0 transition-transform', sidebarCollapsed && 'lg:hidden', hrOpen && 'rotate-180')}
+                />
+              </button>
+
+              {hrOpen && (
+                <div className={cn('mt-0.5 flex flex-col gap-0.5 pl-4 ml-4 border-l border-sidebar-border', sidebarCollapsed && 'lg:hidden')}>
+                  <HrSubNavBtn icon={LayoutDashboard} label="Dashboard" path="/hr/dashboard" />
+                  <HrSubNavBtn icon={Users} label="Employee Records" path="/hr/employees" />
+
+                  <div>
+                    <button
+                      onClick={() => setHrReportsOpen((v) => !v)}
+                      className={cn(
+                        'w-full flex items-center gap-2.5 rounded-md text-left transition-colors py-2 px-2.5 text-sm',
+                        location.pathname.startsWith('/hr/reports')
+                          ? 'text-primary font-medium'
+                          : 'text-sidebar-foreground/90 hover:bg-sidebar-accent'
+                      )}
+                    >
+                      <ClipboardList size={16} className="shrink-0" />
+                      <span className="flex-1 truncate">Reports</span>
+                      <ChevronDown
+                        size={14}
+                        className={cn('shrink-0 transition-transform', hrReportsOpen && 'rotate-180')}
+                      />
+                    </button>
+                    {hrReportsOpen && (
+                      <div className="mt-0.5 flex flex-col gap-0.5 pl-4 ml-4 border-l border-sidebar-border">
+                        <HrSubNavBtn icon={FileBarChart} label="Financial reports" path="/hr/reports/financial" small />
+                        <HrSubNavBtn icon={Search} label="Hiring Reports" path="/hr/reports/hiring" small />
+                      </div>
+                    )}
+                  </div>
+
+                  <HrSubNavBtn icon={CalendarCheck} label="Leave Request" path="/hr/leave-requests" />
+                  <HrSubNavBtn icon={Handshake} label="Hiring Request" path="/hr/hiring-requests" />
+                </div>
+              )}
+            </div>
 
             {hasAdminAccess && (
               <>

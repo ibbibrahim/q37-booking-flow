@@ -22,6 +22,13 @@ import { RotaManagementPage } from './rota/pages/RotaManagementPage';
 import { PublicRotaPage } from './rota/pages/PublicRotaPage';
 import { RotaDepartmentSettingsPage } from './rota/pages/RotaDepartmentSettingsPage';
 import { EPGViewer } from './epg_workflow/components/EPGViewer';
+import { HRLayout } from './hr_workflow/components/HRLayout';
+import { HRDashboardPage } from './hr_workflow/pages/HRDashboardPage';
+import { EmployeeRecordsPage } from './hr_workflow/pages/EmployeeRecordsPage';
+import { LeaveRequestPage } from './hr_workflow/pages/LeaveRequestPage';
+import { HiringRequestPage } from './hr_workflow/pages/HiringRequestPage';
+import { FinancialReportsPage } from './hr_workflow/pages/FinancialReportsPage';
+import { HiringReportsPage } from './hr_workflow/pages/HiringReportsPage';
 
 function App() {
   const { isAuthenticated, user, isLoading } = useAuth();
@@ -323,6 +330,17 @@ function App() {
 
         {/** PROGRAMME SCHEDULE (EPG) — any authenticated user, no role required */}
         <Route path="schedule" element={<EPGViewer />} />
+
+        {/** HR SYSTEM — open to any authenticated user */}
+        <Route path="hr" element={<HRLayout />}>
+          <Route index element={<Navigate to="/hr/dashboard" replace />} />
+          <Route path="dashboard" element={<HRDashboardPage />} />
+          <Route path="employees" element={<EmployeeRecordsPage />} />
+          <Route path="leave-requests" element={<LeaveRequestPage />} />
+          <Route path="hiring-requests" element={<HiringRequestPage />} />
+          <Route path="reports/financial" element={<FinancialReportsPage />} />
+          <Route path="reports/hiring" element={<HiringReportsPage />} />
+        </Route>
 
         <Route path="*" element={<Navigate to={getDefaultRoute()} replace />} />
       </Route>
