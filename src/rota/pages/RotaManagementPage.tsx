@@ -236,28 +236,33 @@ export function RotaManagementPage() {
           a.employeeId === employeeId &&
           normalizeDateString(a.shiftDate) === dateStr
       );
-      if (existing) {
-        showToast('Employee already has an assignment on this date', 'warning');
-        return;
-      }
 
-      const newAssignment: RotaAssignment = {
-        id: -Date.now(),
-        rotaWeekId: week.id,
-        employeeId,
-        employeeName: employees.find((e) => e.id === employeeId)?.name ?? '',
-        shiftDate: dateStr,
+      const employeeName = employees.find((e) => e.id === employeeId)?.name ?? '';
+
+      const updatedAssignment: RotaAssignment = {
+        ...(existing ?? {
+          id: -Date.now(),
+          rotaWeekId: week.id,
+          employeeId,
+          employeeName,
+          shiftDate: dateStr,
+        }),
         shiftTypeId: opts.isOffDay ? undefined : opts.shiftTypeId,
         shiftType: opts.isOffDay ? undefined : opts.shiftType,
         isOffDay: opts.isOffDay ?? false,
         customLabel: opts.customLabel,
-        programName: opts.programName,
+        programName: opts.programName ?? existing?.programName,
       };
 
-      const updated = [...week.assignments, newAssignment];
+      const updated = existing
+        ? week.assignments.map((a) =>
+            a.id === existing.id ? updatedAssignment : a
+          )
+        : [...week.assignments, updatedAssignment];
+
       try {
         await bulkSave(updated);
-        showToast('Assignment added', 'success');
+        showToast(existing ? 'Assignment updated' : 'Assignment added', 'success');
       } catch {
         // Error already shown in bulkSave
       }
