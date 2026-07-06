@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle, Printer } from 'lucide-react';
 import { RotaCalendar } from '../components/RotaCalendar';
+import { ShiftTypesLegend } from '../components/ShiftTypesLegend';
 import { rotaApi } from '../api/rotaApi';
 import { getWeekDates, formatDateDisplay, parseLocalDate } from '../utils/dateUtils';
 import type { RotaDepartment } from '../types/rota';
@@ -85,12 +86,14 @@ export function PublicRotaPage() {
   const weekEnd = new Date(weekStart);
   weekEnd.setDate(weekEnd.getDate() + 6);
 
+  const shiftTypes = week.shiftTypes ?? [];
+
   const department: RotaDepartment = {
     id: week.departmentId,
     name: week.departmentName,
     color: '#6366f1',
     isActive: true,
-    shiftTypes: [],
+    shiftTypes,
     hasSubDepartments: week.hasSubDepartments ?? false,
     subDepartmentNames: week.subDepartments,
   };
@@ -137,11 +140,14 @@ export function PublicRotaPage() {
           </Button>
         </div>
 
+        <ShiftTypesLegend shiftTypes={shiftTypes} />
+
         <RotaCalendar
           week={week}
           department={department}
           employees={employees}
           weekDates={weekDates}
+          shiftTypes={shiftTypes}
           isLoading={false}
           readOnly
           collapsibleSubTeams={false}

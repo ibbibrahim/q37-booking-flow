@@ -85,6 +85,8 @@ export interface RotaWeek {
   assignments: RotaAssignment[];
   coverageStats?: CoverageStats;
   employees?: RotaEmployee[];
+  /** Department shift types (public week API). */
+  shiftTypes?: RotaShiftType[];
 }
 
 export interface CoverageStats {
