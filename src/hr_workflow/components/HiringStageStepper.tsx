@@ -20,7 +20,7 @@ export function HiringStageStepper({ stage }: Props) {
   const currentIndex = HIRING_STAGES.indexOf(stage);
 
   return (
-    <div className="flex items-center overflow-x-auto pb-1">
+    <div className="flex w-full min-w-0 items-center overflow-x-auto pb-1">
       {HIRING_STAGES.map((s, idx) => {
         const done = idx < currentIndex;
         const active = idx === currentIndex;

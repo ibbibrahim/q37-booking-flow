@@ -54,7 +54,7 @@ export function HiringRequestDetailModal({ request, open, onOpenChange, onAdvanc
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto overflow-x-hidden">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <div className="flex items-center gap-2">
             <DialogTitle>{request.requestNumber}</DialogTitle>
@@ -65,7 +65,7 @@ export function HiringRequestDetailModal({ request, open, onOpenChange, onAdvanc
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-5">
+        <div className="min-w-0 space-y-5">
           <HiringStageStepper stage={request.stage} />
 
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm bg-muted/40 rounded-lg p-3">
@@ -100,7 +100,7 @@ export function HiringRequestDetailModal({ request, open, onOpenChange, onAdvanc
                 <li key={c.id} className="relative">
                   <span className="absolute -left-[1.1rem] top-1 h-2 w-2 rounded-full bg-primary" />
                   <p className="text-sm font-medium text-foreground">{c.by}</p>
-                  <p className="text-xs text-muted-foreground">{formatDate(c.date)} · {c.text}</p>
+                  <p className="text-xs text-muted-foreground break-words">{formatDate(c.date)} · {c.text}</p>
                 </li>
               ))}
             </ol>
@@ -119,15 +119,15 @@ export function HiringRequestDetailModal({ request, open, onOpenChange, onAdvanc
         </div>
 
         {request.stage !== 'Completed' && (
-          <DialogFooter className="gap-2">
+          <DialogFooter className="flex-wrap gap-2">
             {canReturn && (
-              <Button variant="outline" className="text-destructive" onClick={handleReturn}>
-                <RotateCcw size={14} className="mr-1" /> Return to Department
+              <Button variant="outline" className="text-destructive whitespace-normal h-auto py-2" onClick={handleReturn}>
+                <RotateCcw size={14} className="mr-1 shrink-0" /> Return to Department
               </Button>
             )}
             {nextAction && (
-              <Button onClick={handleAdvance}>
-                {nextAction.label} <ArrowRight size={14} className="ml-1" />
+              <Button className="whitespace-normal h-auto py-2" onClick={handleAdvance}>
+                {nextAction.label} <ArrowRight size={14} className="ml-1 shrink-0" />
               </Button>
             )}
           </DialogFooter>
