@@ -5,11 +5,14 @@ import { useAuth } from '../contexts/AuthContext';
 interface ProtectedRouteProps {
   children: React.ReactNode;
   allowedRoles?: string[];
+  /** When true, only an exact match in allowedRoles grants access — Admin's usual bypass is disabled. */
+  strict?: boolean;
 }
 
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   children,
-  allowedRoles
+  allowedRoles,
+  strict
 }) => {
   const { isAuthenticated, user, isLoading } = useAuth();
 
@@ -29,7 +32,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   }
 
   if (allowedRoles && user) {
-    if (user.roles.includes('Admin')) {
+    if (!strict && user.roles.includes('Admin')) {
       return <>{children}</>;
     }
 

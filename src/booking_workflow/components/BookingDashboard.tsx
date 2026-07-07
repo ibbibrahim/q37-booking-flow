@@ -111,6 +111,8 @@ export const BookingDashboard: React.FC = () => {
   const hasEditingAccess = user?.roles?.includes('Booking') || user?.roles?.includes('Admin');
   const hasEditorQueueAccess = user?.roles?.includes('Editor') || user?.roles?.includes('Admin');
   const hasRotaAccess = user?.roles?.includes('Admin') || user?.roles?.includes('RotaTeamLead');
+  // Strict: only HRAdmin sees the HR module — Admin does not bypass this one.
+  const hasHRAccess = user?.roles?.includes('HRAdmin') ?? false;
   const hasEditSuiteDashboardAccess =
     user?.roles?.includes('Admin') ||
     user?.roles?.includes('Booking') ||
@@ -395,6 +397,7 @@ export const BookingDashboard: React.FC = () => {
               badge={<ScheduleNewBadge />}
             />
 
+            {hasHRAccess && (
             <div>
               <button
                 title={sidebarCollapsed ? 'HR System' : undefined}
@@ -459,6 +462,7 @@ export const BookingDashboard: React.FC = () => {
                 </div>
               )}
             </div>
+            )}
 
             {hasAdminAccess && (
               <>

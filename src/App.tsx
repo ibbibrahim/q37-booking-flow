@@ -331,8 +331,15 @@ function App() {
         {/** PROGRAMME SCHEDULE (EPG) — any authenticated user, no role required */}
         <Route path="schedule" element={<EPGViewer />} />
 
-        {/** HR SYSTEM — open to any authenticated user */}
-        <Route path="hr" element={<HRLayout />}>
+        {/** HR SYSTEM — restricted to HRAdmin only (strict: Admin does NOT bypass this) */}
+        <Route
+          path="hr"
+          element={
+            <ProtectedRoute allowedRoles={['HRAdmin']} strict>
+              <HRLayout />
+            </ProtectedRoute>
+          }
+        >
           <Route index element={<Navigate to="/hr/dashboard" replace />} />
           <Route path="dashboard" element={<HRDashboardPage />} />
           <Route path="employees" element={<EmployeeRecordsPage />} />
