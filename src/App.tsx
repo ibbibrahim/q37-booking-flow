@@ -47,6 +47,7 @@ function App() {
     if (roles.includes("Callsheet")) return "/callsheet";
     if (roles.includes("Editor")) return "/editor-queue";
     if (roles.includes("RotaTeamLead")) return "/rota";
+    if (roles.includes("HRAdmin")) return "/hr/dashboard";
 
     // No workflow role — still allowed to view the programme schedule
     return "/schedule";

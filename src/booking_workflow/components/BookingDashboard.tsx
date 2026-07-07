@@ -389,13 +389,15 @@ export const BookingDashboard: React.FC = () => {
               />
             )}
 
-            <NavBtn
-              icon={Tv}
-              label="Programme Schedule"
-              isActive={currentSection === 'schedule'}
-              onClick={() => navigate('/schedule')}
-              badge={<ScheduleNewBadge />}
-            />
+            {!hasHRAccess && (
+              <NavBtn
+                icon={Tv}
+                label="Programme Schedule"
+                isActive={currentSection === 'schedule'}
+                onClick={() => navigate('/schedule')}
+                badge={<ScheduleNewBadge />}
+              />
+            )}
 
             {hasHRAccess && (
             <div>
