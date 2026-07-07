@@ -62,7 +62,7 @@ export function LeaveRequestFormModal({ open, onOpenChange, freelancers, nextId,
       status: 'Pending Department',
       requestedAt: new Date().toISOString().slice(0, 10),
       departmentApproved: false,
-      elinaApproved: false,
+      hrApproved: false,
       notifiedByEmail: false,
       notifiedByPortal: false,
       payrollNoted: false,
@@ -75,7 +75,7 @@ export function LeaveRequestFormModal({ open, onOpenChange, freelancers, nextId,
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>New Leave Request</DialogTitle>
-          <DialogDescription>Freelancer leave request — routed to Department then Elina for approval.</DialogDescription>
+          <DialogDescription>Freelancer leave request — routed to Department then HR for approval.</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-2">

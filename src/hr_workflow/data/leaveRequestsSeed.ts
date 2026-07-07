@@ -38,7 +38,7 @@ function generateLeaveRequests(): LeaveRequest[] {
 
     const statusRoll = random();
     const status: LeaveRequestStatus =
-      statusRoll < 0.5 ? 'Approved' : statusRoll < 0.8 ? 'Pending Elina' : 'Pending Department';
+      statusRoll < 0.5 ? 'Approved' : statusRoll < 0.8 ? 'Pending HR' : 'Pending Department';
 
     list.push({
       id: id++,
@@ -52,8 +52,8 @@ function generateLeaveRequests(): LeaveRequest[] {
       reason: pick(reasons),
       status,
       requestedAt: isoDate(new Date(start.getTime() - randomInt(2, 10) * 86400000)),
-      departmentApproved: status === 'Approved' || status === 'Pending Elina',
-      elinaApproved: status === 'Approved',
+      departmentApproved: status === 'Approved' || status === 'Pending HR',
+      hrApproved: status === 'Approved',
       notifiedByEmail: status !== 'Pending Department',
       notifiedByPortal: status !== 'Pending Department',
       payrollNoted: status === 'Approved',
@@ -85,7 +85,7 @@ function generateLeaveRequests(): LeaveRequest[] {
       status,
       requestedAt: isoDate(new Date(start.getTime() - randomInt(2, 10) * 86400000)),
       departmentApproved: status === 'Approved',
-      elinaApproved: status === 'Approved',
+      hrApproved: status === 'Approved',
       notifiedByEmail: true,
       notifiedByPortal: true,
       payrollNoted: status === 'Approved',

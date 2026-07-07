@@ -32,7 +32,7 @@ export function LeaveRequestPage() {
   }, [requests, statusFilter, departmentFilter]);
 
   const pendingDept = requests.filter((r) => r.status === 'Pending Department').length;
-  const pendingElina = requests.filter((r) => r.status === 'Pending Elina').length;
+  const pendingHR = requests.filter((r) => r.status === 'Pending HR').length;
   const approvedThisMonth = requests.filter((r) => r.status === 'Approved').length;
   const totalApprovedDays = requests.filter((r) => r.status === 'Approved').reduce((s, r) => s + r.daysCount, 0);
 
@@ -45,21 +45,21 @@ export function LeaveRequestPage() {
     setRequests((prev) =>
       prev.map((r) =>
         r.id === id
-          ? { ...r, status: 'Pending Elina', departmentApproved: true, notifiedByPortal: true, notifiedByEmail: true }
+          ? { ...r, status: 'Pending HR', departmentApproved: true, notifiedByPortal: true, notifiedByEmail: true }
           : r
       )
     );
-    showToast('Approved by Department — forwarded to Elina. Freelancer notified.', 'success');
+    showToast('Approved by Department — forwarded to HR. Freelancer notified.', 'success');
   };
 
-  const approveElina = (id: number) => {
+  const approveHR = (id: number) => {
     setRequests((prev) =>
       prev.map((r) =>
         r.id === id
           ? {
               ...r,
               status: 'Approved',
-              elinaApproved: true,
+              hrApproved: true,
               notifiedByEmail: true,
               notifiedByPortal: true,
               payrollNoted: true,
@@ -85,7 +85,7 @@ export function LeaveRequestPage() {
         <div>
           <h1 className="text-2xl font-bold text-foreground">Leave Request</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Freelancer leave applications — approved by Department & Elina. Permanent staff leave is managed in Muwarid.
+            Freelancer leave applications — approved by Department & HR. Permanent staff leave is managed in Muwarid.
           </p>
         </div>
         <Button onClick={() => setFormOpen(true)}>
@@ -95,7 +95,7 @@ export function LeaveRequestPage() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         <StatTile label="Pending Department" value={pendingDept} icon={Mail} />
-        <StatTile label="Pending Elina" value={pendingElina} icon={Smartphone} />
+        <StatTile label="Pending HR" value={pendingHR} icon={Smartphone} />
         <StatTile label="Approved" value={approvedThisMonth} icon={Check} accentClassName="bg-success/15 text-success" />
         <StatTile
           label="Days Noted to Payroll"
@@ -127,7 +127,7 @@ export function LeaveRequestPage() {
             <SelectContent>
               <SelectItem value="all">All Statuses</SelectItem>
               <SelectItem value="Pending Department">Pending Department</SelectItem>
-              <SelectItem value="Pending Elina">Pending Elina</SelectItem>
+              <SelectItem value="Pending HR">Pending HR</SelectItem>
               <SelectItem value="Approved">Approved</SelectItem>
               <SelectItem value="Rejected">Rejected</SelectItem>
             </SelectContent>
@@ -184,10 +184,10 @@ export function LeaveRequestPage() {
                           </Button>
                         </>
                       )}
-                      {r.status === 'Pending Elina' && (
+                      {r.status === 'Pending HR' && (
                         <>
-                          <Button size="sm" variant="outline" onClick={() => approveElina(r.id)}>
-                            <Check size={14} className="mr-1" /> Elina Approve
+                          <Button size="sm" variant="outline" onClick={() => approveHR(r.id)}>
+                            <Check size={14} className="mr-1" /> HR Approve
                           </Button>
                           <Button size="sm" variant="ghost" onClick={() => reject(r.id)}>
                             <X size={14} />

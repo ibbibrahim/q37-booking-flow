@@ -62,7 +62,7 @@ export function leaveStatusBadgeClass(status: LeaveRequestStatus): string {
       return 'border-transparent bg-success/15 text-success';
     case 'Rejected':
       return 'border-transparent bg-destructive/15 text-destructive';
-    case 'Pending Elina':
+    case 'Pending HR':
       return 'border-transparent bg-warning/15 text-warning';
     case 'Pending Department':
       return 'border-transparent bg-muted text-muted-foreground';
@@ -71,7 +71,7 @@ export function leaveStatusBadgeClass(status: LeaveRequestStatus): string {
 
 export const HIRING_STAGES: HiringRequestStage[] = [
   'Department Head',
-  'Elina Review',
+  'HR Review',
   'GM Approval',
   'QMC HR',
   'CEO Approval',

@@ -44,7 +44,7 @@ export function HiringRequestPage() {
 
   const handleCreate = (req: HiringRequest) => {
     setRequests((prev) => [req, ...prev]);
-    showToast(`Hiring request ${req.requestNumber} submitted to Elina.`, 'success');
+    showToast(`Hiring request ${req.requestNumber} submitted to HR.`, 'success');
   };
 
   const handleAdvance = (id: number, nextStage: HiringRequestStage, comment: string, by: string) => {
@@ -83,7 +83,7 @@ export function HiringRequestPage() {
               status: 'Returned',
               comments: [
                 ...r.comments,
-                { id: `c${r.comments.length + 1}`, by: 'Elina (HR Coordinator)', date: new Date().toISOString().slice(0, 10), text: comment },
+                { id: `c${r.comments.length + 1}`, by: 'HR Coordinator', date: new Date().toISOString().slice(0, 10), text: comment },
               ],
             }
           : r
@@ -99,7 +99,7 @@ export function HiringRequestPage() {
         <div>
           <h1 className="text-2xl font-bold text-foreground">Hiring Request</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Department Head → Elina → GM → QMC HR → CEO approval workflow
+            Department Head → HR → GM → QMC HR → CEO approval workflow
           </p>
         </div>
         <Button onClick={() => setFormOpen(true)}>
@@ -136,7 +136,7 @@ export function HiringRequestPage() {
             <SelectContent>
               <SelectItem value="all">All Stages</SelectItem>
               <SelectItem value="Department Head">Department Head</SelectItem>
-              <SelectItem value="Elina Review">Elina Review</SelectItem>
+              <SelectItem value="HR Review">HR Review</SelectItem>
               <SelectItem value="GM Approval">GM Approval</SelectItem>
               <SelectItem value="QMC HR">QMC HR</SelectItem>
               <SelectItem value="CEO Approval">CEO Approval</SelectItem>

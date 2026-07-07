@@ -36,8 +36,8 @@ const departmentHeads = [
 
 const stageDistribution: HiringRequestStage[] = [
   'Department Head',
-  'Elina Review',
-  'Elina Review',
+  'HR Review',
+  'HR Review',
   'GM Approval',
   'QMC HR',
   'CEO Approval',
@@ -64,14 +64,14 @@ function buildComments(stage: HiringRequestStage, initiatedBy: string): HiringRe
   ];
 
   const stageOrder: HiringRequestStage[] = [
-    'Department Head', 'Elina Review', 'GM Approval', 'QMC HR', 'CEO Approval', 'Completed',
+    'Department Head', 'HR Review', 'GM Approval', 'QMC HR', 'CEO Approval', 'Completed',
   ];
   const idx = stageOrder.indexOf(stage);
 
   if (stage === 'Returned to Department') {
     comments.push({
       id: 'c2',
-      by: 'Elina (HR Coordinator)',
+      by: 'HR Coordinator',
       date: isoDate(randomPastDate(5, 9)),
       text: 'Missing no-objection certificate for the candidate. Please attach and resubmit.',
     });
@@ -81,7 +81,7 @@ function buildComments(stage: HiringRequestStage, initiatedBy: string): HiringRe
   if (idx >= 1) {
     comments.push({
       id: 'c2',
-      by: 'Elina (HR Coordinator)',
+      by: 'HR Coordinator',
       date: isoDate(randomPastDate(6, 9)),
       text: 'Reviewed and forwarded to GM for approval.',
     });
@@ -113,7 +113,7 @@ function buildComments(stage: HiringRequestStage, initiatedBy: string): HiringRe
   if (idx >= 5) {
     comments.push({
       id: 'c6',
-      by: 'Elina (HR Coordinator)',
+      by: 'HR Coordinator',
       date: isoDate(randomPastDate(0, 1)),
       text: 'Status updated and candidate notified. Onboarding scheduled.',
     });

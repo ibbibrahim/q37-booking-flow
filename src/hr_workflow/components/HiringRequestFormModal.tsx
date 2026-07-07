@@ -76,7 +76,7 @@ export function HiringRequestFormModal({ open, onOpenChange, nextId, onCreate }:
         <DialogHeader>
           <DialogTitle>New Hiring Request</DialogTitle>
           <DialogDescription>
-            Initiated by the Department Head. Routed to Elina → GM → QMC HR → CEO for approval.
+            Initiated by the Department Head. Routed to HR → GM → QMC HR → CEO for approval.
           </DialogDescription>
         </DialogHeader>
 

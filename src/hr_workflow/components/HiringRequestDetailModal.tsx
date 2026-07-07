@@ -25,12 +25,12 @@ interface Props {
 }
 
 const NEXT_STAGE: Partial<Record<HiringRequestStage, { stage: HiringRequestStage; actor: string; label: string }>> = {
-  'Department Head': { stage: 'Elina Review', actor: 'Elina (HR Coordinator)', label: 'Submit to Elina' },
-  'Elina Review': { stage: 'GM Approval', actor: 'Elina (HR Coordinator)', label: 'Forward to GM' },
+  'Department Head': { stage: 'HR Review', actor: 'HR Coordinator', label: 'Submit to HR' },
+  'HR Review': { stage: 'GM Approval', actor: 'HR Coordinator', label: 'Forward to GM' },
   'GM Approval': { stage: 'QMC HR', actor: 'General Manager', label: 'Approve — Forward to QMC HR' },
   'QMC HR': { stage: 'CEO Approval', actor: 'QMC HR', label: 'Forward to CEO' },
   'CEO Approval': { stage: 'Completed', actor: 'CEO Office', label: 'Approve & Complete' },
-  'Returned to Department': { stage: 'Elina Review', actor: 'Department Head', label: 'Resubmit to Elina' },
+  'Returned to Department': { stage: 'HR Review', actor: 'Department Head', label: 'Resubmit to HR' },
 };
 
 export function HiringRequestDetailModal({ request, open, onOpenChange, onAdvance, onReturn }: Props) {
@@ -39,7 +39,7 @@ export function HiringRequestDetailModal({ request, open, onOpenChange, onAdvanc
   if (!request) return null;
 
   const nextAction = NEXT_STAGE[request.stage];
-  const canReturn = request.stage === 'Elina Review';
+  const canReturn = request.stage === 'HR Review';
 
   const handleAdvance = () => {
     if (!nextAction) return;
@@ -54,7 +54,7 @@ export function HiringRequestDetailModal({ request, open, onOpenChange, onAdvanc
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto overflow-x-hidden">
         <DialogHeader>
           <div className="flex items-center gap-2">
             <DialogTitle>{request.requestNumber}</DialogTitle>
@@ -68,17 +68,27 @@ export function HiringRequestDetailModal({ request, open, onOpenChange, onAdvanc
         <div className="space-y-5">
           <HiringStageStepper stage={request.stage} />
 
-          <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm bg-muted/40 rounded-lg p-3">
-            <span className="text-muted-foreground">Initiated By</span>
-            <span className="text-right font-medium">{request.initiatedBy}</span>
-            <span className="text-muted-foreground">Created</span>
-            <span className="text-right font-medium">{formatDate(request.createdDate)}</span>
-            <span className="text-muted-foreground">QID Status</span>
-            <span className="text-right font-medium">{request.qidStatus}</span>
-            <span className="text-muted-foreground">Type</span>
-            <span className="text-right font-medium">{request.isInternal ? 'Internal' : 'External'}</span>
-            <span className="text-muted-foreground">Duration</span>
-            <span className="text-right font-medium">{request.duration}</span>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm bg-muted/40 rounded-lg p-3">
+            <div className="min-w-0 space-y-0.5">
+              <p className="text-xs text-muted-foreground">Initiated By</p>
+              <p className="font-medium break-words">{request.initiatedBy}</p>
+            </div>
+            <div className="min-w-0 space-y-0.5">
+              <p className="text-xs text-muted-foreground">Created</p>
+              <p className="font-medium break-words">{formatDate(request.createdDate)}</p>
+            </div>
+            <div className="min-w-0 space-y-0.5">
+              <p className="text-xs text-muted-foreground">QID Status</p>
+              <p className="font-medium break-words">{request.qidStatus}</p>
+            </div>
+            <div className="min-w-0 space-y-0.5">
+              <p className="text-xs text-muted-foreground">Type</p>
+              <p className="font-medium break-words">{request.isInternal ? 'Internal' : 'External'}</p>
+            </div>
+            <div className="min-w-0 space-y-0.5">
+              <p className="text-xs text-muted-foreground">Duration</p>
+              <p className="font-medium break-words">{request.duration}</p>
+            </div>
           </div>
 
           <div>

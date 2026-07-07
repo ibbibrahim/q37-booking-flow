@@ -42,7 +42,7 @@ export interface Employee {
 
 export type LeaveRequestStatus =
   | 'Pending Department'
-  | 'Pending Elina'
+  | 'Pending HR'
   | 'Approved'
   | 'Rejected';
 
@@ -59,7 +59,7 @@ export interface LeaveRequest {
   status: LeaveRequestStatus;
   requestedAt: string;
   departmentApproved: boolean;
-  elinaApproved: boolean;
+  hrApproved: boolean;
   notifiedByEmail: boolean;
   notifiedByPortal: boolean;
   payrollNoted: boolean;
@@ -67,7 +67,7 @@ export interface LeaveRequest {
 
 export type HiringRequestStage =
   | 'Department Head'
-  | 'Elina Review'
+  | 'HR Review'
   | 'GM Approval'
   | 'QMC HR'
   | 'CEO Approval'
