@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { AnimatePresence, motion } from 'motion/react';
 import {
@@ -43,6 +43,11 @@ import type {
   ChecklistType,
 } from '../types/checklist';
 
+function currentTimeHHmm(): string {
+  const now = new Date();
+  return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+}
+
 export function BITChecklistFormPage({ readOnly = false }: { readOnly?: boolean }) {
   const { type, id } = useParams<{ type: string; id?: string }>();
 
@@ -80,6 +85,18 @@ function ChecklistForm({ type, viewId }: { type: ChecklistType; viewId?: number 
   const [engineerName, setEngineerName] = useState('');
   const [periodDate, setPeriodDate] = useState<string | null>(null);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
+
+  // Latest items for save bodies built inside the queued saves below
+  const itemsRef = useRef(items);
+  useEffect(() => {
+    itemsRef.current = items;
+  }, [items]);
+  const templatesRef = useRef(templates);
+  useEffect(() => {
+    templatesRef.current = templates;
+  }, [templates]);
+  // Serializes all PUTs (checkbox auto-saves, manual save, submit) so they never race
+  const saveChainRef = useRef<Promise<unknown>>(Promise.resolve());
 
   const sections = useMemo(() => sectionNamesFrom(templates), [templates]);
 
@@ -156,31 +173,43 @@ function ChecklistForm({ type, viewId }: { type: ChecklistType; viewId?: number 
     setItems((prev) => ({ ...prev, [templateId]: { ...prev[templateId], remarks } }));
   };
 
-  const toggleItem = (templateId: number, checked: boolean) => {
-    setItems((prev) => {
-      const item = prev[templateId];
-      return {
-        ...prev,
-        [templateId]: {
-          ...item,
-          isCompleted: checked,
-          // completionTime/completedBy are stamped by the SERVER on save. Locally we only
-          // clear them on uncheck; a newly checked row shows them after Save Progress.
-          completionTime: checked ? item.completionTime : '',
-          completedBy: checked ? item.completedBy : '',
-        },
-      };
-    });
-  };
-
   const buildSaveBody = (submit: boolean) => ({
     submit,
-    items: templates.map((t) => ({
+    items: templatesRef.current.map((t) => ({
       templateId: t.id,
-      isCompleted: items[t.id]?.isCompleted ?? false,
-      remarks: items[t.id]?.remarks ?? '',
+      isCompleted: itemsRef.current[t.id]?.isCompleted ?? false,
+      remarks: itemsRef.current[t.id]?.remarks ?? '',
     })),
   });
+
+  /**
+   * Merges server-stamped fields (completionTime/completedBy) into local state without
+   * clobbering edits made while the request was in flight (remarks typed, boxes toggled).
+   */
+  const mergeServerState = (saved: { items: ChecklistItem[]; status: ChecklistSubmissionStatus; engineerName: string; periodDate: string }) => {
+    setStatus(saved.status);
+    setEngineerName(saved.engineerName);
+    setPeriodDate(saved.periodDate);
+    const serverById = new Map(saved.items.map((i) => [i.templateId, i]));
+    setItems((prev) =>
+      Object.fromEntries(
+        Object.entries(prev).map(([key, local]) => {
+          const server = serverById.get(local.templateId);
+          if (server && local.isCompleted && server.isCompleted) {
+            return [key, { ...local, completionTime: server.completionTime, completedBy: server.completedBy }];
+          }
+          return [key, local];
+        })
+      )
+    );
+  };
+
+  /** Runs a save through the serialization chain so concurrent PUTs never race. */
+  const enqueueSave = <T,>(op: () => Promise<T>): Promise<T> => {
+    const next = saveChainRef.current.catch(() => undefined).then(op);
+    saveChainRef.current = next.catch(() => undefined);
+    return next;
+  };
 
   const handleWriteError = (err: unknown, fallback: string) => {
     if (isAlreadyCompletedError(err)) {
@@ -191,14 +220,36 @@ function ChecklistForm({ type, viewId }: { type: ChecklistType; viewId?: number 
     showToast(getApiErrorMessage(err, fallback), 'error');
   };
 
+  const toggleItem = (templateId: number, checked: boolean) => {
+    setItems((prev) => {
+      const item = prev[templateId];
+      return {
+        ...prev,
+        [templateId]: {
+          ...item,
+          isCompleted: checked,
+          // Optimistic stamp shown immediately; the auto-save below persists the click and
+          // the SERVER's stamp (authoritative time + display name) replaces these on response.
+          completionTime: checked ? item.completionTime || currentTimeHHmm() : '',
+          completedBy: checked ? item.completedBy || user?.username || '' : '',
+        },
+      };
+    });
+    // Persist the click right away so the server records the time of the tick,
+    // not the time the Save Progress button is pressed.
+    enqueueSave(() => bitChecklistApi.saveCurrentSubmission(type, buildSaveBody(false)))
+      .then(mergeServerState)
+      .catch((err) => {
+        console.error('Failed to record checklist item:', err);
+        handleWriteError(err, 'Failed to record the check — it will be retried when you press Save Progress.');
+      });
+  };
+
   const handleSave = async () => {
     setSaving(true);
     try {
-      const saved = await bitChecklistApi.saveCurrentSubmission(type, buildSaveBody(false));
-      applyItems(saved.items, templates);
-      setStatus(saved.status);
-      setEngineerName(saved.engineerName);
-      setPeriodDate(saved.periodDate);
+      const saved = await enqueueSave(() => bitChecklistApi.saveCurrentSubmission(type, buildSaveBody(false)));
+      mergeServerState(saved);
       showToast('Progress saved.', 'success');
     } catch (err) {
       console.error('Failed to save checklist progress:', err);
@@ -216,7 +267,7 @@ function ChecklistForm({ type, viewId }: { type: ChecklistType; viewId?: number 
     }
     setSubmitting(true);
     try {
-      await bitChecklistApi.saveCurrentSubmission(type, buildSaveBody(true));
+      await enqueueSave(() => bitChecklistApi.saveCurrentSubmission(type, buildSaveBody(true)));
       showToast(`${checklistTypeLabel(type)} checklist submitted.`, 'success');
       navigate(`/bit/checklist/${type}`);
     } catch (err) {
@@ -418,7 +469,7 @@ function ChecklistForm({ type, viewId }: { type: ChecklistType; viewId?: number 
                               >
                                 <Checkbox
                                   checked={item.isCompleted}
-                                  disabled={readOnly || busy}
+                                  disabled={readOnly || submitting}
                                   onCheckedChange={(checked) => toggleItem(template.id, checked === true)}
                                   className="mt-0.5"
                                 />
@@ -460,7 +511,7 @@ function ChecklistForm({ type, viewId }: { type: ChecklistType; viewId?: number 
                                     </div>
                                   ) : (
                                     <span className="text-xs text-muted-foreground italic">
-                                      Recorded on save
+                                      Recording…
                                     </span>
                                   )
                                 ) : (
@@ -473,7 +524,7 @@ function ChecklistForm({ type, viewId }: { type: ChecklistType; viewId?: number 
                                 ) : (
                                   <Input
                                     value={item.remarks}
-                                    disabled={busy}
+                                    disabled={submitting}
                                     onChange={(e) => updateRemarks(template.id, e.target.value)}
                                     placeholder="Remarks"
                                     className="h-8 text-sm"
