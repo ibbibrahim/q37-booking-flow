@@ -29,6 +29,9 @@ import { LeaveRequestPage } from './hr_workflow/pages/LeaveRequestPage';
 import { HiringRequestPage } from './hr_workflow/pages/HiringRequestPage';
 import { FinancialReportsPage } from './hr_workflow/pages/FinancialReportsPage';
 import { HiringReportsPage } from './hr_workflow/pages/HiringReportsPage';
+import { BITChecklistDashboardPage } from './bit_workflow/pages/BITChecklistDashboardPage';
+import { BITChecklistListPage } from './bit_workflow/pages/BITChecklistListPage';
+import { BITChecklistFormPage } from './bit_workflow/pages/BITChecklistFormPage';
 
 function App() {
   const { isAuthenticated, user, isLoading } = useAuth();
@@ -48,6 +51,7 @@ function App() {
     if (roles.includes("Editor")) return "/editor-queue";
     if (roles.includes("RotaTeamLead")) return "/rota";
     if (roles.includes("HRAdmin")) return "/hr/dashboard";
+    if (roles.includes("BIT")) return "/bit";
 
     // No workflow role — still allowed to view the programme schedule
     return "/schedule";
@@ -325,6 +329,40 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={['Admin', 'RotaTeamLead']}>
               <RotaDepartmentSettingsPage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/** BIT CHECKLISTS — restricted to BIT only (strict: Admin does NOT bypass this) */}
+        <Route
+          path="bit"
+          element={
+            <ProtectedRoute allowedRoles={['BIT']} strict>
+              <BITChecklistDashboardPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="bit/checklist/:type"
+          element={
+            <ProtectedRoute allowedRoles={['BIT']} strict>
+              <BITChecklistListPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="bit/checklist/:type/form"
+          element={
+            <ProtectedRoute allowedRoles={['BIT']} strict>
+              <BITChecklistFormPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="bit/checklist/:type/view/:id"
+          element={
+            <ProtectedRoute allowedRoles={['BIT']} strict>
+              <BITChecklistFormPage readOnly />
             </ProtectedRoute>
           }
         />

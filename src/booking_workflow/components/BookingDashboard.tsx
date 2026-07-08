@@ -70,6 +70,7 @@ export const BookingDashboard: React.FC = () => {
     if (pathParts[0] === 'rota') return 'rota';
     if (pathParts[0] === 'schedule') return 'schedule';
     if (pathParts[0] === 'hr') return 'hr';
+    if (pathParts[0] === 'bit') return 'bit';
     if (pathParts[0] === 'studio-booking') return 'studio-booking';
     if (pathParts[0] === 'editing' && pathParts[1] === 'dashboard') return 'editing-dashboard';
     if (pathParts[0] === 'editing' || pathParts[0] === 'editor-queue') {
@@ -113,6 +114,8 @@ export const BookingDashboard: React.FC = () => {
   const hasRotaAccess = user?.roles?.includes('Admin') || user?.roles?.includes('RotaTeamLead');
   // Strict: only HRAdmin sees the HR module — Admin does not bypass this one.
   const hasHRAccess = user?.roles?.includes('HRAdmin') ?? false;
+  // Strict: only the BIT role sees the BIT checklists — Admin does not bypass this one.
+  const hasBITAccess = user?.roles?.includes('BIT') ?? false;
   const hasEditSuiteDashboardAccess =
     user?.roles?.includes('Admin') ||
     user?.roles?.includes('Booking') ||
@@ -227,6 +230,7 @@ export const BookingDashboard: React.FC = () => {
       case 'schedule': return 'Programme Schedule';
       case 'admin-users': return 'User Management';
       case 'hr': return 'HR System';
+      case 'bit': return 'BIT Checklists';
       default: return currentRole;
     }
   })();
@@ -243,6 +247,7 @@ export const BookingDashboard: React.FC = () => {
       case 'schedule': return 'QBC channel programme guide from BCM';
       case 'admin-users': return 'Manage system users, roles, and permissions';
       case 'hr': return 'Employee records, leave, hiring requests, and workforce reports';
+      case 'bit': return 'Daily, weekly and monthly system readiness checklists';
       default: return getRoleDescription(currentRole);
     }
   })();
@@ -386,6 +391,15 @@ export const BookingDashboard: React.FC = () => {
                 label="Inventory"
                 isActive={currentSection === 'inventory'}
                 onClick={() => navigate('/inventory')}
+              />
+            )}
+
+            {hasBITAccess && (
+              <NavBtn
+                icon={ClipboardList}
+                label="BIT Checklists"
+                isActive={currentSection === 'bit'}
+                onClick={() => navigate('/bit')}
               />
             )}
 
