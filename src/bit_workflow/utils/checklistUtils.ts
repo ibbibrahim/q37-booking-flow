@@ -38,6 +38,18 @@ export function toISODate(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
+/**
+ * The broadcast day rolls over at 03:00, not midnight — a checklist stays "current"
+ * until 3 AM the next morning. Must stay in sync with the backend's
+ * BitChecklist:DayRolloverHour setting.
+ */
+const DAY_ROLLOVER_HOUR = 3;
+
+/** "Now" shifted so times before 03:00 still belong to the previous broadcast day. */
+export function broadcastNow(): Date {
+  return new Date(Date.now() - DAY_ROLLOVER_HOUR * 60 * 60 * 1000);
+}
+
 /** Monday of the week containing `d`. */
 export function weekStart(d: Date): Date {
   const result = new Date(d);
@@ -47,15 +59,15 @@ export function weekStart(d: Date): Date {
   return result;
 }
 
-/** Canonical period date for the current daily/weekly/monthly cycle. */
-export function periodDateFor(type: ChecklistType, now: Date = new Date()): string {
+/** Canonical period date for the current daily/weekly/monthly cycle (broadcast-day based). */
+export function periodDateFor(type: ChecklistType, now: Date = broadcastNow()): string {
   if (type === 'weekly') return toISODate(weekStart(now));
   if (type === 'monthly') return toISODate(new Date(now.getFullYear(), now.getMonth(), 1));
   return toISODate(now);
 }
 
 /** Human label for the current period, e.g. "Tuesday, 7 July 2026" / "6 – 12 July 2026" / "July 2026". */
-export function periodLabelFor(type: ChecklistType, now: Date = new Date()): string {
+export function periodLabelFor(type: ChecklistType, now: Date = broadcastNow()): string {
   if (type === 'daily') {
     return now.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
   }
