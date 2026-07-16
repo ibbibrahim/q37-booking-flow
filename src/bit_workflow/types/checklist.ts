@@ -45,6 +45,8 @@ export interface ChecklistSubmissionSummary {
   status: ChecklistSubmissionStatus;
   completedCount: number;
   totalCount: number;
+  /** Distinct names of everyone who completed at least one step; [] when none. */
+  engineers: string[];
 }
 
 /** PUT body for save progress / final submit — the only thing the client sends. */
