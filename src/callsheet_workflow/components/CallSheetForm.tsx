@@ -27,7 +27,7 @@ import { createEmptyRow } from '../types/equipmentRow';
 
 const SELECTED_BTN = 'border-gray-900 text-white shadow-xl shadow-black/20 z-10';
 
-/** QBC brand blue default (same shadow/lift as before), yellow on hover */
+/** QBC brand blue default (same shadow/lift as before), yellow on hovers */
 const BRAND_UNSELECTED =
   'border-primary/50 bg-primary/10 text-primary shadow-xl shadow-primary/30 -translate-y-0.5 hover:border-accent hover:bg-accent/15 hover:text-[hsl(38,92%,28%)] hover:shadow-xl hover:shadow-accent/30';
 
