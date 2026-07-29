@@ -65,6 +65,10 @@ export const CallSheetEmailModal: React.FC<CallSheetEmailModalProps> = ({
       selectedGroups.includes(g.id)
     ).map((g) => g.email);
 
+    const creatorEmail = callSheet.createdByUser?.email;
+    const creatorEmails =
+      creatorEmail && validateEmail(creatorEmail) ? [creatorEmail] : [];
+
     const customToEmails = parseEmails(customTo);
     for (const email of customToEmails) {
       if (!validateEmail(email)) {
@@ -72,7 +76,9 @@ export const CallSheetEmailModal: React.FC<CallSheetEmailModalProps> = ({
       }
     }
 
-    const allToEmails = [...new Set([...groupEmails, ...customToEmails])];
+    const allToEmails = [
+      ...new Set([...groupEmails, ...creatorEmails, ...customToEmails]),
+    ];
 
     if (allToEmails.length === 0) {
       validationErrors.push('At least one recipient (To) is required');
@@ -115,8 +121,13 @@ export const CallSheetEmailModal: React.FC<CallSheetEmailModalProps> = ({
     const groupEmails = EMAIL_GROUPS.filter((g) =>
       selectedGroups.includes(g.id)
     ).map((g) => g.email);
+    const creatorEmail = callSheet.createdByUser?.email;
+    const creatorEmails =
+      creatorEmail && validateEmail(creatorEmail) ? [creatorEmail] : [];
     const customToEmails = parseEmails(customTo);
-    const allToEmails = [...new Set([...groupEmails, ...customToEmails])];
+    const allToEmails = [
+      ...new Set([...groupEmails, ...creatorEmails, ...customToEmails]),
+    ];
     const ccEmails = parseEmails(customCc);
 
     return `
