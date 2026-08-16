@@ -394,7 +394,10 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
     return true;
   };
 
-  const validateReturnDate = (returnValue: string, startValue: string) => {
+  const MAX_OUTDOOR_DURATION_DAYS = 3;
+  const OUTDOOR_MAX_DURATION_MESSAGE = 'Equipment reservation allowed Maximum 3 three days';
+
+  const validateReturnDate = (returnValue: string, startValue: string, shootTypeOverride: ShootType = shootType) => {
     if (!returnValue) {
       setReturnDateError('');
       return true;
@@ -413,6 +416,15 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
       if (returnDate <= startDate) {
         setReturnDateError('Return date must be after start date');
         return false;
+      }
+
+      if (shootTypeOverride === 'Outdoor') {
+        const durationDays = (returnDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24);
+        if (durationDays > MAX_OUTDOOR_DURATION_DAYS) {
+          setReturnDateError(OUTDOOR_MAX_DURATION_MESSAGE);
+          showToast(OUTDOOR_MAX_DURATION_MESSAGE, 'warning', 6000);
+          return false;
+        }
       }
     }
 
@@ -454,6 +466,10 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
     if (value === 'Outdoor') {
       setIndoorFacility(null);
       setEquipmentNeeded(false);
+
+      if (formData.returnDateTime) {
+        validateReturnDate(formData.returnDateTime, formData.startDateTime, 'Outdoor');
+      }
     } else {
       setFormData(prev => ({ ...prev, location: '', driverNeeded: false, sitePermitApproval: '' }));
     }
