@@ -405,7 +405,11 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
   };
 
   const MAX_OUTDOOR_DURATION_DAYS = 3;
-  const OUTDOOR_MAX_DURATION_MESSAGE = 'Equipment reservation allowed Maximum 3 three days';
+  const OUTDOOR_MAX_DURATION_MESSAGE = 'Equipment reservation is allowed for a maximum of 3 days.';
+  const OUTDOOR_MAX_DURATION_MESSAGE_EN =
+    'Equipment reservation is allowed for a maximum of 3 days. Please select a start and return date within 3 days or less.';
+  const OUTDOOR_MAX_DURATION_MESSAGE_AR =
+    'الحد الأقصى المسموح به لحجز المعدات هو 3 أيام فقط. يُرجى اختيار تاريخ البداية والعودة بحيث لا تتجاوز المدة 3 أيام.';
 
   const validateReturnDate = (returnValue: string, startValue: string, shootTypeOverride: ShootType = shootType) => {
     if (!returnValue) {
@@ -1466,9 +1470,9 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
             <AlertDialogTitle className="text-center">Maximum Duration Exceeded</AlertDialogTitle>
             <AlertDialogDescription asChild>
               <div className="space-y-2 text-center">
-                <p>{OUTDOOR_MAX_DURATION_MESSAGE}</p>
+                <p lang="en">{OUTDOOR_MAX_DURATION_MESSAGE_EN}</p>
                 <p dir="rtl" lang="ar">
-                  الحد الأقصى المسموح به لحجز المعدات هو 3 أيام فقط
+                  {OUTDOOR_MAX_DURATION_MESSAGE_AR}
                 </p>
               </div>
             </AlertDialogDescription>
