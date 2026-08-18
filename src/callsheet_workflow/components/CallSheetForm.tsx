@@ -12,15 +12,6 @@ import { Switch } from '@/components/ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 import { AcknowledgementPanel } from './AcknowledgementPanel';
 import { EquipmentForm } from './EquipmentForm';
 import { TransportForm } from './TransportForm';
@@ -141,7 +132,6 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
   const [equipmentNeeded, setEquipmentNeeded] = useState<boolean>(false);
   const [startDateError, setStartDateError] = useState<string>('');
   const [returnDateError, setReturnDateError] = useState<string>('');
-  const [showOutdoorMaxDaysDialog, setShowOutdoorMaxDaysDialog] = useState(false);
   const [showLocationSuggestions, setShowLocationSuggestions] = useState(false);
   const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
 
@@ -405,11 +395,7 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
   };
 
   const MAX_OUTDOOR_DURATION_DAYS = 3;
-  const OUTDOOR_MAX_DURATION_MESSAGE = 'Equipment reservation is allowed for a maximum of 3 days.';
-  const OUTDOOR_MAX_DURATION_MESSAGE_EN =
-    'Equipment reservation is allowed for a maximum of 3 days. Please select a start and return date within 3 days or less.';
-  const OUTDOOR_MAX_DURATION_MESSAGE_AR =
-    'الحد الأقصى المسموح به لحجز المعدات هو 3 أيام فقط. يُرجى اختيار تاريخ البداية والعودة بحيث لا تتجاوز المدة 3 أيام.';
+  const OUTDOOR_MAX_DURATION_MESSAGE = 'Equipment reservation allowed Maximum 3 three days';
 
   const validateReturnDate = (returnValue: string, startValue: string, shootTypeOverride: ShootType = shootType) => {
     if (!returnValue) {
@@ -436,7 +422,7 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
         const durationDays = (returnDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24);
         if (durationDays > MAX_OUTDOOR_DURATION_DAYS) {
           setReturnDateError(OUTDOOR_MAX_DURATION_MESSAGE);
-          setShowOutdoorMaxDaysDialog(true);
+          showToast(OUTDOOR_MAX_DURATION_MESSAGE, 'warning', 6000);
           return false;
         }
       }
@@ -444,14 +430,6 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
 
     setReturnDateError('');
     return true;
-  };
-
-  const handleOutdoorMaxDaysDialogClose = () => {
-    setShowOutdoorMaxDaysDialog(false);
-    setStartDateError('');
-    setReturnDateError('');
-    setFormData(prev => ({ ...prev, startDateTime: '', returnDateTime: '' }));
-    setTransportRequest(prev => ({ ...prev, startDateTime: '', returnDateTime: '' }));
   };
 
   const handleStartDateChange = (value: string) => {
@@ -1463,27 +1441,6 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
           }}
         />
       )}
-
-      <AlertDialog open={showOutdoorMaxDaysDialog} onOpenChange={(open) => { if (!open) handleOutdoorMaxDaysDialogClose(); }}>
-        <AlertDialogContent className="text-center sm:text-center">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-center">Maximum Duration Exceeded</AlertDialogTitle>
-            <AlertDialogDescription asChild>
-              <div className="space-y-2 text-center">
-                <p lang="en">{OUTDOOR_MAX_DURATION_MESSAGE_EN}</p>
-                <p dir="rtl" lang="ar">
-                  {OUTDOOR_MAX_DURATION_MESSAGE_AR}
-                </p>
-              </div>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="sm:justify-center">
-            <AlertDialogAction onClick={handleOutdoorMaxDaysDialogClose}>
-              OK
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 };
