@@ -405,7 +405,7 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
   };
 
   const MAX_OUTDOOR_DURATION_DAYS = 3;
-  const OUTDOOR_MAX_DURATION_MESSAGE = 'Equipment reservation allowed Maximum 3 three days';
+  const OUTDOOR_MAX_DURATION_MESSAGE = 'Equipments reservation allowed Maximum 3 three days';
 
   const validateReturnDate = (returnValue: string, startValue: string, shootTypeOverride: ShootType = shootType) => {
     if (!returnValue) {
