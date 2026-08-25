@@ -19,7 +19,7 @@ export const internationalFirstNames = [
 export const internationalLastNames = [
   'Fernandes', 'Silva', 'Cruz', 'Santos', 'Reyes', 'Gomez',
   'Sharma', 'Patel', 'Kumar', 'Nair', 'Iyer',
-  'Smith', 'Johnson', 'Williams', 'Brown', 'Taylor',
+  'Smiths', 'Johnson', 'Williams', 'Brown', 'Taylor',
   'Haddad', 'Khoury', 'Mansour', 'Saleh', 'Rahman',
   'Dupont', 'Botha', 'Van der Merwe',
 ];
