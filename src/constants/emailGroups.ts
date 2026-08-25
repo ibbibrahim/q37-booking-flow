@@ -33,7 +33,7 @@ export const EMAIL_GROUPS: EmailGroup[] = [
   {
     id: 'cameraman-team',
     label: 'CAMERAMAN TEAM',
-    email: 'CamermanTeam@QBC.NEWS',
+    email: 'CameraManTeam@QBC.NEWS',
   },
 ];
 
