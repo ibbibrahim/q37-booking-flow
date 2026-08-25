@@ -6,8 +6,9 @@ import {
   LogOut, UserCircle, BarChart3, Boxes, Tv, Users, KeyRound,
   Film, Inbox, CalendarDays, ChevronLeft, ChevronRight, Briefcase,
   LayoutDashboard, ClipboardList, FileBarChart, Search, CalendarCheck,
-  Handshake, ChevronDown,
+  Handshake, ChevronDown, UserCheck, UserRoundCog,
 } from 'lucide-react';
+import { HrLanguageProvider, HrLanguageToggle } from '../../hr_workflow/context/HrLanguageContext';
 import { cn } from '@/lib/utils';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
@@ -57,6 +58,7 @@ export const BookingDashboard: React.FC = () => {
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
   const [hrOpen, setHrOpen] = useState(() => location.pathname.startsWith('/hr'));
   const [hrReportsOpen, setHrReportsOpen] = useState(() => location.pathname.startsWith('/hr/reports'));
+  const [hrEmployeesOpen, setHrEmployeesOpen] = useState(() => location.pathname.startsWith('/hr/employees'));
 
   const toggleCollapsed = () => {
     const next = !sidebarCollapsed;
@@ -194,13 +196,16 @@ export const BookingDashboard: React.FC = () => {
     label,
     path,
     small,
+    matchPrefix,
   }: {
     icon: React.ElementType;
     label: string;
     path: string;
     small?: boolean;
+    /** Also highlight on sub-routes of `path` (e.g. /hr/employees/permanent/123). */
+    matchPrefix?: boolean;
   }) => {
-    const active = location.pathname === path;
+    const active = matchPrefix ? location.pathname.startsWith(path) : location.pathname === path;
     return (
       <button
         onClick={() => { navigate(path); setSidebarOpen(false); }}
@@ -253,6 +258,7 @@ export const BookingDashboard: React.FC = () => {
   })();
 
   return (
+    <HrLanguageProvider>
     <div className="h-screen bg-background flex overflow-hidden">
 
       {/* ── SIDEBAR ─────────────────────────────────────────────── */}
@@ -446,7 +452,33 @@ export const BookingDashboard: React.FC = () => {
               {hrOpen && (
                 <div className={cn('mt-0.5 flex flex-col gap-0.5 pl-4 ml-4 border-l border-sidebar-border', sidebarCollapsed && 'lg:hidden')}>
                   <HrSubNavBtn icon={LayoutDashboard} label="Dashboard" path="/hr/dashboard" />
-                  <HrSubNavBtn icon={Users} label="Employee Records" path="/hr/employees" />
+
+                  <div>
+                    <button
+                      onClick={() => setHrEmployeesOpen((v) => !v)}
+                      className={cn(
+                        'w-full flex items-center gap-2.5 rounded-md text-left transition-colors py-2 px-2.5 text-sm',
+                        location.pathname.startsWith('/hr/employees')
+                          ? 'text-primary font-medium'
+                          : 'text-sidebar-foreground/90 hover:bg-sidebar-accent'
+                      )}
+                    >
+                      <Users size={16} className="shrink-0" />
+                      <span className="flex-1 truncate">Employee Records</span>
+                      <ChevronDown
+                        size={14}
+                        className={cn('shrink-0 transition-transform', hrEmployeesOpen && 'rotate-180')}
+                      />
+                    </button>
+                    {hrEmployeesOpen && (
+                      <div className="mt-0.5 flex flex-col gap-0.5 pl-4 ml-4 border-l border-sidebar-border">
+                        <HrSubNavBtn icon={UserCheck} label="Permanent" path="/hr/employees/permanent" small matchPrefix />
+                        <HrSubNavBtn icon={UserRoundCog} label="Freelance" path="/hr/employees/freelance" small matchPrefix />
+                      </div>
+                    )}
+                  </div>
+
+                  <HrSubNavBtn icon={Handshake} label="Hiring Request" path="/hr/hiring-requests" />
 
                   <div>
                     <button
@@ -474,7 +506,6 @@ export const BookingDashboard: React.FC = () => {
                   </div>
 
                   <HrSubNavBtn icon={CalendarCheck} label="Leave Request" path="/hr/leave-requests" />
-                  <HrSubNavBtn icon={Handshake} label="Hiring Request" path="/hr/hiring-requests" />
                 </div>
               )}
             </div>
@@ -557,6 +588,7 @@ export const BookingDashboard: React.FC = () => {
               </div>
 
               <div className="flex items-center gap-2 sm:gap-3">
+                {currentSection === 'hr' && <HrLanguageToggle />}
                 <NotificationDropdown />
                 <button
                   onClick={toggleTheme}
@@ -625,5 +657,6 @@ export const BookingDashboard: React.FC = () => {
         />
       )}
     </div>
+    </HrLanguageProvider>
   );
 };

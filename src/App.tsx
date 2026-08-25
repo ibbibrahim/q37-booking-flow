@@ -25,6 +25,8 @@ import { EPGViewer } from './epg_workflow/components/EPGViewer';
 import { HRLayout } from './hr_workflow/components/HRLayout';
 import { HRDashboardPage } from './hr_workflow/pages/HRDashboardPage';
 import { EmployeeRecordsPage } from './hr_workflow/pages/EmployeeRecordsPage';
+import { EmployeeDetailPage } from './hr_workflow/pages/EmployeeDetailPage';
+import { EmployeeFormPage } from './hr_workflow/pages/EmployeeFormPage';
 import { LeaveRequestPage } from './hr_workflow/pages/LeaveRequestPage';
 import { HiringRequestPage } from './hr_workflow/pages/HiringRequestPage';
 import { FinancialReportsPage } from './hr_workflow/pages/FinancialReportsPage';
@@ -381,7 +383,12 @@ function App() {
         >
           <Route index element={<Navigate to="/hr/dashboard" replace />} />
           <Route path="dashboard" element={<HRDashboardPage />} />
-          <Route path="employees" element={<EmployeeRecordsPage />} />
+          <Route path="employees" element={<Navigate to="/hr/employees/permanent" replace />} />
+          <Route path="employees/permanent" element={<EmployeeRecordsPage contractType="Permanent" />} />
+          <Route path="employees/freelance" element={<EmployeeRecordsPage contractType="Freelance" />} />
+          <Route path="employees/:contractType/new" element={<EmployeeFormPage />} />
+          <Route path="employees/:contractType/:id" element={<EmployeeDetailPage />} />
+          <Route path="employees/:contractType/:id/edit" element={<EmployeeFormPage />} />
           <Route path="leave-requests" element={<LeaveRequestPage />} />
           <Route path="hiring-requests" element={<HiringRequestPage />} />
           <Route path="reports/financial" element={<FinancialReportsPage />} />

@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Wallet, TrendingUp, Building2 } from 'lucide-react';
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -9,10 +10,21 @@ import { useHRChartColors } from '../utils/chartColors';
 import { departments } from '../data/departments';
 import { financeData, monthOptions } from '../data/financeSeed';
 import { formatCurrencyQAR } from '../utils/hrUtils';
+import { hrApi } from '../api/hrApi';
 
 export function FinancialReportsPage() {
   const colors = useHRChartColors();
   const months = monthOptions();
+
+  const departmentsQuery = useQuery({
+    queryKey: ['hr-departments'],
+    queryFn: hrApi.getDepartments,
+    staleTime: 5 * 60 * 1000,
+  });
+  const employeesQuery = useQuery({
+    queryKey: ['hr-employees-dashboard'],
+    queryFn: () => hrApi.searchEmployees({ page: 1, pageSize: 2000 }),
+  });
 
   const trend = useMemo(
     () =>
@@ -80,7 +92,10 @@ export function FinancialReportsPage() {
         </CardContent>
       </Card>
 
-      <FreelanceSpendChart />
+      <FreelanceSpendChart
+        employees={employeesQuery.data?.items.filter((e) => e.status === 'Active') ?? []}
+        departments={departmentsQuery.data ?? []}
+      />
 
       <Card>
         <CardHeader className="pb-2">

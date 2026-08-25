@@ -1,4 +1,5 @@
 import type { ContractType, EmployeeStatus, HiringRequestStage, LeaveRequestStatus } from '../types/hr';
+import type { HrEmployeeStatus } from '../types/hrApi';
 
 /** Seeded PRNG (mulberry32) so demo data is stable across reloads within a session. */
 export function createSeededRandom(seed: number) {
@@ -66,6 +67,21 @@ export function leaveStatusBadgeClass(status: LeaveRequestStatus): string {
       return 'border-transparent bg-warning/15 text-warning';
     case 'Pending Department':
       return 'border-transparent bg-muted text-muted-foreground';
+  }
+}
+
+export function hrEmployeeStatusBadgeClass(status: HrEmployeeStatus): string {
+  switch (status) {
+    case 'Active':
+      return 'border-transparent bg-success/15 text-success';
+    case 'On Leave':
+      return 'border-transparent bg-warning/15 text-warning';
+    case 'External Secondment':
+      return 'border-transparent bg-primary/15 text-primary';
+    case 'Retired':
+      return 'border-transparent bg-muted text-muted-foreground';
+    case 'End of Service':
+      return 'border-transparent bg-destructive/15 text-destructive';
   }
 }
 
