@@ -190,6 +190,22 @@ export interface UpdateHrEmployeeStatusDto {
   statusNote?: string | null;
 }
 
+export interface HrQidScanResult {
+  qid: string | null;
+  dob: string | null;
+  qidExpiry: string | null;
+  nationality: string | null;
+  fullNameEn: string | null;
+  fullNameAr: string | null;
+  // Government-listed visa occupation — reference only, never auto-applied to job title.
+  occupation: string | null;
+  passportNumber: string | null;
+  passportExpiry: string | null;
+  employer: string | null;
+  residencyType: string | null;
+  warnings: string[];
+}
+
 export interface ConvertToPermanentDto {
   changeDate: string;
   reason: string;

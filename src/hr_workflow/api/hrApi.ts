@@ -8,6 +8,7 @@ import type {
   CreateHrEmployeeDto,
   UpdateHrEmployeeStatusDto,
   ConvertToPermanentDto,
+  HrQidScanResult,
 } from '../types/hrApi';
 
 const API_BASE = '/api/hr';
@@ -82,5 +83,17 @@ export const hrApi = {
 
   deleteContractAttachment: async (id: number, attachmentId: number): Promise<void> => {
     await apiClient.delete(`${API_BASE}/employees/${id}/contracts/${attachmentId}`);
+  },
+
+  // OCR scan of a single QID photo (front and back stacked in one image, matching the
+  // Qatar app export) — returns extracted fields to pre-fill the form. Doesn't save
+  // anything; the caller decides what to apply.
+  scanQid: async (image: File): Promise<HrQidScanResult> => {
+    const formData = new FormData();
+    formData.append('image', image);
+    const { data } = await apiClient.post(`${API_BASE}/employees/qid-scan`, formData, {
+      headers: { 'Content-Type': undefined },
+    });
+    return data;
   },
 };

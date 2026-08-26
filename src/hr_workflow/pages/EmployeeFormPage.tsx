@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Loader2, UserCircle2, User, Briefcase, CreditCard, Phone } from 'lucide-react';
+import { ArrowLeft, Loader2, UserCircle2, User, Briefcase, CreditCard, Phone, ScanLine } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,12 +10,39 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/contexts/ToastContext';
 import { getApiErrorMessage } from '@/utils/apiError';
 import { nationalities } from '../data/nameData';
+import qidSample from '@/assets/qid-holder.jpg';
 import { hrApi } from '../api/hrApi';
+import { QidScanningModal } from '../components/QidScanningModal';
+import { QidPhotoCropModal } from '../components/QidPhotoCropModal';
 import { useHrLanguage, bilingual } from '../context/HrLanguageContext';
-import type { CreateHrEmployeeDto, HrContractType, HrEmployee } from '../types/hrApi';
+import type { CreateHrEmployeeDto, HrContractType, HrEmployee, HrQidScanResult } from '../types/hrApi';
 
 const MAX_PROFILE_PICTURE_BYTES = 5 * 1024 * 1024;
 const ALLOWED_PROFILE_PICTURE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+const ALLOWED_QID_SCAN_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+
+// The QID prints the country name ("PAKISTAN"), while our nationality list uses
+// demonyms ("Pakistani") — this heuristic bridges the common cases (most demonyms
+// share a prefix with the country name). Falls back to the raw scanned value when
+// nothing matches, which the Select below already renders safely.
+function matchNationality(rawCountryName: string): string {
+  const needle = rawCountryName.trim().toLowerCase();
+  if (!needle) return rawCountryName;
+  const match = nationalities.find((n) => {
+    const name = n.name.toLowerCase();
+    return name.startsWith(needle) || needle.startsWith(name);
+  });
+  return match ? match.name : rawCountryName;
+}
+
+function fileExtension(name: string): string {
+  const i = name.lastIndexOf('.');
+  return i >= 0 ? name.slice(i) : '';
+}
+
+function renameFile(file: File, newName: string): File {
+  return new File([file], newName, { type: file.type });
+}
 
 function urlToContractType(seg: string | undefined): HrContractType {
   return seg === 'freelance' ? 'Freelance' : 'Permanent';
@@ -133,6 +160,13 @@ export function EmployeeFormPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [initialized, setInitialized] = useState(false);
 
+  const [qidImageFile, setQidImageFile] = useState<File | null>(null);
+  const [qidImagePreview, setQidImagePreview] = useState<string | null>(null);
+  const qidImageInputRef = useRef<HTMLInputElement>(null);
+  const [scanning, setScanning] = useState(false);
+  const [scanResult, setScanResult] = useState<HrQidScanResult | null>(null);
+  const [cropModalOpen, setCropModalOpen] = useState(false);
+
   useEffect(() => {
     if (initialized || departments.length === 0) return;
     if (isEdit) {
@@ -167,6 +201,43 @@ export function EmployeeFormPage() {
   const isPermanent = form.contractType === 'Permanent';
   const update = <K extends keyof CreateHrEmployeeDto>(key: K, value: CreateHrEmployeeDto[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const handleQidFileSelect = (file: File | null) => {
+    if (file && !ALLOWED_QID_SCAN_TYPES.includes(file.type)) {
+      showToast(t('fileTypeNotAllowed'), 'error');
+      return;
+    }
+    setQidImageFile(file);
+    setScanResult(null);
+    setQidImagePreview((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return file ? URL.createObjectURL(file) : null;
+    });
+  };
+
+  const handleScanQid = async () => {
+    if (!qidImageFile) return;
+    setScanning(true);
+    setScanResult(null);
+    try {
+      const result = await hrApi.scanQid(qidImageFile);
+      setScanResult(result);
+
+      if (result.qid) update('qid', result.qid);
+      if (result.dob) update('dob', toDateInputValue(result.dob));
+      if (result.qidExpiry) update('qidExpiry', toDateInputValue(result.qidExpiry));
+      if (result.nationality) update('nationality', matchNationality(result.nationality));
+      if (result.fullNameEn) update('fullNameEn', result.fullNameEn);
+      if (result.fullNameAr) update('fullNameAr', result.fullNameAr);
+      if (result.passportNumber) update('passportNumber', result.passportNumber);
+      if (result.passportExpiry) update('passportExpiry', toDateInputValue(result.passportExpiry));
+      if (result.employer && form.contractType === 'Freelance') update('employer', result.employer);
+    } catch (error) {
+      showToast(getApiErrorMessage(error, 'Failed to scan QID.'), 'error');
+    } finally {
+      setScanning(false);
+    }
   };
 
   const selectedDepartment = departments.find((d) => d.id === form.departmentId);
@@ -211,6 +282,9 @@ export function EmployeeFormPage() {
       if (profilePictureFile) {
         await hrApi.uploadProfilePicture(saved.id, profilePictureFile);
       }
+      if (qidImageFile) {
+        await hrApi.uploadContractAttachment(saved.id, renameFile(qidImageFile, `QID${fileExtension(qidImageFile.name)}`));
+      }
 
       // The detail page (and the list we came from) use the same query keys this
       // page fetched under — without invalidating, the global 60s staleTime means
@@ -238,6 +312,8 @@ export function EmployeeFormPage() {
 
   return (
     <div className="max-w-3xl mx-auto space-y-6 relative p-6">
+      <QidScanningModal open={scanning} imageUrl={qidImagePreview} />
+
       {saving && (
         <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
           <div className="bg-card p-8 rounded-lg shadow-lg border flex flex-col items-center gap-4">
@@ -294,6 +370,65 @@ export function EmployeeFormPage() {
 
           {/* ---- Basic Info: picture, name, title, contract type, org placement ---- */}
           <TabsContent value="basic" className="mt-6 space-y-6">
+            <div className="rounded-lg border border-dashed border-border p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <ScanLine size={16} className="text-primary" />
+                <Label className="text-sm font-medium">{t('scanQid')}</Label>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-4">
+                {/* Shows the actual uploaded QID once one is picked; otherwise falls
+                    back to the blank template (no real data) so HR knows what to
+                    upload — one photo with the QID front and back stacked
+                    top-to-bottom, as exported by the official Qatar ID app. */}
+                <img
+                  src={qidImagePreview ?? qidSample}
+                  alt={t('scanQidHint')}
+                  className="shrink-0 w-28 rounded-md border border-border object-contain bg-black"
+                />
+
+                <div className="flex-1 space-y-3 min-w-0">
+                  <p className="text-xs text-muted-foreground">{t('scanQidHint')}</p>
+
+                  <input
+                    ref={qidImageInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    className="hidden"
+                    onChange={(e) => handleQidFileSelect(e.target.files?.[0] ?? null)}
+                  />
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button type="button" variant="outline" size="sm" onClick={() => qidImageInputRef.current?.click()} className="max-w-full">
+                      <span className="truncate">{qidImageFile ? qidImageFile.name : t('chooseFile')}</span>
+                    </Button>
+                    <Button type="button" size="sm" disabled={!qidImageFile || scanning} onClick={handleScanQid} className="gap-1.5">
+                      {scanning ? (
+                        <>
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" /> {t('scanning')}
+                        </>
+                      ) : (
+                        <>
+                          <ScanLine size={14} /> {t('scanQidButton')}
+                        </>
+                      )}
+                    </Button>
+                  </div>
+
+                  {scanResult && (
+                    <div className="text-xs space-y-1 rounded-md bg-muted/50 p-2.5">
+                      <p className="text-foreground font-medium">{t('scanApplied')}</p>
+                      {scanResult.occupation && (
+                        <p className="text-muted-foreground">{t('occupationFromCard')}: {scanResult.occupation}</p>
+                      )}
+                      {scanResult.warnings.length > 0 && (
+                        <p className="text-warning">{t('scanWarning')}: {scanResult.warnings.join(', ')}</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
             <div className="flex items-center gap-4">
               <div className="h-16 w-16 shrink-0 rounded-full bg-muted overflow-hidden flex items-center justify-center border border-border">
                 {profilePicturePreview || employeeQuery.data?.profilePictureUrl ? (
@@ -315,11 +450,33 @@ export function EmployeeFormPage() {
                   className="hidden"
                   onChange={(e) => handlePictureSelect(e.target.files?.[0] ?? null)}
                 />
-                <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
-                  {employeeQuery.data?.profilePictureUrl || profilePicturePreview ? t('changePicture') : t('uploadPicture')}
-                </Button>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
+                    {employeeQuery.data?.profilePictureUrl || profilePicturePreview ? t('changePicture') : t('uploadPicture')}
+                  </Button>
+                  {qidImagePreview && (
+                    <Button type="button" variant="outline" size="sm" onClick={() => setCropModalOpen(true)}>
+                      {t('cropPhotoButton')}
+                    </Button>
+                  )}
+                </div>
               </div>
             </div>
+
+            {cropModalOpen && qidImagePreview && (
+              <QidPhotoCropModal
+                imageUrl={qidImagePreview}
+                onCancel={() => setCropModalOpen(false)}
+                onConfirm={(file) => {
+                  setProfilePictureFile(file);
+                  setProfilePicturePreview((prev) => {
+                    if (prev) URL.revokeObjectURL(prev);
+                    return URL.createObjectURL(file);
+                  });
+                  setCropModalOpen(false);
+                }}
+              />
+            )}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">

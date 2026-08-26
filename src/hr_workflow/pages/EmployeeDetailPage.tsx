@@ -160,16 +160,14 @@ export function EmployeeDetailPage() {
           <TabsTrigger value="profile" className="gap-1.5">
             <User size={14} /> {t('profile')}
           </TabsTrigger>
-          {!isPermanent && (
-            <TabsTrigger value="contracts" className="gap-1.5">
-              <FileText size={14} /> {t('contracts')}
-              {employee.contractAttachments.length > 0 && (
-                <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-[11px]">
-                  {employee.contractAttachments.length}
-                </Badge>
-              )}
-            </TabsTrigger>
-          )}
+          <TabsTrigger value="contracts" className="gap-1.5">
+            <FileText size={14} /> {t('documents')}
+            {employee.contractAttachments.length > 0 && (
+              <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-[11px]">
+                {employee.contractAttachments.length}
+              </Badge>
+            )}
+          </TabsTrigger>
           <TabsTrigger value="history" className="gap-1.5">
             <History size={14} /> {t('history')}
             {employee.historyEvents.length > 0 && (
@@ -247,11 +245,10 @@ export function EmployeeDetailPage() {
       </div>
         </TabsContent>
 
-        {!isPermanent && (
-          <TabsContent value="contracts" className="mt-4">
+        <TabsContent value="contracts" className="mt-4">
             <DetailSection
               icon={FileText}
-              title={t('contracts')}
+              title={t('documents')}
               actions={
                 <>
                   <input
@@ -267,13 +264,13 @@ export function EmployeeDetailPage() {
                     disabled={uploading}
                     onClick={() => contractFileInputRef.current?.click()}
                   >
-                    <Upload size={14} className="mr-1" /> {uploading ? t('uploading') : t('uploadContract')}
+                    <Upload size={14} className="mr-1" /> {uploading ? t('uploading') : t('uploadFile')}
                   </Button>
                 </>
               }
             >
               {employee.contractAttachments.length === 0 ? (
-                <p className="text-sm text-muted-foreground">{t('noContracts')}</p>
+                <p className="text-sm text-muted-foreground">{t('noDocuments')}</p>
               ) : (
                 <ul className="space-y-2">
                   {employee.contractAttachments.map((a) => (
@@ -309,8 +306,7 @@ export function EmployeeDetailPage() {
                 </ul>
               )}
             </DetailSection>
-          </TabsContent>
-        )}
+        </TabsContent>
 
         <TabsContent value="history" className="mt-4">
           <EmployeeHistoryTimeline events={employee.historyEvents} />
