@@ -1,8 +1,6 @@
 import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
-import mkcert from "vite-plugin-mkcert";
-
 
 const appBuildId = process.env.VITE_BUILD_ID ?? `${Date.now()}`;
 
@@ -35,14 +33,10 @@ export default defineConfig({
   server: {
     host: "localhost",
     port: 5173,
-    https: {},
-
   },
   plugins: [
     react(),
     appVersionPlugin(appBuildId),
-    mkcert(),
-
   ],
   optimizeDeps: {
     exclude: ["lucide-react"],
