@@ -99,7 +99,7 @@ export function ContractPreviewPage() {
   return (
     <div className="h-[calc(100vh-2rem)] flex flex-col">
       <div className="flex items-center gap-3 p-4 border-b border-border shrink-0">
-        <Button variant="outline" size="icon" onClick={() => navigate(-1)}>
+        <Button variant="outline" size="icon" onClick={() => navigate('/hr/freelance-hiring/contract-renewal')}>
           <ArrowLeft size={20} />
         </Button>
         <div className="flex-1 min-w-0">
@@ -142,7 +142,12 @@ export function ContractPreviewPage() {
           <div className="flex items-center justify-center h-full text-destructive">{error}</div>
         )}
         {pdfUrl && !error && (
-          <iframe src={pdfUrl} title="Contract preview" className="w-full h-full border-0" />
+          // <embed>, not <iframe> — an iframe is its own browsing context, so
+          // changing its src (e.g. swapping the unsigned PDF for the signed
+          // one) pushes a browser history entry. That entry then intercepts
+          // the "Back" button, landing on the just-revoked blob URL instead
+          // of the contract list. <embed> doesn't have this problem.
+          <embed src={pdfUrl} type="application/pdf" className="w-full h-full" />
         )}
       </div>
 
