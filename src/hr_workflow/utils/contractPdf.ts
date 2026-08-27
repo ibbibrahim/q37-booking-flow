@@ -21,6 +21,11 @@ import type { HrEmployee } from '../types/hrApi';
 // also left unused for now — long names may overflow the first field's
 // width, worth revisiting once the rest of the fields are mapped.
 
+// Matches the surrounding printed body text — small enough to sit clear of
+// the underline instead of the field's default "auto" size, which stretches
+// to fill the whole field height and crams the text against the line.
+const FIELD_FONT_SIZE = 9;
+
 function formatDateEn(iso: string): string {
   return new Date(iso).toLocaleDateString('en-GB'); // DD/MM/YYYY
 }
@@ -40,7 +45,13 @@ export async function fillContractTemplate(employee: HrEmployee): Promise<Uint8A
   const setField = (name: string, value: string | null | undefined) => {
     if (!value) return;
     try {
-      form.getTextField(name).setText(value);
+      const field = form.getTextField(name);
+      // These fields default to "auto" font size (0), which sizes the text
+      // to fill almost the entire field height — cramming it right against
+      // the underline. A fixed, modest size matches the surrounding printed
+      // text and leaves real breathing room above the line.
+      field.setFontSize(FIELD_FONT_SIZE);
+      field.setText(value);
     } catch {
       // Field missing or not a text field — skip rather than throw, so one
       // bad name doesn't break the whole fill.
