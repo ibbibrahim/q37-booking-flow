@@ -206,6 +206,34 @@ export interface HrQidScanResult {
   warnings: string[];
 }
 
+export type HrContractStatus =
+  | 'AwaitingEmployeeSignature'
+  | 'AwaitingDepartmentHeadSignature'
+  | 'AwaitingFinalSignature'
+  | 'Completed'
+  | 'Returned';
+
+export type HrContractSignerRole = 'Employee' | 'DepartmentHead' | 'FinalSignatory';
+export type HrSignatureMethod = 'Draw' | 'Type' | 'Upload';
+
+export interface HrContractSignature {
+  id: number;
+  role: HrContractSignerRole;
+  signedByName: string;
+  signatureMethod: HrSignatureMethod;
+  signedAt: string;
+}
+
+export interface HrContract {
+  id: number;
+  employeeId: number;
+  status: HrContractStatus;
+  pdfUrl: string;
+  createdAt: string;
+  updatedAt: string;
+  signatures: HrContractSignature[];
+}
+
 export interface ConvertToPermanentDto {
   changeDate: string;
   reason: string;

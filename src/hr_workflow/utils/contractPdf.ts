@@ -79,3 +79,65 @@ export async function fillContractTemplate(employee: HrEmployee): Promise<Uint8A
 
   return pdfDoc.save();
 }
+
+// Page 10 (index 9) has the three signature blocks (two fixed QBC
+// signatories + the Second Party/employee). The employee's printed name and
+// date ARE real form fields ("Mr", "Mr_2", "Date 29", "Date 30" — confirmed
+// the same way as the page 1 fields), but the "Signature:" line itself is
+// NOT a form field on this template at all — just static dotted text — so
+// the signature image has to be drawn directly onto the page. These
+// rectangles are estimated from the gap between the confirmed name field
+// and date field above/below the signature line, not pixel-verified against
+// a real signature yet.
+const EMPLOYEE_SIGNATURE_PAGE_INDEX = 9;
+const EMPLOYEE_SIGNATURE_RECT_EN = { x: 65, y: 188, width: 150, height: 38 };
+const EMPLOYEE_SIGNATURE_RECT_AR = { x: 340, y: 178, width: 150, height: 38 };
+
+export async function stampEmployeeSignature(
+  filledPdfBytes: Uint8Array,
+  signatureImageBytes: Uint8Array,
+  signatureImageType: 'png' | 'jpeg',
+  employee: HrEmployee
+): Promise<Uint8Array> {
+  const fontBytes = await fetch(notoSansArabicUrl).then((r) => r.arrayBuffer());
+
+  const pdfDoc = await PDFDocument.load(filledPdfBytes);
+  pdfDoc.registerFontkit(fontkit);
+  const font = await pdfDoc.embedFont(fontBytes, { subset: true });
+  const form = pdfDoc.getForm();
+
+  const setField = (name: string, value: string | null | undefined) => {
+    if (!value) return;
+    try {
+      form.getTextField(name).setText(value);
+    } catch {
+      // ignore
+    }
+  };
+
+  const today = formatDateEn(new Date().toISOString());
+  setField('Mr', employee.fullNameEn);
+  setField('Mr_2', employee.fullNameAr);
+  setField('Date 29', today);
+  setField('Date 30', today);
+  form.updateFieldAppearances(font);
+
+  const signatureImage = signatureImageType === 'jpeg'
+    ? await pdfDoc.embedJpg(signatureImageBytes)
+    : await pdfDoc.embedPng(signatureImageBytes);
+  const page = pdfDoc.getPages()[EMPLOYEE_SIGNATURE_PAGE_INDEX];
+
+  for (const rect of [EMPLOYEE_SIGNATURE_RECT_EN, EMPLOYEE_SIGNATURE_RECT_AR]) {
+    const scale = Math.min(rect.width / signatureImage.width, rect.height / signatureImage.height, 1);
+    const w = signatureImage.width * scale;
+    const h = signatureImage.height * scale;
+    page.drawImage(signatureImage, {
+      x: rect.x + (rect.width - w) / 2,
+      y: rect.y + (rect.height - h) / 2,
+      width: w,
+      height: h,
+    });
+  }
+
+  return pdfDoc.save();
+}

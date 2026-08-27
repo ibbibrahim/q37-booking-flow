@@ -9,6 +9,9 @@ import type {
   UpdateHrEmployeeStatusDto,
   ConvertToPermanentDto,
   HrQidScanResult,
+  HrContract,
+  HrContractSignerRole,
+  HrSignatureMethod,
 } from '../types/hrApi';
 
 const API_BASE = '/api/hr';
@@ -92,6 +95,36 @@ export const hrApi = {
     const formData = new FormData();
     formData.append('image', image);
     const { data } = await apiClient.post(`${API_BASE}/employees/qid-scan`, formData, {
+      headers: { 'Content-Type': undefined },
+    });
+    return data;
+  },
+
+  // Contract signing — the PDF itself is generated/stamped client-side
+  // (pdf-lib); the backend just stores the working copy and the audit trail.
+  createContract: async (employeeId: number, pdf: Blob): Promise<HrContract> => {
+    const formData = new FormData();
+    formData.append('employeeId', String(employeeId));
+    formData.append('pdf', pdf, 'contract.pdf');
+    const { data } = await apiClient.post(`${API_BASE}/contracts`, formData, {
+      headers: { 'Content-Type': undefined },
+    });
+    return data;
+  },
+
+  signContract: async (
+    contractId: number,
+    pdf: Blob,
+    role: HrContractSignerRole,
+    signedByName: string,
+    signatureMethod: HrSignatureMethod
+  ): Promise<HrContract> => {
+    const formData = new FormData();
+    formData.append('pdf', pdf, 'contract-signed.pdf');
+    formData.append('role', role);
+    formData.append('signedByName', signedByName);
+    formData.append('signatureMethod', signatureMethod);
+    const { data } = await apiClient.post(`${API_BASE}/contracts/${contractId}/sign`, formData, {
       headers: { 'Content-Type': undefined },
     });
     return data;
