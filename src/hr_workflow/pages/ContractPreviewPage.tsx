@@ -8,8 +8,9 @@ import { getApiErrorMessage } from '@/utils/apiError';
 import { hrApi } from '../api/hrApi';
 import { fillContractTemplate, stampEmployeeSignature } from '../utils/contractPdf';
 import { SignaturePad } from '../components/SignaturePad';
+import { ContractStatusModal } from '../components/ContractStatusModal';
 import { useHrLanguage, bilingual } from '../context/HrLanguageContext';
-import type { HrSignatureMethod } from '../types/hrApi';
+import type { HrContract, HrSignatureMethod } from '../types/hrApi';
 
 export function ContractPreviewPage() {
   const { id } = useParams<{ id: string }>();
@@ -27,6 +28,8 @@ export function ContractPreviewPage() {
   const [signModalOpen, setSignModalOpen] = useState(false);
   const [signing, setSigning] = useState(false);
   const [completed, setCompleted] = useState(false);
+  const [statusContract, setStatusContract] = useState<HrContract | null>(null);
+  const [statusModalOpen, setStatusModalOpen] = useState(false);
 
   const { data: employee, isLoading } = useQuery({
     queryKey: ['hr-employee', employeeId],
@@ -84,10 +87,12 @@ export function ContractPreviewPage() {
       showPdf(signedBytes);
 
       const signedBlob = new Blob([new Uint8Array(signedBytes)], { type: 'application/pdf' });
-      await hrApi.signContract(contractId, signedBlob, 'Employee', employee.fullNameEn, method);
+      const updatedContract = await hrApi.signContract(contractId, signedBlob, 'Employee', employee.fullNameEn, method);
 
       setSignModalOpen(false);
       setCompleted(true);
+      setStatusContract(updatedContract);
+      setStatusModalOpen(true);
       showToast(t('signAndComplete'), 'success');
     } catch (err) {
       showToast(getApiErrorMessage(err, 'Failed to save signature.'), 'error');
@@ -127,10 +132,15 @@ export function ContractPreviewPage() {
           </Button>
         )}
 
-        {completed && (
-          <div className="flex items-center gap-1.5 text-success text-sm font-medium">
+        {completed && statusContract && (
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-1.5 text-success border-success/40 hover:bg-success/10"
+            onClick={() => setStatusModalOpen(true)}
+          >
             <CheckCircle2 size={16} /> {t('signAndComplete')}
-          </div>
+          </Button>
         )}
       </div>
 
@@ -157,6 +167,14 @@ export function ContractPreviewPage() {
         onCancel={() => setSignModalOpen(false)}
         onConfirm={handleSignConfirm}
       />
+      {statusContract && employee && (
+        <ContractStatusModal
+          open={statusModalOpen}
+          onClose={() => setStatusModalOpen(false)}
+          contract={statusContract}
+          employee={employee}
+        />
+      )}
       {signing && (
         <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-[60] flex items-center justify-center">
           <div className="bg-card p-6 rounded-lg shadow-lg border text-sm text-muted-foreground">{t('scanning')}</div>
