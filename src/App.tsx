@@ -28,7 +28,8 @@ import { EmployeeRecordsPage } from './hr_workflow/pages/EmployeeRecordsPage';
 import { EmployeeDetailPage } from './hr_workflow/pages/EmployeeDetailPage';
 import { EmployeeFormPage } from './hr_workflow/pages/EmployeeFormPage';
 import { LeaveRequestPage } from './hr_workflow/pages/LeaveRequestPage';
-import { HiringRequestPage } from './hr_workflow/pages/HiringRequestPage';
+import { ContractRenewalPage } from './hr_workflow/pages/ContractRenewalPage';
+import { ContractPreviewPage } from './hr_workflow/pages/ContractPreviewPage';
 import { FinancialReportsPage } from './hr_workflow/pages/FinancialReportsPage';
 import { HiringReportsPage } from './hr_workflow/pages/HiringReportsPage';
 import { BITChecklistDashboardPage } from './bit_workflow/pages/BITChecklistDashboardPage';
@@ -390,7 +391,8 @@ function App() {
           <Route path="employees/:contractType/:id" element={<EmployeeDetailPage />} />
           <Route path="employees/:contractType/:id/edit" element={<EmployeeFormPage />} />
           <Route path="leave-requests" element={<LeaveRequestPage />} />
-          <Route path="hiring-requests" element={<HiringRequestPage />} />
+          <Route path="freelance-hiring/contract-renewal" element={<ContractRenewalPage />} />
+          <Route path="freelance-hiring/contract-renewal/:id/preview" element={<ContractPreviewPage />} />
           <Route path="reports/financial" element={<FinancialReportsPage />} />
           <Route path="reports/hiring" element={<HiringReportsPage />} />
         </Route>

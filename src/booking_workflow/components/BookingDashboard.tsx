@@ -6,7 +6,7 @@ import {
   LogOut, UserCircle, BarChart3, Boxes, Tv, Users, KeyRound,
   Film, Inbox, CalendarDays, ChevronLeft, ChevronRight, Briefcase,
   LayoutDashboard, ClipboardList, FileBarChart, Search, CalendarCheck,
-  Handshake, ChevronDown, UserCheck, UserRoundCog,
+  Handshake, ChevronDown, UserCheck, UserRoundCog, FileSignature,
 } from 'lucide-react';
 import { HrLanguageProvider, HrLanguageToggle } from '../../hr_workflow/context/HrLanguageContext';
 import { cn } from '@/lib/utils';
@@ -59,6 +59,7 @@ export const BookingDashboard: React.FC = () => {
   const [hrOpen, setHrOpen] = useState(() => location.pathname.startsWith('/hr'));
   const [hrReportsOpen, setHrReportsOpen] = useState(() => location.pathname.startsWith('/hr/reports'));
   const [hrEmployeesOpen, setHrEmployeesOpen] = useState(() => location.pathname.startsWith('/hr/employees'));
+  const [hrFreelanceHiringOpen, setHrFreelanceHiringOpen] = useState(() => location.pathname.startsWith('/hr/freelance-hiring'));
 
   const toggleCollapsed = () => {
     const next = !sidebarCollapsed;
@@ -478,7 +479,29 @@ export const BookingDashboard: React.FC = () => {
                     )}
                   </div>
 
-                  <HrSubNavBtn icon={Handshake} label="Hiring Request" path="/hr/hiring-requests" />
+                  <div>
+                    <button
+                      onClick={() => setHrFreelanceHiringOpen((v) => !v)}
+                      className={cn(
+                        'w-full flex items-center gap-2.5 rounded-md text-left transition-colors py-2 px-2.5 text-sm',
+                        location.pathname.startsWith('/hr/freelance-hiring')
+                          ? 'text-primary font-medium'
+                          : 'text-sidebar-foreground/90 hover:bg-sidebar-accent'
+                      )}
+                    >
+                      <Handshake size={16} className="shrink-0" />
+                      <span className="flex-1 truncate">Freelance Hiring</span>
+                      <ChevronDown
+                        size={14}
+                        className={cn('shrink-0 transition-transform', hrFreelanceHiringOpen && 'rotate-180')}
+                      />
+                    </button>
+                    {hrFreelanceHiringOpen && (
+                      <div className="mt-0.5 flex flex-col gap-0.5 pl-4 ml-4 border-l border-sidebar-border">
+                        <HrSubNavBtn icon={FileSignature} label="Contract Renewal" path="/hr/freelance-hiring/contract-renewal" small />
+                      </div>
+                    )}
+                  </div>
 
                   <div>
                     <button
