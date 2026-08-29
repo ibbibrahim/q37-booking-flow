@@ -368,7 +368,7 @@ export function ContractRenewalPage() {
                               <ActionIconButton icon={Eye} label="View" onClick={() => openPreview(emp.id, 'view')} />
                               <ActionIconButton
                                 icon={Send}
-                                label="Send for Signature"
+                                label="Employee Signature"
                                 onClick={() => openPreview(emp.id, 'sign')}
                               />
                               {statusButton}
