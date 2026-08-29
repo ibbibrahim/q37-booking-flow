@@ -1,3 +1,4 @@
+import axios from 'axios';
 import apiClient from '@/utils/apiClient';
 import type {
   HrDepartment,
@@ -16,10 +17,19 @@ import type {
 
 const API_BASE = '/api/hr';
 
+function isNotFoundError(error: unknown): boolean {
+  return axios.isAxiosError(error) && error.response?.status === 404;
+}
+
 export const hrApi = {
   // Departments
   getDepartments: async (): Promise<HrDepartment[]> => {
     const { data } = await apiClient.get(`${API_BASE}/departments`);
+    return data;
+  },
+
+  updateDepartment: async (id: number, dto: { nameEn: string; nameAr: string; sortOrder: number }): Promise<HrDepartment> => {
+    const { data } = await apiClient.put(`${API_BASE}/departments/${id}`, dto);
     return data;
   },
 
@@ -110,6 +120,55 @@ export const hrApi = {
       headers: { 'Content-Type': undefined },
     });
     return data;
+  },
+
+  // Coordinator's "Save" while filling the remaining fields directly on the
+  // document, before it's sent to the employee for signature.
+  updateContract: async (contractId: number, pdf: Blob): Promise<HrContract> => {
+    const formData = new FormData();
+    formData.append('pdf', pdf, 'contract.pdf');
+    const { data } = await apiClient.put(`${API_BASE}/contracts/${contractId}`, formData, {
+      headers: { 'Content-Type': undefined },
+    });
+    return data;
+  },
+
+  // The current working copy's raw bytes, proxied through our own API
+  // rather than fetching the blob URL directly from the browser.
+  getContractPdfBytes: async (contractId: number): Promise<ArrayBuffer> => {
+    const { data } = await apiClient.get(`${API_BASE}/contracts/${contractId}/pdf`, {
+      responseType: 'arraybuffer',
+    });
+    return data;
+  },
+
+  // The most recent contract for an employee, if any — used to resume an
+  // in-progress renewal instead of starting a duplicate.
+  getLatestContractForEmployee: async (employeeId: number): Promise<HrContract | null> => {
+    try {
+      const { data } = await apiClient.get(`${API_BASE}/contracts/by-employee/${employeeId}`);
+      return data;
+    } catch (error) {
+      if (isNotFoundError(error)) return null;
+      throw error;
+    }
+  },
+
+  // One latest contract per employee (only for those that have one) — for
+  // the Contract Renewal list's status column.
+  getLatestContractsForEmployees: async (employeeIds: number[]): Promise<HrContract[]> => {
+    if (employeeIds.length === 0) return [];
+    const { data } = await apiClient.get(`${API_BASE}/contracts/by-employees`, {
+      params: { ids: employeeIds.join(',') },
+    });
+    return data;
+  },
+
+  // "Discard & Restart" — deletes a still-in-progress draft entirely so the
+  // coordinator can start clean. Backend rejects this once the employee has
+  // signed (nothing left to discard at that point, it's part of the record).
+  discardContract: async (contractId: number): Promise<void> => {
+    await apiClient.delete(`${API_BASE}/contracts/${contractId}`);
   },
 
   signContract: async (

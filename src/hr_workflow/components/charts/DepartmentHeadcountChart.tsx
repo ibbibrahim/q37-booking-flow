@@ -1,5 +1,11 @@
+import { useState } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Bar, BarChart, CartesianGrid, LabelList, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { useToast } from '@/contexts/ToastContext';
+import { getApiErrorMessage } from '@/utils/apiError';
+import { hrApi } from '../../api/hrApi';
+import { EditDepartmentModal } from '../EditDepartmentModal';
 import { useHRChartColors } from '../../utils/chartColors';
 import { useHrLanguage, bilingual } from '../../context/HrLanguageContext';
 import type { HrDepartment, HrEmployee } from '../../types/hrApi';
@@ -12,6 +18,29 @@ interface Props {
 export function DepartmentHeadcountChart({ employees, departments }: Props) {
   const colors = useHRChartColors();
   const { language, t } = useHrLanguage();
+  const { showToast } = useToast();
+  const queryClient = useQueryClient();
+
+  const [editingDepartment, setEditingDepartment] = useState<HrDepartment | null>(null);
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, nameEn, nameAr, sortOrder }: { id: number; nameEn: string; nameAr: string; sortOrder: number }) =>
+      hrApi.updateDepartment(id, { nameEn, nameAr, sortOrder }),
+    onSuccess: () => {
+      // Department names are read live off every employee/list/filter query
+      // that shows one, not snapshotted — invalidating broadly here means
+      // the rename shows up everywhere immediately instead of piecemeal.
+      queryClient.invalidateQueries({ queryKey: ['hr-departments'] });
+      queryClient.invalidateQueries({ queryKey: ['hr-employees'] });
+      queryClient.invalidateQueries({ queryKey: ['hr-employees-dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['hr-employees-stats'] });
+      showToast('Department updated.', 'success');
+      setEditingDepartment(null);
+    },
+    onError: (err) => {
+      showToast(getApiErrorMessage(err, 'Failed to update department.'), 'error');
+    },
+  });
 
   const data = departments.map((dept) => {
     const deptEmployees = employees.filter((e) => e.departmentId === dept.id);
@@ -34,6 +63,34 @@ export function DepartmentHeadcountChart({ employees, departments }: Props) {
   const segmentLabel = (v: string | number | boolean | null | undefined) =>
     typeof v === 'number' && v >= MIN_SEGMENT_FOR_LABEL ? String(v) : '';
 
+  // Custom tick so the department label is double-click-able — `index`
+  // lines up 1:1 with `departments` since the axis renders every tick
+  // (interval={0}), in the same order the chart data was built in.
+  const renderDepartmentTick = (props: {
+    x: number;
+    y: number;
+    payload: { value: string };
+    index: number;
+  }) => {
+    const { x, y, payload, index } = props;
+    const dept = departments[index];
+    return (
+      <g transform={`translate(${x},${y})`}>
+        <text
+          textAnchor="end"
+          fill={colors.muted}
+          fontSize={11}
+          transform="rotate(-35)"
+          className={dept ? 'cursor-pointer hover:fill-foreground' : undefined}
+          onDoubleClick={() => dept && setEditingDepartment(dept)}
+        >
+          {dept && <title>Double-click to rename</title>}
+          {payload.value}
+        </text>
+      </g>
+    );
+  };
+
   return (
     <Card>
       <CardHeader className="pb-2">
@@ -47,9 +104,7 @@ export function DepartmentHeadcountChart({ employees, departments }: Props) {
               <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} vertical={false} />
               <XAxis
                 dataKey="department"
-                tick={{ fontSize: 11, fill: colors.muted }}
-                angle={-35}
-                textAnchor="end"
+                tick={renderDepartmentTick}
                 interval={0}
                 height={90}
                 stroke={colors.axis}
@@ -68,6 +123,16 @@ export function DepartmentHeadcountChart({ employees, departments }: Props) {
           </ResponsiveContainer>
         </div>
       </CardContent>
+
+      <EditDepartmentModal
+        department={editingDepartment}
+        saving={updateMutation.isPending}
+        onClose={() => setEditingDepartment(null)}
+        onSave={(nameEn, nameAr) => {
+          if (!editingDepartment) return;
+          updateMutation.mutate({ id: editingDepartment.id, nameEn, nameAr, sortOrder: editingDepartment.sortOrder });
+        }}
+      />
     </Card>
   );
 }

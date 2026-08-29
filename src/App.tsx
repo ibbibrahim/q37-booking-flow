@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
 import { Login } from './components/Login';
 import { Unauthorized } from './components/Unauthorized';
@@ -38,6 +38,13 @@ import { BITChecklistFormPage } from './bit_workflow/pages/BITChecklistFormPage'
 
 function App() {
   const { isAuthenticated, user, isLoading } = useAuth();
+  // React Router assigns a fresh, unique key to every navigation entry —
+  // including clicking a sidebar link back to the page you're already on,
+  // which otherwise doesn't change the URL and so wouldn't remount anything.
+  // Folding it into EmployeeRecordsPage's key below means re-clicking
+  // "Permanent" while already on it resets search/filters too, not just
+  // switching to/from "Freelance".
+  const location = useLocation();
 
   // Default landing page after login — role-specific routes, or Programme Schedule for everyone else
   const getDefaultRoute = () => {
@@ -385,8 +392,16 @@ function App() {
           <Route index element={<Navigate to="/hr/dashboard" replace />} />
           <Route path="dashboard" element={<HRDashboardPage />} />
           <Route path="employees" element={<Navigate to="/hr/employees/permanent" replace />} />
-          <Route path="employees/permanent" element={<EmployeeRecordsPage contractType="Permanent" />} />
-          <Route path="employees/freelance" element={<EmployeeRecordsPage contractType="Freelance" />} />
+          {/* key forces a fresh mount every time this tab is navigated to —
+              otherwise React sees the same component type at the same tree
+              position on both routes and reuses the instance, carrying the
+              search/filter state from Permanent over to Freelance (or vice
+              versa), and re-clicking the tab you're already on wouldn't
+              reset anything either since the URL doesn't change. Including
+              location.key covers both cases: it changes on every navigate()
+              call, even ones that land back on the same path. */}
+          <Route path="employees/permanent" element={<EmployeeRecordsPage key={`permanent-${location.key}`} contractType="Permanent" />} />
+          <Route path="employees/freelance" element={<EmployeeRecordsPage key={`freelance-${location.key}`} contractType="Freelance" />} />
           <Route path="employees/:contractType/new" element={<EmployeeFormPage />} />
           <Route path="employees/:contractType/:id" element={<EmployeeDetailPage />} />
           <Route path="employees/:contractType/:id/edit" element={<EmployeeFormPage />} />
