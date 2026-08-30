@@ -259,7 +259,13 @@ export function ContractPreviewPage() {
                   <CheckCircle2 size={16} />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>{completingSign ? 'Completing…' : 'Complete Signing'}</TooltipContent>
+              <TooltipContent>
+                {completingSign
+                  ? 'Completing…'
+                  : signedCount === 0
+                  ? 'Drag your signature onto the document first'
+                  : 'Complete Signing'}
+              </TooltipContent>
             </Tooltip>
           </TooltipProvider>
         )}

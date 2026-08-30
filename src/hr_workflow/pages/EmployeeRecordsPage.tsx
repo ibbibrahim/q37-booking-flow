@@ -122,12 +122,16 @@ export function EmployeeRecordsPage({ contractType }: Props) {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
         <StatTile label={t('total')} value={total} icon={contractType === 'Permanent' ? UserCheck : Users} />
         <StatTile label={t('active')} value={activeCount} icon={UserCheck} accentClassName="bg-success/15 text-success" />
-        <StatTile label={t('onLeave')} value={onLeaveCount} icon={Users} accentClassName="bg-warning/15 text-warning" />
-        {contractType === 'Permanent' && (
+        {/* Permanent staff are only recorded here for reference — they're
+            actively managed (including leave) in a separate system, so
+            leave-status tracking only makes sense for Freelance. */}
+        {isPermanent ? (
           <StatTile label={t('qatariNationals')} value={qatariCount} icon={Users} />
+        ) : (
+          <StatTile label={t('onLeave')} value={onLeaveCount} icon={Users} accentClassName="bg-warning/15 text-warning" />
         )}
       </div>
 
@@ -181,7 +185,7 @@ export function EmployeeRecordsPage({ contractType }: Props) {
           ) : undefined
         }
       >
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className={`grid grid-cols-1 gap-4 ${isPermanent ? 'md:grid-cols-2' : 'md:grid-cols-3'}`}>
           <div className="relative">
             <SearchIcon size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -204,19 +208,24 @@ export function EmployeeRecordsPage({ contractType }: Props) {
               ))}
             </SelectContent>
           </Select>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger>
-              <SelectValue placeholder={t('status')} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">{t('allStatuses')}</SelectItem>
-              <SelectItem value="Active">Active</SelectItem>
-              <SelectItem value="On Leave">On Leave</SelectItem>
-              <SelectItem value="External Secondment">External Secondment</SelectItem>
-              <SelectItem value="Retired">Retired</SelectItem>
-              <SelectItem value="End of Service">End of Service</SelectItem>
-            </SelectContent>
-          </Select>
+          {/* Status filter/tracking doesn't apply to Permanent — those
+              records exist here for reference only; the dedicated system
+              manages their actual status. */}
+          {!isPermanent && (
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger>
+                <SelectValue placeholder={t('status')} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t('allStatuses')}</SelectItem>
+                <SelectItem value="Active">Active</SelectItem>
+                <SelectItem value="On Leave">On Leave</SelectItem>
+                <SelectItem value="External Secondment">External Secondment</SelectItem>
+                <SelectItem value="Retired">Retired</SelectItem>
+                <SelectItem value="End of Service">End of Service</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
         </div>
       </ListFilterBar>
 

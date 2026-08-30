@@ -3,6 +3,7 @@ import * as pdfjsLib from 'pdfjs-dist';
 import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import { PenTool, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useToast } from '@/contexts/ToastContext';
 import { SignaturePad } from './SignaturePad';
 import type { SignaturePlacement } from '../utils/contractPdf';
 import type { HrSignatureMethod } from '../types/hrApi';
@@ -44,6 +45,43 @@ const RENDER_SCALE = 1.6;
 // one hardcoded spot on one page.
 const PLACEMENT_WIDTH = 210;
 const PLACEMENT_HEIGHT = 78;
+const MIN_PLACEMENT_SIZE = 40;
+
+type ResizeCorner = 'nw' | 'ne' | 'sw' | 'se';
+
+interface DragState {
+  type: 'move' | 'resize';
+  placementId: string;
+  corner?: ResizeCorner;
+  pointerId: number;
+  startClientX: number;
+  startClientY: number;
+  startLeft: number;
+  startTop: number;
+  startWidth: number;
+  startHeight: number;
+  pageWidth: number;
+  pageHeight: number;
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(Math.max(value, min), Math.max(min, max));
+}
+
+// The two spots the old <embed>-viewer flow always stamped a signature onto
+// automatically — the Second Party's EN and AR "Signature:" dotted lines on
+// page 10 — restored here as an automatic placement the instant a signature
+// is captured, on top of (not instead of) the newer drag-anywhere capability
+// below. Unlike the old estimated rects, these are measured directly off the
+// real template's printed text (pymupdf word search on page 10: the EN
+// dotted line runs x=[94.7,271.8] y=[193.4,208.8], the AR one x=[327.1,533.5]
+// y=[190.0,207.5]), then padded to a comfortable box centered on each line
+// without touching the Mr/Mr_2 name line above or the Date line below.
+const SECOND_PARTY_PAGE_NUMBER = 10;
+const SECOND_PARTY_RECT_EN = { x: 95, y: 179, width: 177, height: 44 };
+const SECOND_PARTY_RECT_AR = { x: 327, y: 177, width: 206, height: 44 };
+const AUTO_PLACEMENT_ID_EN = 'auto-second-party-en';
+const AUTO_PLACEMENT_ID_AR = 'auto-second-party-ar';
 
 function blobToDataUrl(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -62,6 +100,7 @@ function blobToDataUrl(blob: Blob): Promise<string> {
  * times, with no further signing prompts. */
 export const SignaturePlacementEditor = forwardRef<SignaturePlacementEditorHandle, Props>(
   function SignaturePlacementEditor({ pdfBytes, defaultSignerName, onSignedCountChange }, ref) {
+    const { showToast } = useToast();
     const [pages, setPages] = useState<RenderedPage[]>([]);
     const [loading, setLoading] = useState(true);
     const [placements, setPlacements] = useState<Placement[]>([]);
@@ -69,7 +108,9 @@ export const SignaturePlacementEditor = forwardRef<SignaturePlacementEditorHandl
     const [signaturePreviewUrl, setSignaturePreviewUrl] = useState<string | null>(null);
     const [captureOpen, setCaptureOpen] = useState(false);
     const viewportsRef = useRef<Map<number, pdfjsLib.PageViewport>>(new Map());
+    const pdfDocRef = useRef<pdfjsLib.PDFDocumentProxy | null>(null);
     const methodRef = useRef<HrSignatureMethod>('Draw');
+    const dragStateRef = useRef<DragState | null>(null);
 
     useImperativeHandle(ref, () => ({
       getSignedPlacements: async () => {
@@ -111,9 +152,11 @@ export const SignaturePlacementEditor = forwardRef<SignaturePlacementEditorHandl
         setLoading(true);
         setPages([]);
         viewportsRef.current = new Map();
+        pdfDocRef.current = null;
 
         const doc = await pdfjsLib.getDocument({ data: pdfBytes.slice() }).promise;
         if (cancelled) return;
+        pdfDocRef.current = doc;
 
         // Pages render independently and in parallel, revealing themselves
         // as soon as each is ready, rather than blocking the whole surface
@@ -184,6 +227,96 @@ export const SignaturePlacementEditor = forwardRef<SignaturePlacementEditorHandl
 
     const removePlacement = (id: string) => setPlacements((prev) => prev.filter((p) => p.id !== id));
 
+    const updatePlacementRect = (id: string, rect: { left: number; top: number; width: number; height: number }) =>
+      setPlacements((prev) => prev.map((p) => (p.id === id ? { ...p, ...rect } : p)));
+
+    // Move and resize both work the same way once a signature is on the
+    // page: press anywhere on it (or a corner handle) and drag. A single
+    // pointermove/pointerup pair does the whole gesture, reading/writing
+    // through dragStateRef so the listeners stay valid across re-renders.
+    const handlePointerMove = (e: PointerEvent) => {
+      const drag = dragStateRef.current;
+      if (!drag || e.pointerId !== drag.pointerId) return;
+
+      const dx = e.clientX - drag.startClientX;
+      const dy = e.clientY - drag.startClientY;
+
+      if (drag.type === 'move') {
+        const left = clamp(drag.startLeft + dx, 0, drag.pageWidth - drag.startWidth);
+        const top = clamp(drag.startTop + dy, 0, drag.pageHeight - drag.startHeight);
+        updatePlacementRect(drag.placementId, { left, top, width: drag.startWidth, height: drag.startHeight });
+        return;
+      }
+
+      let { startLeft: left, startTop: top, startWidth: width, startHeight: height } = drag;
+      if (drag.corner === 'ne' || drag.corner === 'se') {
+        width = clamp(drag.startWidth + dx, MIN_PLACEMENT_SIZE, drag.pageWidth - drag.startLeft);
+      }
+      if (drag.corner === 'sw' || drag.corner === 'se') {
+        height = clamp(drag.startHeight + dy, MIN_PLACEMENT_SIZE, drag.pageHeight - drag.startTop);
+      }
+      if (drag.corner === 'nw' || drag.corner === 'sw') {
+        const newWidth = clamp(drag.startWidth - dx, MIN_PLACEMENT_SIZE, drag.startLeft + drag.startWidth);
+        left = drag.startLeft + (drag.startWidth - newWidth);
+        width = newWidth;
+      }
+      if (drag.corner === 'nw' || drag.corner === 'ne') {
+        const newHeight = clamp(drag.startHeight - dy, MIN_PLACEMENT_SIZE, drag.startTop + drag.startHeight);
+        top = drag.startTop + (drag.startHeight - newHeight);
+        height = newHeight;
+      }
+      updatePlacementRect(drag.placementId, { left, top, width, height });
+    };
+
+    const handlePointerUp = () => {
+      dragStateRef.current = null;
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', handlePointerUp);
+    };
+
+    const beginDrag = (
+      e: React.PointerEvent,
+      placement: Placement,
+      pageWidth: number,
+      pageHeight: number,
+      type: 'move' | 'resize',
+      corner?: ResizeCorner
+    ) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dragStateRef.current = {
+        type,
+        corner,
+        placementId: placement.id,
+        pointerId: e.pointerId,
+        startClientX: e.clientX,
+        startClientY: e.clientY,
+        startLeft: placement.left,
+        startTop: placement.top,
+        startWidth: placement.width,
+        startHeight: placement.height,
+        pageWidth,
+        pageHeight,
+      };
+      window.addEventListener('pointermove', handlePointerMove);
+      window.addEventListener('pointerup', handlePointerUp);
+    };
+
+    // Page 10 usually renders almost immediately (pages load in parallel),
+    // but signing can happen before it's ready — fetching the viewport
+    // directly (and caching it the same way the render loop does) means the
+    // auto-placement below never has to wait on it.
+    const getOrLoadViewport = async (pageNumber: number): Promise<pdfjsLib.PageViewport | null> => {
+      const cached = viewportsRef.current.get(pageNumber);
+      if (cached) return cached;
+      if (!pdfDocRef.current) return null;
+
+      const page = await pdfDocRef.current.getPage(pageNumber);
+      const viewport = page.getViewport({ scale: RENDER_SCALE });
+      viewportsRef.current.set(pageNumber, viewport);
+      return viewport;
+    };
+
     // Captured once from the FIELDS tile; a data URL (not an object URL) so
     // it can be safely referenced by every placement dropped afterward
     // without any revoke-on-remove bookkeeping.
@@ -193,6 +326,43 @@ export const SignaturePlacementEditor = forwardRef<SignaturePlacementEditorHandl
       setSignatureBlob(blob);
       setSignaturePreviewUrl(dataUrl);
       setCaptureOpen(false);
+
+      // Matches the old <embed>-viewer behavior: the signature lands on
+      // page 10's Second Party section automatically, no dragging required.
+      // Re-capturing (the "Change" tile) replaces these two rather than
+      // stacking duplicates on top of each other; drag-and-dropped copies
+      // elsewhere are untouched either way.
+      const viewport = await getOrLoadViewport(SECOND_PARTY_PAGE_NUMBER);
+      if (viewport) {
+        const toPlacement = (id: string, rect: { x: number; y: number; width: number; height: number }): Placement => {
+          const [x1, y1] = viewport.convertToViewportPoint(rect.x, rect.y);
+          const [x2, y2] = viewport.convertToViewportPoint(rect.x + rect.width, rect.y + rect.height);
+          return {
+            id,
+            page: SECOND_PARTY_PAGE_NUMBER,
+            left: Math.min(x1, x2),
+            top: Math.min(y1, y2),
+            width: Math.abs(x2 - x1),
+            height: Math.abs(y2 - y1),
+            blob,
+            previewUrl: dataUrl,
+          };
+        };
+
+        const autoPlacements = [
+          toPlacement(AUTO_PLACEMENT_ID_EN, SECOND_PARTY_RECT_EN),
+          toPlacement(AUTO_PLACEMENT_ID_AR, SECOND_PARTY_RECT_AR),
+        ];
+        setPlacements((prev) => [
+          ...prev.filter((p) => p.id !== AUTO_PLACEMENT_ID_EN && p.id !== AUTO_PLACEMENT_ID_AR),
+          ...autoPlacements,
+        ]);
+      }
+
+      // Capturing also still just saves the reusable stamp for anywhere
+      // else it's needed — dragging it onto other pages/spots keeps working
+      // exactly as before.
+      showToast('Signature placed on page 10 — drag it anywhere else you need it too.', 'success');
     };
 
     if (loading) {
@@ -257,17 +427,38 @@ export const SignaturePlacementEditor = forwardRef<SignaturePlacementEditorHandl
                   .map((pl) => (
                     <div
                       key={pl.id}
-                      className="absolute flex items-center justify-center rounded-md border border-[#4b54d9] bg-white group"
+                      onPointerDown={(e) => beginDrag(e, pl, p.width, p.height, 'move')}
+                      className="absolute flex items-center justify-center rounded-md border border-[#4b54d9]/70 bg-transparent hover:bg-[#4b54d9]/5 group cursor-move touch-none"
                       style={{ left: pl.left, top: pl.top, width: pl.width, height: pl.height }}
                     >
                       <img src={pl.previewUrl} alt="Signature" className="max-w-full max-h-full object-contain p-1 pointer-events-none" />
+
                       <button
                         type="button"
+                        onPointerDown={(e) => e.stopPropagation()}
                         onClick={() => removePlacement(pl.id)}
                         className="absolute -top-2 -right-2 h-5 w-5 rounded-full bg-destructive text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                       >
                         <X size={11} />
                       </button>
+
+                      {/* Resize handles — DocuSign-style corner dots. No
+                          handle at "ne" since the remove (×) button already
+                          sits there; nw/sw/se alone still give full control
+                          over both width and height. */}
+                      {(['nw', 'sw', 'se'] as ResizeCorner[]).map((corner) => (
+                        <div
+                          key={corner}
+                          onPointerDown={(e) => beginDrag(e, pl, p.width, p.height, 'resize', corner)}
+                          className={cn(
+                            'absolute h-2.5 w-2.5 rounded-full bg-white border border-[#4b54d9] opacity-0 group-hover:opacity-100 transition-opacity touch-none',
+                            corner === 'nw' && 'left-0 top-0 -translate-x-1/2 -translate-y-1/2 cursor-nwse-resize',
+                            corner === 'ne' && 'right-0 top-0 translate-x-1/2 -translate-y-1/2 cursor-nesw-resize',
+                            corner === 'sw' && 'left-0 bottom-0 -translate-x-1/2 translate-y-1/2 cursor-nesw-resize',
+                            corner === 'se' && 'right-0 bottom-0 translate-x-1/2 translate-y-1/2 cursor-nwse-resize'
+                          )}
+                        />
+                      ))}
                     </div>
                   ))}
               </div>
