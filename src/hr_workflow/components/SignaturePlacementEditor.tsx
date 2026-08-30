@@ -111,6 +111,7 @@ export const SignaturePlacementEditor = forwardRef<SignaturePlacementEditorHandl
     const pdfDocRef = useRef<pdfjsLib.PDFDocumentProxy | null>(null);
     const methodRef = useRef<HrSignatureMethod>('Draw');
     const dragStateRef = useRef<DragState | null>(null);
+    const pageElRef = useRef<Map<number, HTMLDivElement>>(new Map());
 
     useImperativeHandle(ref, () => ({
       getSignedPlacements: async () => {
@@ -196,16 +197,20 @@ export const SignaturePlacementEditor = forwardRef<SignaturePlacementEditorHandl
       };
     }, [pdfBytes]);
 
-    const handleDrop = (
-      e: React.DragEvent<HTMLDivElement>,
-      pageNumber: number,
-      pageWidth: number,
-      pageHeight: number
-    ) => {
+    const handleDrop = (e: React.DragEvent<HTMLDivElement>, pageNumber: number) => {
       e.preventDefault();
       if (e.dataTransfer.getData('text/plain') !== 'signature' || !signatureBlob || !signaturePreviewUrl) return;
 
-      const rect = e.currentTarget.getBoundingClientRect();
+      // Measured off the actual page element, not e.currentTarget — the
+      // handler now lives on a full-row wrapper (see below) so a drop
+      // anywhere in that row lands correctly instead of only within the
+      // page's own narrow rectangle.
+      const pageEl = pageElRef.current.get(pageNumber);
+      if (!pageEl) return;
+      const rect = pageEl.getBoundingClientRect();
+      const pageWidth = rect.width;
+      const pageHeight = rect.height;
+
       const left = Math.min(Math.max(e.clientX - rect.left - PLACEMENT_WIDTH / 2, 0), Math.max(pageWidth - PLACEMENT_WIDTH, 0));
       const top = Math.min(Math.max(e.clientY - rect.top - PLACEMENT_HEIGHT / 2, 0), Math.max(pageHeight - PLACEMENT_HEIGHT, 0));
 
@@ -407,22 +412,37 @@ export const SignaturePlacementEditor = forwardRef<SignaturePlacementEditorHandl
         </div>
 
         <div className="flex-1 min-h-0 overflow-y-auto">
-          <div className="space-y-3 py-4 flex flex-col items-center bg-[#525659]">
+          <div className="flex flex-col items-stretch bg-[#525659]">
             {pages.map((p) => (
+              // This wrapper spans the full row — including the padding that
+              // used to be a plain gap between pages, and the gray margin on
+              // either side of the (narrower) page itself — and owns the
+              // drop handlers. A real drag-and-drop release is rarely
+              // pixel-precise, and none of that surrounding space used to
+              // have a drop target at all, so dropping a hair off the page's
+              // own edge just silently did nothing. Coordinates are still
+              // measured off the actual page element (via pageElRef), so
+              // this doesn't change where a signature actually lands.
               <div
                 key={p.pageNumber}
-                className="relative bg-white shadow-md"
-                style={{ width: p.width, height: p.height }}
+                className="w-full flex justify-center py-2.5"
                 onDragOver={(e) => e.preventDefault()}
-                onDrop={(e) => handleDrop(e, p.pageNumber, p.width, p.height)}
+                onDrop={(e) => handleDrop(e, p.pageNumber)}
               >
-                <img
-                  src={p.imageUrl}
-                  alt={`Page ${p.pageNumber}`}
-                  className="absolute inset-0 w-full h-full pointer-events-none"
-                  draggable={false}
-                />
-                {placements
+                <div
+                  ref={(el) => {
+                    if (el) pageElRef.current.set(p.pageNumber, el);
+                  }}
+                  className="relative bg-white shadow-md shrink-0"
+                  style={{ width: p.width, height: p.height }}
+                >
+                  <img
+                    src={p.imageUrl}
+                    alt={`Page ${p.pageNumber}`}
+                    className="absolute inset-0 w-full h-full pointer-events-none"
+                    draggable={false}
+                  />
+                  {placements
                   .filter((pl) => pl.page === p.pageNumber)
                   .map((pl) => (
                     <div
@@ -461,6 +481,7 @@ export const SignaturePlacementEditor = forwardRef<SignaturePlacementEditorHandl
                       ))}
                     </div>
                   ))}
+                </div>
               </div>
             ))}
           </div>
