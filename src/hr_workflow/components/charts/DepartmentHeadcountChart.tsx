@@ -67,8 +67,8 @@ export function DepartmentHeadcountChart({ employees, departments }: Props) {
   // lines up 1:1 with `departments` since the axis renders every tick
   // (interval={0}), in the same order the chart data was built in.
   const renderDepartmentTick = (props: {
-    x: number;
-    y: number;
+    x: string | number;
+    y: string | number;
     payload: { value: string };
     index: number;
   }) => {

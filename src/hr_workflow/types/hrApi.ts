@@ -173,6 +173,10 @@ export interface HrEmployeeQuery {
   contractType?: HrContractType;
   departmentId?: number;
   status?: HrEmployeeStatus;
+  // Filters by the employee's most recent contract renewal status rather
+  // than their HR status (`status` above) — 'NotStarted' means no HrContract
+  // row exists for them yet.
+  contractRenewalStatus?: HrContractStatus | 'NotStarted';
   search?: string;
   page?: number;
   pageSize?: number;

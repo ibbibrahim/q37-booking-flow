@@ -65,38 +65,6 @@ export interface LeaveRequest {
   payrollNoted: boolean;
 }
 
-export type HiringRequestStage =
-  | 'Department Head'
-  | 'HR Review'
-  | 'GM Approval'
-  | 'QMC HR'
-  | 'CEO Approval'
-  | 'Completed'
-  | 'Returned to Department';
-
-export interface HiringRequestComment {
-  id: string;
-  by: string;
-  date: string;
-  text: string;
-}
-
-export interface HiringRequest {
-  id: number;
-  requestNumber: string;
-  departmentId: number;
-  initiatedBy: string;
-  candidateName: string;
-  jobTitle: string;
-  qidStatus: 'Has QID' | 'No Obligation Letter';
-  isInternal: boolean;
-  duration: string;
-  createdDate: string;
-  stage: HiringRequestStage;
-  status: 'In Progress' | 'Approved' | 'Returned' | 'Rejected';
-  comments: HiringRequestComment[];
-}
-
 export interface FinanceMonthEntry {
   month: string; // e.g. "2026-01"
   departmentId: number;

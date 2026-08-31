@@ -31,8 +31,25 @@ import { cn } from '@/lib/utils';
 import { hrApi } from '../api/hrApi';
 import { ContractStatusModal } from '../components/ContractStatusModal';
 import { useHrLanguage, bilingual } from '../context/HrLanguageContext';
-import { hrEmployeeStatusBadgeClass, formatDate } from '../utils/hrUtils';
-import type { HrContract, HrContractStatus, HrEmployee, HrEmployeeStatus } from '../types/hrApi';
+import { hrEmployeeStatusBadgeClass, formatDate, CONTRACT_STATUS_LABEL, CONTRACT_STATUS_BADGE_CLASS } from '../utils/hrUtils';
+import type { HrContract, HrContractStatus, HrEmployee } from '../types/hrApi';
+
+// The "Status" filter on this page is about renewal progress, not the
+// employee's own HR status (that's a different, unrelated field) — so it
+// filters HrContract.status via the backend's contractRenewalStatus param.
+// 'NotStarted' is synthetic: no HrContract row exists for the employee yet.
+const RENEWAL_STATUS_FILTER_OPTIONS: Array<HrContractStatus | 'NotStarted'> = [
+  'NotStarted',
+  'AwaitingEmployeeSignature',
+  'AwaitingDepartmentHeadSignature',
+  'AwaitingFinalSignature',
+  'Completed',
+  'Returned',
+];
+const RENEWAL_STATUS_FILTER_LABEL: Record<HrContractStatus | 'NotStarted', string> = {
+  NotStarted: 'Not Started',
+  ...CONTRACT_STATUS_LABEL,
+};
 
 // Every list-row action is icon-only (with a tooltip for the label) so a row
 // with several actions — Edit / View / Send / Discard — stays compact.
@@ -68,22 +85,6 @@ function ActionIconButton({
 }
 
 const STORAGE_KEY = 'hr-contract-renewal';
-
-const CONTRACT_STATUS_LABEL: Record<HrContractStatus, string> = {
-  AwaitingEmployeeSignature: 'Awaiting Employee',
-  AwaitingDepartmentHeadSignature: 'Awaiting Dept. Head',
-  AwaitingFinalSignature: 'Awaiting GM',
-  Completed: 'Completed',
-  Returned: 'Returned',
-};
-
-const CONTRACT_STATUS_BADGE_CLASS: Record<HrContractStatus, string> = {
-  AwaitingEmployeeSignature: 'border-transparent bg-warning/15 text-warning',
-  AwaitingDepartmentHeadSignature: 'border-transparent bg-warning/15 text-warning',
-  AwaitingFinalSignature: 'border-transparent bg-warning/15 text-warning',
-  Completed: 'border-transparent bg-success/15 text-success',
-  Returned: 'border-transparent bg-destructive/15 text-destructive',
-};
 
 export function ContractRenewalPage() {
   const { language, t } = useHrLanguage();
@@ -137,7 +138,7 @@ export function ContractRenewalPage() {
         contractType: 'Freelance',
         search: search || undefined,
         departmentId: departmentFilter !== 'all' ? Number(departmentFilter) : undefined,
-        status: statusFilter !== 'all' ? (statusFilter as HrEmployeeStatus) : undefined,
+        contractRenewalStatus: statusFilter !== 'all' ? (statusFilter as HrContractStatus | 'NotStarted') : undefined,
         page,
         pageSize,
       }),
@@ -206,7 +207,7 @@ export function ContractRenewalPage() {
               {statusFilter !== 'all' && (
                 <Badge variant="secondary" className="gap-1">
                   <Tag size={12} />
-                  {statusFilter}
+                  {RENEWAL_STATUS_FILTER_LABEL[statusFilter as HrContractStatus | 'NotStarted']}
                   <button
                     type="button"
                     onClick={() => setStatusFilter('all')}
@@ -264,11 +265,11 @@ export function ContractRenewalPage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">{t('allStatuses')}</SelectItem>
-              <SelectItem value="Active">Active</SelectItem>
-              <SelectItem value="On Leave">On Leave</SelectItem>
-              <SelectItem value="External Secondment">External Secondment</SelectItem>
-              <SelectItem value="Retired">Retired</SelectItem>
-              <SelectItem value="End of Service">End of Service</SelectItem>
+              {RENEWAL_STATUS_FILTER_OPTIONS.map((status) => (
+                <SelectItem key={status} value={status}>
+                  {RENEWAL_STATUS_FILTER_LABEL[status]}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
