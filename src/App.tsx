@@ -32,6 +32,7 @@ import { ContractRenewalPage } from './hr_workflow/pages/ContractRenewalPage';
 import { ContractPreviewPage } from './hr_workflow/pages/ContractPreviewPage';
 import { FinancialReportsPage } from './hr_workflow/pages/FinancialReportsPage';
 import { HiringReportsPage } from './hr_workflow/pages/HiringReportsPage';
+import { DepartmentApprovalsPage } from './hr_workflow/pages/DepartmentApprovalsPage';
 import { BITChecklistDashboardPage } from './bit_workflow/pages/BITChecklistDashboardPage';
 import { BITChecklistListPage } from './bit_workflow/pages/BITChecklistListPage';
 import { BITChecklistFormPage } from './bit_workflow/pages/BITChecklistFormPage';
@@ -380,16 +381,21 @@ function App() {
         {/** PROGRAMME SCHEDULE (EPG) — any authenticated user, no role required */}
         <Route path="schedule" element={<EPGViewer />} />
 
-        {/** HR SYSTEM — restricted to HRAdmin only (strict: Admin does NOT bypass this) */}
+        {/** HR SYSTEM — restricted to HRAdmin and DepartmentHead (strict: Admin
+            does NOT bypass this). DepartmentHead only ever sees/uses the
+            department-approvals route in practice (the sidebar hides the
+            rest for them), but the backend is the real boundary — every
+            HRAdmin-only endpoint still rejects a DepartmentHead token. */}
         <Route
           path="hr"
           element={
-            <ProtectedRoute allowedRoles={['HRAdmin']} strict>
+            <ProtectedRoute allowedRoles={['HRAdmin', 'DepartmentHead']} strict>
               <HRLayout />
             </ProtectedRoute>
           }
         >
           <Route index element={<Navigate to="/hr/dashboard" replace />} />
+          <Route path="department-approvals" element={<DepartmentApprovalsPage />} />
           <Route path="dashboard" element={<HRDashboardPage />} />
           <Route path="employees" element={<Navigate to="/hr/employees/permanent" replace />} />
           {/* key forces a fresh mount every time this tab is navigated to —

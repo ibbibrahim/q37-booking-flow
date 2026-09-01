@@ -13,22 +13,20 @@ import {
   Building2,
   Tag,
   X,
-  type LucideIcon,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import { ListFilterBar, FilterActiveFiltersRow } from '@/components/ui/list-filter-bar';
 import { ListPaginationBar, getInitialPage, getInitialPageSize } from '@/components/ui/list-pagination-bar';
 import { ConfirmActionModal } from '@/admin/components/ConfirmActionModal';
 import { useToast } from '@/contexts/ToastContext';
 import { getApiErrorMessage } from '@/utils/apiError';
-import { cn } from '@/lib/utils';
 import { hrApi } from '../api/hrApi';
+import { ActionIconButton } from '../components/ActionIconButton';
 import { ContractStatusModal } from '../components/ContractStatusModal';
 import { useHrLanguage, bilingual } from '../context/HrLanguageContext';
 import { hrEmployeeStatusBadgeClass, formatDate, CONTRACT_STATUS_LABEL, CONTRACT_STATUS_BADGE_CLASS } from '../utils/hrUtils';
@@ -50,39 +48,6 @@ const RENEWAL_STATUS_FILTER_LABEL: Record<HrContractStatus | 'NotStarted', strin
   NotStarted: 'Not Started',
   ...CONTRACT_STATUS_LABEL,
 };
-
-// Every list-row action is icon-only (with a tooltip for the label) so a row
-// with several actions — Edit / View / Send / Discard — stays compact.
-function ActionIconButton({
-  icon: Icon,
-  label,
-  onClick,
-  variant = 'outline',
-  destructive,
-}: {
-  icon: LucideIcon;
-  label: string;
-  onClick: () => void;
-  variant?: 'default' | 'outline' | 'ghost';
-  destructive?: boolean;
-}) {
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <Button
-          size="icon"
-          variant={variant}
-          className={cn('h-8 w-8', destructive && 'text-destructive hover:text-destructive hover:bg-destructive/10')}
-          onClick={onClick}
-          aria-label={label}
-        >
-          <Icon size={15} />
-        </Button>
-      </TooltipTrigger>
-      <TooltipContent>{label}</TooltipContent>
-    </Tooltip>
-  );
-}
 
 const STORAGE_KEY = 'hr-contract-renewal';
 

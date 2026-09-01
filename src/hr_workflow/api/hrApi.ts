@@ -13,6 +13,9 @@ import type {
   HrContract,
   HrContractSignerRole,
   HrSignatureMethod,
+  HrDepartmentHead,
+  CreateHrDepartmentHeadDto,
+  HrDepartmentHeadSignature,
 } from '../types/hrApi';
 
 const API_BASE = '/api/hr';
@@ -184,6 +187,53 @@ export const hrApi = {
     formData.append('signedByName', signedByName);
     formData.append('signatureMethod', signatureMethod);
     const { data } = await apiClient.post(`${API_BASE}/contracts/${contractId}/sign`, formData, {
+      headers: { 'Content-Type': undefined },
+    });
+    return data;
+  },
+
+  // Department Heads — which department a user leads, scoping their
+  // approval queue, and their saved signature (captured once, reused for
+  // every contract they approve).
+  getMyDepartmentHead: async (): Promise<HrDepartmentHead | null> => {
+    try {
+      const { data } = await apiClient.get(`${API_BASE}/department-heads/me`);
+      return data;
+    } catch (error) {
+      if (isNotFoundError(error)) return null;
+      throw error;
+    }
+  },
+
+  getDepartmentHeads: async (): Promise<HrDepartmentHead[]> => {
+    const { data } = await apiClient.get(`${API_BASE}/department-heads`);
+    return data;
+  },
+
+  createDepartmentHead: async (dto: CreateHrDepartmentHeadDto): Promise<HrDepartmentHead> => {
+    const { data } = await apiClient.post(`${API_BASE}/department-heads`, dto);
+    return data;
+  },
+
+  deleteDepartmentHead: async (id: number): Promise<void> => {
+    await apiClient.delete(`${API_BASE}/department-heads/${id}`);
+  },
+
+  getMyDepartmentHeadSignature: async (): Promise<HrDepartmentHeadSignature | null> => {
+    try {
+      const { data } = await apiClient.get(`${API_BASE}/department-heads/signature/me`);
+      return data;
+    } catch (error) {
+      if (isNotFoundError(error)) return null;
+      throw error;
+    }
+  },
+
+  saveMyDepartmentHeadSignature: async (image: Blob, signatureMethod: HrSignatureMethod): Promise<HrDepartmentHeadSignature> => {
+    const formData = new FormData();
+    formData.append('image', image, 'signature.png');
+    formData.append('signatureMethod', signatureMethod);
+    const { data } = await apiClient.post(`${API_BASE}/department-heads/signature`, formData, {
       headers: { 'Content-Type': undefined },
     });
     return data;

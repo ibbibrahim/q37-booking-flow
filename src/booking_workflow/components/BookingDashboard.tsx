@@ -116,7 +116,11 @@ export const BookingDashboard: React.FC = () => {
   const hasEditorQueueAccess = user?.roles?.includes('Editor') || user?.roles?.includes('Admin');
   const hasRotaAccess = user?.roles?.includes('Admin') || user?.roles?.includes('RotaTeamLead');
   // Strict: only HRAdmin sees the HR module — Admin does not bypass this one.
-  const hasHRAccess = user?.roles?.includes('HRAdmin') ?? false;
+  // DepartmentHead gets in too, but only for their own Department Approvals
+  // queue below — not the coordinator tools (Dashboard, Employee Records, etc).
+  const isHRAdmin = user?.roles?.includes('HRAdmin') ?? false;
+  const isDepartmentHead = user?.roles?.includes('DepartmentHead') ?? false;
+  const hasHRAccess = isHRAdmin || isDepartmentHead;
   // Strict: only the BIT role sees the BIT checklists — Admin does not bypass this one.
   const hasBITAccess = user?.roles?.includes('BIT') ?? false;
   const hasEditSuiteDashboardAccess =
@@ -452,6 +456,12 @@ export const BookingDashboard: React.FC = () => {
 
               {hrOpen && (
                 <div className={cn('mt-0.5 flex flex-col gap-0.5 pl-4 ml-4 border-l border-sidebar-border', sidebarCollapsed && 'lg:hidden')}>
+                  {isDepartmentHead && (
+                    <HrSubNavBtn icon={FileSignature} label="Department Approvals" path="/hr/department-approvals" />
+                  )}
+
+                  {isHRAdmin && (
+                  <>
                   <HrSubNavBtn icon={LayoutDashboard} label="Dashboard" path="/hr/dashboard" />
 
                   <div>
@@ -529,6 +539,8 @@ export const BookingDashboard: React.FC = () => {
                   </div>
 
                   <HrSubNavBtn icon={CalendarCheck} label="Leave Request" path="/hr/leave-requests" />
+                  </>
+                  )}
                 </div>
               )}
             </div>

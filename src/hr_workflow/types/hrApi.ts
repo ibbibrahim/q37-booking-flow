@@ -238,6 +238,27 @@ export interface HrContract {
   signatures: HrContractSignature[];
 }
 
+export interface HrDepartmentHead {
+  id: number;
+  userId: number;
+  userDisplayName: string | null;
+  departmentId: number;
+  departmentNameEn: string;
+  departmentNameAr: string;
+}
+
+export interface CreateHrDepartmentHeadDto {
+  userId: number;
+  departmentId: number;
+}
+
+export interface HrDepartmentHeadSignature {
+  userId: number;
+  imageUrl: string;
+  signatureMethod: HrSignatureMethod;
+  updatedAt: string;
+}
+
 export interface ConvertToPermanentDto {
   changeDate: string;
   reason: string;

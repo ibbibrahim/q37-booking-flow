@@ -1,4 +1,4 @@
-import { PDFDocument, rgb, type PDFFont, type PDFForm } from 'pdf-lib';
+import { PDFDocument, rgb, type PDFFont, type PDFForm, type PDFPage, type PDFImage } from 'pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
 import contractTemplateUrl from '../../assets/contract-template.pdf';
 import notoSansArabicUrl from '../../assets/NotoSansArabic.ttf';
@@ -141,6 +141,59 @@ export interface SignaturePlacement {
   imageType: 'png' | 'jpeg';
 }
 
+// Draws one "Signed by: <image> <verificationId>" stamp box — the shared
+// visual used for every signer (employee, Department Head, ...). A single
+// non-cryptographic verification code per call keeps the two mirrored EN/AR
+// boxes matching each other but distinct from other signers' stamps.
+async function drawSignatureStampBox(
+  page: PDFPage,
+  font: PDFFont,
+  image: PDFImage,
+  rect: { x: number; y: number; width: number; height: number },
+  verificationId: string
+) {
+  const { x, y, width: boxWidth, height: boxHeight } = rect;
+
+  page.drawRectangle({
+    x,
+    y,
+    width: boxWidth,
+    height: boxHeight,
+    borderColor: rgb(0.29, 0.33, 0.85),
+    borderWidth: 1,
+  });
+  page.drawText('Signed by:', {
+    x: x + 3,
+    y: y + boxHeight - 9,
+    size: 6,
+    font,
+    color: rgb(0.29, 0.33, 0.85),
+  });
+
+  const imgAreaHeight = boxHeight - 20;
+  const scale = Math.min((boxWidth - 6) / image.width, imgAreaHeight / image.height, 1);
+  const w = image.width * scale;
+  const h = image.height * scale;
+  page.drawImage(image, {
+    x: x + (boxWidth - w) / 2,
+    y: y + 10 + (imgAreaHeight - h) / 2,
+    width: w,
+    height: h,
+  });
+
+  page.drawText(verificationId, {
+    x: x + 3,
+    y: y + 2,
+    size: 5,
+    font,
+    color: rgb(0.5, 0.5, 0.5),
+  });
+}
+
+function newVerificationId(): string {
+  return Math.random().toString(36).slice(2, 10).toUpperCase();
+}
+
 // Page 10's printed name/date next to the Second Party's signature line ARE
 // real form fields ("Mr", "Mr_2", "Date 29", "Date 30" — confirmed the same
 // way as the page 1 fields) and get filled automatically here regardless of
@@ -168,10 +221,7 @@ export async function stampSignaturesAtPositions(
   setField('Date 30', today);
   form.updateFieldAppearances(font);
 
-  // A short, non-cryptographic verification code — not a real digital
-  // signature/certificate, just a visual "this was captured by the system"
-  // marker, in the spirit of the bordered "Signed by:" stamp box requested.
-  const verificationId = Math.random().toString(36).slice(2, 10).toUpperCase();
+  const verificationId = newVerificationId();
   const pages = pdfDoc.getPages();
 
   for (const placement of placements) {
@@ -182,43 +232,45 @@ export async function stampSignaturesAtPositions(
       ? await pdfDoc.embedJpg(placement.imageBytes)
       : await pdfDoc.embedPng(placement.imageBytes);
 
-    const { x, y, width: boxWidth, height: boxHeight } = placement;
-
-    page.drawRectangle({
-      x,
-      y,
-      width: boxWidth,
-      height: boxHeight,
-      borderColor: rgb(0.29, 0.33, 0.85),
-      borderWidth: 1,
-    });
-    page.drawText('Signed by:', {
-      x: x + 3,
-      y: y + boxHeight - 9,
-      size: 6,
-      font,
-      color: rgb(0.29, 0.33, 0.85),
-    });
-
-    const imgAreaHeight = boxHeight - 20;
-    const scale = Math.min((boxWidth - 6) / image.width, imgAreaHeight / image.height, 1);
-    const w = image.width * scale;
-    const h = image.height * scale;
-    page.drawImage(image, {
-      x: x + (boxWidth - w) / 2,
-      y: y + 10 + (imgAreaHeight - h) / 2,
-      width: w,
-      height: h,
-    });
-
-    page.drawText(verificationId, {
-      x: x + 3,
-      y: y + 2,
-      size: 5,
-      font,
-      color: rgb(0.5, 0.5, 0.5),
-    });
+    await drawSignatureStampBox(page, font, image, placement, verificationId);
   }
+
+  return pdfDoc.save();
+}
+
+// The Department Head's approval doesn't need manual placement the way the
+// employee's did — there's nowhere else it could sensibly go, and speed
+// matters more here (a Department Head is clearing a queue of many
+// contracts, not carefully placing one). It's stamped automatically at a
+// fixed spot: the blank space at the bottom of page 11's appendix table
+// (verified by rendering the real template — page 12 is almost entirely
+// consumed by the "Contracted services and tasks" field and has no room;
+// page 11's last row has unused space below its text with no printed
+// content in it).
+const DEPARTMENT_HEAD_PAGE_INDEX = 10; // page 11
+const DEPARTMENT_HEAD_RECT_EN = { x: 50, y: 55, width: 240, height: 80 };
+const DEPARTMENT_HEAD_RECT_AR = { x: 305, y: 55, width: 240, height: 80 };
+
+export async function stampDepartmentHeadSignature(
+  filledPdfBytes: Uint8Array,
+  signatureImageBytes: Uint8Array,
+  signatureImageType: 'png' | 'jpeg'
+): Promise<Uint8Array> {
+  const fontBytes = await fetch(notoSansArabicUrl).then((r) => r.arrayBuffer());
+
+  const pdfDoc = await PDFDocument.load(filledPdfBytes);
+  pdfDoc.registerFontkit(fontkit);
+  const font = await pdfDoc.embedFont(fontBytes, { subset: true });
+
+  const image = signatureImageType === 'jpeg'
+    ? await pdfDoc.embedJpg(signatureImageBytes)
+    : await pdfDoc.embedPng(signatureImageBytes);
+
+  const page = pdfDoc.getPages()[DEPARTMENT_HEAD_PAGE_INDEX];
+  const verificationId = newVerificationId();
+
+  await drawSignatureStampBox(page, font, image, DEPARTMENT_HEAD_RECT_EN, verificationId);
+  await drawSignatureStampBox(page, font, image, DEPARTMENT_HEAD_RECT_AR, verificationId);
 
   return pdfDoc.save();
 }
