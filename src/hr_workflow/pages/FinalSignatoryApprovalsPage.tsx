@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { CheckCircle2, Eye, PenTool, Undo2, Users } from 'lucide-react';
+import { CheckCircle2, Eye, PenTool, Undo2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -12,7 +12,8 @@ import { getApiErrorMessage } from '@/utils/apiError';
 import { hrApi } from '../api/hrApi';
 import { ActionIconButton } from '../components/ActionIconButton';
 import { SignaturePad } from '../components/SignaturePad';
-import { stampDepartmentHeadSignature } from '../utils/contractPdf';
+import { stampFinalSignatorySignature } from '../utils/contractPdf';
+import { generateCertificateOfCompletion } from '../utils/certificateOfCompletion';
 import { useHrLanguage, bilingual } from '../context/HrLanguageContext';
 import { CONTRACT_STATUS_LABEL, CONTRACT_STATUS_BADGE_CLASS, formatDate } from '../utils/hrUtils';
 import type { HrContract, HrEmployee, HrSignatureMethod } from '../types/hrApi';
@@ -22,21 +23,19 @@ interface PendingItem {
   contract: HrContract;
 }
 
-/** Department Head's approval queue — scoped to whichever department the
- * logged-in user is mapped to (hr_department_heads). Unlike the employee,
- * who signs fresh each time in person, a Department Head saves their
- * signature once and every contract they approve afterward reuses it — so
- * approving is a single click per contract, or all of them at once, with no
- * per-contract re-signing. */
-export function DepartmentApprovalsPage() {
+/** GM's (Final Signatory's) approval queue — the last stage before a
+ * contract reaches Completed. Unlike Department Head, this role is NOT
+ * scoped to a department: any user with the FinalSignatory role sees every
+ * contract company-wide awaiting final sign-off. Same capture-once
+ * signature, per-row/Sign-All/review-with-auto-navigate flow as Department
+ * Approvals — mirrored intentionally so the two stages feel identical. */
+export function FinalSignatoryApprovalsPage() {
   const { language } = useHrLanguage();
   const { showToast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  // Who's actually signing — NOT the employee whose contract this is. Falls
-  // back to username since displayName isn't guaranteed to be set for every
-  // account.
-  const signerName = user?.displayName || user?.username || 'Department Head';
+  // Who's actually signing — NOT the employee whose contract this is.
+  const signerName = user?.displayName || user?.username || 'General Manager';
 
   const [captureOpen, setCaptureOpen] = useState(false);
   const [signingContractId, setSigningContractId] = useState<number | null>(null);
@@ -46,28 +45,22 @@ export function DepartmentApprovalsPage() {
   const objectUrlRef = useRef<string | null>(null);
   const signatureBytesRef = useRef<{ bytes: Uint8Array; type: 'png' | 'jpeg' } | null>(null);
 
-  const meQuery = useQuery({
-    queryKey: ['hr-department-head-me'],
-    queryFn: hrApi.getMyDepartmentHead,
-  });
-
   const signatureQuery = useQuery({
-    queryKey: ['hr-department-head-signature-me'],
-    queryFn: hrApi.getMyDepartmentHeadSignature,
+    queryKey: ['hr-final-signatory-signature-me'],
+    queryFn: hrApi.getMyFinalSignatorySignature,
   });
 
-  const departmentId = meQuery.data?.departmentId;
-
+  // No department filter — every freelance employee is in scope, since the
+  // GM's sign-off applies company-wide.
   const employeesQuery = useQuery({
-    queryKey: ['hr-employees', 'Freelance', 'department-approvals', departmentId],
-    queryFn: () => hrApi.searchEmployees({ contractType: 'Freelance', departmentId, page: 1, pageSize: 2000 }),
-    enabled: !!departmentId,
+    queryKey: ['hr-employees', 'Freelance', 'final-approvals'],
+    queryFn: () => hrApi.searchEmployees({ contractType: 'Freelance', page: 1, pageSize: 2000 }),
   });
 
   const employees = employeesQuery.data?.items ?? [];
   const employeeIds = employees.map((e) => e.id);
 
-  const contractsQueryKey = ['hr-contracts-by-employees', 'department-approvals', employeeIds.join(',')];
+  const contractsQueryKey = ['hr-contracts-by-employees', 'final-approvals', employeeIds.join(',')];
   const contractsQuery = useQuery({
     queryKey: contractsQueryKey,
     queryFn: () => hrApi.getLatestContractsForEmployees(employeeIds),
@@ -79,7 +72,7 @@ export function DepartmentApprovalsPage() {
   const pending: PendingItem[] = useMemo(
     () =>
       (contractsQuery.data ?? [])
-        .filter((c) => c.status === 'AwaitingDepartmentHeadSignature')
+        .filter((c) => c.status === 'AwaitingFinalSignature')
         .map((c) => ({ contract: c, employee: employeeById.get(c.employeeId) }))
         .filter((p): p is PendingItem => !!p.employee),
     [contractsQuery.data, employeeById]
@@ -110,8 +103,8 @@ export function DepartmentApprovalsPage() {
 
   const handleSignatureCaptured = async (blob: Blob, method: HrSignatureMethod) => {
     try {
-      await hrApi.saveMyDepartmentHeadSignature(blob, method);
-      await queryClient.invalidateQueries({ queryKey: ['hr-department-head-signature-me'] });
+      await hrApi.saveMyFinalSignatorySignature(blob, method);
+      await queryClient.invalidateQueries({ queryKey: ['hr-final-signatory-signature-me'] });
       setCaptureOpen(false);
       showToast('Signature saved.', 'success');
     } catch (err) {
@@ -119,9 +112,9 @@ export function DepartmentApprovalsPage() {
     }
   };
 
-  // Stamps the saved signature onto one contract and advances its status —
-  // the actual per-contract work shared by the row "Sign" button, "Sign
-  // All", and the review screen's "Sign" button.
+  // Stamps the saved signature onto one contract and advances its status to
+  // Completed — the actual per-contract work shared by the row "Sign"
+  // button, "Sign All", and the review screen's "Sign" button.
   const signOne = async (item: PendingItem): Promise<boolean> => {
     if (!signatureBytesRef.current || !signatureQuery.data) {
       showToast('Save your signature first.', 'error');
@@ -129,22 +122,47 @@ export function DepartmentApprovalsPage() {
     }
     try {
       const buffer = await hrApi.getContractPdfBytes(item.contract.id);
-      const { bytes: signed, verificationId } = await stampDepartmentHeadSignature(
+      const { bytes: signed, verificationId } = await stampFinalSignatorySignature(
         new Uint8Array(buffer),
         signatureBytesRef.current.bytes,
         signatureBytesRef.current.type
       );
       const blob = new Blob([new Uint8Array(signed)], { type: 'application/pdf' });
-      await hrApi.signContract(
+      const updated = await hrApi.signContract(
         item.contract.id,
         blob,
-        'DepartmentHead',
+        'FinalSignatory',
         signerName,
         signatureQuery.data.signatureMethod,
         verificationId,
         user?.email,
         signatureBytesRef.current
       );
+
+      // The GM is always the last signer in the chain, so this is the one
+      // place a contract can actually reach Completed — generate its
+      // Certificate of Completion right away. Best-effort: the contract
+      // itself is already fully signed and valid regardless of whether the
+      // certificate generation below succeeds, so a failure here is
+      // reported but doesn't undo the signature.
+      if (updated.status === 'Completed') {
+        try {
+          const summary = await hrApi.getContractAuditSummary(item.contract.id);
+          const certBytes = await generateCertificateOfCompletion({
+            employee: item.employee,
+            contract: summary.contract,
+            events: summary.events,
+          });
+          const certBlob = new Blob([new Uint8Array(certBytes)], { type: 'application/pdf' });
+          await hrApi.saveContractCertificate(item.contract.id, certBlob);
+        } catch (certErr) {
+          showToast(
+            getApiErrorMessage(certErr, `Contract signed, but the Certificate of Completion failed to generate for ${bilingual(language, item.employee.fullNameEn, item.employee.fullNameAr)}.`),
+            'error'
+          );
+        }
+      }
+
       return true;
     } catch (err) {
       showToast(
@@ -204,9 +222,7 @@ export function DepartmentApprovalsPage() {
   };
 
   // DocuSign-style auto-navigate: signing here jumps straight to the next
-  // pending contract instead of bouncing back to the list — computed
-  // locally from the current queue rather than waiting on a refetch, so the
-  // next document is ready immediately.
+  // pending contract instead of bouncing back to the list.
   const handleSignInReview = async () => {
     if (!reviewItem) return;
     setSigningContractId(reviewItem.contract.id);
@@ -227,24 +243,6 @@ export function DepartmentApprovalsPage() {
     await openReview(remaining[nextIndex]);
   };
 
-  if (meQuery.isLoading) {
-    return (
-      <div className="flex items-center justify-center py-16">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
-      </div>
-    );
-  }
-
-  if (!meQuery.data) {
-    return (
-      <div className="text-center py-16 text-muted-foreground max-w-md mx-auto">
-        <Users size={32} className="mx-auto mb-3 opacity-50" />
-        You're not assigned as a Department Head for any department yet — ask HR to assign you before contracts show up here.
-      </div>
-    );
-  }
-
-  const departmentLabel = bilingual(language, meQuery.data.departmentNameEn, meQuery.data.departmentNameAr);
   const hasSignature = !!signatureQuery.data;
   const isLoading = employeesQuery.isLoading || contractsQuery.isLoading;
 
@@ -284,9 +282,9 @@ export function DepartmentApprovalsPage() {
     <TooltipProvider delayDuration={200}>
       <div className="space-y-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Department Approvals</h1>
+          <h1 className="text-2xl font-bold text-foreground">Final Approvals</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Contract renewals awaiting your signature — {departmentLabel}
+            Contract renewals awaiting final (GM) sign-off — company-wide
           </p>
         </div>
 
@@ -333,6 +331,7 @@ export function DepartmentApprovalsPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Employee</TableHead>
+                  <TableHead>Department</TableHead>
                   <TableHead>Job Title</TableHead>
                   <TableHead>Created</TableHead>
                   <TableHead>Stage</TableHead>
@@ -342,15 +341,15 @@ export function DepartmentApprovalsPage() {
               <TableBody>
                 {isLoading && (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground py-10">
+                    <TableCell colSpan={6} className="text-center text-muted-foreground py-10">
                       Loading…
                     </TableCell>
                   </TableRow>
                 )}
                 {!isLoading && pending.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground py-10">
-                      No contracts awaiting your signature right now.
+                    <TableCell colSpan={6} className="text-center text-muted-foreground py-10">
+                      No contracts awaiting final signature right now.
                     </TableCell>
                   </TableRow>
                 )}
@@ -359,6 +358,9 @@ export function DepartmentApprovalsPage() {
                     <TableRow key={item.contract.id}>
                       <TableCell className="font-medium text-foreground">
                         {bilingual(language, item.employee.fullNameEn, item.employee.fullNameAr)}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {bilingual(language, item.employee.departmentNameEn, item.employee.departmentNameAr)}
                       </TableCell>
                       <TableCell>{bilingual(language, item.employee.jobTitleEn, item.employee.jobTitleAr)}</TableCell>
                       <TableCell className="text-muted-foreground">{formatDate(item.contract.createdAt)}</TableCell>

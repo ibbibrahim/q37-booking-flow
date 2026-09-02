@@ -13,13 +13,20 @@ import {
   Building2,
   Tag,
   X,
+  MoreVertical,
+  History,
+  Download,
+  Printer,
+  ShieldCheck,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu';
 import { ListFilterBar, FilterActiveFiltersRow } from '@/components/ui/list-filter-bar';
 import { ListPaginationBar, getInitialPage, getInitialPageSize } from '@/components/ui/list-pagination-bar';
 import { ConfirmActionModal } from '@/admin/components/ConfirmActionModal';
@@ -28,6 +35,8 @@ import { getApiErrorMessage } from '@/utils/apiError';
 import { hrApi } from '../api/hrApi';
 import { ActionIconButton } from '../components/ActionIconButton';
 import { ContractStatusModal } from '../components/ContractStatusModal';
+import { ContractHistoryModal } from '../components/ContractHistoryModal';
+import { ContractVerifyUploadModal } from '../components/ContractVerifyUploadModal';
 import { useHrLanguage, bilingual } from '../context/HrLanguageContext';
 import { hrEmployeeStatusBadgeClass, formatDate, CONTRACT_STATUS_LABEL, CONTRACT_STATUS_BADGE_CLASS } from '../utils/hrUtils';
 import type { HrContract, HrContractStatus, HrEmployee } from '../types/hrApi';
@@ -59,6 +68,8 @@ export function ContractRenewalPage() {
 
   const [discardTarget, setDiscardTarget] = useState<{ employeeId: number; contract: HrContract } | null>(null);
   const [statusTarget, setStatusTarget] = useState<{ employee: HrEmployee; contract: HrContract } | null>(null);
+  const [historyContractId, setHistoryContractId] = useState<number | null>(null);
+  const [verifyContractId, setVerifyContractId] = useState<number | null>(null);
 
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
@@ -142,6 +153,46 @@ export function ContractRenewalPage() {
       setDiscardTarget(null);
     },
   });
+
+  const handleDownload = async (contract: HrContract, employee: HrEmployee) => {
+    try {
+      const buffer = await hrApi.getContractPdfBytes(contract.id);
+      const blob = new Blob([new Uint8Array(buffer)], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${employee.fullNameEn}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      showToast(getApiErrorMessage(err, 'Failed to download contract.'), 'error');
+    }
+  };
+
+  // Hidden-iframe trick — prints straight off the fetched PDF bytes without
+  // depending on a popup/new-tab being allowed by the browser.
+  const handlePrint = async (contract: HrContract) => {
+    try {
+      const buffer = await hrApi.getContractPdfBytes(contract.id);
+      const blob = new Blob([new Uint8Array(buffer)], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      const iframe = document.createElement('iframe');
+      iframe.style.position = 'fixed';
+      iframe.style.right = '0';
+      iframe.style.bottom = '0';
+      iframe.style.width = '0';
+      iframe.style.height = '0';
+      iframe.style.border = '0';
+      iframe.src = url;
+      document.body.appendChild(iframe);
+      iframe.onload = () => {
+        iframe.contentWindow?.focus();
+        iframe.contentWindow?.print();
+      };
+    } catch (err) {
+      showToast(getApiErrorMessage(err, 'Failed to print contract.'), 'error');
+    }
+  };
 
   return (
     <TooltipProvider delayDuration={200}>
@@ -327,6 +378,41 @@ export function ContractRenewalPage() {
                           />
                         );
 
+                        // History / Download / Print / Delete — grouped the same
+                        // way DocuSign groups its document-level actions, so a
+                        // row with several actions already (Edit/View/Sign/Status)
+                        // doesn't get even more icon buttons crammed in.
+                        const moreMenu = (
+                          <DropdownMenu key="more">
+                            <DropdownMenuTrigger asChild>
+                              <Button size="icon" variant="outline" className="h-8 w-8" aria-label="More actions">
+                                <MoreVertical size={15} />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => setHistoryContractId(contract.id)} className="gap-2">
+                                <History size={14} /> History
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleDownload(contract, emp)} className="gap-2">
+                                <Download size={14} /> {t('download')}
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handlePrint(contract)} className="gap-2">
+                                <Printer size={14} /> Print
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => setVerifyContractId(contract.id)} className="gap-2">
+                                <ShieldCheck size={14} /> Verify Document
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                disabled={contract.status !== 'AwaitingEmployeeSignature'}
+                                onClick={() => setDiscardTarget({ employeeId: emp.id, contract })}
+                                className="gap-2 text-destructive focus:text-destructive"
+                              >
+                                <Trash2 size={14} /> Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        );
+
                         if (contract.status === 'AwaitingEmployeeSignature') {
                           return (
                             <>
@@ -338,12 +424,7 @@ export function ContractRenewalPage() {
                                 onClick={() => openPreview(emp.id, 'sign')}
                               />
                               {statusButton}
-                              <ActionIconButton
-                                icon={Trash2}
-                                label="Discard"
-                                destructive
-                                onClick={() => setDiscardTarget({ employeeId: emp.id, contract })}
-                              />
+                              {moreMenu}
                             </>
                           );
                         }
@@ -358,17 +439,19 @@ export function ContractRenewalPage() {
                                 label="Start New Renewal"
                                 onClick={() => openPreview(emp.id, 'new')}
                               />
+                              {moreMenu}
                             </>
                           );
                         }
 
                         // AwaitingDepartmentHeadSignature / AwaitingFinalSignature —
-                        // already past the coordinator's stage, nothing to edit or
-                        // discard here.
+                        // already past the coordinator's stage, nothing to edit
+                        // here.
                         return (
                           <>
                             <ActionIconButton icon={Eye} label="View" onClick={() => openPreview(emp.id, 'view')} />
                             {statusButton}
+                            {moreMenu}
                           </>
                         );
                       })()}
@@ -415,6 +498,22 @@ export function ContractRenewalPage() {
           onClose={() => setStatusTarget(null)}
           contract={statusTarget.contract}
           employee={statusTarget.employee}
+        />
+      )}
+
+      {historyContractId && (
+        <ContractHistoryModal
+          open={!!historyContractId}
+          onClose={() => setHistoryContractId(null)}
+          contractId={historyContractId}
+        />
+      )}
+
+      {verifyContractId && (
+        <ContractVerifyUploadModal
+          open={!!verifyContractId}
+          onClose={() => setVerifyContractId(null)}
+          contractId={verifyContractId}
         />
       )}
     </div>

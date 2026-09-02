@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Download, Save, CheckCircle2, Undo2 } from 'lucide-react';
+import { ArrowLeft, Save, CheckCircle2, Undo2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useToast } from '@/contexts/ToastContext';
@@ -185,10 +185,14 @@ export function ContractPreviewPage() {
       }
 
       const method = signatureEditorRef.current.getSignatureMethod();
-      const signedBytes = await stampSignaturesAtPositions(currentBytes, placements, employee);
+      const { bytes: signedBytes, verificationId } = await stampSignaturesAtPositions(currentBytes, placements, employee);
       const blob = new Blob([new Uint8Array(signedBytes)], { type: 'application/pdf' });
 
-      const updatedContract = await hrApi.signContract(contractId, blob, 'Employee', employee.fullNameEn, method);
+      const updatedContract = await hrApi.signContract(
+        contractId, blob, 'Employee', employee.fullNameEn, method, verificationId,
+        employee.emailWork ?? employee.emailPersonal,
+        { bytes: placements[0].imageBytes, type: placements[0].imageType }
+      );
       setCurrentBytes(signedBytes);
       showPdf(signedBytes);
       setStatusContract(updatedContract);
@@ -223,14 +227,6 @@ export function ContractPreviewPage() {
           </h1>
           <p className="text-xs text-muted-foreground">{subtitle}</p>
         </div>
-
-        {pdfUrl && (
-          <a href={pdfUrl} download={`${employee?.fullNameEn ?? 'contract'}.pdf`}>
-            <Button size="sm" variant="outline" className="gap-1.5">
-              <Download size={14} /> {t('download')}
-            </Button>
-          </a>
-        )}
 
         {phase === 'editing' && (
           <Button size="sm" className="gap-1.5" disabled={!currentBytes || saving} onClick={handleSave}>
@@ -269,7 +265,6 @@ export function ContractPreviewPage() {
             </Tooltip>
           </TooltipProvider>
         )}
-
       </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto">

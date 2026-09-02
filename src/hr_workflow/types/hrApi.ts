@@ -224,18 +224,63 @@ export interface HrContractSignature {
   id: number;
   role: HrContractSignerRole;
   signedByName: string;
+  signedByEmail: string | null;
   signatureMethod: HrSignatureMethod;
+  imageUrl: string | null;
+  verificationId: string | null;
+  sha256Hash: string | null;
+  ipAddress: string | null;
   signedAt: string;
 }
 
 export interface HrContract {
   id: number;
+  envelopeId: string;
   employeeId: number;
   status: HrContractStatus;
   pdfUrl: string;
+  sha256Hash: string | null;
+  certificateUrl: string | null;
   createdAt: string;
   updatedAt: string;
   signatures: HrContractSignature[];
+}
+
+export interface HrContractEvent {
+  id: number;
+  eventType: string;
+  actorUserId: number | null;
+  actorName: string | null;
+  metadata: string | null;
+  ipAddress: string | null;
+  userAgent: string | null;
+  createdAt: string;
+}
+
+export interface HrContractAuditSummary {
+  contract: HrContract;
+  events: HrContractEvent[];
+}
+
+export interface HrContractIntegrity {
+  contractId: number;
+  expectedHash: string | null;
+  actualHash: string;
+  isValid: boolean;
+  checkedAt: string;
+}
+
+// Testing/validation utility result: a user-uploaded PDF's hash compared
+// against the contract's trusted hash on record — distinct from
+// HrContractIntegrity, which re-checks our own stored blob rather than an
+// arbitrary uploaded file.
+export interface HrContractUploadVerification {
+  contractId: number;
+  isValid: boolean;
+  message: string;
+  expectedHash: string | null;
+  actualHash: string;
+  checkedAt: string;
 }
 
 export interface HrDepartmentHead {
@@ -253,6 +298,15 @@ export interface CreateHrDepartmentHeadDto {
 }
 
 export interface HrDepartmentHeadSignature {
+  userId: number;
+  imageUrl: string;
+  signatureMethod: HrSignatureMethod;
+  updatedAt: string;
+}
+
+// GM (Final Signatory) — same shape as HrDepartmentHeadSignature, no
+// department mapping since this role isn't department-scoped.
+export interface HrFinalSignatorySignature {
   userId: number;
   imageUrl: string;
   signatureMethod: HrSignatureMethod;

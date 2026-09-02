@@ -6,7 +6,7 @@ import {
   LogOut, UserCircle, BarChart3, Boxes, Tv, Users, KeyRound,
   Film, Inbox, CalendarDays, ChevronLeft, ChevronRight, Briefcase,
   LayoutDashboard, ClipboardList, FileBarChart, Search, CalendarCheck,
-  Handshake, ChevronDown, UserCheck, UserRoundCog, FileSignature,
+  Handshake, ChevronDown, UserCheck, UserRoundCog, FileSignature, ShieldCheck,
 } from 'lucide-react';
 import { HrLanguageProvider, HrLanguageToggle } from '../../hr_workflow/context/HrLanguageContext';
 import { cn } from '@/lib/utils';
@@ -59,7 +59,11 @@ export const BookingDashboard: React.FC = () => {
   const [hrOpen, setHrOpen] = useState(() => location.pathname.startsWith('/hr'));
   const [hrReportsOpen, setHrReportsOpen] = useState(() => location.pathname.startsWith('/hr/reports'));
   const [hrEmployeesOpen, setHrEmployeesOpen] = useState(() => location.pathname.startsWith('/hr/employees'));
-  const [hrFreelanceHiringOpen, setHrFreelanceHiringOpen] = useState(() => location.pathname.startsWith('/hr/freelance-hiring'));
+  const [hrFreelanceHiringOpen, setHrFreelanceHiringOpen] = useState(() =>
+    location.pathname.startsWith('/hr/freelance-hiring') ||
+    location.pathname === '/hr/department-approvals' ||
+    location.pathname === '/hr/final-approvals'
+  );
 
   const toggleCollapsed = () => {
     const next = !sidebarCollapsed;
@@ -116,11 +120,13 @@ export const BookingDashboard: React.FC = () => {
   const hasEditorQueueAccess = user?.roles?.includes('Editor') || user?.roles?.includes('Admin');
   const hasRotaAccess = user?.roles?.includes('Admin') || user?.roles?.includes('RotaTeamLead');
   // Strict: only HRAdmin sees the HR module — Admin does not bypass this one.
-  // DepartmentHead gets in too, but only for their own Department Approvals
-  // queue below — not the coordinator tools (Dashboard, Employee Records, etc).
+  // DepartmentHead and FinalSignatory (GM) get in too, but only for their own
+  // approvals queue below — not the coordinator tools (Dashboard, Employee
+  // Records, etc).
   const isHRAdmin = user?.roles?.includes('HRAdmin') ?? false;
   const isDepartmentHead = user?.roles?.includes('DepartmentHead') ?? false;
-  const hasHRAccess = isHRAdmin || isDepartmentHead;
+  const isFinalSignatory = user?.roles?.includes('FinalSignatory') ?? false;
+  const hasHRAccess = isHRAdmin || isDepartmentHead || isFinalSignatory;
   // Strict: only the BIT role sees the BIT checklists — Admin does not bypass this one.
   const hasBITAccess = user?.roles?.includes('BIT') ?? false;
   const hasEditSuiteDashboardAccess =
@@ -456,14 +462,11 @@ export const BookingDashboard: React.FC = () => {
 
               {hrOpen && (
                 <div className={cn('mt-0.5 flex flex-col gap-0.5 pl-4 ml-4 border-l border-sidebar-border', sidebarCollapsed && 'lg:hidden')}>
-                  {isDepartmentHead && (
-                    <HrSubNavBtn icon={FileSignature} label="Department Approvals" path="/hr/department-approvals" />
+                  {isHRAdmin && (
+                    <HrSubNavBtn icon={LayoutDashboard} label="Dashboard" path="/hr/dashboard" />
                   )}
 
                   {isHRAdmin && (
-                  <>
-                  <HrSubNavBtn icon={LayoutDashboard} label="Dashboard" path="/hr/dashboard" />
-
                   <div>
                     <button
                       onClick={() => setHrEmployeesOpen((v) => !v)}
@@ -488,13 +491,20 @@ export const BookingDashboard: React.FC = () => {
                       </div>
                     )}
                   </div>
+                  )}
 
+                  {/* Visible to HRAdmin (Contract Renewal) as well as Department
+                      Head / GM (their own approval queue only) — unlike the
+                      other HR-System sections, this one isn't HRAdmin-only. */}
+                  {(isHRAdmin || isDepartmentHead || isFinalSignatory) && (
                   <div>
                     <button
                       onClick={() => setHrFreelanceHiringOpen((v) => !v)}
                       className={cn(
                         'w-full flex items-center gap-2.5 rounded-md text-left transition-colors py-2 px-2.5 text-sm',
-                        location.pathname.startsWith('/hr/freelance-hiring')
+                        location.pathname.startsWith('/hr/freelance-hiring') ||
+                        location.pathname === '/hr/department-approvals' ||
+                        location.pathname === '/hr/final-approvals'
                           ? 'text-primary font-medium'
                           : 'text-sidebar-foreground/90 hover:bg-sidebar-accent'
                       )}
@@ -508,11 +518,21 @@ export const BookingDashboard: React.FC = () => {
                     </button>
                     {hrFreelanceHiringOpen && (
                       <div className="mt-0.5 flex flex-col gap-0.5 pl-4 ml-4 border-l border-sidebar-border">
-                        <HrSubNavBtn icon={FileSignature} label="Contract Renewal" path="/hr/freelance-hiring/contract-renewal" small />
+                        {isHRAdmin && (
+                          <HrSubNavBtn icon={FileSignature} label="Contract Renewal" path="/hr/freelance-hiring/contract-renewal" small />
+                        )}
+                        {isDepartmentHead && (
+                          <HrSubNavBtn icon={FileSignature} label="Manager Approval" path="/hr/department-approvals" small />
+                        )}
+                        {isFinalSignatory && (
+                          <HrSubNavBtn icon={ShieldCheck} label="Final Approvals" path="/hr/final-approvals" small />
+                        )}
                       </div>
                     )}
                   </div>
+                  )}
 
+                  {isHRAdmin && (
                   <div>
                     <button
                       onClick={() => setHrReportsOpen((v) => !v)}
@@ -537,9 +557,10 @@ export const BookingDashboard: React.FC = () => {
                       </div>
                     )}
                   </div>
+                  )}
 
-                  <HrSubNavBtn icon={CalendarCheck} label="Leave Request" path="/hr/leave-requests" />
-                  </>
+                  {isHRAdmin && (
+                    <HrSubNavBtn icon={CalendarCheck} label="Leave Request" path="/hr/leave-requests" />
                   )}
                 </div>
               )}

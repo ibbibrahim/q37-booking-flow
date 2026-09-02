@@ -190,8 +190,13 @@ async function drawSignatureStampBox(
   });
 }
 
+// A real UUID (not a Math.random() label) — this same value is stamped onto
+// the PDF below AND sent to the backend on the sign call so it's stored
+// verbatim in the signature row. What's printed on the document is then a
+// provable reference into that row, not just cosmetic text that happens to
+// look like an ID.
 function newVerificationId(): string {
-  return Math.random().toString(36).slice(2, 10).toUpperCase();
+  return crypto.randomUUID();
 }
 
 // Page 10's printed name/date next to the Second Party's signature line ARE
@@ -205,7 +210,7 @@ export async function stampSignaturesAtPositions(
   filledPdfBytes: Uint8Array,
   placements: SignaturePlacement[],
   employee: HrEmployee
-): Promise<Uint8Array> {
+): Promise<{ bytes: Uint8Array; verificationId: string }> {
   const fontBytes = await fetch(notoSansArabicUrl).then((r) => r.arrayBuffer());
 
   const pdfDoc = await PDFDocument.load(filledPdfBytes);
@@ -235,7 +240,8 @@ export async function stampSignaturesAtPositions(
     await drawSignatureStampBox(page, font, image, placement, verificationId);
   }
 
-  return pdfDoc.save();
+  const bytes = await pdfDoc.save();
+  return { bytes, verificationId };
 }
 
 // The Department Head's approval doesn't need manual placement the way the
@@ -255,7 +261,7 @@ export async function stampDepartmentHeadSignature(
   filledPdfBytes: Uint8Array,
   signatureImageBytes: Uint8Array,
   signatureImageType: 'png' | 'jpeg'
-): Promise<Uint8Array> {
+): Promise<{ bytes: Uint8Array; verificationId: string }> {
   const fontBytes = await fetch(notoSansArabicUrl).then((r) => r.arrayBuffer());
 
   const pdfDoc = await PDFDocument.load(filledPdfBytes);
@@ -272,5 +278,43 @@ export async function stampDepartmentHeadSignature(
   await drawSignatureStampBox(page, font, image, DEPARTMENT_HEAD_RECT_EN, verificationId);
   await drawSignatureStampBox(page, font, image, DEPARTMENT_HEAD_RECT_AR, verificationId);
 
-  return pdfDoc.save();
+  const bytes = await pdfDoc.save();
+  return { bytes, verificationId };
+}
+
+// GM (Final Signatory) approval — the last stage before Completed. Page 11
+// (the Department Head's page) is already full: its only blank strip is
+// entirely occupied by the Department Head's two boxes. Page 12 is mostly
+// consumed by the "Contracted services and tasks" field, but that field
+// only spans the middle of the page — the label columns flanking it on the
+// far left and far right are static text near the top and genuinely blank
+// below that, all the way down (verified by rendering the real template
+// with test rectangles at these exact coordinates before shipping).
+const FINAL_SIGNATORY_PAGE_INDEX = 11; // page 12
+const FINAL_SIGNATORY_RECT_EN = { x: 10, y: 72, width: 130, height: 80 };
+const FINAL_SIGNATORY_RECT_AR = { x: 454, y: 72, width: 130, height: 80 };
+
+export async function stampFinalSignatorySignature(
+  filledPdfBytes: Uint8Array,
+  signatureImageBytes: Uint8Array,
+  signatureImageType: 'png' | 'jpeg'
+): Promise<{ bytes: Uint8Array; verificationId: string }> {
+  const fontBytes = await fetch(notoSansArabicUrl).then((r) => r.arrayBuffer());
+
+  const pdfDoc = await PDFDocument.load(filledPdfBytes);
+  pdfDoc.registerFontkit(fontkit);
+  const font = await pdfDoc.embedFont(fontBytes, { subset: true });
+
+  const image = signatureImageType === 'jpeg'
+    ? await pdfDoc.embedJpg(signatureImageBytes)
+    : await pdfDoc.embedPng(signatureImageBytes);
+
+  const page = pdfDoc.getPages()[FINAL_SIGNATORY_PAGE_INDEX];
+  const verificationId = newVerificationId();
+
+  await drawSignatureStampBox(page, font, image, FINAL_SIGNATORY_RECT_EN, verificationId);
+  await drawSignatureStampBox(page, font, image, FINAL_SIGNATORY_RECT_AR, verificationId);
+
+  const bytes = await pdfDoc.save();
+  return { bytes, verificationId };
 }

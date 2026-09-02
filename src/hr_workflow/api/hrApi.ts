@@ -13,9 +13,13 @@ import type {
   HrContract,
   HrContractSignerRole,
   HrSignatureMethod,
+  HrContractAuditSummary,
+  HrContractIntegrity,
+  HrContractUploadVerification,
   HrDepartmentHead,
   CreateHrDepartmentHeadDto,
   HrDepartmentHeadSignature,
+  HrFinalSignatorySignature,
 } from '../types/hrApi';
 
 const API_BASE = '/api/hr';
@@ -179,15 +183,69 @@ export const hrApi = {
     pdf: Blob,
     role: HrContractSignerRole,
     signedByName: string,
-    signatureMethod: HrSignatureMethod
+    signatureMethod: HrSignatureMethod,
+    verificationId: string,
+    signedByEmail?: string | null,
+    signatureImage?: { bytes: Uint8Array; type: 'png' | 'jpeg' } | null
   ): Promise<HrContract> => {
     const formData = new FormData();
     formData.append('pdf', pdf, 'contract-signed.pdf');
     formData.append('role', role);
     formData.append('signedByName', signedByName);
+    if (signedByEmail) formData.append('signedByEmail', signedByEmail);
     formData.append('signatureMethod', signatureMethod);
+    formData.append('verificationId', verificationId);
+    if (signatureImage) {
+      const blob = new Blob([new Uint8Array(signatureImage.bytes)], { type: `image/${signatureImage.type}` });
+      formData.append('signatureImage', blob, `signature.${signatureImage.type === 'jpeg' ? 'jpg' : 'png'}`);
+    }
     const { data } = await apiClient.post(`${API_BASE}/contracts/${contractId}/sign`, formData, {
       headers: { 'Content-Type': undefined },
+    });
+    return data;
+  },
+
+  // Full lifecycle timeline (Created, Saved, Viewed, Signed, Completed,
+  // Discarded) — what an in-app audit-trail view and the Certificate of
+  // Completion are both built from.
+  getContractAuditSummary: async (contractId: number): Promise<HrContractAuditSummary> => {
+    const { data } = await apiClient.get(`${API_BASE}/contracts/${contractId}/audit`);
+    return data;
+  },
+
+  // Recomputes the stored PDF's SHA-256 and compares it against the hash
+  // recorded at the last write — the actual tamper check.
+  verifyContractIntegrity: async (contractId: number): Promise<HrContractIntegrity> => {
+    const { data } = await apiClient.get(`${API_BASE}/contracts/${contractId}/integrity`);
+    return data;
+  },
+
+  // Testing/validation utility — hashes a user-uploaded PDF and compares it
+  // against this contract's trusted hash on record, to prove (or disprove)
+  // that the uploaded file is byte-for-byte what the system produced.
+  verifyUploadedContractPdf: async (contractId: number, pdf: File): Promise<HrContractUploadVerification> => {
+    const formData = new FormData();
+    formData.append('pdf', pdf, pdf.name);
+    const { data } = await apiClient.post(`${API_BASE}/contracts/${contractId}/verify-upload`, formData, {
+      headers: { 'Content-Type': undefined },
+    });
+    return data;
+  },
+
+  // Stores a client-generated Certificate of Completion PDF against a
+  // Completed contract (as a separate document, not appended to it).
+  saveContractCertificate: async (contractId: number, pdf: Blob): Promise<HrContract> => {
+    const formData = new FormData();
+    formData.append('pdf', pdf, 'certificate-of-completion.pdf');
+    const { data } = await apiClient.post(`${API_BASE}/contracts/${contractId}/certificate`, formData, {
+      headers: { 'Content-Type': undefined },
+    });
+    return data;
+  },
+
+  getContractCertificateBytes: async (contractId: number): Promise<ArrayBuffer> => {
+    const { data } = await apiClient.get(`${API_BASE}/contracts/${contractId}/certificate`, {
+      responseType: 'arraybuffer',
     });
     return data;
   },
@@ -234,6 +292,29 @@ export const hrApi = {
     formData.append('image', image, 'signature.png');
     formData.append('signatureMethod', signatureMethod);
     const { data } = await apiClient.post(`${API_BASE}/department-heads/signature`, formData, {
+      headers: { 'Content-Type': undefined },
+    });
+    return data;
+  },
+
+  // GM (Final Signatory) — same signature capture/reuse pattern as
+  // Department Head, no department mapping (role membership alone scopes
+  // the approval queue).
+  getMyFinalSignatorySignature: async (): Promise<HrFinalSignatorySignature | null> => {
+    try {
+      const { data } = await apiClient.get(`${API_BASE}/final-signatories/signature/me`);
+      return data;
+    } catch (error) {
+      if (isNotFoundError(error)) return null;
+      throw error;
+    }
+  },
+
+  saveMyFinalSignatorySignature: async (image: Blob, signatureMethod: HrSignatureMethod): Promise<HrFinalSignatorySignature> => {
+    const formData = new FormData();
+    formData.append('image', image, 'signature.png');
+    formData.append('signatureMethod', signatureMethod);
+    const { data } = await apiClient.post(`${API_BASE}/final-signatories/signature`, formData, {
       headers: { 'Content-Type': undefined },
     });
     return data;

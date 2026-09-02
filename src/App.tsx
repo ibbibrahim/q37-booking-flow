@@ -33,6 +33,7 @@ import { ContractPreviewPage } from './hr_workflow/pages/ContractPreviewPage';
 import { FinancialReportsPage } from './hr_workflow/pages/FinancialReportsPage';
 import { HiringReportsPage } from './hr_workflow/pages/HiringReportsPage';
 import { DepartmentApprovalsPage } from './hr_workflow/pages/DepartmentApprovalsPage';
+import { FinalSignatoryApprovalsPage } from './hr_workflow/pages/FinalSignatoryApprovalsPage';
 import { BITChecklistDashboardPage } from './bit_workflow/pages/BITChecklistDashboardPage';
 import { BITChecklistListPage } from './bit_workflow/pages/BITChecklistListPage';
 import { BITChecklistFormPage } from './bit_workflow/pages/BITChecklistFormPage';
@@ -62,6 +63,8 @@ function App() {
     if (roles.includes("Editor")) return "/editor-queue";
     if (roles.includes("RotaTeamLead")) return "/rota";
     if (roles.includes("HRAdmin")) return "/hr/dashboard";
+    if (roles.includes("DepartmentHead")) return "/hr/department-approvals";
+    if (roles.includes("FinalSignatory")) return "/hr/final-approvals";
     if (roles.includes("BIT")) return "/bit";
 
     // No workflow role — still allowed to view the programme schedule
@@ -381,21 +384,23 @@ function App() {
         {/** PROGRAMME SCHEDULE (EPG) — any authenticated user, no role required */}
         <Route path="schedule" element={<EPGViewer />} />
 
-        {/** HR SYSTEM — restricted to HRAdmin and DepartmentHead (strict: Admin
-            does NOT bypass this). DepartmentHead only ever sees/uses the
-            department-approvals route in practice (the sidebar hides the
-            rest for them), but the backend is the real boundary — every
-            HRAdmin-only endpoint still rejects a DepartmentHead token. */}
+        {/** HR SYSTEM — restricted to HRAdmin, DepartmentHead, and
+            FinalSignatory (strict: Admin does NOT bypass this). DepartmentHead
+            and FinalSignatory only ever see/use their own approvals route in
+            practice (the sidebar hides the rest for them), but the backend is
+            the real boundary — every HRAdmin-only endpoint still rejects
+            their tokens. */}
         <Route
           path="hr"
           element={
-            <ProtectedRoute allowedRoles={['HRAdmin', 'DepartmentHead']} strict>
+            <ProtectedRoute allowedRoles={['HRAdmin', 'DepartmentHead', 'FinalSignatory']} strict>
               <HRLayout />
             </ProtectedRoute>
           }
         >
           <Route index element={<Navigate to="/hr/dashboard" replace />} />
           <Route path="department-approvals" element={<DepartmentApprovalsPage />} />
+          <Route path="final-approvals" element={<FinalSignatoryApprovalsPage />} />
           <Route path="dashboard" element={<HRDashboardPage />} />
           <Route path="employees" element={<Navigate to="/hr/employees/permanent" replace />} />
           {/* key forces a fresh mount every time this tab is navigated to —
