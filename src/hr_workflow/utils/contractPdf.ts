@@ -282,17 +282,22 @@ export async function stampDepartmentHeadSignature(
   return { bytes, verificationId };
 }
 
-// GM (Final Signatory) approval — the last stage before Completed. Page 11
-// (the Department Head's page) is already full: its only blank strip is
-// entirely occupied by the Department Head's two boxes. Page 12 is mostly
-// consumed by the "Contracted services and tasks" field, but that field
-// only spans the middle of the page — the label columns flanking it on the
-// far left and far right are static text near the top and genuinely blank
-// below that, all the way down (verified by rendering the real template
-// with test rectangles at these exact coordinates before shipping).
-const FINAL_SIGNATORY_PAGE_INDEX = 11; // page 12
-const FINAL_SIGNATORY_RECT_EN = { x: 10, y: 72, width: 130, height: 80 };
-const FINAL_SIGNATORY_RECT_AR = { x: 454, y: 72, width: 130, height: 80 };
+// GM (Final Signatory) approval — the last stage before Completed. Page 10
+// already has the printed "Manager of QBC" officer block (name/title are
+// static text baked into the template; only the blank space after
+// "Signature:"/"التوقيع:" is actually open) — that's the correct, dedicated
+// spot for this, not an improvised blank margin elsewhere. Verified by
+// rendering the real template with test rectangles at these exact
+// coordinates: they sit cleanly in the gap between the Signature and Date
+// lines on both the EN and AR sides, without touching either.
+// Sized and positioned to match the Second Party (Employee) signature box on
+// this same page exactly — same 44pt height, same column widths (177 EN /
+// 206 AR) — rather than the boxier/inconsistent EN-vs-AR proportions used
+// before, which looked out of place sitting on the same page as the
+// employee's box right below it.
+const FINAL_SIGNATORY_PAGE_INDEX = 9; // page 10
+const FINAL_SIGNATORY_RECT_EN = { x: 100, y: 334, width: 177, height: 44 };
+const FINAL_SIGNATORY_RECT_AR = { x: 327, y: 359, width: 206, height: 44 };
 
 export async function stampFinalSignatorySignature(
   filledPdfBytes: Uint8Array,
