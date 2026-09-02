@@ -95,7 +95,7 @@ export function ContractStatusModal({ open, onClose, contract, employee }: Props
           {/* Stepper */}
           <div className="flex items-center overflow-x-auto pb-2">
             {STAGE_ORDER.map((stage, i) => {
-              const isDone = i < currentIndex || contract.status === 'Completed' && i < STAGE_ORDER.length - 1;
+              const isDone = i < currentIndex || contract.status === 'Completed';
               const isCurrent = i === currentIndex;
               return (
                 <div key={stage} className="flex items-center shrink-0">
