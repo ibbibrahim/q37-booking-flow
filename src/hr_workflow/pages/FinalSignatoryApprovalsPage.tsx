@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { CheckCircle2, Eye, PenTool, Undo2 } from 'lucide-react';
+import { CheckCircle2, Eye, PenTool, RotateCcw, Undo2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -12,6 +12,7 @@ import { getApiErrorMessage } from '@/utils/apiError';
 import { hrApi } from '../api/hrApi';
 import { ActionIconButton } from '../components/ActionIconButton';
 import { SignaturePad } from '../components/SignaturePad';
+import { ReturnContractModal } from '../components/ReturnContractModal';
 import { stampFinalSignatorySignature } from '../utils/contractPdf';
 import { generateCertificateOfCompletion } from '../utils/certificateOfCompletion';
 import { useHrLanguage, bilingual } from '../context/HrLanguageContext';
@@ -42,6 +43,9 @@ export function FinalSignatoryApprovalsPage() {
   const [bulkProgress, setBulkProgress] = useState<{ done: number; total: number } | null>(null);
   const [reviewItem, setReviewItem] = useState<PendingItem | null>(null);
   const [reviewPdfUrl, setReviewPdfUrl] = useState<string | null>(null);
+  const [returnTarget, setReturnTarget] = useState<PendingItem | null>(null);
+  const [bulkReturnOpen, setBulkReturnOpen] = useState(false);
+  const [returning, setReturning] = useState(false);
   const objectUrlRef = useRef<string | null>(null);
   const signatureBytesRef = useRef<{ bytes: Uint8Array; type: 'png' | 'jpeg' } | null>(null);
 
@@ -243,6 +247,60 @@ export function FinalSignatoryApprovalsPage() {
     await openReview(remaining[nextIndex]);
   };
 
+  const returnOne = async (item: PendingItem, reason: string): Promise<boolean> => {
+    try {
+      await hrApi.returnContract(item.contract.id, reason);
+      return true;
+    } catch (err) {
+      showToast(
+        getApiErrorMessage(err, `Failed to return ${bilingual(language, item.employee.fullNameEn, item.employee.fullNameAr)}'s contract.`),
+        'error'
+      );
+      return false;
+    }
+  };
+
+  // Shared by the per-row Return button and the review screen's Return
+  // button — if the returned contract is the one currently open in review,
+  // auto-navigate to the next pending one, same as signing does.
+  const handleReturnConfirm = async (reason: string) => {
+    if (!returnTarget) return;
+    const item = returnTarget;
+    setReturning(true);
+    const ok = await returnOne(item, reason);
+    setReturning(false);
+    setReturnTarget(null);
+    if (!ok) return;
+
+    showToast(`Returned ${bilingual(language, item.employee.fullNameEn, item.employee.fullNameAr)}'s contract.`, 'success');
+    refreshQueue();
+
+    if (reviewItem && reviewItem.contract.id === item.contract.id) {
+      const currentIndex = pending.findIndex((p) => p.contract.id === item.contract.id);
+      const remaining = pending.filter((p) => p.contract.id !== item.contract.id);
+      if (remaining.length === 0) {
+        closeReview();
+        return;
+      }
+      const nextIndex = Math.min(currentIndex, remaining.length - 1);
+      await openReview(remaining[nextIndex]);
+    }
+  };
+
+  const handleBulkReturnConfirm = async (reason: string) => {
+    setReturning(true);
+    const queue = pending;
+    let succeeded = 0;
+    for (let i = 0; i < queue.length; i++) {
+      // eslint-disable-next-line no-await-in-loop
+      if (await returnOne(queue[i], reason)) succeeded++;
+    }
+    setReturning(false);
+    setBulkReturnOpen(false);
+    showToast(`Returned ${succeeded} of ${queue.length} contracts.`, succeeded === queue.length ? 'success' : 'error');
+    refreshQueue();
+  };
+
   const hasSignature = !!signatureQuery.data;
   const isLoading = employeesQuery.isLoading || contractsQuery.isLoading;
 
@@ -262,6 +320,15 @@ export function FinalSignatoryApprovalsPage() {
             </div>
             <Button
               size="sm"
+              variant="outline"
+              className="gap-1.5 text-destructive hover:text-destructive"
+              disabled={signingContractId === reviewItem.contract.id}
+              onClick={() => setReturnTarget(reviewItem)}
+            >
+              <RotateCcw size={14} /> Return
+            </Button>
+            <Button
+              size="sm"
               className="gap-1.5"
               disabled={!hasSignature || signingContractId === reviewItem.contract.id}
               onClick={handleSignInReview}
@@ -274,6 +341,15 @@ export function FinalSignatoryApprovalsPage() {
             <embed src={reviewPdfUrl} type="application/pdf" className="w-full h-full" />
           </div>
         </div>
+
+        <ReturnContractModal
+          open={!!returnTarget}
+          onOpenChange={(open) => { if (!open) setReturnTarget(null); }}
+          title="Return this contract?"
+          description={`This sends ${returnTarget ? bilingual(language, returnTarget.employee.fullNameEn, returnTarget.employee.fullNameAr) : ''}'s contract back — it becomes read-only, and HR will need to start a new renewal to correct it.`}
+          loading={returning}
+          onConfirm={handleReturnConfirm}
+        />
       </TooltipProvider>
     );
   }
@@ -311,6 +387,17 @@ export function FinalSignatoryApprovalsPage() {
                 ? 'Saved once — every contract you approve below reuses it automatically.'
                 : 'Save your signature once to start approving contracts below.'}
             </p>
+            {pending.length > 0 && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-1.5 shrink-0 text-destructive hover:text-destructive"
+                disabled={bulkProgress !== null || returning}
+                onClick={() => setBulkReturnOpen(true)}
+              >
+                <RotateCcw size={14} /> Return All ({pending.length})
+              </Button>
+            )}
             {pending.length > 0 && (
               <Button
                 size="sm"
@@ -373,6 +460,13 @@ export function FinalSignatoryApprovalsPage() {
                         <div className="flex justify-end gap-1.5">
                           <ActionIconButton icon={Eye} label="View" onClick={() => openReview(item)} />
                           <ActionIconButton
+                            icon={RotateCcw}
+                            label="Return"
+                            destructive
+                            disabled={signingContractId !== null || returning}
+                            onClick={() => setReturnTarget(item)}
+                          />
+                          <ActionIconButton
                             icon={CheckCircle2}
                             label={signingContractId === item.contract.id ? 'Signing…' : 'Sign'}
                             disabled={!hasSignature || signingContractId !== null}
@@ -391,6 +485,24 @@ export function FinalSignatoryApprovalsPage() {
           open={captureOpen}
           onCancel={() => setCaptureOpen(false)}
           onConfirm={handleSignatureCaptured}
+        />
+
+        <ReturnContractModal
+          open={!!returnTarget}
+          onOpenChange={(open) => { if (!open) setReturnTarget(null); }}
+          title="Return this contract?"
+          description={`This sends ${returnTarget ? bilingual(language, returnTarget.employee.fullNameEn, returnTarget.employee.fullNameAr) : ''}'s contract back — it becomes read-only, and HR will need to start a new renewal to correct it.`}
+          loading={returning}
+          onConfirm={handleReturnConfirm}
+        />
+
+        <ReturnContractModal
+          open={bulkReturnOpen}
+          onOpenChange={setBulkReturnOpen}
+          title={`Return all ${pending.length} contracts?`}
+          description="The same reason is recorded on every contract returned. Each becomes read-only, and HR will need to start a new renewal for each one."
+          loading={returning}
+          onConfirm={handleBulkReturnConfirm}
         />
       </div>
     </TooltipProvider>

@@ -243,6 +243,13 @@ export const hrApi = {
     return data;
   },
 
+  // Department Head or GM sending a contract back instead of signing —
+  // terminal status (like Completed), reason required.
+  returnContract: async (contractId: number, reason: string): Promise<HrContract> => {
+    const { data } = await apiClient.post(`${API_BASE}/contracts/${contractId}/return`, { reason });
+    return data;
+  },
+
   getContractCertificateBytes: async (contractId: number): Promise<ArrayBuffer> => {
     const { data } = await apiClient.get(`${API_BASE}/contracts/${contractId}/certificate`, {
       responseType: 'arraybuffer',

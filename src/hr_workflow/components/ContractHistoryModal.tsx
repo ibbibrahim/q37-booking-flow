@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { X, FilePlus2, Save, Eye, PenLine, CheckCircle2, Trash2, ShieldCheck, ShieldAlert, Award } from 'lucide-react';
+import { X, FilePlus2, Save, Eye, PenLine, CheckCircle2, Trash2, ShieldCheck, ShieldAlert, Award, RotateCcw } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/contexts/ToastContext';
@@ -19,6 +19,7 @@ const EVENT_ICON: Record<string, LucideIcon> = {
   Signed: PenLine,
   Completed: CheckCircle2,
   Discarded: Trash2,
+  Returned: RotateCcw,
 };
 
 const EVENT_LABEL: Record<string, string> = {
@@ -28,6 +29,7 @@ const EVENT_LABEL: Record<string, string> = {
   Signed: 'Signed',
   Completed: 'Contract completed — fully signed',
   Discarded: 'Draft discarded',
+  Returned: 'Returned for correction',
 };
 
 function formatDateTime(iso: string): string {
@@ -137,6 +139,9 @@ export function ContractHistoryModal({ open, onClose, contractId }: Props) {
                         {e.actorName ? ` · ${e.actorName}` : ''}
                         {e.ipAddress ? ` · ${e.ipAddress}` : ''}
                       </p>
+                      {e.eventType === 'Returned' && e.metadata && (
+                        <p className="text-xs text-foreground/80 mt-0.5 italic">"{e.metadata}"</p>
+                      )}
                     </div>
                   </li>
                 );
