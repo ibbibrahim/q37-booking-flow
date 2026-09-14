@@ -34,6 +34,7 @@ import { FinancialReportsPage } from './hr_workflow/pages/FinancialReportsPage';
 import { HiringReportsPage } from './hr_workflow/pages/HiringReportsPage';
 import { DepartmentApprovalsPage } from './hr_workflow/pages/DepartmentApprovalsPage';
 import { FinalSignatoryApprovalsPage } from './hr_workflow/pages/FinalSignatoryApprovalsPage';
+import { QidIntakePage } from './hr_workflow/pages/QidIntakePage';
 import { BITChecklistDashboardPage } from './bit_workflow/pages/BITChecklistDashboardPage';
 import { BITChecklistListPage } from './bit_workflow/pages/BITChecklistListPage';
 import { BITChecklistFormPage } from './bit_workflow/pages/BITChecklistFormPage';
@@ -102,6 +103,10 @@ function App() {
 
       {/** ROTA PUBLIC (no auth) */}
       <Route path="/rota/public/:uuid" element={<PublicRotaPage />} />
+
+      {/** QID INTAKE (no auth) — coordinator collects freelance QIDs sent to
+          them by email/WhatsApp/etc., no login required to use this page. */}
+      <Route path="/qid-intake" element={<QidIntakePage />} />
 
       {/** MAIN WRAPPER */}
       <Route

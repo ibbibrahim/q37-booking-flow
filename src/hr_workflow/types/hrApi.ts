@@ -210,6 +210,26 @@ export interface HrQidScanResult {
   warnings: string[];
 }
 
+// A QID the coordinator collected from a freelancer via the unauthenticated
+// intake form — not yet linked to any employee record.
+export interface HrQidIntakeSubmission {
+  id: number;
+  name: string;
+  imageUrl: string;
+  qid: string | null;
+  fullNameEn: string | null;
+  fullNameAr: string | null;
+  dob: string | null;
+  qidExpiry: string | null;
+  nationality: string | null;
+  occupation: string | null;
+  passportNumber: string | null;
+  passportExpiry: string | null;
+  employer: string | null;
+  residencyType: string | null;
+  createdAt: string;
+}
+
 export type HrContractStatus =
   | 'AwaitingEmployeeSignature'
   | 'AwaitingDepartmentHeadSignature'
