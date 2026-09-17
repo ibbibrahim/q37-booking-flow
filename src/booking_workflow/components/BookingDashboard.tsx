@@ -50,7 +50,7 @@ export const BookingDashboard: React.FC = () => {
 
   // Mobile overlay open/close
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  // Desktop collapsed (icon-only) — persisted
+  // Desktop collapsed (icon-only) — perssisted
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     return localStorage.getItem('sidebar-collapsed') === 'true';
   });
