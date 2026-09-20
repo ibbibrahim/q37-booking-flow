@@ -34,7 +34,8 @@ import { FinancialReportsPage } from './hr_workflow/pages/FinancialReportsPage';
 import { HiringReportsPage } from './hr_workflow/pages/HiringReportsPage';
 import { DepartmentApprovalsPage } from './hr_workflow/pages/DepartmentApprovalsPage';
 import { FinalSignatoryApprovalsPage } from './hr_workflow/pages/FinalSignatoryApprovalsPage';
-import { QidIntakePage } from './hr_workflow/pages/QidIntakePage';
+import { FreelanceProfileFormPage } from './hr_workflow/pages/FreelanceProfileFormPage';
+import { FreelanceProfileReviewPage } from './hr_workflow/pages/FreelanceProfileReviewPage';
 import { BITChecklistDashboardPage } from './bit_workflow/pages/BITChecklistDashboardPage';
 import { BITChecklistListPage } from './bit_workflow/pages/BITChecklistListPage';
 import { BITChecklistFormPage } from './bit_workflow/pages/BITChecklistFormPage';
@@ -104,9 +105,10 @@ function App() {
       {/** ROTA PUBLIC (no auth) */}
       <Route path="/rota/public/:uuid" element={<PublicRotaPage />} />
 
-      {/** QID INTAKE (no auth) — coordinator collects freelance QIDs sent to
-          them by email/WhatsApp/etc., no login required to use this page. */}
-      <Route path="/qid-intake" element={<QidIntakePage />} />
+      {/** FREELANCE PROFILE FORM (no auth) — every existing/new freelancer
+          fills this in themselves (or the coordinator fills it on their
+          behalf from documents sent over email/WhatsApp/etc.). No login. */}
+      <Route path="/freelance-profile" element={<FreelanceProfileFormPage />} />
 
       {/** MAIN WRAPPER */}
       <Route
@@ -424,6 +426,7 @@ function App() {
           <Route path="leave-requests" element={<LeaveRequestPage />} />
           <Route path="freelance-hiring/contract-renewal" element={<ContractRenewalPage />} />
           <Route path="freelance-hiring/contract-renewal/:id/preview" element={<ContractPreviewPage />} />
+          <Route path="freelance-hiring/profile-submissions" element={<FreelanceProfileReviewPage />} />
           <Route path="reports/financial" element={<FinancialReportsPage />} />
           <Route path="reports/hiring" element={<HiringReportsPage />} />
         </Route>
