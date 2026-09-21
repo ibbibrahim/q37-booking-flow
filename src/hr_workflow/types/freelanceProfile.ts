@@ -14,6 +14,8 @@ export interface FreelanceProfileEntry {
   country: string | null;
   jobTitle: string | null;
   qualificationLevel: string | null;
+  major: string | null;
+  attested: boolean;
   fileUrl: string;
 }
 
@@ -84,6 +86,8 @@ export interface FreelanceProfileSubmissionSummary {
 
 export interface FreelanceProfileEducationDraft {
   qualificationLevel: string;
+  major: string;
+  attested: boolean | null; // null = not yet chosen — an explicit answer is required
   file: File | null;
 }
 
@@ -113,6 +117,7 @@ export interface FreelanceProfileFormFields {
   gender: string;
   bloodType: string;
   maritalStatus: string;
+  phoneCountryCode: string;
   phoneNumber: string;
   personalEmail: string;
   address: string;
@@ -121,7 +126,7 @@ export interface FreelanceProfileFormFields {
   emergencyContactName: string;
   emergencyContactRelationship: string;
   emergencyContactPhone: string;
-  hasRelativesAtQbc: boolean;
+  hasRelativesAtQbc: boolean | null; // null = not yet chosen — an explicit answer is required
   relativeFullName: string;
   relativeRelationship: string;
   relativeDepartment: string;

@@ -55,7 +55,11 @@ export const freelanceProfilePublicApi = {
 
     const payload = {
       ...fields,
-      education: education.map((e, i) => ({ qualificationLevel: e.qualificationLevel, fileKey: `education_${i}` })),
+      phoneNumber: fields.phoneNumber ? `${fields.phoneCountryCode} ${fields.phoneNumber}`.trim() : '',
+      hasRelativesAtQbc: fields.hasRelativesAtQbc === true,
+      education: education.map((e, i) => ({
+        qualificationLevel: e.qualificationLevel, major: e.major, attested: e.attested === true, fileKey: `education_${i}`,
+      })),
       experience: experience.map((e, i) => ({ companyName: e.companyName, country: e.country, jobTitle: e.jobTitle, fileKey: `experience_${i}` })),
       certificates: certificates.map((c, i) => ({ title: c.title, fileKey: `certificates_${i}` })),
     };
