@@ -14,6 +14,8 @@ import { freelanceProfilePublicApi } from '../api/freelanceProfileApi';
 import { QidScanningModal } from '../components/QidScanningModal';
 import { HrLanguageProvider } from '../context/HrLanguageContext';
 import qidSample from '@/assets/qid-holder.jpg';
+import qbcLogoEn from '@/assets/QBC-light.png';
+import qbcLogoAr from '@/assets/QBC-light-ar.png';
 import type {
   FreelanceProfileEducationDraft,
   FreelanceProfileExperienceDraft,
@@ -368,6 +370,11 @@ function FreelanceProfileFormContent() {
       <QidScanningModal open={scanningQid} imageUrl={qidPreview} />
 
       <div className="max-w-4xl mx-auto space-y-6">
+        <div className="flex items-center justify-between gap-4 pb-4 border-b border-border">
+          <img src={qbcLogoEn} alt="QBC" className="h-10 sm:h-12 w-auto object-contain" />
+          <img src={qbcLogoAr} alt="كيوبي سي" className="h-10 sm:h-12 w-auto object-contain" />
+        </div>
+
         <div>
           <h1 className="text-2xl font-bold text-foreground">Freelancer Profile Form</h1>
           <p className="text-sm text-muted-foreground mt-1">
