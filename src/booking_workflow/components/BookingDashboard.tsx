@@ -19,6 +19,7 @@ import qbcDarkAr from '../../assets/QBC-dark-ar.png';
 import qbcLight from '../../assets/QBC-light.png';
 import qbcLightAr from '../../assets/QBC-light-ar.png';
 import { ChangePasswordModal } from './ChangePasswordModal';
+import { AIChatWidget } from '../../components/AIChatWidget';
 
 function ScheduleNewBadge({ compact = false }: { compact?: boolean }) {
   if (compact) {
@@ -98,7 +99,7 @@ export const BookingDashboard: React.FC = () => {
 
   const currentRole = getCurrentRole();
 
-  const roleConfig = {
+  const roleConfig: Record<string, { icon: React.ElementType; label: string; path: string }> = {
     Booking: { icon: User, label: 'Booking', path: '/booking' },
     NOC: { icon: Radio, label: 'NOC', path: '/noc' },
     Ingest: { icon: Package, label: 'Ingest', path: '/ingest' },
@@ -624,6 +625,8 @@ export const BookingDashboard: React.FC = () => {
           username={user.username}
         />
       )}
+
+      <AIChatWidget />
     </div>
   );
 };

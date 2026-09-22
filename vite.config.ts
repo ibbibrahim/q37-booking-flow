@@ -1,49 +1,59 @@
 import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
+import mkcert from "vite-plugin-mkcert";
 
 const appBuildId = process.env.VITE_BUILD_ID ?? `${Date.now()}`;
 
 function appVersionPlugin(buildId: string): Plugin {
-  return {
-    name: "app-version",
-    apply: "build",
-    generateBundle() {
-      this.emitFile({
-        type: "asset",
-        fileName: "version.json",
-        source: JSON.stringify(
-          {
-            buildId,
-            builtAt: new Date().toISOString(),
-          },
-          null,
-          2,
-        ),
-      });
-    },
-  };
+  return {
+    name: "app-version",
+    apply: "build",
+    generateBundle() {
+      this.emitFile({
+        type: "asset",
+        fileName: "version.json",
+        source: JSON.stringify(
+          {
+            buildId,
+            builtAt: new Date().toISOString(),
+          },
+          null,
+          2,
+        ),
+      });
+    },
+  };
 }
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  define: {
-    __APP_BUILD_ID__: JSON.stringify(process.env.NODE_ENV === "production" ? appBuildId : "dev"),
-  },
-  server: {
-    host: "localhost",
-    port: 5173,
-  },
-  plugins: [
-    react(),
-    appVersionPlugin(appBuildId),
-  ],
-  optimizeDeps: {
-    exclude: ["lucide-react"],
-  },
-  resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "./src"),
-    },
-  },
+  define: {
+    __APP_BUILD_ID__: JSON.stringify(process.env.NODE_ENV === "production" ? appBuildId : "dev"),
+  },
+  server: {
+    host: "localhost",
+    port: 5173,
+    https: {},
+    proxy: {
+      "/ai-api": {
+        target: "http://10.210.10.201:8000",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/ai-api/, "/api"),
+      },
+    },
+  },
+  plugins: [
+    react(),
+    appVersionPlugin(appBuildId),
+    mkcert(),
+  ],
+  optimizeDeps: {
+    exclude: ["lucide-react"],
+  },
+  resolve: {
+    alias: {
+      "@": path.resolve(__dirname, "./src"),
+    },
+  },
 });
