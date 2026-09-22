@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
 import { Login } from './components/Login';
 import { Unauthorized } from './components/Unauthorized';
@@ -25,16 +25,30 @@ import { EPGViewer } from './epg_workflow/components/EPGViewer';
 import { HRLayout } from './hr_workflow/components/HRLayout';
 import { HRDashboardPage } from './hr_workflow/pages/HRDashboardPage';
 import { EmployeeRecordsPage } from './hr_workflow/pages/EmployeeRecordsPage';
+import { EmployeeDetailPage } from './hr_workflow/pages/EmployeeDetailPage';
+import { EmployeeFormPage } from './hr_workflow/pages/EmployeeFormPage';
 import { LeaveRequestPage } from './hr_workflow/pages/LeaveRequestPage';
-import { HiringRequestPage } from './hr_workflow/pages/HiringRequestPage';
+import { ContractRenewalPage } from './hr_workflow/pages/ContractRenewalPage';
+import { ContractPreviewPage } from './hr_workflow/pages/ContractPreviewPage';
 import { FinancialReportsPage } from './hr_workflow/pages/FinancialReportsPage';
 import { HiringReportsPage } from './hr_workflow/pages/HiringReportsPage';
+import { DepartmentApprovalsPage } from './hr_workflow/pages/DepartmentApprovalsPage';
+import { FinalSignatoryApprovalsPage } from './hr_workflow/pages/FinalSignatoryApprovalsPage';
+import { FreelanceProfileFormPage } from './hr_workflow/pages/FreelanceProfileFormPage';
+import { FreelanceProfileReviewPage } from './hr_workflow/pages/FreelanceProfileReviewPage';
 import { BITChecklistDashboardPage } from './bit_workflow/pages/BITChecklistDashboardPage';
 import { BITChecklistListPage } from './bit_workflow/pages/BITChecklistListPage';
 import { BITChecklistFormPage } from './bit_workflow/pages/BITChecklistFormPage';
 
 function App() {
   const { isAuthenticated, user, isLoading } = useAuth();
+  // React Router assigns a fresh, unique key to every navigation entry —
+  // including clicking a sidebar link back to the page you're already on,
+  // which otherwise doesn't change the URL and so wouldn't remount anything.
+  // Folding it into EmployeeRecordsPage's key below means re-clicking
+  // "Permanent" while already on it resets search/filters too, not just
+  // switching to/from "Freelance".
+  const location = useLocation();
 
   // Default landing page after login — role-specific routes, or Programme Schedule for everyone else
   const getDefaultRoute = () => {
@@ -51,6 +65,8 @@ function App() {
     if (roles.includes("Editor")) return "/editor-queue";
     if (roles.includes("RotaTeamLead")) return "/rota";
     if (roles.includes("HRAdmin")) return "/hr/dashboard";
+    if (roles.includes("DepartmentHead")) return "/hr/department-approvals";
+    if (roles.includes("FinalSignatory")) return "/hr/final-approvals";
     if (roles.includes("BIT")) return "/bit";
 
     // No workflow role — still allowed to view the programme schedule
@@ -88,6 +104,11 @@ function App() {
 
       {/** ROTA PUBLIC (no auth) */}
       <Route path="/rota/public/:uuid" element={<PublicRotaPage />} />
+
+      {/** FREELANCE PROFILE FORM (no auth) — every existing/new freelancer
+          fills this in themselves (or the coordinator fills it on their
+          behalf from documents sent over email/WhatsApp/etc.). No login. */}
+      <Route path="/freelance-profile" element={<FreelanceProfileFormPage />} />
 
       {/** MAIN WRAPPER */}
       <Route
@@ -370,20 +391,42 @@ function App() {
         {/** PROGRAMME SCHEDULE (EPG) — any authenticated user, no role required */}
         <Route path="schedule" element={<EPGViewer />} />
 
-        {/** HR SYSTEM — restricted to HRAdmin only (strict: Admin does NOT bypass this) */}
+        {/** HR SYSTEM — restricted to HRAdmin, DepartmentHead, and
+            FinalSignatory (strict: Admin does NOT bypass this). DepartmentHead
+            and FinalSignatory only ever see/use their own approvals route in
+            practice (the sidebar hides the rest for them), but the backend is
+            the real boundary — every HRAdmin-only endpoint still rejects
+            their tokens. */}
         <Route
           path="hr"
           element={
-            <ProtectedRoute allowedRoles={['HRAdmin']} strict>
+            <ProtectedRoute allowedRoles={['HRAdmin', 'DepartmentHead', 'FinalSignatory']} strict>
               <HRLayout />
             </ProtectedRoute>
           }
         >
           <Route index element={<Navigate to="/hr/dashboard" replace />} />
+          <Route path="department-approvals" element={<DepartmentApprovalsPage />} />
+          <Route path="final-approvals" element={<FinalSignatoryApprovalsPage />} />
           <Route path="dashboard" element={<HRDashboardPage />} />
-          <Route path="employees" element={<EmployeeRecordsPage />} />
+          <Route path="employees" element={<Navigate to="/hr/employees/permanent" replace />} />
+          {/* key forces a fresh mount every time this tab is navigated to —
+              otherwise React sees the same component type at the same tree
+              position on both routes and reuses the instance, carrying the
+              search/filter state from Permanent over to Freelance (or vice
+              versa), and re-clicking the tab you're already on wouldn't
+              reset anything either since the URL doesn't change. Including
+              location.key covers both cases: it changes on every navigate()
+              call, even ones that land back on the same path. */}
+          <Route path="employees/permanent" element={<EmployeeRecordsPage key={`permanent-${location.key}`} contractType="Permanent" />} />
+          <Route path="employees/freelance" element={<EmployeeRecordsPage key={`freelance-${location.key}`} contractType="Freelance" />} />
+          <Route path="employees/:contractType/new" element={<EmployeeFormPage />} />
+          <Route path="employees/:contractType/:id" element={<EmployeeDetailPage />} />
+          <Route path="employees/:contractType/:id/edit" element={<EmployeeFormPage />} />
           <Route path="leave-requests" element={<LeaveRequestPage />} />
-          <Route path="hiring-requests" element={<HiringRequestPage />} />
+          <Route path="freelance-hiring/contract-renewal" element={<ContractRenewalPage />} />
+          <Route path="freelance-hiring/contract-renewal/:id/preview" element={<ContractPreviewPage />} />
+          <Route path="freelance-hiring/profile-submissions" element={<FreelanceProfileReviewPage />} />
           <Route path="reports/financial" element={<FinancialReportsPage />} />
           <Route path="reports/hiring" element={<HiringReportsPage />} />
         </Route>

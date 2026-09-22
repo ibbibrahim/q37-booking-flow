@@ -1,4 +1,5 @@
-import type { ContractType, EmployeeStatus, HiringRequestStage, LeaveRequestStatus } from '../types/hr';
+import type { ContractType, EmployeeStatus, LeaveRequestStatus } from '../types/hr';
+import type { HrContractStatus, HrEmployeeStatus } from '../types/hrApi';
 
 /** Seeded PRNG (mulberry32) so demo data is stable across reloads within a session. */
 export function createSeededRandom(seed: number) {
@@ -69,17 +70,33 @@ export function leaveStatusBadgeClass(status: LeaveRequestStatus): string {
   }
 }
 
-export const HIRING_STAGES: HiringRequestStage[] = [
-  'Department Head',
-  'HR Review',
-  'GM Approval',
-  'QMC HR',
-  'CEO Approval',
-  'Completed',
-];
-
-export function hiringStageBadgeClass(stage: HiringRequestStage): string {
-  if (stage === 'Completed') return 'border-transparent bg-success/15 text-success';
-  if (stage === 'Returned to Department') return 'border-transparent bg-destructive/15 text-destructive';
-  return 'border-transparent bg-primary/15 text-primary';
+export function hrEmployeeStatusBadgeClass(status: HrEmployeeStatus): string {
+  switch (status) {
+    case 'Active':
+      return 'border-transparent bg-success/15 text-success';
+    case 'On Leave':
+      return 'border-transparent bg-warning/15 text-warning';
+    case 'External Secondment':
+      return 'border-transparent bg-primary/15 text-primary';
+    case 'Retired':
+      return 'border-transparent bg-muted text-muted-foreground';
+    case 'End of Service':
+      return 'border-transparent bg-destructive/15 text-destructive';
+  }
 }
+
+export const CONTRACT_STATUS_LABEL: Record<HrContractStatus, string> = {
+  AwaitingEmployeeSignature: 'Awaiting Employee',
+  AwaitingDepartmentHeadSignature: 'Awaiting Dept. Head',
+  AwaitingFinalSignature: 'Awaiting GM',
+  Completed: 'Completed',
+  Returned: 'Returned',
+};
+
+export const CONTRACT_STATUS_BADGE_CLASS: Record<HrContractStatus, string> = {
+  AwaitingEmployeeSignature: 'border-transparent bg-warning/15 text-warning',
+  AwaitingDepartmentHeadSignature: 'border-transparent bg-warning/15 text-warning',
+  AwaitingFinalSignature: 'border-transparent bg-warning/15 text-warning',
+  Completed: 'border-transparent bg-success/15 text-success',
+  Returned: 'border-transparent bg-destructive/15 text-destructive',
+};

@@ -12,6 +12,15 @@ import { Switch } from '@/components/ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { AcknowledgementPanel } from './AcknowledgementPanel';
 import { EquipmentForm } from './EquipmentForm';
 import { TransportForm } from './TransportForm';
@@ -27,7 +36,7 @@ import { createEmptyRow } from '../types/equipmentRow';
 
 const SELECTED_BTN = 'border-gray-900 text-white shadow-xl shadow-black/20 z-10';
 
-/** QBC brand blue default (same shadow/lift as before), yellow on hover */
+/** QBC brand blue default (same shadow/lift as before), yellow on hovers */
 const BRAND_UNSELECTED =
   'border-primary/50 bg-primary/10 text-primary shadow-xl shadow-primary/30 -translate-y-0.5 hover:border-accent hover:bg-accent/15 hover:text-[hsl(38,92%,28%)] hover:shadow-xl hover:shadow-accent/30';
 
@@ -132,6 +141,7 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
   const [equipmentNeeded, setEquipmentNeeded] = useState<boolean>(false);
   const [startDateError, setStartDateError] = useState<string>('');
   const [returnDateError, setReturnDateError] = useState<string>('');
+  const [showOutdoorMaxDaysDialog, setShowOutdoorMaxDaysDialog] = useState(false);
   const [showLocationSuggestions, setShowLocationSuggestions] = useState(false);
   const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
 
@@ -394,7 +404,10 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
     return true;
   };
 
-  const validateReturnDate = (returnValue: string, startValue: string) => {
+  const MAX_OUTDOOR_DURATION_DAYS = 3;
+  const OUTDOOR_MAX_DURATION_MESSAGE = 'Equipments reservation allowed Maximum 3 three days';
+
+  const validateReturnDate = (returnValue: string, startValue: string, shootTypeOverride: ShootType = shootType) => {
     if (!returnValue) {
       setReturnDateError('');
       return true;
@@ -414,10 +427,27 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
         setReturnDateError('Return date must be after start date');
         return false;
       }
+
+      if (shootTypeOverride === 'Outdoor') {
+        const durationDays = (returnDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24);
+        if (durationDays > MAX_OUTDOOR_DURATION_DAYS) {
+          setReturnDateError(OUTDOOR_MAX_DURATION_MESSAGE);
+          setShowOutdoorMaxDaysDialog(true);
+          return false;
+        }
+      }
     }
 
     setReturnDateError('');
     return true;
+  };
+
+  const handleOutdoorMaxDaysDialogClose = () => {
+    setShowOutdoorMaxDaysDialog(false);
+    setStartDateError('');
+    setReturnDateError('');
+    setFormData(prev => ({ ...prev, startDateTime: '', returnDateTime: '' }));
+    setTransportRequest(prev => ({ ...prev, startDateTime: '', returnDateTime: '' }));
   };
 
   const handleStartDateChange = (value: string) => {
@@ -454,6 +484,10 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
     if (value === 'Outdoor') {
       setIndoorFacility(null);
       setEquipmentNeeded(false);
+
+      if (formData.returnDateTime) {
+        validateReturnDate(formData.returnDateTime, formData.startDateTime, 'Outdoor');
+      }
     } else {
       setFormData(prev => ({ ...prev, location: '', driverNeeded: false, sitePermitApproval: '' }));
     }
@@ -1425,6 +1459,27 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
           }}
         />
       )}
+
+      <AlertDialog open={showOutdoorMaxDaysDialog} onOpenChange={(open) => { if (!open) handleOutdoorMaxDaysDialogClose(); }}>
+        <AlertDialogContent className="text-center sm:text-center">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-center">Maximum Duration Exceeded</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2 text-center">
+                <p>{OUTDOOR_MAX_DURATION_MESSAGE}</p>
+                <p dir="rtl" lang="ar">
+                  الحد الأقصى المسموح به لحجز المعدات هو 3 أيام فقط
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="sm:justify-center">
+            <AlertDialogAction onClick={handleOutdoorMaxDaysDialogClose}>
+              OK
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

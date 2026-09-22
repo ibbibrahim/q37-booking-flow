@@ -2,12 +2,11 @@ import { AlertTriangle } from 'lucide-react';
 import { Bar, BarChart, Cell, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useHRChartColors } from '../../utils/chartColors';
-import { calcAge } from '../../utils/hrUtils';
-import { departmentName } from '../../data/departments';
-import type { Employee } from '../../types/hr';
+import { useHrLanguage, bilingual } from '../../context/HrLanguageContext';
+import type { HrEmployee } from '../../types/hrApi';
 
 interface Props {
-  employees: Employee[];
+  employees: HrEmployee[];
 }
 
 const BUCKETS = [
@@ -21,8 +20,11 @@ const BUCKETS = [
 
 export function AgeDistributionChart({ employees }: Props) {
   const colors = useHRChartColors();
+  const { language, t } = useHrLanguage();
 
-  const withAge = employees.map((e) => ({ ...e, age: calcAge(e.dob) }));
+  // Age is only known for employees with a DOB on file (mostly Permanent) — skip
+  // anyone missing it rather than counting them as age 0.
+  const withAge = employees.filter((e): e is HrEmployee & { age: number } => e.age !== null);
 
   const data = BUCKETS.map((bucket) => {
     const inBucket = withAge.filter((e) => e.age >= bucket.min && e.age <= bucket.max);
@@ -39,11 +41,13 @@ export function AgeDistributionChart({ employees }: Props) {
   return (
     <Card>
       <CardHeader className="pb-2">
-        <CardTitle className="text-base">Age Distribution</CardTitle>
-        <CardDescription>Calculated from date of birth · freelancers aged 60+ flagged for review</CardDescription>
+        <CardTitle className="text-base">{t('ageDistribution')}</CardTitle>
+        <CardDescription>
+          {t('ageDistributionDesc')} ({withAge.length}/{employees.length})
+        </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="h-72">
+        <div className="h-72" dir="ltr">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 8 }}>
               <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} vertical={false} />
@@ -74,7 +78,7 @@ export function AgeDistributionChart({ employees }: Props) {
             <ul className="mt-1.5 space-y-0.5 text-xs text-muted-foreground">
               {seniorFreelancers.map((e) => (
                 <li key={e.id}>
-                  {e.fullName} — {departmentName(e.departmentId)} (age {e.age})
+                  {bilingual(language, e.fullNameEn, e.fullNameAr)} — {bilingual(language, e.departmentNameEn, e.departmentNameAr)} (age {e.age})
                 </li>
               ))}
             </ul>

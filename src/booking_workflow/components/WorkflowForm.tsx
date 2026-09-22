@@ -397,15 +397,23 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
       if (downloadLinks.length === 0) {
         newErrors.downloadLinks = "At least one download link is required";
       } else {
-        const urlPattern = /^(https?:\/\/)([\w\-]+(\.[\w\-]+)+)([\w.,@?^=%&:/~+#-]*[\w@?^=%&/~+#-])?$/i;
         downloadLinks.forEach((link, index) => {
           if (!link.source) {
             newErrors[`downloadLink_${index}_source`] = "Source is required";
           }
           if (!link.url) {
             newErrors[`downloadLink_${index}_url`] = "URL is required";
-          } else if (!urlPattern.test(link.url.trim())) {
-            newErrors[`downloadLink_${index}_url`] = "Please enter a valid URL (must start with http or https)";
+          } else {
+            let isValidUrl = false;
+            try {
+              const parsed = new URL(link.url.trim());
+              isValidUrl = parsed.protocol === "http:" || parsed.protocol === "https:";
+            } catch {
+              isValidUrl = false;
+            }
+            if (!isValidUrl) {
+              newErrors[`downloadLink_${index}_url`] = "Please enter a valid URL (must start with http or https)";
+            }
           }
         });
       }

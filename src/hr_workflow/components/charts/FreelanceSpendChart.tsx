@@ -1,48 +1,41 @@
-import { useMemo, useState } from 'react';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useHRChartColors } from '../../utils/chartColors';
-import { departments } from '../../data/departments';
-import { financeData, monthOptions } from '../../data/financeSeed';
+import { useHrLanguage, bilingual } from '../../context/HrLanguageContext';
 import { formatCurrencyQAR } from '../../utils/hrUtils';
+import type { HrDepartment, HrEmployee } from '../../types/hrApi';
 
-export function FreelanceSpendChart() {
+interface Props {
+  employees: HrEmployee[];
+  departments: HrDepartment[];
+}
+
+export function FreelanceSpendChart({ employees, departments }: Props) {
   const colors = useHRChartColors();
-  const months = monthOptions();
-  const [selectedMonth, setSelectedMonth] = useState(months[months.length - 1]);
+  const { language, t } = useHrLanguage();
 
-  const data = useMemo(() => {
-    return departments.map((dept) => {
-      const entry = financeData.find((f) => f.month === selectedMonth && f.departmentId === dept.id);
-      return { department: dept.name, spend: entry?.freelanceSpend ?? 0 };
-    });
-  }, [selectedMonth]);
+  const freelancers = employees.filter((e) => e.contractType === 'Freelance');
+
+  const data = departments.map((dept) => ({
+    department: bilingual(language, dept.nameEn, dept.nameAr),
+    spend: freelancers
+      .filter((e) => e.departmentId === dept.id)
+      .reduce((sum, e) => sum + (e.monthlyRate ?? 0), 0),
+  }));
 
   const total = data.reduce((sum, d) => sum + d.spend, 0);
+  const knownCount = freelancers.filter((e) => e.monthlyRate).length;
 
   return (
     <Card>
-      <CardHeader className="pb-2 flex flex-row items-start justify-between gap-3">
-        <div>
-          <CardTitle className="text-base">Freelance Spend by Department</CardTitle>
-          <CardDescription>Monthly freelance cost — total {formatCurrencyQAR(total)}</CardDescription>
-        </div>
-        <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-          <SelectTrigger className="w-36 h-9">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {months.map((m) => (
-              <SelectItem key={m} value={m}>
-                {m}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base">{t('freelanceSpendByDepartment')}</CardTitle>
+        <CardDescription>
+          {t('freelanceSpendByDepartmentDesc')} — {t('total')} {formatCurrencyQAR(total)} ({knownCount}/{freelancers.length} {t('rateOnFile')})
+        </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="h-80">
+        <div className="h-80" dir="ltr">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={data} margin={{ top: 8, right: 8, left: 8, bottom: 48 }}>
               <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} vertical={false} />

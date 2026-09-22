@@ -19,7 +19,7 @@ export const internationalFirstNames = [
 export const internationalLastNames = [
   'Fernandes', 'Silva', 'Cruz', 'Santos', 'Reyes', 'Gomez',
   'Sharma', 'Patel', 'Kumar', 'Nair', 'Iyer',
-  'Smith', 'Johnson', 'Williams', 'Brown', 'Taylor',
+  'Smiths', 'Johnson', 'Williams', 'Brown', 'Taylor',
   'Haddad', 'Khoury', 'Mansour', 'Saleh', 'Rahman',
   'Dupont', 'Botha', 'Van der Merwe',
 ];
@@ -40,6 +40,16 @@ export const nationalities = [
   { name: 'South African', weight: 3 },
   { name: 'French', weight: 2 },
   { name: 'American', weight: 2 },
+  { name: 'Algerian', weight: 2 },
+  { name: 'Ethiopian', weight: 2 },
+  { name: 'Iranian', weight: 2 },
+  { name: 'Iraqi', weight: 2 },
+  { name: 'Italian', weight: 1 },
+  { name: 'Palestinian', weight: 2 },
+  { name: 'Somali', weight: 1 },
+  { name: 'Turkish', weight: 1 },
+  { name: 'Yemeni', weight: 1 },
+  { name: 'Saint Kitts and Nevis', weight: 1 },
 ];
 
 export const jobTitlesByDepartment: Record<number, string[]> = {

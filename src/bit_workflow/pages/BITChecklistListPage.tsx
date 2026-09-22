@@ -156,6 +156,10 @@ function ChecklistList({ type }: { type: ChecklistType }) {
                     ? Math.round((submission.completedCount / submission.totalCount) * 100)
                     : 0;
                   const isCurrent = submission.periodDate === currentPeriodDate;
+                  // engineers is the new summary field; fall back to engineerName until
+                  // the backend change is deployed (field absent → undefined).
+                  const engineerLabel =
+                    submission.engineers?.join(', ') || submission.engineerName || '—';
 
                   return (
                     <motion.tr
@@ -172,8 +176,10 @@ function ChecklistList({ type }: { type: ChecklistType }) {
                           <Badge className="ml-2 border-transparent bg-primary/15 text-primary">Current</Badge>
                         )}
                       </td>
-                      <td className="py-3 px-4 text-sm text-muted-foreground whitespace-nowrap">
-                        {submission.engineerName || '—'}
+                      <td className="py-3 px-4 text-sm text-muted-foreground max-w-[260px]">
+                        <span className="block truncate" title={engineerLabel}>
+                          {engineerLabel}
+                        </span>
                       </td>
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-2.5 min-w-[140px]">
