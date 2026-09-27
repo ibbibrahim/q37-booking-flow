@@ -7,6 +7,7 @@ import {
   Film, Inbox, CalendarDays, ChevronLeft, ChevronRight, Briefcase,
   LayoutDashboard, ClipboardList, FileBarChart, Search, CalendarCheck,
   Handshake, ChevronDown, UserCheck, UserRoundCog, FileSignature, ShieldCheck,
+  Phone, Contact,
 } from 'lucide-react';
 import { HrLanguageProvider, HrLanguageToggle } from '../../hr_workflow/context/HrLanguageContext';
 import { cn } from '@/lib/utils';
@@ -74,6 +75,9 @@ export const BookingDashboard: React.FC = () => {
   const getCurrentSection = (): string => {
     const pathParts = location.pathname.split('/').filter(Boolean);
     if (pathParts[0] === 'admin' && pathParts[1] === 'users') return 'admin-users';
+    if (pathParts[0] === 'dtl-booking') return 'dtl-booking';
+    if (pathParts[0] === 'dtl-guest') return 'dtl-guest';
+    if (pathParts[0] === 'dtl-dashboard') return 'dtl-dashboard';
     if (pathParts[0] === 'rota') return 'rota';
     if (pathParts[0] === 'schedule') return 'schedule';
     if (pathParts[0] === 'hr') return 'hr';
@@ -133,6 +137,13 @@ export const BookingDashboard: React.FC = () => {
     user?.roles?.includes('Admin') ||
     user?.roles?.includes('Booking') ||
     user?.roles?.includes('Editor');
+  const hasDtlAccess =
+    user?.roles?.includes('Admin') ||
+    user?.roles?.includes('CR') ||
+    user?.roles?.includes('AssignmentTeam') ||
+    user?.roles?.includes('AssignmentLead');
+  const hasDtlDashboardAccess =
+    user?.roles?.includes('Admin') || user?.roles?.includes('AssignmentLead');
 
   const getAllowedRoles = (): UserRole[] => {
     if (!user?.roles?.length) return [];
@@ -247,6 +258,9 @@ export const BookingDashboard: React.FC = () => {
       case 'admin-users': return 'User Management';
       case 'hr': return 'HR System';
       case 'bit': return 'BIT Checklists';
+      case 'dtl-booking': return 'DTL Booking';
+      case 'dtl-guest': return 'DTL Guest';
+      case 'dtl-dashboard': return 'DTL Dashboard';
       default: return currentRole;
     }
   })();
@@ -264,6 +278,9 @@ export const BookingDashboard: React.FC = () => {
       case 'admin-users': return 'Manage system users, roles, and permissions';
       case 'hr': return 'Employee records, leave, hiring requests, and workforce reports';
       case 'bit': return 'Daily, weekly and monthly system readiness checklists';
+      case 'dtl-booking': return 'Create and manage down-the-line guest bookings';
+      case 'dtl-guest': return 'Search, create, and edit DTL guest contacts';
+      case 'dtl-dashboard': return 'Overview of DTL guests and bookings';
       default: return getRoleDescription(currentRole);
     }
   })();
@@ -418,6 +435,31 @@ export const BookingDashboard: React.FC = () => {
                 isActive={currentSection === 'bit'}
                 onClick={() => navigate('/bit')}
               />
+            )}
+
+            {hasDtlAccess && (
+              <>
+                {hasDtlDashboardAccess && (
+                  <NavBtn
+                    icon={LayoutDashboard}
+                    label="DTL Dashboard"
+                    isActive={currentSection === 'dtl-dashboard'}
+                    onClick={() => navigate('/dtl-dashboard')}
+                  />
+                )}
+                <NavBtn
+                  icon={Phone}
+                  label="DTL Booking"
+                  isActive={currentSection === 'dtl-booking'}
+                  onClick={() => navigate('/dtl-booking')}
+                />
+                <NavBtn
+                  icon={Contact}
+                  label="DTL Guest"
+                  isActive={currentSection === 'dtl-guest'}
+                  onClick={() => navigate('/dtl-guest')}
+                />
+              </>
             )}
 
             {!hasHRAccess && (

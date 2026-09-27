@@ -101,6 +101,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const userData: User = {
         id: parseInt(userId, 10),
         username: payload.unique_name || payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'] || username,
+        displayName: payload.displayName || null,
         roles: userRoles,
       };
 

@@ -47,6 +47,10 @@ export const Login: React.FC = () => {
           redirectRoute = '/noc';
         } else if (userData.roles.includes('Ingest')) {
           redirectRoute = '/ingest';
+        } else if (userData.roles.includes('AssignmentLead')) {
+          redirectRoute = '/dtl-dashboard';
+        } else if (userData.roles.includes('AssignmentTeam') || userData.roles.includes('CR')) {
+          redirectRoute = '/dtl-booking';
         }
       }
 

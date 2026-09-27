@@ -39,6 +39,10 @@ import { FreelanceProfileReviewPage } from './hr_workflow/pages/FreelanceProfile
 import { BITChecklistDashboardPage } from './bit_workflow/pages/BITChecklistDashboardPage';
 import { BITChecklistListPage } from './bit_workflow/pages/BITChecklistListPage';
 import { BITChecklistFormPage } from './bit_workflow/pages/BITChecklistFormPage';
+import { DtlBookingListPage } from './dtl_workflow/components/DtlBookingListPage';
+import { DtlBookingDetailPage } from './dtl_workflow/components/DtlBookingDetailPage';
+import { DtlGuestListPage } from './dtl_workflow/components/DtlGuestListPage';
+import { DtlDashboardPage } from './dtl_workflow/components/DtlDashboardPage';
 
 function App() {
   const { isAuthenticated, user, isLoading } = useAuth();
@@ -68,6 +72,9 @@ function App() {
     if (roles.includes("DepartmentHead")) return "/hr/department-approvals";
     if (roles.includes("FinalSignatory")) return "/hr/final-approvals";
     if (roles.includes("BIT")) return "/bit";
+    if (roles.includes("AssignmentLead")) return "/dtl-dashboard";
+    if (roles.includes("AssignmentTeam")) return "/dtl-booking";
+    if (roles.includes("CR")) return "/dtl-booking";
 
     // No workflow role — still allowed to view the programme schedule
     return "/schedule";
@@ -384,6 +391,45 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={['BIT']} strict>
               <BITChecklistFormPage readOnly />
+            </ProtectedRoute>
+          }
+        />
+
+        {/** DTL BOOKING / DTL GUEST — backed by the main .NET WorkflowAPI
+            (see src/dtl_workflow). CR, AssignmentTeam and AssignmentLead can
+            all view guests/bookings; per-action permissions (create, edit,
+            status updates, link sending) are narrowed further inside each
+            page via useDtlPermissions. Only AssignmentLead sees the
+            dashboard. */}
+        <Route
+          path="dtl-booking"
+          element={
+            <ProtectedRoute allowedRoles={['CR', 'AssignmentTeam', 'AssignmentLead', 'Admin']}>
+              <DtlBookingListPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="dtl-booking/requests/:id"
+          element={
+            <ProtectedRoute allowedRoles={['CR', 'AssignmentTeam', 'AssignmentLead', 'Admin']}>
+              <DtlBookingDetailPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="dtl-guest"
+          element={
+            <ProtectedRoute allowedRoles={['CR', 'AssignmentTeam', 'AssignmentLead', 'Admin']}>
+              <DtlGuestListPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="dtl-dashboard"
+          element={
+            <ProtectedRoute allowedRoles={['AssignmentLead', 'Admin']}>
+              <DtlDashboardPage />
             </ProtectedRoute>
           }
         />
