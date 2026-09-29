@@ -28,6 +28,8 @@ import { EmployeeRecordsPage } from './hr_workflow/pages/EmployeeRecordsPage';
 import { EmployeeDetailPage } from './hr_workflow/pages/EmployeeDetailPage';
 import { EmployeeFormPage } from './hr_workflow/pages/EmployeeFormPage';
 import { LeaveRequestPage } from './hr_workflow/pages/LeaveRequestPage';
+import { LeaveRequestEditorPage } from './hr_workflow/pages/LeaveRequestEditorPage';
+import { LeaveFreelancerAcknowledgePage } from './hr_workflow/pages/LeaveFreelancerAcknowledgePage';
 import { ContractRenewalPage } from './hr_workflow/pages/ContractRenewalPage';
 import { ContractPreviewPage } from './hr_workflow/pages/ContractPreviewPage';
 import { FinancialReportsPage } from './hr_workflow/pages/FinancialReportsPage';
@@ -36,6 +38,9 @@ import { DepartmentApprovalsPage } from './hr_workflow/pages/DepartmentApprovals
 import { FinalSignatoryApprovalsPage } from './hr_workflow/pages/FinalSignatoryApprovalsPage';
 import { FreelanceProfileFormPage } from './hr_workflow/pages/FreelanceProfileFormPage';
 import { FreelanceProfileReviewPage } from './hr_workflow/pages/FreelanceProfileReviewPage';
+import { HiringRequestsPage } from './hr_workflow/pages/HiringRequestsPage';
+import { InterviewEvaluationPage } from './hr_workflow/pages/InterviewEvaluationPage';
+import { StartingDatePage } from './hr_workflow/pages/StartingDatePage';
 import { BITChecklistDashboardPage } from './bit_workflow/pages/BITChecklistDashboardPage';
 import { BITChecklistListPage } from './bit_workflow/pages/BITChecklistListPage';
 import { BITChecklistFormPage } from './bit_workflow/pages/BITChecklistFormPage';
@@ -116,6 +121,7 @@ function App() {
           fills this in themselves (or the coordinator fills it on their
           behalf from documents sent over email/WhatsApp/etc.). No login. */}
       <Route path="/freelance-profile" element={<FreelanceProfileFormPage />} />
+      <Route path="/freelance-profile/:token" element={<FreelanceProfileFormPage />} />
 
       {/** MAIN WRAPPER */}
       <Route
@@ -470,9 +476,14 @@ function App() {
           <Route path="employees/:contractType/:id" element={<EmployeeDetailPage />} />
           <Route path="employees/:contractType/:id/edit" element={<EmployeeFormPage />} />
           <Route path="leave-requests" element={<LeaveRequestPage />} />
+          <Route path="leave-requests/:id/edit" element={<LeaveRequestEditorPage />} />
+          <Route path="leave-requests/:id/acknowledge" element={<LeaveFreelancerAcknowledgePage />} />
           <Route path="freelance-hiring/contract-renewal" element={<ContractRenewalPage />} />
           <Route path="freelance-hiring/contract-renewal/:id/preview" element={<ContractPreviewPage />} />
           <Route path="freelance-hiring/profile-submissions" element={<FreelanceProfileReviewPage />} />
+          <Route path="freelance-hiring/hiring-requests" element={<HiringRequestsPage />} />
+          <Route path="freelance-hiring/hiring-requests/:id/interview" element={<InterviewEvaluationPage />} />
+          <Route path="freelance-hiring/hiring-requests/:id/starting-date" element={<StartingDatePage />} />
           <Route path="reports/financial" element={<FinancialReportsPage />} />
           <Route path="reports/hiring" element={<HiringReportsPage />} />
         </Route>

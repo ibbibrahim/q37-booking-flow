@@ -10,10 +10,12 @@ import { useToast } from '@/contexts/ToastContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { getApiErrorMessage } from '@/utils/apiError';
 import { hrApi } from '../api/hrApi';
+import { leaveRequestApi } from '../api/leaveRequestApi';
 import { ActionIconButton } from '../components/ActionIconButton';
 import { SignaturePad } from '../components/SignaturePad';
 import { ReturnContractModal } from '../components/ReturnContractModal';
 import { stampDepartmentHeadSignature } from '../utils/contractPdf';
+import { stampDeptHeadSignature as stampLeaveDeptHeadSignature } from '../utils/leaveSuspensionPdf';
 import { useHrLanguage, bilingual } from '../context/HrLanguageContext';
 import { CONTRACT_STATUS_LABEL, CONTRACT_STATUS_BADGE_CLASS, formatDate } from '../utils/hrUtils';
 import type { HrContract, HrEmployee, HrSignatureMethod } from '../types/hrApi';
@@ -479,6 +481,8 @@ export function DepartmentApprovalsPage() {
           </CardContent>
         </Card>
 
+        <LeaveNoticesSection signatureBytesRef={signatureBytesRef} hasSignature={hasSignature} signerName={signerName} />
+
         <SignaturePad
           open={captureOpen}
           onCancel={() => setCaptureOpen(false)}
@@ -504,5 +508,90 @@ export function DepartmentApprovalsPage() {
         />
       </div>
     </TooltipProvider>
+  );
+}
+
+// Freelancer leave/suspension notices awaiting this Department Head's
+// signature — a second, independent queue on the same screen. Reuses the
+// signature already saved above for contracts (one saved signature per
+// Department Head, reused everywhere they need to sign).
+function LeaveNoticesSection({
+  signatureBytesRef,
+  hasSignature,
+  signerName,
+}: {
+  signatureBytesRef: React.MutableRefObject<{ bytes: Uint8Array; type: 'png' | 'jpeg' } | null>;
+  hasSignature: boolean;
+  signerName: string;
+}) {
+  const { showToast } = useToast();
+  const queryClient = useQueryClient();
+  const [signingId, setSigningId] = useState<number | null>(null);
+
+  const listQuery = useQuery({ queryKey: ['hr-leave-requests', 'department-approvals'], queryFn: leaveRequestApi.getAll });
+  const pending = (listQuery.data ?? []).filter((r) => r.status === 'AwaitingDepartmentHeadSignature');
+
+  const handleSign = async (id: number, employeeName: string | null) => {
+    if (!signatureBytesRef.current) {
+      showToast('Save your signature first.', 'error');
+      return;
+    }
+    setSigningId(id);
+    try {
+      const buffer = await leaveRequestApi.getPdfBytes(id);
+      const { bytes: signed, verificationId } = await stampLeaveDeptHeadSignature(
+        new Uint8Array(buffer), signatureBytesRef.current.bytes, signatureBytesRef.current.type
+      );
+      const blob = new Blob([new Uint8Array(signed)], { type: 'application/pdf' });
+      await leaveRequestApi.departmentHeadSign(id, blob, signerName, verificationId, signatureBytesRef.current);
+
+      queryClient.invalidateQueries({ queryKey: ['hr-leave-requests'] });
+      showToast(`Signed ${employeeName ?? 'the'} leave notice — sent to the freelancer to acknowledge.`, 'success');
+    } catch (err) {
+      showToast(getApiErrorMessage(err, 'Failed to sign leave notice.'), 'error');
+    } finally {
+      setSigningId(null);
+    }
+  };
+
+  if (pending.length === 0) return null;
+
+  return (
+    <Card>
+      <CardContent className="p-4 space-y-3">
+        <h2 className="text-sm font-semibold text-foreground">Leave / Suspension Notices Awaiting Your Signature</h2>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Freelancer</TableHead>
+              <TableHead>Type</TableHead>
+              <TableHead>Dates</TableHead>
+              <TableHead>Days</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {pending.map((r) => (
+              <TableRow key={r.id}>
+                <TableCell className="font-medium text-foreground">{r.employeeFullNameEn}</TableCell>
+                <TableCell>{r.suspensionType}</TableCell>
+                <TableCell>{r.startDate ? formatDate(r.startDate) : '—'} – {r.endDate ? formatDate(r.endDate) : '—'}</TableCell>
+                <TableCell className="tabular-nums">{r.totalDays ?? '—'}</TableCell>
+                <TableCell className="text-right">
+                  <Button
+                    size="sm"
+                    className="gap-1.5"
+                    disabled={!hasSignature || signingId !== null}
+                    onClick={() => handleSign(r.id, r.employeeFullNameEn)}
+                  >
+                    <CheckCircle2 size={14} /> {signingId === r.id ? 'Signing…' : 'Sign'}
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
   );
 }

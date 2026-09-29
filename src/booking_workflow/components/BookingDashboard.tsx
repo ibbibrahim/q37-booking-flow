@@ -566,6 +566,9 @@ export const BookingDashboard: React.FC = () => {
                         {isHRAdmin && (
                           <HrSubNavBtn icon={UserCheck} label="Profile Submissions" path="/hr/freelance-hiring/profile-submissions" small />
                         )}
+                        {(isHRAdmin || isDepartmentHead || isFinalSignatory) && (
+                          <HrSubNavBtn icon={UserRoundCog} label="New Freelancer Hiring" path="/hr/freelance-hiring/hiring-requests" small />
+                        )}
                         {isDepartmentHead && (
                           <HrSubNavBtn icon={FileSignature} label="Manager Approval" path="/hr/department-approvals" small />
                         )}

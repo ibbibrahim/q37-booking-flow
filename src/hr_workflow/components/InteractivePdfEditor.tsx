@@ -5,11 +5,14 @@ import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl;
 
 export interface InteractivePdfEditorHandle {
-  /** Every field's current value, keyed by its PDF field name — ready to
-   * feed straight into pdf-lib's setText() the same way the auto-filled
+  /** Every text field's current value, keyed by its PDF field name — ready
+   * to feed straight into pdf-lib's setText() the same way the auto-filled
    * fields already are. Includes fields that were pre-filled from the
    * employee record, since those are editable here too. */
   getFieldValues: () => Record<string, string>;
+  /** Every checkbox/radio widget's current checked state, keyed by its PDF
+   * field name — feed into pdf-lib's PDFCheckBox.check()/uncheck(). */
+  getCheckboxValues: () => Record<string, boolean>;
 }
 
 interface Props {
@@ -32,6 +35,16 @@ interface FieldOverlay {
   height: number;
   initialValue: string;
   multiLine: boolean;
+}
+
+interface CheckboxOverlay {
+  name: string;
+  page: number;
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+  initialChecked: boolean;
 }
 
 const RENDER_SCALE = 1.6;
@@ -78,11 +91,14 @@ export const InteractivePdfEditor = forwardRef<InteractivePdfEditorHandle, Props
 ) {
   const [pages, setPages] = useState<RenderedPage[]>([]);
   const [overlays, setOverlays] = useState<FieldOverlay[]>([]);
+  const [checkboxOverlays, setCheckboxOverlays] = useState<CheckboxOverlay[]>([]);
   const [loading, setLoading] = useState(true);
   const valuesRef = useRef<Record<string, string>>({});
+  const checkboxValuesRef = useRef<Record<string, boolean>>({});
 
   useImperativeHandle(ref, () => ({
     getFieldValues: () => ({ ...valuesRef.current }),
+    getCheckboxValues: () => ({ ...checkboxValuesRef.current }),
   }));
 
   useEffect(() => {
@@ -94,7 +110,9 @@ export const InteractivePdfEditor = forwardRef<InteractivePdfEditorHandle, Props
       setLoading(true);
       setPages([]);
       setOverlays([]);
+      setCheckboxOverlays([]);
       valuesRef.current = {};
+      checkboxValuesRef.current = {};
 
       const doc = await pdfjsLib.getDocument({ data: pdfBytes.slice() }).promise;
       if (cancelled) return;
@@ -135,9 +153,11 @@ export const InteractivePdfEditor = forwardRef<InteractivePdfEditorHandle, Props
 
         const annotations = await page.getAnnotations({ intent: 'display' });
         const pageOverlays: FieldOverlay[] = [];
+        const pageCheckboxOverlays: CheckboxOverlay[] = [];
         const pageValues: Record<string, string> = {};
+        const pageCheckboxValues: Record<string, boolean> = {};
         for (const a of annotations) {
-          if (a.fieldType !== 'Tx' || !a.fieldName) continue;
+          if (!a.fieldName) continue;
 
           const [x1, y1] = viewport.convertToViewportPoint(a.rect[0], a.rect[1]);
           const [x2, y2] = viewport.convertToViewportPoint(a.rect[2], a.rect[3]);
@@ -146,24 +166,30 @@ export const InteractivePdfEditor = forwardRef<InteractivePdfEditorHandle, Props
           const width = Math.abs(x2 - x1);
           const height = Math.abs(y2 - y1);
 
-          const value = typeof a.fieldValue === 'string' ? a.fieldValue : '';
-          pageOverlays.push({
-            name: a.fieldName,
-            page: pageNumber,
-            left,
-            top,
-            width,
-            height,
-            initialValue: value,
-            multiLine: !!a.multiLine,
-          });
-          pageValues[a.fieldName] = value;
+          if (a.fieldType === 'Tx') {
+            const value = typeof a.fieldValue === 'string' ? a.fieldValue : '';
+            pageOverlays.push({
+              name: a.fieldName, page: pageNumber, left, top, width, height,
+              initialValue: value, multiLine: !!a.multiLine,
+            });
+            pageValues[a.fieldName] = value;
+          } else if (a.fieldType === 'Btn' && !a.radioButton && !a.pushButton) {
+            // Checkbox widget — a.fieldValue is the current export state
+            // name (e.g. "Off" or the "on" value like "Yes"/"1").
+            const checked = typeof a.fieldValue === 'string' && a.fieldValue !== 'Off' && a.fieldValue !== '';
+            pageCheckboxOverlays.push({
+              name: a.fieldName, page: pageNumber, left, top, width, height, initialChecked: checked,
+            });
+            pageCheckboxValues[a.fieldName] = checked;
+          }
         }
 
         if (cancelled) return;
         valuesRef.current = { ...valuesRef.current, ...pageValues };
+        checkboxValuesRef.current = { ...checkboxValuesRef.current, ...pageCheckboxValues };
         setPages((prev) => [...prev, { pageNumber, imageUrl, width: viewport.width, height: viewport.height }].sort((a, b) => a.pageNumber - b.pageNumber));
         setOverlays((prev) => [...prev, ...pageOverlays]);
+        setCheckboxOverlays((prev) => [...prev, ...pageCheckboxOverlays]);
         if (!firstPageReady) {
           firstPageReady = true;
           setLoading(false);
@@ -222,6 +248,20 @@ export const InteractivePdfEditor = forwardRef<InteractivePdfEditorHandle, Props
                 />
               )
             )}
+          {checkboxOverlays
+            .filter((o) => o.page === p.pageNumber)
+            .map((o) => (
+              <input
+                key={o.name}
+                type="checkbox"
+                defaultChecked={o.initialChecked}
+                onChange={(e) => {
+                  checkboxValuesRef.current[o.name] = e.target.checked;
+                }}
+                className="absolute cursor-pointer accent-[#3f83f8]"
+                style={{ left: o.left, top: o.top, width: Math.max(o.width, 10), height: Math.max(o.height, 10) }}
+              />
+            ))}
         </div>
       ))}
     </div>

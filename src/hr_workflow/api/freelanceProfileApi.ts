@@ -49,7 +49,8 @@ export const freelanceProfilePublicApi = {
     files: FreelanceProfileFormFiles,
     education: FreelanceProfileEducationDraft[],
     experience: FreelanceProfileExperienceDraft[],
-    certificates: FreelanceProfileCertificateDraft[]
+    certificates: FreelanceProfileCertificateDraft[],
+    hiringRequestToken?: string
   ): Promise<FreelanceProfileSubmission> => {
     const formData = new FormData();
 
@@ -64,6 +65,7 @@ export const freelanceProfilePublicApi = {
       certificates: certificates.map((c, i) => ({ title: c.title, fileKey: `certificates_${i}` })),
     };
     formData.append('payload', JSON.stringify(payload));
+    if (hiringRequestToken) formData.append('hiringRequestToken', hiringRequestToken);
 
     const singleFiles: Array<[string, File | null]> = [
       ['qidImage', files.qidImage],

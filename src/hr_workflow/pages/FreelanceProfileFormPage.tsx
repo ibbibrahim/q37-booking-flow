@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { useParams } from 'react-router-dom';
 import { Loader2, Plus, ScanLine, ShieldCheck, Trash2, UploadCloud, User, GraduationCap, Briefcase, Award, Landmark, Users2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -120,6 +121,7 @@ export function FreelanceProfileFormPage() {
 
 function FreelanceProfileFormContent() {
   const { showToast } = useToast();
+  const { token: hiringRequestToken } = useParams<{ token?: string }>();
 
   const [activeTab, setActiveTab] = useState<TabKey>('personal');
   const [showErrors, setShowErrors] = useState<Partial<Record<TabKey, boolean>>>({});
@@ -329,16 +331,10 @@ function FreelanceProfileFormContent() {
 
   const err = (tab: TabKey, missing: boolean) => (showErrors[tab] && missing ? ERROR_CLASS : undefined);
 
-  // Wizard-style gating: moving to a LATER tab requires the tab you're
-  // leaving to be fully complete; moving backward to review is always fine.
+  // TESTING ONLY: wizard-style forward-gating disabled below so QA can jump
+  // between tabs freely. Re-enable by restoring the block that early-returns
+  // when TAB_VALIDATORS[activeTab]() fails before advancing.
   const handleTabChange = (next: string) => {
-    const currentIndex = TAB_ORDER.indexOf(activeTab);
-    const nextIndex = TAB_ORDER.indexOf(next as TabKey);
-    if (nextIndex > currentIndex && !TAB_VALIDATORS[activeTab]()) {
-      setShowErrors((prev) => ({ ...prev, [activeTab]: true }));
-      showToast(`Please complete every highlighted field in "${TAB_LABELS[activeTab]}" before continuing.`, 'error');
-      return;
-    }
     setActiveTab(next as TabKey);
   };
 
@@ -354,7 +350,7 @@ function FreelanceProfileFormContent() {
     setSubmitting(true);
     try {
       const languages = [language1, language2, language3].filter(Boolean).join(', ');
-      await freelanceProfilePublicApi.submit({ ...fields, languages }, files, education, experience, certificates);
+      await freelanceProfilePublicApi.submit({ ...fields, languages }, files, education, experience, certificates, hiringRequestToken);
       setSubmittedCount((c) => c + 1);
       showToast('Profile submitted. HR will review it shortly.', 'success');
       resetForm();

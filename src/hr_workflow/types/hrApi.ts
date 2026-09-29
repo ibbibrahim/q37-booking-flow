@@ -1,6 +1,13 @@
 export type HrContractType = 'Permanent' | 'Freelance';
 
-export type HrEmployeeStatus = 'Active' | 'External Secondment' | 'On Leave' | 'Retired' | 'End of Service';
+export type HrEmployeeStatus =
+  | 'Active'
+  | 'External Secondment'
+  | 'On Leave'
+  | 'Retired'
+  | 'End of Service'
+  | 'Onboarding'
+  | 'Did Not Join';
 
 export interface HrSection {
   id: number;
