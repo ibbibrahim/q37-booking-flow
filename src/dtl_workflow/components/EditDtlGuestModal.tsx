@@ -98,7 +98,7 @@ export function EditDtlGuestModal({
 
   return (
     <Dialog open={guest !== null} onOpenChange={(o) => !o && handleClose()}>
-      <DialogContent className="sm:max-w-[600px]" onInteractOutside={(e) => e.preventDefault()}>
+      <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>Edit guest</DialogTitle>
         </DialogHeader>

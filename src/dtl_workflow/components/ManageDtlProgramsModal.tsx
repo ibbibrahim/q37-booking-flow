@@ -2,8 +2,7 @@ import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { useToast } from '@/contexts/ToastContext';
-import { deleteDtlProgram, listDtlPrograms } from '../services/dtlApi';
+import { listDtlPrograms } from '../services/dtlApi';
 import { useDtlPermissions } from '../hooks/useDtlRole';
 import type { DtlProgram } from '../types/dtl';
 import { CreateDtlProgramModal } from './CreateDtlProgramModal';
@@ -12,11 +11,9 @@ import { EditDtlProgramModal } from './EditDtlProgramModal';
 export function ManageDtlProgramsModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const queryClient = useQueryClient();
   const perms = useDtlPermissions();
-  const { showToast } = useToast();
 
   const [showCreate, setShowCreate] = useState(false);
   const [editingProgram, setEditingProgram] = useState<DtlProgram | null>(null);
-  const [deletingId, setDeletingId] = useState<number | null>(null);
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['dtl-programs'],
@@ -30,24 +27,10 @@ export function ManageDtlProgramsModal({ open, onClose }: { open: boolean; onClo
     queryClient.invalidateQueries({ queryKey: ['dtl-programs'] });
   }
 
-  async function handleDelete(program: DtlProgram) {
-    if (!window.confirm(`Delete the program "${program.name}"?`)) return;
-    setDeletingId(program.id);
-    try {
-      await deleteDtlProgram(program.id);
-      invalidate();
-      showToast('Program deleted', 'success');
-    } catch (err: any) {
-      showToast(err?.response?.data?.message || 'Could not delete this program.', 'error');
-    } finally {
-      setDeletingId(null);
-    }
-  }
-
   return (
     <>
       <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-        <DialogContent className="sm:max-w-[640px] max-h-[85vh] overflow-y-auto" onInteractOutside={(e) => e.preventDefault()}>
+        <DialogContent className="sm:max-w-[640px] max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <div className="flex items-center justify-between gap-3">
               <DialogTitle>DTL programs</DialogTitle>
@@ -104,23 +87,13 @@ export function ManageDtlProgramsModal({ open, onClose }: { open: boolean; onClo
                         <td className="py-3 px-4 text-sm text-muted-foreground">{p.durationMinutes ?? '—'}</td>
                         {perms.canManagePrograms && (
                           <td className="py-3 px-4 text-sm">
-                            <div className="flex items-center gap-3">
-                              <button
-                                type="button"
-                                onClick={() => setEditingProgram(p)}
-                                className="text-sm font-medium text-primary hover:underline"
-                              >
-                                Edit
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleDelete(p)}
-                                disabled={deletingId === p.id}
-                                className="text-sm font-medium text-destructive hover:underline disabled:opacity-50"
-                              >
-                                {deletingId === p.id ? 'Deleting…' : 'Delete'}
-                              </button>
-                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setEditingProgram(p)}
+                              className="text-sm font-medium text-primary hover:underline"
+                            >
+                              Edit
+                            </button>
                           </td>
                         )}
                       </tr>

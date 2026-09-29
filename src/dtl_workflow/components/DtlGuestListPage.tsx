@@ -8,8 +8,7 @@ import {
   getInitialPage,
   getInitialPageSize,
 } from '@/components/ui/list-pagination-bar';
-import { useToast } from '@/contexts/ToastContext';
-import { deleteDtlGuest, listDtlGuests } from '../services/dtlApi';
+import { listDtlGuests } from '../services/dtlApi';
 import { useDtlPermissions } from '../hooks/useDtlRole';
 import type { DtlGuest } from '../types/dtl';
 import { CreateDtlGuestModal } from './CreateDtlGuestModal';
@@ -21,7 +20,6 @@ const PAGINATION_STORAGE_KEY = 'dtl-guest-list';
 export function DtlGuestListPage() {
   const queryClient = useQueryClient();
   const perms = useDtlPermissions();
-  const { showToast } = useToast();
 
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
@@ -30,7 +28,6 @@ export function DtlGuestListPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [editingGuest, setEditingGuest] = useState<DtlGuest | null>(null);
   const [showPrograms, setShowPrograms] = useState(false);
-  const [deletingId, setDeletingId] = useState<number | null>(null);
 
   useEffect(() => {
     const handle = setTimeout(() => {
@@ -52,22 +49,6 @@ export function DtlGuestListPage() {
   function invalidate() {
     queryClient.invalidateQueries({ queryKey: ['dtl-guests'] });
   }
-
-  async function handleDelete(guest: DtlGuest) {
-    if (!window.confirm(`Delete the guest "${guest.name}"?`)) return;
-    setDeletingId(guest.id);
-    try {
-      await deleteDtlGuest(guest.id);
-      invalidate();
-      showToast('Guest deleted', 'success');
-    } catch (err: any) {
-      showToast(err?.response?.data?.message || 'Could not delete this guest.', 'error');
-    } finally {
-      setDeletingId(null);
-    }
-  }
-
-  const showActionsColumn = perms.canEditGuest || perms.canDeleteGuest;
 
   return (
     <div className="space-y-6">
@@ -131,7 +112,7 @@ export function DtlGuestListPage() {
                 <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground whitespace-nowrap">WhatsApp</th>
                 <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground whitespace-nowrap">Company</th>
                 <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground whitespace-nowrap">Country</th>
-                {showActionsColumn && (
+                {perms.canEditGuest && (
                   <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground whitespace-nowrap" />
                 )}
               </tr>
@@ -139,19 +120,19 @@ export function DtlGuestListPage() {
             <tbody>
               {isLoading ? (
                 <tr>
-                  <td colSpan={showActionsColumn ? 7 : 6} className="py-16 text-center">
+                  <td colSpan={perms.canEditGuest ? 7 : 6} className="py-16 text-center">
                     <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent" />
                   </td>
                 </tr>
               ) : isError ? (
                 <tr>
-                  <td colSpan={showActionsColumn ? 7 : 6} className="py-16 text-center text-destructive">
+                  <td colSpan={perms.canEditGuest ? 7 : 6} className="py-16 text-center text-destructive">
                     Could not load guests. Check your connection and try again.
                   </td>
                 </tr>
               ) : items.length === 0 ? (
                 <tr>
-                  <td colSpan={showActionsColumn ? 7 : 6} className="py-16 text-center text-muted-foreground">
+                  <td colSpan={perms.canEditGuest ? 7 : 6} className="py-16 text-center text-muted-foreground">
                     No guests found.
                   </td>
                 </tr>
@@ -164,29 +145,15 @@ export function DtlGuestListPage() {
                     <td className="py-3 px-4 text-sm text-muted-foreground">{g.whatsapp || '—'}</td>
                     <td className="py-3 px-4 text-sm text-muted-foreground">{g.company || '—'}</td>
                     <td className="py-3 px-4 text-sm text-muted-foreground">{g.country || '—'}</td>
-                    {showActionsColumn && (
+                    {perms.canEditGuest && (
                       <td className="py-3 px-4 text-sm">
-                        <div className="flex items-center gap-3">
-                          {perms.canEditGuest && (
-                            <button
-                              type="button"
-                              onClick={() => setEditingGuest(g)}
-                              className="text-sm font-medium text-primary hover:underline"
-                            >
-                              Edit
-                            </button>
-                          )}
-                          {perms.canDeleteGuest && (
-                            <button
-                              type="button"
-                              onClick={() => handleDelete(g)}
-                              disabled={deletingId === g.id}
-                              className="text-sm font-medium text-destructive hover:underline disabled:opacity-50"
-                            >
-                              {deletingId === g.id ? 'Deleting…' : 'Delete'}
-                            </button>
-                          )}
-                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setEditingGuest(g)}
+                          className="text-sm font-medium text-primary hover:underline"
+                        >
+                          Edit
+                        </button>
                       </td>
                     )}
                   </tr>

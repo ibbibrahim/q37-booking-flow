@@ -81,7 +81,7 @@ export function CreateDtlGuestModal({
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && handleClose()}>
-      <DialogContent className="sm:max-w-[600px]" onInteractOutside={(e) => e.preventDefault()}>
+      <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>New guest</DialogTitle>
         </DialogHeader>

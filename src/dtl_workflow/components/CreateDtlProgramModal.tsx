@@ -67,7 +67,7 @@ export function CreateDtlProgramModal({
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && handleClose()}>
-      <DialogContent className="sm:max-w-[480px]" onInteractOutside={(e) => e.preventDefault()}>
+      <DialogContent className="sm:max-w-[480px]">
         <DialogHeader>
           <DialogTitle>New program</DialogTitle>
         </DialogHeader>

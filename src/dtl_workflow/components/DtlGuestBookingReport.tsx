@@ -11,12 +11,11 @@ import { getDtlBookingReport } from '../services/dtlApi';
 import { exportDtlReportToDocx, exportDtlReportToExcel, exportDtlReportToPdf } from '../utils/dtlReportExport';
 import { DTL_BOOKING_STATUS } from '../types/dtl';
 
-type RangeKind = 'month' | 'lastMonth' | 'year' | 'all' | 'custom';
+type RangeKind = 'month' | 'year' | 'all' | 'custom';
 type ExportFormat = 'pdf' | 'docx' | 'excel';
 
 const RANGE_OPTIONS: { key: RangeKind; label: string }[] = [
   { key: 'month', label: 'Current month' },
-  { key: 'lastMonth', label: 'Last month' },
   { key: 'year', label: 'Current year' },
   { key: 'all', label: 'All time' },
   { key: 'custom', label: 'Custom range' },
@@ -29,12 +28,6 @@ function startOfMonth(d: Date) {
 }
 function endOfMonth(d: Date) {
   return new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59, 999);
-}
-function startOfLastMonth(d: Date) {
-  return new Date(d.getFullYear(), d.getMonth() - 1, 1, 0, 0, 0, 0);
-}
-function endOfLastMonth(d: Date) {
-  return new Date(d.getFullYear(), d.getMonth(), 0, 23, 59, 59, 999);
 }
 function startOfYear(d: Date) {
   return new Date(d.getFullYear(), 0, 1, 0, 0, 0, 0);
@@ -64,8 +57,6 @@ export function DtlGuestBookingReport() {
     switch (range) {
       case 'month':
         return { from: startOfMonth(now), to: endOfMonth(now) };
-      case 'lastMonth':
-        return { from: startOfLastMonth(now), to: endOfLastMonth(now) };
       case 'year':
         return { from: startOfYear(now), to: endOfYear(now) };
       case 'custom': {
