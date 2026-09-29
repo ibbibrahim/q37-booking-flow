@@ -72,7 +72,7 @@ export function EditDtlProgramModal({
 
   return (
     <Dialog open={!!program} onOpenChange={(o) => !o && handleClose()}>
-      <DialogContent className="sm:max-w-[480px]">
+      <DialogContent className="sm:max-w-[480px]" onInteractOutside={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle>Edit program</DialogTitle>
         </DialogHeader>

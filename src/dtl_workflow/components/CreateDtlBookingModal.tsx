@@ -132,7 +132,7 @@ export function CreateDtlBookingModal({
   return (
     <>
       <Dialog open={open} onOpenChange={(o) => !o && resetAndClose()}>
-        <DialogContent className="sm:max-w-[640px] max-h-[85vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-[640px] max-h-[85vh] overflow-y-auto" onInteractOutside={(e) => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle>New DTL booking</DialogTitle>
           </DialogHeader>
