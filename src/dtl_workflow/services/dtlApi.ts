@@ -207,6 +207,11 @@ export async function updateDtlGuest(id: number, data: NewDtlGuestInput): Promis
   return updated;
 }
 
+/** Soft-deletes the guest (backend sets is_deleted = true; the row/history is kept). */
+export async function deleteDtlGuest(id: number): Promise<void> {
+  await apiClient.delete(`/api/dtl/guests/${id}`);
+}
+
 export type NewDtlBookingInput = {
   guestId: number;
   programId: number;

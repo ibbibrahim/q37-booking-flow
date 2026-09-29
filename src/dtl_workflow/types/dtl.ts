@@ -88,14 +88,18 @@ export interface DtlBooking {
   updated: string;
 }
 
-export function dtlPermissionsFor(role: DtlRole) {
-  const isAdmin = role === 'Admin';
-  const isCR = role === 'CR';
-  const isAssignmentTeam = role === 'AssignmentTeam';
-  const isAssignmentLead = role === 'AssignmentLead';
+// Takes the user's full set of roles (a user can hold more than one, e.g. both AssignmentTeam and
+// AssignmentLead) and unions the permissions each grants. Reducing to a single "highest" role before
+// computing permissions was a bug: it silently dropped abilities from the other roles a user also held.
+export function dtlPermissionsFor(roles: string[]) {
+  const has = (r: string) => roles.includes(r);
+  const isAdmin = has('Admin');
+  const isCR = has('CR');
+  const isAssignmentTeam = has('AssignmentTeam');
+  const isAssignmentLead = has('AssignmentLead');
   const hasRole = isCR || isAssignmentTeam || isAssignmentLead || isAdmin;
   const canManageGuestsAndBookings = isAssignmentTeam || isAssignmentLead || isAdmin;
-  const canUpdateStatus = isCR || isAssignmentTeam || isAdmin;
+  const canUpdateStatus = isCR || isAssignmentTeam || isAssignmentLead || isAdmin;
 
   return {
     isAdmin,
@@ -104,9 +108,12 @@ export function dtlPermissionsFor(role: DtlRole) {
     canListGuests: hasRole,
     canCreateGuest: canManageGuestsAndBookings,
     canEditGuest: canManageGuestsAndBookings,
+    canDeleteGuest: canManageGuestsAndBookings,
     canListBookings: hasRole,
     canCreateBooking: canManageGuestsAndBookings,
-    canManagePrograms: canManageGuestsAndBookings,
+    // Programs management (view the catalog, create/edit/soft-delete) is Admin + AssignmentLead only —
+    // narrower than canManageGuestsAndBookings, which still covers AssignmentTeam for guests/bookings.
+    canManagePrograms: isAssignmentLead || isAdmin,
     // Kept as two names for readability at call sites; both map to the same rule today.
     canCancel: canUpdateStatus,
     canComplete: canUpdateStatus,
