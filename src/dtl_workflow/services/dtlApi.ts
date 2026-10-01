@@ -1,4 +1,5 @@
 import apiClient from '../../utils/apiClient';
+import { dateToQatarIso } from './dtlTime';
 import type { DtlBooking, DtlBookingReport, DtlGuest, DtlProgram } from '../types/dtl';
 
 interface DtlListResult<T> {
@@ -97,8 +98,8 @@ export async function getDtlBookingReport(opts: {
   statuses?: string[];
 }): Promise<DtlBookingReport> {
   const params = new URLSearchParams();
-  if (opts.from) params.set('from', opts.from.toISOString());
-  if (opts.to) params.set('to', opts.to.toISOString());
+  if (opts.from) params.set('from', dateToQatarIso(opts.from));
+  if (opts.to) params.set('to', dateToQatarIso(opts.to));
   for (const status of opts.statuses ?? []) params.append('statuses', status);
 
   const { data } = await apiClient.get<DtlBookingReport>(
@@ -146,8 +147,8 @@ export async function getDtlGuestBookingCounts(opts: {
   program?: string;
 }): Promise<DtlGuestBookingCount[]> {
   const params = new URLSearchParams();
-  if (opts.from) params.set('from', opts.from.toISOString());
-  if (opts.to) params.set('to', opts.to.toISOString());
+  if (opts.from) params.set('from', dateToQatarIso(opts.from));
+  if (opts.to) params.set('to', dateToQatarIso(opts.to));
   if (opts.program?.trim()) params.set('program', opts.program.trim());
   for (const status of opts.statuses ?? []) params.append('statuses', status);
 
@@ -220,6 +221,19 @@ export type NewDtlBookingInput = {
   durationMinutes?: number;
   status?: string;
 };
+
+export type UpdateDtlBookingInput = {
+  guestId: number;
+  programId: number;
+  location?: string;
+  time?: string;
+  durationMinutes?: number;
+};
+
+export async function updateDtlBooking(id: string, data: UpdateDtlBookingInput): Promise<DtlBooking> {
+  const { data: updated } = await apiClient.put<DtlBooking>(`/api/dtl/bookings/${id}`, data);
+  return updated;
+}
 
 export async function createDtlBooking(
   data: NewDtlBookingInput,

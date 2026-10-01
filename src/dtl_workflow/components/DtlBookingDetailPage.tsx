@@ -1,17 +1,19 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, CheckCircle2, FileText, User as UserIcon } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, FileText, Pencil, User as UserIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { appendDtlBookingLog, getDtlBooking, getDtlGuest, updateDtlBookingStatus } from '../services/dtlApi';
 import { formatDtlTimeShort, readDtlLogs } from '../services/dtlHistory';
+import { formatQatarDateOnly, formatQatarTimeOnly, nowInQatar, QATAR_TIME_LABEL } from '../services/dtlTime';
 import { useDtlRole, useDtlPermissions } from '../hooks/useDtlRole';
 import { useDtlBookingChanged } from '../hooks/useDtlBookingChanged';
 import { DTL_BOOKING_STATUS, DTL_TERMINAL_STATUSES, type DtlBooking, type DtlGuest } from '../types/dtl';
 import { DtlLinkField } from './DtlLinkField';
 import { DtlReasonPromptModal } from './DtlReasonPromptModal';
+import { CreateDtlBookingModal } from './CreateDtlBookingModal';
 
 const statusColors: Record<string, string> = {
   created: 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border-transparent',
@@ -42,6 +44,7 @@ export function DtlBookingDetailPage() {
   const [noteText, setNoteText] = useState('');
   const [addingNote, setAddingNote] = useState(false);
   const [noteError, setNoteError] = useState<string | null>(null);
+  const [editing, setEditing] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -104,9 +107,16 @@ export function DtlBookingDetailPage() {
     setBooking(updated);
   }
 
+  function handleEdited(updated: DtlBooking) {
+    setBooking(updated);
+    if (updated.guestId && updated.guestId !== guest?.id) {
+      getDtlGuest(updated.guestId).then(setGuest).catch(() => {});
+    }
+  }
+
   async function handleWhatsAppSent() {
     if (!booking) return;
-    const text = `${displayName}: Sent WhatsApp link at ${formatDtlTimeShort(new Date().toISOString())}`;
+    const text = `${displayName}: Sent WhatsApp link at ${nowInQatar()} (Qatar time)`;
     try {
       const updated = await appendDtlBookingLog(booking.id, text);
       setBooking(updated);
@@ -168,6 +178,12 @@ export function DtlBookingDetailPage() {
         </div>
 
         <div className="flex gap-2">
+          {perms.canEditBooking && booking.status === DTL_BOOKING_STATUS.Created && (
+            <Button variant="outline" onClick={() => setEditing(true)}>
+              <Pencil className="mr-2 h-4 w-4" />
+              Edit booking
+            </Button>
+          )}
           {perms.canCancel && !isTerminal && (
             <Button variant="outline" className="text-destructive border-destructive/40 hover:bg-destructive/10" onClick={() => setPendingAction('cancel')}>
               Cancel booking
@@ -192,7 +208,14 @@ export function DtlBookingDetailPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <DetailField label="Program / segment" value={booking.programName} />
                 <DetailField label="Location" value={booking.location} />
-                <DetailField label="Time" value={booking.time ? formatDtlTimeShort(booking.time) : null} />
+                <DetailField
+                  label="Time"
+                  value={booking.time ? `${formatDtlTimeShort(booking.time)} — ${QATAR_TIME_LABEL}` : null}
+                />
+                <DetailField
+                  label="Duration"
+                  value={booking.durationMinutes != null ? `${booking.durationMinutes} min` : null}
+                />
                 <DetailField label="Created by" value={booking.createdBy} />
                 {perms.canViewSentBy && <DetailField label="Sent by" value={booking.sentBy} />}
               </div>
@@ -221,6 +244,7 @@ export function DtlBookingDetailPage() {
                   <CheckCircle2 size={20} />
                   Activity Log
                 </CardTitle>
+                <p className="text-xs text-muted-foreground">Times shown in {QATAR_TIME_LABEL}</p>
               </CardHeader>
               <CardContent>
                 {logs.length === 0 ? (
@@ -235,10 +259,10 @@ export function DtlBookingDetailPage() {
                             {at && (
                               <>
                                 <div className="font-medium">
-                                  {at.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                                  {formatQatarTimeOnly(at)}
                                 </div>
                                 <div className="text-[11px] text-muted-foreground/80">
-                                  {at.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                  {formatQatarDateOnly(at)}
                                 </div>
                               </>
                             )}
@@ -313,6 +337,15 @@ export function DtlBookingDetailPage() {
         </div>
       </div>
 
+      {editing && (
+        <CreateDtlBookingModal
+          open
+          booking={booking}
+          guest={guest}
+          onClose={() => setEditing(false)}
+          onCreated={handleEdited}
+        />
+      )}
       <DtlReasonPromptModal
         open={pendingAction === 'cancel'}
         title="Cancel this booking?"

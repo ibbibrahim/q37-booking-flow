@@ -18,32 +18,52 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { CreateDtlGuestModal } from './CreateDtlGuestModal';
-import { createDtlBooking, listDtlPrograms, searchDtlGuests } from '../services/dtlApi';
+import {
+  appendDtlBookingLog,
+  createDtlBooking,
+  listDtlPrograms,
+  searchDtlGuests,
+  updateDtlBooking,
+} from '../services/dtlApi';
 import { useDtlRole } from '../hooks/useDtlRole';
+import { nowInQatar, qatarInputToIso, QATAR_TIME_LABEL, toQatarInputValue, formatDtlBookingTime } from '../services/dtlTime';
 import type { DtlBooking, DtlGuest } from '../types/dtl';
 
+function describeChange(label: string, from: string, to: string): string {
+  return `${label}: ${from || '(empty)'} → ${to || '(empty)'}`;
+}
+
+// Pass `booking` (and its `guest`) to open the modal in edit mode. Mount it conditionally so the
+// form state initialises from the booking each time it opens.
 export function CreateDtlBookingModal({
   open,
   onClose,
   onCreated,
+  booking,
+  guest,
 }: {
   open: boolean;
   onClose: () => void;
   onCreated: (booking: DtlBooking) => void;
+  booking?: DtlBooking;
+  guest?: DtlGuest | null;
 }) {
   const { displayName } = useDtlRole();
+  const isEdit = !!booking;
 
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<DtlGuest[]>([]);
   const [settledQuery, setSettledQuery] = useState('');
-  const [selectedGuest, setSelectedGuest] = useState<DtlGuest | null>(null);
+  const [selectedGuest, setSelectedGuest] = useState<DtlGuest | null>(guest ?? null);
   const [showCreateGuest, setShowCreateGuest] = useState(false);
 
-  const [programId, setProgramId] = useState<number | null>(null);
-  const [durationTouched, setDurationTouched] = useState(false);
-  const [location, setLocation] = useState('');
-  const [time, setTime] = useState('');
-  const [durationMinutes, setDurationMinutes] = useState('');
+  const [programId, setProgramId] = useState<number | null>(booking?.programId ?? null);
+  const [durationTouched, setDurationTouched] = useState(booking?.durationMinutes != null);
+  const [location, setLocation] = useState(booking?.location ?? '');
+  const [time, setTime] = useState(() => toQatarInputValue(booking?.time));
+  const [durationMinutes, setDurationMinutes] = useState(
+    booking?.durationMinutes != null ? String(booking.durationMinutes) : '',
+  );
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -109,13 +129,65 @@ export function CreateDtlBookingModal({
     }
 
     setSubmitting(true);
+    if (booking) {
+      try {
+        const nextLocation = location.trim();
+        const nextDuration = durationMinutes ? Number(durationMinutes) : null;
+        const nextTime = time ? qatarInputToIso(time) : null;
+        const programName = (id: number | null) =>
+          programsQuery.data?.find((p) => p.id === id)?.name ?? (id === booking.programId ? booking.programName : '');
+        const minutes = (n: number | null) => (n != null ? `${n} min` : '');
+
+        const changed: string[] = [];
+        if (selectedGuest.id !== booking.guestId) {
+          changed.push(describeChange('Guest', guest?.name ?? booking.guestName ?? '', selectedGuest.name));
+        }
+        if (programId !== booking.programId) {
+          changed.push(describeChange('Program', booking.programName, programName(programId)));
+        }
+        if (nextLocation !== (booking.location ?? '')) {
+          changed.push(describeChange('Location', booking.location ?? '', nextLocation));
+        }
+        if (time !== toQatarInputValue(booking.time)) {
+          changed.push(describeChange('Time', formatDtlBookingTime(booking.time), formatDtlBookingTime(nextTime)));
+        }
+        if (nextDuration !== booking.durationMinutes) {
+          changed.push(describeChange('Duration', minutes(booking.durationMinutes), minutes(nextDuration)));
+        }
+
+        let updated = await updateDtlBooking(booking.id, {
+          guestId: selectedGuest.id,
+          programId,
+          location: nextLocation || undefined,
+          time: nextTime ?? undefined,
+          durationMinutes: nextDuration ?? undefined,
+        });
+        if (changed.length > 0) {
+          try {
+            updated = await appendDtlBookingLog(
+              booking.id,
+              `${displayName}: Edited the booking at ${nowInQatar()} (Qatar time) — ${changed.join('; ')}`,
+            );
+          } catch {
+            // The edit itself succeeded; the log entry is a nicety, not worth failing over.
+          }
+        }
+        onCreated(updated);
+        setSubmitting(false);
+        onClose();
+      } catch {
+        setError('Something went wrong while saving the booking.');
+        setSubmitting(false);
+      }
+      return;
+    }
     try {
       const booking = await createDtlBooking(
         {
           guestId: selectedGuest.id,
           programId,
           location: location.trim() || undefined,
-          time: time ? new Date(time).toISOString() : undefined,
+          time: time ? qatarInputToIso(time) : undefined,
           durationMinutes: durationMinutes ? Number(durationMinutes) : undefined,
         },
         displayName,
@@ -134,7 +206,7 @@ export function CreateDtlBookingModal({
       <Dialog open={open} onOpenChange={(o) => !o && resetAndClose()}>
         <DialogContent className="sm:max-w-[640px] max-h-[85vh] overflow-y-auto" onInteractOutside={(e) => e.preventDefault()}>
           <DialogHeader>
-            <DialogTitle>New DTL booking</DialogTitle>
+            <DialogTitle>{isEdit ? 'Edit DTL booking' : 'New DTL booking'}</DialogTitle>
           </DialogHeader>
 
           <div className="space-y-6 py-2">
@@ -231,13 +303,14 @@ export function CreateDtlBookingModal({
                   <Input id="dtl-location" value={location} onChange={(e) => setLocation(e.target.value)} />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="dtl-time">Date & time</Label>
+                  <Label htmlFor="dtl-time">Date & time (Qatar)</Label>
                   <Input
                     id="dtl-time"
                     type="datetime-local"
                     value={time}
                     onChange={(e) => setTime(e.target.value)}
                   />
+                  <p className="text-xs text-muted-foreground">{QATAR_TIME_LABEL}</p>
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="dtl-duration">Duration (minutes)</Label>
@@ -254,7 +327,7 @@ export function CreateDtlBookingModal({
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="dtl-created-by">Created by</Label>
-                  <Input id="dtl-created-by" value={displayName} disabled />
+                  <Input id="dtl-created-by" value={isEdit ? booking?.createdBy ?? '' : displayName} disabled />
                 </div>
               </div>
             </section>
@@ -267,7 +340,9 @@ export function CreateDtlBookingModal({
               Cancel
             </Button>
             <Button type="button" onClick={handleSubmit} disabled={submitting}>
-              {submitting ? 'Creating…' : 'Create booking'}
+              {isEdit
+                ? submitting ? 'Saving…' : 'Save changes'
+                : submitting ? 'Creating…' : 'Create booking'}
             </Button>
           </DialogFooter>
         </DialogContent>

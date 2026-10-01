@@ -111,6 +111,8 @@ export function dtlPermissionsFor(roles: string[]) {
     canDeleteGuest: canManageGuestsAndBookings,
     canListBookings: hasRole,
     canCreateBooking: canManageGuestsAndBookings,
+    // Editing guest/program/location/time/duration is only offered while the booking is still "created".
+    canEditBooking: canManageGuestsAndBookings,
     // Programs management (view the catalog, create/edit/soft-delete) is Admin + AssignmentLead only —
     // narrower than canManageGuestsAndBookings, which still covers AssignmentTeam for guests/bookings.
     canManagePrograms: isAssignmentLead || isAdmin,

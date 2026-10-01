@@ -25,8 +25,7 @@ export function DtlLinkField({
   const [sendingEmail, setSendingEmail] = useState(false);
   const [emailError, setEmailError] = useState<string | null>(null);
 
-  const guestName = guest?.name || 'there';
-  const message = buildDtlLinkMessage(guestName, booking.programName, booking.link || '');
+  const message = buildDtlLinkMessage(guest?.name || '', booking.programName, booking.time, booking.link || '');
   const whatsappUrl = booking.link
     ? buildDtlWhatsAppUrl(guest?.whatsapp || guest?.phone || '', message)
     : null;
