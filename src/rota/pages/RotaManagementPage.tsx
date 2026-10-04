@@ -191,17 +191,29 @@ export function RotaManagementPage() {
 
   const buildAssignmentsPayload = useCallback(
     (assignments: RotaAssignment[]) =>
-      assignments.map((a) => ({
-        employeeId: a.employeeId,
-        shiftDate: normalizeDateString(a.shiftDate),
-        shiftTypeId: a.shiftTypeId,
-        customLabel: a.customLabel,
-        programName: a.programName,
-        assignmentComments: a.assignmentComments,
-        shiftStartTime: a.shiftStartTime,
-        shiftEndTime: a.shiftEndTime,
-        isOffDay: a.isOffDay ?? false,
-      })),
+      assignments
+        // The backend requires each row to carry a shiftTypeId, a
+        // customLabel, or isOffDay — a row with none of those (e.g. a cell
+        // that only ever got a programName set) can't be saved on its own
+        // and would fail the whole bulk request if included, taking down
+        // every other edit in the same save along with it.
+        .filter(
+          (a) =>
+            a.shiftTypeId != null ||
+            (a.customLabel != null && a.customLabel.trim() !== '') ||
+            a.isOffDay
+        )
+        .map((a) => ({
+          employeeId: a.employeeId,
+          shiftDate: normalizeDateString(a.shiftDate),
+          shiftTypeId: a.shiftTypeId,
+          customLabel: a.customLabel,
+          programName: a.programName,
+          assignmentComments: a.assignmentComments,
+          shiftStartTime: a.shiftStartTime,
+          shiftEndTime: a.shiftEndTime,
+          isOffDay: a.isOffDay ?? false,
+        })),
     []
   );
 
