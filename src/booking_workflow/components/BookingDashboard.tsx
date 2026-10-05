@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import type { UserRole } from '../types/workflow';
 import {
@@ -486,6 +486,14 @@ export const BookingDashboard: React.FC = () => {
       default: return currentRole;
     }
   })();
+
+  // Browser tab title per page, e.g. "Rota Management · QBC".
+  // /admin shows its sidebar name rather than the "Admin" role header.
+  const pageTitle = currentSection === 'admin' ? 'Booking Dashboard' : headerTitle;
+  useEffect(() => {
+    document.title = `${pageTitle} · QBC`;
+    return () => { document.title = 'QBC | Resource Management'; };
+  }, [pageTitle]);
 
   const headerSubtitle = (() => {
     switch (currentSection) {
