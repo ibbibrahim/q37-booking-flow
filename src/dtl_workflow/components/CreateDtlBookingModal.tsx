@@ -24,10 +24,11 @@ import {
   listDtlPrograms,
   searchDtlGuests,
   updateDtlBooking,
+  updateDtlBookingStatus,
 } from '../services/dtlApi';
 import { useDtlRole } from '../hooks/useDtlRole';
 import { nowInQatar, qatarInputToIso, QATAR_TIME_LABEL, toQatarInputValue, formatDtlBookingTime } from '../services/dtlTime';
-import type { DtlBooking, DtlGuest } from '../types/dtl';
+import { DTL_BOOKING_STATUS, type DtlBooking, type DtlGuest } from '../types/dtl';
 
 function describeChange(label: string, from: string, to: string): string {
   return `${label}: ${from || '(empty)'} → ${to || '(empty)'}`;
@@ -159,13 +160,26 @@ export function CreateDtlBookingModal({
           changed.push(describeChange('Duration', minutes(booking.durationMinutes), minutes(nextDuration)));
         }
 
-        let updated = await updateDtlBooking(booking.id, {
+        const input = {
           guestId: selectedGuest.id,
           programId,
           location: nextLocation || undefined,
           time: nextTime,
           durationMinutes: nextDuration ?? undefined,
-        });
+        };
+        let updated: DtlBooking;
+        if (booking.status === DTL_BOOKING_STATUS.Created) {
+          updated = await updateDtlBooking(booking.id, input);
+        } else {
+          // The API only accepts edits on "created" bookings, so a completed/cancelled one is briefly
+          // reopened, edited, then put back to its original status (no log text, so no extra log lines).
+          await updateDtlBookingStatus(booking.id, DTL_BOOKING_STATUS.Created);
+          try {
+            await updateDtlBooking(booking.id, input);
+          } finally {
+            updated = await updateDtlBookingStatus(booking.id, booking.status);
+          }
+        }
         if (changed.length > 0) {
           try {
             updated = await appendDtlBookingLog(

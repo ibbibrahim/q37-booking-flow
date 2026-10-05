@@ -1,10 +1,16 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, CheckCircle2, FileText, Pencil, User as UserIcon } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, ChevronDown, FileText, Pencil, User as UserIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { appendDtlBookingLog, getDtlBooking, getDtlGuest, updateDtlBookingStatus } from '../services/dtlApi';
 import { formatDtlTimeShort, readDtlLogs } from '../services/dtlHistory';
 import { formatQatarDateOnly, formatQatarTimeOnly, nowInQatar, QATAR_TIME_LABEL } from '../services/dtlTime';
@@ -45,6 +51,7 @@ export function DtlBookingDetailPage() {
   const [addingNote, setAddingNote] = useState(false);
   const [noteError, setNoteError] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
+  const [nextStatus, setNextStatus] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -101,6 +108,14 @@ export function DtlBookingDetailPage() {
     const updated = await updateDtlBookingStatus(booking.id, DTL_BOOKING_STATUS.Completed, text);
     setBooking(updated);
     setPendingAction(null);
+  }
+
+  async function performStatusChange(reason: string) {
+    if (!booking || !nextStatus) return;
+    const base = `${displayName}: Changed status from ${booking.status} to ${nextStatus}`;
+    const updated = await updateDtlBookingStatus(booking.id, nextStatus, reason ? `${base} — ${reason}` : base);
+    setBooking(updated);
+    setNextStatus(null);
   }
 
   function handleLinkUpdated(updated: DtlBooking) {
@@ -178,7 +193,7 @@ export function DtlBookingDetailPage() {
         </div>
 
         <div className="flex gap-2">
-          {perms.canEditBooking && booking.status === DTL_BOOKING_STATUS.Created && (
+          {perms.canEditBooking && (
             <Button variant="outline" onClick={() => setEditing(true)}>
               <Pencil className="mr-2 h-4 w-4" />
               Edit booking
@@ -191,6 +206,25 @@ export function DtlBookingDetailPage() {
           )}
           {perms.canComplete && !isTerminal && (
             <Button onClick={() => setPendingAction('complete')}>Mark as completed</Button>
+          )}
+          {perms.canComplete && isTerminal && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline">
+                  Change status
+                  <ChevronDown className="ml-2 h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {Object.values(DTL_BOOKING_STATUS)
+                  .filter((s) => s !== booking.status)
+                  .map((s) => (
+                    <DropdownMenuItem key={s} onSelect={() => setNextStatus(s)}>
+                      {s === DTL_BOOKING_STATUS.Created ? 'Reopen (created)' : s}
+                    </DropdownMenuItem>
+                  ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
         </div>
       </div>
@@ -360,6 +394,13 @@ export function DtlBookingDetailPage() {
         confirmLabel="Mark as completed"
         onConfirm={performComplete}
         onClose={() => setPendingAction(null)}
+      />
+      <DtlReasonPromptModal
+        open={nextStatus !== null}
+        title={`Change status to ${nextStatus === DTL_BOOKING_STATUS.Created ? 'created (reopen)' : nextStatus}?`}
+        confirmLabel="Change status"
+        onConfirm={performStatusChange}
+        onClose={() => setNextStatus(null)}
       />
     </div>
   );
