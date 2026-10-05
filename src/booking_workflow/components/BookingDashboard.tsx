@@ -4,10 +4,11 @@ import type { UserRole } from '../types/workflow';
 import {
   User, Radio, Package, Shield, Menu, X, Sun, Moon, FileText,
   LogOut, UserCircle, BarChart3, Boxes, Tv, Users, KeyRound,
-  Film, Inbox, CalendarDays, ChevronLeft, ChevronRight, Briefcase,
+  Film, Inbox, CalendarDays, Briefcase,
   LayoutDashboard, ClipboardList, FileBarChart, Search, CalendarCheck,
   Handshake, ChevronDown, UserCheck, UserRoundCog, FileSignature, ShieldCheck,
   Phone, Contact, CalendarRange, ScrollText, Clapperboard, MonitorPlay, CalendarClock,
+  PanelLeftClose, PanelLeftOpen, Workflow,
 } from 'lucide-react';
 import { HrLanguageProvider, HrLanguageToggle } from '../../hr_workflow/context/HrLanguageContext';
 import { cn } from '@/lib/utils';
@@ -534,9 +535,10 @@ export const BookingDashboard: React.FC = () => {
         )}
       >
         {/* ── Logo header ── */}
-        <div className="shrink-0 border-b border-sidebar-border">
+        {/* Fixed h-20 — must match the main header height so their bottom borders line up */}
+        <div className="shrink-0 h-20 border-b border-sidebar-border">
           <div className={cn(
-            'flex items-center justify-between transition-all duration-300',
+            'h-full flex items-center justify-between transition-all duration-300',
             sidebarCollapsed ? 'p-3 lg:justify-center' : 'p-4'
           )}>
 
@@ -759,39 +761,61 @@ export const BookingDashboard: React.FC = () => {
           )}
         </nav>
 
-        {/* ── Footer with collapse toggle ── */}
-        <div className="shrink-0 border-t border-sidebar-border p-3 space-y-2">
-          {/* Desktop collapse toggle button */}
-          <button
-            type="button"
-            onClick={toggleCollapsed}
-            title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        {/* ── Footer: app identity card + collapse toggle ── */}
+        <div className="shrink-0 border-t border-sidebar-border p-3">
+          {/* Expanded (and always on mobile) */}
+          <div
             className={cn(
-              'group hidden lg:flex items-center w-full rounded-lg px-3 py-2 text-sidebar-foreground/70',
-              'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:shadow-sm transition-all duration-200',
-              sidebarCollapsed ? 'lg:justify-center lg:px-0 lg:h-10' : 'gap-3'
+              'flex items-center gap-2.5 rounded-xl border border-sidebar-border px-2 py-2.5',
+              'bg-gradient-to-b from-sidebar-background to-sidebar-accent/60',
+              'shadow-[0_1px_2px_rgba(15,23,42,0.04),0_4px_12px_-6px_rgba(15,23,42,0.10)]',
+              sidebarCollapsed && 'lg:hidden'
             )}
           >
-            {sidebarCollapsed
-              ? <ChevronRight size={18} className="shrink-0" />
-              : (
-                <>
-                  <ChevronLeft size={18} className="shrink-0 transition-transform group-hover:-translate-x-0.5" />
-                  <span className="text-xs font-medium">Collapse sidebar</span>
-                </>
-              )
-            }
-          </button>
-
-          {/* Footer text (hidden when collapsed) */}
-          <div className={cn(
-            'rounded-lg border border-sidebar-border bg-sidebar-accent/50 px-3 py-2.5',
-            sidebarCollapsed && 'lg:hidden'
-          )}>
-            <p className="text-[11px] font-semibold text-sidebar-foreground/70 tracking-wide">
-              Resource Management Workflow
-            </p>
+            <div className="h-8 w-8 shrink-0 rounded-lg bg-sidebar-primary text-sidebar-primary-foreground grid place-items-center shadow-md shadow-sidebar-primary/25 ring-1 ring-inset ring-white/10">
+              <Workflow size={16} />
+            </div>
+            <div className="flex-1 min-w-0 leading-tight">
+              <p className="text-[12.5px] font-semibold leading-snug text-sidebar-accent-foreground break-words">
+                Resource Management
+              </p>
+              <p className="text-[11px] font-medium leading-snug text-sidebar-foreground/50">
+                Workflow System
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={toggleCollapsed}
+              title="Collapse sidebar"
+              aria-label="Collapse sidebar"
+              className={cn(
+                'hidden lg:grid h-7 w-7 shrink-0 place-items-center rounded-lg',
+                'border border-sidebar-border bg-sidebar-background text-sidebar-foreground/60 shadow-sm',
+                'hover:text-sidebar-accent-foreground hover:shadow-md hover:-translate-y-px',
+                'transition-all duration-200'
+              )}
+            >
+              <PanelLeftClose size={15} />
+            </button>
           </div>
+
+          {/* Desktop icon-only mode: just the expand button */}
+          {sidebarCollapsed && (
+            <button
+              type="button"
+              onClick={toggleCollapsed}
+              title="Expand sidebar"
+              aria-label="Expand sidebar"
+              className={cn(
+                'hidden lg:grid h-10 w-10 mx-auto place-items-center rounded-lg',
+                'border border-sidebar-border bg-sidebar-background text-sidebar-foreground/60 shadow-sm',
+                'hover:text-sidebar-accent-foreground hover:shadow-md hover:-translate-y-px',
+                'transition-all duration-200'
+              )}
+            >
+              <PanelLeftOpen size={18} />
+            </button>
+          )}
         </div>
       </aside>
 
@@ -807,8 +831,10 @@ export const BookingDashboard: React.FC = () => {
       <div className="flex-1 flex flex-col min-w-0">
 
         <header className="bg-card border-b border-border sticky top-0 z-30">
-          <div className="px-4 sm:px-6 py-4">
-            <div className="flex items-center justify-between">
+          {/* 79px + the header's 1px border = the sidebar logo header's h-20 (80px),
+              so the two bottom borders form one straight line */}
+          <div className="min-h-[79px] px-4 sm:px-6 py-3 flex items-center">
+            <div className="flex-1 min-w-0 flex items-center justify-between">
               <div className="flex items-center gap-4">
                 {/* Mobile hamburger */}
                 <button
