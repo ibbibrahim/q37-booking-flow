@@ -127,13 +127,17 @@ export function CreateDtlBookingModal({
       setError('Search for and select a guest, or create a new one.');
       return;
     }
+    if (!time) {
+      setError('Select a date and time.');
+      return;
+    }
 
     setSubmitting(true);
     if (booking) {
       try {
         const nextLocation = location.trim();
         const nextDuration = durationMinutes ? Number(durationMinutes) : null;
-        const nextTime = time ? qatarInputToIso(time) : null;
+        const nextTime = qatarInputToIso(time);
         const programName = (id: number | null) =>
           programsQuery.data?.find((p) => p.id === id)?.name ?? (id === booking.programId ? booking.programName : '');
         const minutes = (n: number | null) => (n != null ? `${n} min` : '');
@@ -159,7 +163,7 @@ export function CreateDtlBookingModal({
           guestId: selectedGuest.id,
           programId,
           location: nextLocation || undefined,
-          time: nextTime ?? undefined,
+          time: nextTime,
           durationMinutes: nextDuration ?? undefined,
         });
         if (changed.length > 0) {
@@ -187,7 +191,7 @@ export function CreateDtlBookingModal({
           guestId: selectedGuest.id,
           programId,
           location: location.trim() || undefined,
-          time: time ? qatarInputToIso(time) : undefined,
+          time: qatarInputToIso(time),
           durationMinutes: durationMinutes ? Number(durationMinutes) : undefined,
         },
         displayName,
@@ -303,11 +307,12 @@ export function CreateDtlBookingModal({
                   <Input id="dtl-location" value={location} onChange={(e) => setLocation(e.target.value)} />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="dtl-time">Date & time (Qatar)</Label>
+                  <Label htmlFor="dtl-time">Date & time (Qatar) *</Label>
                   <Input
                     id="dtl-time"
                     type="datetime-local"
                     value={time}
+                    required
                     onChange={(e) => setTime(e.target.value)}
                   />
                   <p className="text-xs text-muted-foreground">{QATAR_TIME_LABEL}</p>

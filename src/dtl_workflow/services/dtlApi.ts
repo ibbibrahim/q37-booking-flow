@@ -217,7 +217,7 @@ export type NewDtlBookingInput = {
   guestId: number;
   programId: number;
   location?: string;
-  time?: string;
+  time: string;
   durationMinutes?: number;
   status?: string;
 };
@@ -226,7 +226,7 @@ export type UpdateDtlBookingInput = {
   guestId: number;
   programId: number;
   location?: string;
-  time?: string;
+  time: string;
   durationMinutes?: number;
 };
 
