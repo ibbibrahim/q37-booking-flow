@@ -8,6 +8,8 @@ import { useDtlPermissions } from '../hooks/useDtlRole';
 import type { DtlProgram } from '../types/dtl';
 import { CreateDtlProgramModal } from './CreateDtlProgramModal';
 import { EditDtlProgramModal } from './EditDtlProgramModal';
+import { cn } from '@/lib/utils';
+import { DTL_DIALOG_CONTENT_CLASS } from './dtlDialogStyles';
 
 export function ManageDtlProgramsModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const queryClient = useQueryClient();
@@ -47,7 +49,7 @@ export function ManageDtlProgramsModal({ open, onClose }: { open: boolean; onClo
   return (
     <>
       <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-        <DialogContent className="sm:max-w-[640px] max-h-[85vh] overflow-y-auto" onInteractOutside={(e) => e.preventDefault()}>
+        <DialogContent className={cn(DTL_DIALOG_CONTENT_CLASS, 'sm:max-w-[640px]')} onInteractOutside={(e) => e.preventDefault()}>
           <DialogHeader>
             <div className="flex items-center justify-between gap-3">
               <DialogTitle>DTL programs</DialogTitle>

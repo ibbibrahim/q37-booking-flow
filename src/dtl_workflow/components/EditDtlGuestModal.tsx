@@ -16,6 +16,8 @@ import {
   type GuestFieldsValue,
 } from '../services/dtlValidation';
 import type { DtlGuest } from '../types/dtl';
+import { cn } from '@/lib/utils';
+import { DTL_DIALOG_CONTENT_CLASS, DTL_DIALOG_FOOTER_CLASS } from './dtlDialogStyles';
 
 export function EditDtlGuestModal({
   guest,
@@ -98,7 +100,7 @@ export function EditDtlGuestModal({
 
   return (
     <Dialog open={guest !== null} onOpenChange={(o) => !o && handleClose()}>
-      <DialogContent className="sm:max-w-[600px]" onInteractOutside={(e) => e.preventDefault()}>
+      <DialogContent className={cn(DTL_DIALOG_CONTENT_CLASS, 'sm:max-w-[600px]')} onInteractOutside={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle>Edit guest</DialogTitle>
         </DialogHeader>
@@ -115,7 +117,7 @@ export function EditDtlGuestModal({
           {error && <p className="mt-3 text-sm text-destructive">{error}</p>}
         </div>
 
-        <DialogFooter>
+        <DialogFooter className={DTL_DIALOG_FOOTER_CLASS}>
           <Button type="button" variant="outline" onClick={handleClose} disabled={submitting}>
             Cancel
           </Button>

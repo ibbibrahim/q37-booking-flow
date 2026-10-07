@@ -29,6 +29,8 @@ import {
 import { useDtlRole } from '../hooks/useDtlRole';
 import { nowInQatar, qatarInputToIso, QATAR_TIME_LABEL, toQatarInputValue, formatDtlBookingTime } from '../services/dtlTime';
 import { DTL_BOOKING_STATUS, type DtlBooking, type DtlGuest } from '../types/dtl';
+import { cn } from '@/lib/utils';
+import { DTL_DIALOG_CONTENT_CLASS, DTL_DIALOG_FOOTER_CLASS } from './dtlDialogStyles';
 
 function describeChange(label: string, from: string, to: string): string {
   return `${label}: ${from || '(empty)'} → ${to || '(empty)'}`;
@@ -222,7 +224,7 @@ export function CreateDtlBookingModal({
   return (
     <>
       <Dialog open={open} onOpenChange={(o) => !o && resetAndClose()}>
-        <DialogContent className="sm:max-w-[640px] max-h-[85vh] overflow-y-auto" onInteractOutside={(e) => e.preventDefault()}>
+        <DialogContent className={cn(DTL_DIALOG_CONTENT_CLASS, 'sm:max-w-[640px]')} onInteractOutside={(e) => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle>{isEdit ? 'Edit DTL booking' : 'New DTL booking'}</DialogTitle>
           </DialogHeader>
@@ -354,7 +356,7 @@ export function CreateDtlBookingModal({
             {error && <p className="text-sm text-destructive">{error}</p>}
           </div>
 
-          <DialogFooter>
+          <DialogFooter className={DTL_DIALOG_FOOTER_CLASS}>
             <Button type="button" variant="outline" onClick={resetAndClose} disabled={submitting}>
               Cancel
             </Button>

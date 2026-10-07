@@ -9,6 +9,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { cn } from '@/lib/utils';
+import { DTL_DIALOG_CONTENT_CLASS, DTL_DIALOG_FOOTER_CLASS } from './dtlDialogStyles';
 
 export function DtlReasonPromptModal({
   open,
@@ -51,7 +53,7 @@ export function DtlReasonPromptModal({
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && handleClose()}>
-      <DialogContent className="sm:max-w-[500px]" onInteractOutside={(e) => e.preventDefault()}>
+      <DialogContent className={cn(DTL_DIALOG_CONTENT_CLASS, 'sm:max-w-[500px]')} onInteractOutside={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
@@ -70,7 +72,7 @@ export function DtlReasonPromptModal({
           {error && <p className="text-sm text-destructive">{error}</p>}
         </div>
 
-        <DialogFooter>
+        <DialogFooter className={DTL_DIALOG_FOOTER_CLASS}>
           <Button type="button" variant="outline" onClick={handleClose} disabled={submitting}>
             Cancel
           </Button>

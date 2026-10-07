@@ -11,6 +11,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { updateDtlProgram } from '../services/dtlApi';
 import type { DtlProgram } from '../types/dtl';
+import { cn } from '@/lib/utils';
+import { DTL_DIALOG_CONTENT_CLASS, DTL_DIALOG_FOOTER_CLASS } from './dtlDialogStyles';
 
 export function EditDtlProgramModal({
   program,
@@ -72,7 +74,7 @@ export function EditDtlProgramModal({
 
   return (
     <Dialog open={!!program} onOpenChange={(o) => !o && handleClose()}>
-      <DialogContent className="sm:max-w-[480px]" onInteractOutside={(e) => e.preventDefault()}>
+      <DialogContent className={cn(DTL_DIALOG_CONTENT_CLASS, 'sm:max-w-[480px]')} onInteractOutside={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle>Edit program</DialogTitle>
         </DialogHeader>
@@ -106,7 +108,7 @@ export function EditDtlProgramModal({
           {error && <p className="text-sm text-destructive">{error}</p>}
         </div>
 
-        <DialogFooter>
+        <DialogFooter className={DTL_DIALOG_FOOTER_CLASS}>
           <Button type="button" variant="outline" onClick={handleClose} disabled={submitting}>
             Cancel
           </Button>
