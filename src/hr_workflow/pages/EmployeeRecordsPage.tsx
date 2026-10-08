@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { ListFilterBar, FilterActiveFiltersRow } from '@/components/ui/list-filter-bar';
 import { ListPaginationBar, getInitialPage, getInitialPageSize } from '@/components/ui/list-pagination-bar';
 import { StatTile } from '../components/StatTile';
+import { EmployeeAvatar } from '../components/EmployeeAvatar';
 import { hrApi } from '../api/hrApi';
 import { useHrLanguage, bilingual } from '../context/HrLanguageContext';
 import { hrEmployeeStatusBadgeClass, formatDate } from '../utils/hrUtils';
@@ -274,12 +275,17 @@ export function EmployeeRecordsPage({ contractType }: Props) {
               {!employeesQuery.isLoading && !employeesQuery.isError && employees.map((emp) => (
                 <TableRow key={emp.id}>
                   <TableCell className="font-medium text-foreground">
-                    {bilingual(language, emp.fullNameEn, emp.fullNameAr)}
-                    {emp.recentlyConvertedToPermanent && (
-                      <Badge className="ml-2 border-transparent bg-yellow-400/20 text-yellow-700 dark:text-yellow-300">
-                        Freelance → Permanent
-                      </Badge>
-                    )}
+                    <div className="flex items-center gap-2.5">
+                      <EmployeeAvatar profilePictureUrl={emp.profilePictureUrl} gender={emp.gender} name={emp.fullNameEn} />
+                      <span>
+                        {bilingual(language, emp.fullNameEn, emp.fullNameAr)}
+                        {emp.recentlyConvertedToPermanent && (
+                          <Badge className="ml-2 border-transparent bg-yellow-400/20 text-yellow-700 dark:text-yellow-300">
+                            Freelance → Permanent
+                          </Badge>
+                        )}
+                      </span>
+                    </div>
                   </TableCell>
                   {isPermanent && <TableCell className="text-muted-foreground">{emp.qmcJobNo || '—'}</TableCell>}
                   <TableCell>{bilingual(language, emp.jobTitleEn, emp.jobTitleAr)}</TableCell>

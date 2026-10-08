@@ -67,6 +67,12 @@ export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ child
     if (roleArray.includes('AssignmentLead')) return 'AssignmentLead' as UserRole;
     if (roleArray.includes('AssignmentTeam')) return 'AssignmentTeam' as UserRole;
     if (roleArray.includes('CR')) return 'CR' as UserRole;
+    // HR module roles — each joins its own SignalR group so hiring/leave
+    // request changes reach the right screens in real time.
+    if (roleArray.includes('HRAdmin')) return 'HRAdmin' as UserRole;
+    if (roleArray.includes('GeneralManager')) return 'GeneralManager' as UserRole;
+    if (roleArray.includes('DepartmentHead')) return 'DepartmentHead' as UserRole;
+    if (roleArray.includes('DepartmentCoordinator')) return 'DepartmentCoordinator' as UserRole;
     return 'Booking';
   }, [user]);
 

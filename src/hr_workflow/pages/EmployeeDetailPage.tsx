@@ -2,8 +2,10 @@ import { useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  ArrowLeft, Pencil, UserCircle2, Phone, CreditCard, User, History,
+  ArrowLeft, Pencil, Phone, CreditCard, User, History,
   FileText, Upload, Trash2, Download, Eye, Briefcase,
+  Home, Landmark, Users2, ShieldCheck,
+  GraduationCap, Award, UploadCloud, AlertTriangle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -12,6 +14,7 @@ import { useToast } from '@/contexts/ToastContext';
 import { getApiErrorMessage } from '@/utils/apiError';
 import { DetailSection, DetailFieldGrid, DetailField } from '../components/DetailSection';
 import { EmployeeHistoryTimeline } from '../components/EmployeeHistoryTimeline';
+import { EmployeeAvatar } from '../components/EmployeeAvatar';
 import { hrApi } from '../api/hrApi';
 import { useHrLanguage, bilingual } from '../context/HrLanguageContext';
 import { formatDate, formatCurrencyQAR, hrEmployeeStatusBadgeClass } from '../utils/hrUtils';
@@ -27,6 +30,39 @@ function formatFileSize(bytes: number | null): string {
   if (!bytes) return '';
   if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+/** A single document row — a link when the file is on file, a red "Missing"
+ * state when it's an important document that isn't. Used throughout the
+ * Documents tab instead of silently omitting whatever wasn't uploaded. */
+function FileRow({ label, url, important }: { label: string; url: string | null; important?: boolean }) {
+  if (!url) {
+    return (
+      <div className="flex items-center justify-between gap-2 rounded-md border border-dashed border-border px-3 py-2.5 text-sm">
+        <span className="text-muted-foreground">{label}</span>
+        {important ? (
+          <span className="inline-flex items-center gap-1.5 rounded-md border border-destructive/30 bg-destructive/10 px-2 py-0.5 text-xs font-semibold text-destructive">
+            <AlertTriangle size={12} /> Missing
+          </span>
+        ) : (
+          <span className="text-xs text-muted-foreground">Not provided</span>
+        )}
+      </div>
+    );
+  }
+  return (
+    <div className="flex items-center justify-between gap-2 rounded-md border border-border px-3 py-2.5 text-sm">
+      <span className="font-medium text-foreground">{label}</span>
+      <div className="flex items-center gap-1 shrink-0">
+        <a href={url} target="_blank" rel="noopener noreferrer" title="View">
+          <Button size="sm" variant="ghost"><Eye size={14} /></Button>
+        </a>
+        <a href={url} download target="_blank" rel="noopener noreferrer" title="Download">
+          <Button size="sm" variant="ghost"><Download size={14} /></Button>
+        </a>
+      </div>
+    </div>
+  );
 }
 
 export function EmployeeDetailPage() {
@@ -115,13 +151,13 @@ export function EmployeeDetailPage() {
         </Button>
 
         <div className="flex-1 min-w-0 flex items-center gap-3">
-          <div className="h-14 w-14 shrink-0 rounded-full bg-muted overflow-hidden flex items-center justify-center border border-border">
-            {employee.profilePictureUrl ? (
-              <img src={employee.profilePictureUrl} alt="" className="h-full w-full object-cover" />
-            ) : (
-              <UserCircle2 size={32} className="text-muted-foreground" />
-            )}
-          </div>
+          <EmployeeAvatar
+            profilePictureUrl={employee.profilePictureUrl}
+            gender={employee.gender}
+            name={employee.fullNameEn}
+            size="lg"
+            className="border border-border"
+          />
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2 mb-1">
               <h1 className="text-2xl font-bold text-card-foreground truncate">
@@ -182,10 +218,10 @@ export function EmployeeDetailPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <DetailSection icon={Phone} title={t('contact')}>
           <DetailFieldGrid>
-            <DetailField label={t('mobileNumber')} value={employee.mobileNumber} />
+            <DetailField label={t('mobileNumber')} value={employee.mobileNumber} important />
             <DetailField label={t('emergencyNumber')} value={employee.emergencyNumber} />
             <DetailField label={t('emailWork')} value={employee.emailWork} />
-            <DetailField label={t('emailPersonal')} value={employee.emailPersonal} />
+            <DetailField label={t('emailPersonal')} value={employee.emailPersonal} important />
           </DetailFieldGrid>
         </DetailSection>
 
@@ -219,14 +255,16 @@ export function EmployeeDetailPage() {
 
         <DetailSection icon={CreditCard} title={t('identification')}>
           <DetailFieldGrid>
-            <DetailField label={t('qid')} value={employee.qid} />
-            <DetailField label={t('qidExpiry')} value={employee.qidExpiry ? formatDate(employee.qidExpiry) : null} />
-            <DetailField label={t('passportNumber')} value={employee.passportNumber} />
+            <DetailField label={t('title')} value={employee.title} />
+            <DetailField label={t('qid')} value={employee.qid} important />
+            <DetailField label={t('qidExpiry')} value={employee.qidExpiry ? formatDate(employee.qidExpiry) : null} important />
+            <DetailField label={t('passportNumber')} value={employee.passportNumber} important />
             <DetailField
               label={t('passportExpiry')}
               value={employee.passportExpiry ? formatDate(employee.passportExpiry) : null}
+              important
             />
-            <DetailField label={t('nationality')} value={employee.nationality} />
+            <DetailField label={t('nationality')} value={employee.nationality} important />
             <DetailField
               label={t('dob')}
               value={
@@ -234,21 +272,152 @@ export function EmployeeDetailPage() {
                   ? `${formatDate(employee.dob)}${employee.age !== null ? ` (${t('age')} ${employee.age})` : ''}`
                   : null
               }
+              important
             />
-            <DetailField label={t('gender')} value={employee.gender} />
+            <DetailField label={t('gender')} value={employee.gender} important />
             <DetailField label={t('maritalStatus')} value={employee.maritalStatus} />
+            <DetailField label={t('bloodType')} value={employee.bloodType} />
             <DetailField label={t('educationLevel')} value={employee.educationLevel} />
             <DetailField label={t('fieldOfStudy')} value={employee.fieldOfStudy} />
           </DetailFieldGrid>
         </DetailSection>
 
+        {!isPermanent && (
+          <DetailSection icon={Home} title={t('addressResidence')}>
+            <DetailFieldGrid>
+              <DetailField label={t('address')} value={employee.address} important />
+              <DetailField label={t('residenceCountry')} value={employee.residenceCountry} important />
+              <DetailField label={t('languages')} value={employee.languages} />
+            </DetailFieldGrid>
+          </DetailSection>
+        )}
+
+        {!isPermanent && (
+          <DetailSection icon={Users2} title={t('emergencyContact')}>
+            <DetailFieldGrid>
+              <DetailField label={t('emergencyContactName')} value={employee.emergencyContactName} important />
+              <DetailField label={t('emergencyContactRelationship')} value={employee.emergencyContactRelationship} />
+              <DetailField label={t('emergencyContactPhone')} value={employee.emergencyContactPhone} important />
+            </DetailFieldGrid>
+          </DetailSection>
+        )}
+
+        {!isPermanent && (
+          <DetailSection icon={Landmark} title={t('bankDetails')}>
+            <DetailFieldGrid>
+              <DetailField label={t('bankBeneficiaryName')} value={employee.bankBeneficiaryName} important />
+              <DetailField label={t('bankName')} value={employee.bankName} important />
+              <DetailField label={t('bankBranch')} value={employee.bankBranch} important />
+              <DetailField label={t('bankAccountNumber')} value={employee.bankAccountNumber} important />
+              <DetailField label={t('bankIban')} value={employee.bankIban} important />
+            </DetailFieldGrid>
+          </DetailSection>
+        )}
+
+        {!isPermanent && (
+          <DetailSection icon={Users2} title={t('relativesAtQbc')}>
+            <DetailFieldGrid>
+              <DetailField
+                label={t('hasRelativesAtQbc')}
+                value={employee.hasRelativesAtQbc === null ? null : employee.hasRelativesAtQbc ? t('yes') : t('no')}
+              />
+              {employee.hasRelativesAtQbc && (
+                <>
+                  <DetailField label={t('relativeFullName')} value={employee.relativeFullName} />
+                  <DetailField label={t('relativeRelationship')} value={employee.relativeRelationship} />
+                  <DetailField label={t('department')} value={employee.relativeDepartment} />
+                </>
+              )}
+            </DetailFieldGrid>
+          </DetailSection>
+        )}
+
+        {!isPermanent && (
+          <DetailSection icon={ShieldCheck} title={t('declaration')}>
+            <DetailFieldGrid>
+              <DetailField
+                label={t('declarationStatus')}
+                value={employee.declarationAccepted ? t('declarationAccepted') : t('declarationNotAccepted')}
+                important
+              />
+              <DetailField
+                label={t('date')}
+                value={employee.declarationAcceptedAt ? formatDate(employee.declarationAcceptedAt) : null}
+              />
+            </DetailFieldGrid>
+          </DetailSection>
+        )}
+
       </div>
         </TabsContent>
 
-        <TabsContent value="contracts" className="mt-4">
+        <TabsContent value="contracts" className="space-y-6 mt-4">
+        {!isPermanent && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <DetailSection icon={FileText} title={t('cv')}>
+              <FileRow label={t('cv')} url={employee.cvUrl} important />
+            </DetailSection>
+
+            <DetailSection icon={FileText} title={t('employerDocuments')}>
+              <div className="space-y-2">
+                <FileRow label={t('employerNocLetter')} url={employee.employerNocLetterUrl} />
+                <FileRow label={t('employerEstablishmentCard')} url={employee.employerEstablishmentCardUrl} />
+              </div>
+            </DetailSection>
+
+            <DetailSection icon={Landmark} title={t('bankCertificate')}>
+              <FileRow label={t('bankCertificate')} url={employee.bankCertificateUrl} important />
+            </DetailSection>
+
+            <DetailSection icon={GraduationCap} title={t('education')}>
+              {employee.educations.length === 0 ? (
+                <p className="text-sm text-muted-foreground">{t('noEducation')}</p>
+              ) : (
+                <div className="space-y-2">
+                  {employee.educations.map((e) => (
+                    <FileRow
+                      key={e.id}
+                      label={`${e.qualificationLevel}${e.major ? ` — ${e.major}` : ''}${e.attested ? ` (${t('attested')})` : ''}`}
+                      url={e.fileUrl}
+                    />
+                  ))}
+                </div>
+              )}
+            </DetailSection>
+
+            <DetailSection icon={Briefcase} title={t('experience')}>
+              {employee.experiences.length === 0 ? (
+                <p className="text-sm text-muted-foreground">{t('noExperience')}</p>
+              ) : (
+                <div className="space-y-2">
+                  {employee.experiences.map((e) => (
+                    <FileRow
+                      key={e.id}
+                      label={[e.jobTitle, e.companyName, e.country].filter(Boolean).join(' · ') || t('experience')}
+                      url={e.fileUrl}
+                    />
+                  ))}
+                </div>
+              )}
+            </DetailSection>
+
+            <DetailSection icon={Award} title={t('certificates')}>
+              {employee.certificates.length === 0 ? (
+                <p className="text-sm text-muted-foreground">{t('noCertificates')}</p>
+              ) : (
+                <div className="space-y-2">
+                  {employee.certificates.map((c) => (
+                    <FileRow key={c.id} label={c.title || t('certificates')} url={c.fileUrl} />
+                  ))}
+                </div>
+              )}
+            </DetailSection>
+          </div>
+        )}
+
             <DetailSection
-              icon={FileText}
-              title={t('documents')}
+              icon={UploadCloud}
+              title={t('contracts')}
               actions={
                 <>
                   <input

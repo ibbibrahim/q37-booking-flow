@@ -122,6 +122,12 @@ export function FreelanceProfileFormPage() {
 function FreelanceProfileFormContent() {
   const { showToast } = useToast();
   const { token: hiringRequestToken } = useParams<{ token?: string }>();
+  // A token means this is a brand-new candidate arriving via a New
+  // Freelancer Hiring link — not hired yet, so employer/bank details (which
+  // only make sense for someone already working) don't apply here. The
+  // no-token route (/freelance-profile) is for existing freelancers
+  // updating their own full profile, where these still show.
+  const isPreHireCandidate = Boolean(hiringRequestToken);
 
   const [activeTab, setActiveTab] = useState<TabKey>('personal');
   const [showErrors, setShowErrors] = useState<Partial<Record<TabKey, boolean>>>({});
@@ -275,9 +281,9 @@ function FreelanceProfileFormContent() {
     language1: !language1,
     photo: !files.photo,
     cv: !files.cv,
-    employer: !fields.employer.trim(),
-    employerNocLetter: !files.employerNocLetter,
-    employerEstablishmentCard: !files.employerEstablishmentCard,
+    employer: !isPreHireCandidate && !fields.employer.trim(),
+    employerNocLetter: !isPreHireCandidate && !files.employerNocLetter,
+    employerEstablishmentCard: !isPreHireCandidate && !files.employerEstablishmentCard,
     emergencyContactName: !fields.emergencyContactName.trim(),
     emergencyContactRelationship: !fields.emergencyContactRelationship.trim(),
     emergencyContactPhone: !fields.emergencyContactPhone.trim(),
@@ -329,6 +335,11 @@ function FreelanceProfileFormContent() {
     certificates: 'Certificates', bank: 'Bank Account', declaration: 'Relatives & Declaration',
   };
 
+  // Pre-hire candidates never see the Bank Account tab, so it must be
+  // skipped here too — otherwise submit would wait forever on a tab that
+  // was never shown.
+  const tabOrder = isPreHireCandidate ? TAB_ORDER.filter((t) => t !== 'bank') : TAB_ORDER;
+
   const err = (tab: TabKey, missing: boolean) => (showErrors[tab] && missing ? ERROR_CLASS : undefined);
 
   // TESTING ONLY: wizard-style forward-gating disabled below so QA can jump
@@ -339,7 +350,7 @@ function FreelanceProfileFormContent() {
   };
 
   const handleSubmit = async () => {
-    const firstIncomplete = TAB_ORDER.find((t) => !TAB_VALIDATORS[t]());
+    const firstIncomplete = tabOrder.find((t) => !TAB_VALIDATORS[t]());
     if (firstIncomplete) {
       setShowErrors((prev) => ({ ...prev, [firstIncomplete]: true }));
       showToast(`Please complete every highlighted field in "${TAB_LABELS[firstIncomplete]}" first.`, 'error');
@@ -372,7 +383,7 @@ function FreelanceProfileFormContent() {
         </div>
 
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Freelancer Profile Form</h1>
+          <h1 className="text-2xl font-bold text-foreground">{isPreHireCandidate ? 'Candidate Hiring Form' : 'Freelancer Profile Form'}</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Complete each section fully before moving to the next — every field is required, unless marked optional.
             {submittedCount > 0 && <span className="ml-1 font-medium text-foreground">{submittedCount} submitted this session.</span>}
@@ -386,7 +397,9 @@ function FreelanceProfileFormContent() {
               <TabsTrigger value="education" className="gap-1.5"><GraduationCap size={14} /> Education</TabsTrigger>
               <TabsTrigger value="experience" className="gap-1.5"><Briefcase size={14} /> Experience</TabsTrigger>
               <TabsTrigger value="certificates" className="gap-1.5"><Award size={14} /> Certificates</TabsTrigger>
-              <TabsTrigger value="bank" className="gap-1.5"><Landmark size={14} /> Bank Account</TabsTrigger>
+              {!isPreHireCandidate && (
+                <TabsTrigger value="bank" className="gap-1.5"><Landmark size={14} /> Bank Account</TabsTrigger>
+              )}
               <TabsTrigger value="declaration" className="gap-1.5"><Users2 size={14} /> Relatives &amp; Declaration</TabsTrigger>
             </TabsList>
 
@@ -527,14 +540,16 @@ function FreelanceProfileFormContent() {
                 </div>
               </div>
 
-              <div className="rounded-lg border border-border p-4 space-y-3">
-                <Label className="text-sm font-medium">Employer <Req /></Label>
-                <Input className={err('personal', personalMissing.employer)} value={fields.employer} onChange={(e) => update('employer', e.target.value)} disabled={submitting} placeholder="Sponsoring/staffing company" />
-                <div className="flex flex-wrap gap-2">
-                  <FileInputButton label="Attach NOC letter *" file={files.employerNocLetter} onSelect={(f) => setFile('employerNocLetter', f)} disabled={submitting} error={showErrors.personal && personalMissing.employerNocLetter} />
-                  <FileInputButton label="Attach company establishment card *" file={files.employerEstablishmentCard} onSelect={(f) => setFile('employerEstablishmentCard', f)} disabled={submitting} error={showErrors.personal && personalMissing.employerEstablishmentCard} />
+              {!isPreHireCandidate && (
+                <div className="rounded-lg border border-border p-4 space-y-3">
+                  <Label className="text-sm font-medium">Employer <Req /></Label>
+                  <Input className={err('personal', personalMissing.employer)} value={fields.employer} onChange={(e) => update('employer', e.target.value)} disabled={submitting} placeholder="Sponsoring/staffing company" />
+                  <div className="flex flex-wrap gap-2">
+                    <FileInputButton label="Attach NOC letter *" file={files.employerNocLetter} onSelect={(f) => setFile('employerNocLetter', f)} disabled={submitting} error={showErrors.personal && personalMissing.employerNocLetter} />
+                    <FileInputButton label="Attach company establishment card *" file={files.employerEstablishmentCard} onSelect={(f) => setFile('employerEstablishmentCard', f)} disabled={submitting} error={showErrors.personal && personalMissing.employerEstablishmentCard} />
+                  </div>
                 </div>
-              </div>
+              )}
 
               <div className="rounded-lg border border-border p-4 space-y-3">
                 <Label className="text-sm font-medium">Emergency Contact <Req /></Label>
@@ -685,10 +700,13 @@ function FreelanceProfileFormContent() {
               {showErrors.certificates && !isCertificatesComplete() && (
                 <p className="text-sm text-destructive font-medium">Please attach a file for every certificate above.</p>
               )}
-              <Button className="w-full gap-1.5" onClick={() => handleTabChange('bank')}>Next: Bank Account</Button>
+              <Button className="w-full gap-1.5" onClick={() => handleTabChange(isPreHireCandidate ? 'declaration' : 'bank')}>
+                {isPreHireCandidate ? 'Next: Relatives & Declaration' : 'Next: Bank Account'}
+              </Button>
             </TabsContent>
 
             {/* ============ 5. BANK ACCOUNT ============ */}
+            {!isPreHireCandidate && (
             <TabsContent value="bank" className="mt-6 space-y-4">
               <div className="rounded-lg border border-dashed border-border p-4 space-y-3">
                 <Label className="text-sm font-medium">Bank Account Certificate <Req /></Label>
@@ -740,6 +758,7 @@ function FreelanceProfileFormContent() {
               )}
               <Button className="w-full gap-1.5" onClick={() => handleTabChange('declaration')}>Next: Relatives &amp; Declaration</Button>
             </TabsContent>
+            )}
 
             {/* ============ 6. RELATIVES & DECLARATION ============ */}
             <TabsContent value="declaration" className="mt-6 space-y-6">

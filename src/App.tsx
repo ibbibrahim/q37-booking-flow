@@ -34,6 +34,7 @@ import { ContractRenewalPage } from './hr_workflow/pages/ContractRenewalPage';
 import { ContractPreviewPage } from './hr_workflow/pages/ContractPreviewPage';
 import { FinancialReportsPage } from './hr_workflow/pages/FinancialReportsPage';
 import { HiringReportsPage } from './hr_workflow/pages/HiringReportsPage';
+import { DepartmentCoordinatorsPage } from './hr_workflow/pages/DepartmentCoordinatorsPage';
 import { DepartmentApprovalsPage } from './hr_workflow/pages/DepartmentApprovalsPage';
 import { FinalSignatoryApprovalsPage } from './hr_workflow/pages/FinalSignatoryApprovalsPage';
 import { FreelanceProfileFormPage } from './hr_workflow/pages/FreelanceProfileFormPage';
@@ -75,7 +76,7 @@ function App() {
     if (roles.includes("RotaTeamLead")) return "/rota";
     if (roles.includes("HRAdmin")) return "/hr/dashboard";
     if (roles.includes("DepartmentHead")) return "/hr/department-approvals";
-    if (roles.includes("FinalSignatory")) return "/hr/final-approvals";
+    if (roles.includes("GeneralManager")) return "/hr/final-approvals";
     if (roles.includes("BIT")) return "/bit";
     if (roles.includes("AssignmentLead")) return "/dtl-dashboard";
     if (roles.includes("AssignmentTeam")) return "/dtl-booking";
@@ -443,16 +444,16 @@ function App() {
         {/** PROGRAMME SCHEDULE (EPG) — any authenticated user, no role required */}
         <Route path="schedule" element={<EPGViewer />} />
 
-        {/** HR SYSTEM — restricted to HRAdmin, DepartmentHead, and
-            FinalSignatory (strict: Admin does NOT bypass this). DepartmentHead
-            and FinalSignatory only ever see/use their own approvals route in
-            practice (the sidebar hides the rest for them), but the backend is
-            the real boundary — every HRAdmin-only endpoint still rejects
-            their tokens. */}
+        {/** HR SYSTEM — restricted to HRAdmin, DepartmentHead,
+            DepartmentCoordinator, and GeneralManager (strict: Admin does NOT
+            bypass this). Each non-HRAdmin role only ever sees/uses its own
+            slice in practice (the sidebar hides the rest for them), but the
+            backend is the real boundary — every HRAdmin-only endpoint still
+            rejects their tokens. */}
         <Route
           path="hr"
           element={
-            <ProtectedRoute allowedRoles={['HRAdmin', 'DepartmentHead', 'FinalSignatory']} strict>
+            <ProtectedRoute allowedRoles={['HRAdmin', 'DepartmentHead', 'DepartmentCoordinator', 'GeneralManager']} strict>
               <HRLayout />
             </ProtectedRoute>
           }
@@ -486,6 +487,7 @@ function App() {
           <Route path="freelance-hiring/hiring-requests/:id/starting-date" element={<StartingDatePage />} />
           <Route path="reports/financial" element={<FinancialReportsPage />} />
           <Route path="reports/hiring" element={<HiringReportsPage />} />
+          <Route path="department-coordinators" element={<DepartmentCoordinatorsPage />} />
         </Route>
 
         <Route path="*" element={<Navigate to={getDefaultRoute()} replace />} />

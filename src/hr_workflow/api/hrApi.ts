@@ -20,6 +20,9 @@ import type {
   CreateHrDepartmentHeadDto,
   HrDepartmentHeadSignature,
   HrFinalSignatorySignature,
+  HrDepartmentCoordinator,
+  CreateHrDepartmentCoordinatorDto,
+  HrEligibleUser,
 } from '../types/hrApi';
 
 const API_BASE = '/api/hr';
@@ -268,6 +271,33 @@ export const hrApi = {
       if (isNotFoundError(error)) return null;
       throw error;
     }
+  },
+
+  // Department Coordinators — which department(s) a user coordinates
+  // (requests new hires, runs interviews, handles leave requests). A user
+  // can coordinate more than one department.
+  getMyDepartmentCoordinatorIds: async (): Promise<number[]> => {
+    const { data } = await apiClient.get(`${API_BASE}/department-coordinators/me`);
+    return data;
+  },
+
+  getDepartmentCoordinators: async (): Promise<HrDepartmentCoordinator[]> => {
+    const { data } = await apiClient.get(`${API_BASE}/department-coordinators`);
+    return data;
+  },
+
+  getEligibleCoordinatorUsers: async (): Promise<HrEligibleUser[]> => {
+    const { data } = await apiClient.get(`${API_BASE}/department-coordinators/eligible-users`);
+    return data;
+  },
+
+  createDepartmentCoordinator: async (dto: CreateHrDepartmentCoordinatorDto): Promise<HrDepartmentCoordinator> => {
+    const { data } = await apiClient.post(`${API_BASE}/department-coordinators`, dto);
+    return data;
+  },
+
+  deleteDepartmentCoordinator: async (id: number): Promise<void> => {
+    await apiClient.delete(`${API_BASE}/department-coordinators/${id}`);
   },
 
   getDepartmentHeads: async (): Promise<HrDepartmentHead[]> => {

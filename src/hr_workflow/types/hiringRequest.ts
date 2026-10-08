@@ -29,6 +29,8 @@ export interface HiringRequestSummary {
   requestedAt: string;
   startingDate: string | null;
   contractId: number | null;
+  startIntent: 'Started' | 'NotStarted' | null;
+  managerStartSignedAt: string | null;
 }
 
 export interface HiringRequestDetail extends HiringRequestSummary {
@@ -46,12 +48,18 @@ export interface HiringRequestDetail extends HiringRequestSummary {
   interviewPdfUrl: string | null;
 
   gmDecidedAt: string | null;
+  gmApprovalDate: string | null;
   gmRejectReason: string | null;
 
   ceoApprovalReferenceNo: string | null;
   ceoApprovalAt: string | null;
 
   startingDatePdfUrl: string | null;
+  startIntent: 'Started' | 'NotStarted' | null;
+  employeeStartSignedByName: string | null;
+  employeeStartSignedAt: string | null;
+  managerStartSignedByName: string | null;
+  managerStartSignedAt: string | null;
 
   convertedEmployeeId: number | null;
   convertedAt: string | null;

@@ -135,7 +135,7 @@ export function FinalSignatoryApprovalsPage() {
       const updated = await hrApi.signContract(
         item.contract.id,
         blob,
-        'FinalSignatory',
+        'GeneralManager',
         signerName,
         signatureQuery.data.signatureMethod,
         verificationId,

@@ -8,9 +8,12 @@ import { Badge } from '@/components/ui/badge';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { useToast } from '@/contexts/ToastContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSignalR } from '@/contexts/SignalRContext';
 import { getApiErrorMessage } from '@/utils/apiError';
 import { hrApi } from '../api/hrApi';
 import { leaveRequestApi } from '../api/leaveRequestApi';
+import { hiringRequestApi } from '../api/hiringRequestApi';
+import { stampManagerStartSignature } from '../utils/hiringFormsPdf';
 import { ActionIconButton } from '../components/ActionIconButton';
 import { SignaturePad } from '../components/SignaturePad';
 import { ReturnContractModal } from '../components/ReturnContractModal';
@@ -482,6 +485,7 @@ export function DepartmentApprovalsPage() {
         </Card>
 
         <LeaveNoticesSection signatureBytesRef={signatureBytesRef} hasSignature={hasSignature} signerName={signerName} />
+        <StartingDateConfirmationsSection signatureBytesRef={signatureBytesRef} hasSignature={hasSignature} signerName={signerName} />
 
         <SignaturePad
           open={captureOpen}
@@ -530,6 +534,12 @@ function LeaveNoticesSection({
 
   const listQuery = useQuery({ queryKey: ['hr-leave-requests', 'department-approvals'], queryFn: leaveRequestApi.getAll });
   const pending = (listQuery.data ?? []).filter((r) => r.status === 'AwaitingDepartmentHeadSignature');
+
+  const { listen } = useSignalR();
+  useEffect(
+    () => listen('LeaveRequestChanged', () => queryClient.invalidateQueries({ queryKey: ['hr-leave-requests'] })),
+    [listen, queryClient]
+  );
 
   const handleSign = async (id: number, employeeName: string | null) => {
     if (!signatureBytesRef.current) {
@@ -583,6 +593,98 @@ function LeaveNoticesSection({
                     className="gap-1.5"
                     disabled={!hasSignature || signingId !== null}
                     onClick={() => handleSign(r.id, r.employeeFullNameEn)}
+                  >
+                    <CheckCircle2 size={14} /> {signingId === r.id ? 'Signing…' : 'Sign'}
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
+  );
+}
+
+// Starting Date confirmations awaiting this Department Head's signature —
+// the Coordinator has already recorded whether the candidate showed up
+// (and captured their in-person signature if so); this is the final step
+// of that signature chain, same reused saved signature as everything else
+// on this screen.
+function StartingDateConfirmationsSection({
+  signatureBytesRef,
+  hasSignature,
+  signerName,
+}: {
+  signatureBytesRef: React.MutableRefObject<{ bytes: Uint8Array; type: 'png' | 'jpeg' } | null>;
+  hasSignature: boolean;
+  signerName: string;
+}) {
+  const { showToast } = useToast();
+  const queryClient = useQueryClient();
+  const [signingId, setSigningId] = useState<number | null>(null);
+
+  const listQuery = useQuery({ queryKey: ['hr-hiring-requests', 'department-approvals'], queryFn: hiringRequestApi.getAll });
+  const pending = (listQuery.data ?? []).filter(
+    (r) => r.status === 'StartingDateSet' && r.startIntent && !r.managerStartSignedAt
+  );
+
+  const { listen } = useSignalR();
+  useEffect(
+    () => listen('HiringRequestChanged', () => queryClient.invalidateQueries({ queryKey: ['hr-hiring-requests'] })),
+    [listen, queryClient]
+  );
+
+  const handleSign = async (id: number, intent: 'Started' | 'NotStarted', candidateName: string) => {
+    if (!signatureBytesRef.current) {
+      showToast('Save your signature first.', 'error');
+      return;
+    }
+    setSigningId(id);
+    try {
+      const buffer = await hiringRequestApi.getPdfBytes(id);
+      const { bytes: signed, verificationId } = await stampManagerStartSignature(
+        new Uint8Array(buffer), signatureBytesRef.current.bytes, signatureBytesRef.current.type, intent
+      );
+      const blob = new Blob([new Uint8Array(signed)], { type: 'application/pdf' });
+      await hiringRequestApi.managerStartSign(id, blob, signerName, verificationId, signatureBytesRef.current);
+
+      queryClient.invalidateQueries({ queryKey: ['hr-hiring-requests'] });
+      showToast(`Signed ${candidateName}'s starting date confirmation.`, 'success');
+    } catch (err) {
+      showToast(getApiErrorMessage(err, 'Failed to sign.'), 'error');
+    } finally {
+      setSigningId(null);
+    }
+  };
+
+  if (pending.length === 0) return null;
+
+  return (
+    <Card>
+      <CardContent className="p-4 space-y-3">
+        <h2 className="text-sm font-semibold text-foreground">Starting Date Confirmations Awaiting Your Signature</h2>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Candidate</TableHead>
+              <TableHead>Outcome</TableHead>
+              <TableHead>Starting Date</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {pending.map((r) => (
+              <TableRow key={r.id}>
+                <TableCell className="font-medium text-foreground">{r.candidateName}</TableCell>
+                <TableCell>{r.startIntent === 'Started' ? 'Started' : 'Did not show up'}</TableCell>
+                <TableCell className="text-muted-foreground">{r.startingDate ? formatDate(r.startingDate) : '—'}</TableCell>
+                <TableCell className="text-right">
+                  <Button
+                    size="sm"
+                    className="gap-1.5"
+                    disabled={!hasSignature || signingId !== null}
+                    onClick={() => handleSign(r.id, r.startIntent as 'Started' | 'NotStarted', r.candidateName)}
                   >
                     <CheckCircle2 size={14} /> {signingId === r.id ? 'Signing…' : 'Sign'}
                   </Button>

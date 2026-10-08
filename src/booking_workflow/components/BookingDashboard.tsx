@@ -369,8 +369,9 @@ export const BookingDashboard: React.FC = () => {
   // Records, etc).
   const isHRAdmin = user?.roles?.includes('HRAdmin') ?? false;
   const isDepartmentHead = user?.roles?.includes('DepartmentHead') ?? false;
-  const isFinalSignatory = user?.roles?.includes('FinalSignatory') ?? false;
-  const hasHRAccess = isHRAdmin || isDepartmentHead || isFinalSignatory;
+  const isDepartmentCoordinator = user?.roles?.includes('DepartmentCoordinator') ?? false;
+  const isFinalSignatory = user?.roles?.includes('GeneralManager') ?? false;
+  const hasHRAccess = isHRAdmin || isDepartmentHead || isDepartmentCoordinator || isFinalSignatory;
   // Strict: only the BIT role sees the BIT checklists — Admin does not bypass this one.
   const hasBITAccess = user?.roles?.includes('BIT') ?? false;
   const hasEditSuiteDashboardAccess =
@@ -648,9 +649,10 @@ export const BookingDashboard: React.FC = () => {
                     )}
 
                     {/* Visible to HRAdmin (Contract Renewal) as well as Department
-                        Head / GM (their own approval queue only) — unlike the
-                        other HR-System sections, this one isn't HRAdmin-only. */}
-                    {(isHRAdmin || isDepartmentHead || isFinalSignatory) && (
+                        Head / Department Coordinator / GM (their own queue
+                        only) — unlike the other HR-System sections, this one
+                        isn't HRAdmin-only. */}
+                    {(isHRAdmin || isDepartmentHead || isDepartmentCoordinator || isFinalSignatory) && (
                       <SidebarSubGroup
                         icon={Handshake}
                         label="Freelance Hiring"
@@ -668,7 +670,7 @@ export const BookingDashboard: React.FC = () => {
                         {isHRAdmin && (
                           <SidebarSubItem icon={UserCheck} label="Profile Submissions" small isActive={isPath('/hr/freelance-hiring/profile-submissions')} onClick={() => goTo('/hr/freelance-hiring/profile-submissions')} />
                         )}
-                        {(isHRAdmin || isDepartmentHead || isFinalSignatory) && (
+                        {(isHRAdmin || isDepartmentCoordinator || isFinalSignatory) && (
                           <SidebarSubItem icon={UserRoundCog} label="New Freelancer Hiring" small isActive={isPath('/hr/freelance-hiring/hiring-requests')} onClick={() => goTo('/hr/freelance-hiring/hiring-requests')} />
                         )}
                         {isDepartmentHead && (
@@ -693,8 +695,12 @@ export const BookingDashboard: React.FC = () => {
                       </SidebarSubGroup>
                     )}
 
-                    {isHRAdmin && (
+                    {(isHRAdmin || isDepartmentCoordinator) && (
                       <SidebarSubItem icon={CalendarCheck} label="Leave Request" isActive={isPath('/hr/leave-requests')} onClick={() => goTo('/hr/leave-requests')} />
+                    )}
+
+                    {isHRAdmin && (
+                      <SidebarSubItem icon={UserRoundCog} label="Department Coordinators" isActive={isPath('/hr/department-coordinators')} onClick={() => goTo('/hr/department-coordinators')} />
                     )}
                   </SidebarGroup>
                 )}

@@ -37,7 +37,7 @@ const EVENT_LABEL: Record<string, string> = {
 const ROLE_LABEL: Record<string, string> = {
   Employee: 'Employee',
   DepartmentHead: 'Department Head',
-  FinalSignatory: 'General Manager',
+  GeneralManager: 'General Manager',
 };
 
 function fmt(iso: string): string {

@@ -133,11 +133,64 @@ export interface HrEmployee {
   profilePictureUrl: string | null;
   recentlyConvertedToPermanent: boolean;
 
+  // ---- Extended profile — populated when a freelance profile submission
+  // was approved and merged; null for employees added directly via
+  // "Add Employee" ----
+  title: string | null;
+  bloodType: string | null;
+  address: string | null;
+  residenceCountry: string | null;
+  languages: string | null;
+  cvUrl: string | null;
+  employerNocLetterUrl: string | null;
+  employerEstablishmentCardUrl: string | null;
+  emergencyContactName: string | null;
+  emergencyContactRelationship: string | null;
+  emergencyContactPhone: string | null;
+  hasRelativesAtQbc: boolean | null;
+  relativeFullName: string | null;
+  relativeRelationship: string | null;
+  relativeDepartment: string | null;
+  bankCertificateUrl: string | null;
+  bankBeneficiaryName: string | null;
+  bankName: string | null;
+  bankBranch: string | null;
+  bankAccountNumber: string | null;
+  bankIban: string | null;
+  declarationAccepted: boolean | null;
+  declarationAcceptedAt: string | null;
+
+  educations: HrEmployeeEducation[];
+  experiences: HrEmployeeExperience[];
+  certificates: HrEmployeeCertificate[];
+
   historyEvents: HrEmployeeHistoryEvent[];
   contractAttachments: HrContractAttachment[];
 
   createdAt: string;
   updatedAt: string;
+}
+
+export interface HrEmployeeEducation {
+  id: number;
+  qualificationLevel: string;
+  major: string | null;
+  attested: boolean;
+  fileUrl: string;
+}
+
+export interface HrEmployeeExperience {
+  id: number;
+  companyName: string;
+  country: string | null;
+  jobTitle: string | null;
+  fileUrl: string;
+}
+
+export interface HrEmployeeCertificate {
+  id: number;
+  title: string | null;
+  fileUrl: string;
 }
 
 export interface CreateHrEmployeeDto {
@@ -224,7 +277,7 @@ export type HrContractStatus =
   | 'Completed'
   | 'Returned';
 
-export type HrContractSignerRole = 'Employee' | 'DepartmentHead' | 'FinalSignatory';
+export type HrContractSignerRole = 'Employee' | 'DepartmentHead' | 'GeneralManager';
 export type HrSignatureMethod = 'Draw' | 'Type' | 'Upload';
 
 export interface HrContractSignature {
@@ -302,6 +355,27 @@ export interface HrDepartmentHead {
 export interface CreateHrDepartmentHeadDto {
   userId: number;
   departmentId: number;
+}
+
+export interface HrDepartmentCoordinator {
+  id: number;
+  userId: number;
+  userDisplayName: string | null;
+  userUsername: string | null;
+  departmentId: number;
+  departmentNameEn: string;
+  departmentNameAr: string;
+}
+
+export interface CreateHrDepartmentCoordinatorDto {
+  userId: number;
+  departmentId: number;
+}
+
+export interface HrEligibleUser {
+  id: number;
+  displayName: string | null;
+  username: string;
 }
 
 export interface HrDepartmentHeadSignature {

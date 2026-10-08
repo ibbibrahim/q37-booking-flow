@@ -45,7 +45,7 @@ const STATUS_LABEL: Record<HrContractStatus, string> = {
 const ROLE_LABELS: Record<string, string> = {
   Employee: 'Employee',
   DepartmentHead: 'Department Head',
-  FinalSignatory: 'GM',
+  GeneralManager: 'GM',
 };
 
 const METHOD_LABELS: Record<string, string> = {

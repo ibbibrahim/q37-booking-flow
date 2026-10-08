@@ -57,13 +57,11 @@ export const hiringRequestApi = {
     return data;
   },
 
-  forwardToGm: async (id: number): Promise<HiringRequestDetail> => {
-    const { data } = await apiClient.post(`${API_BASE}/${id}/forward-to-gm`);
-    return data;
-  },
-
-  gmApprove: async (id: number): Promise<HiringRequestDetail> => {
-    const { data } = await apiClient.post(`${API_BASE}/${id}/gm-approve`);
+  // The GM's decision happens outside the system — HRAdmin records it
+  // directly once the interview is submitted, with the actual date GM
+  // approved on.
+  gmApprove: async (id: number, approvalDate: string): Promise<HiringRequestDetail> => {
+    const { data } = await apiClient.post(`${API_BASE}/${id}/gm-approve`, { approvalDate });
     return data;
   },
 
@@ -92,6 +90,49 @@ export const hiringRequestApi = {
     const { data } = await apiClient.post(`${API_BASE}/${id}/starting-date`, formData, {
       headers: { 'Content-Type': undefined },
     });
+    return data;
+  },
+
+  // Starting Date signature chain — Coordinator records whether the
+  // candidate showed up (capturing their in-person signature if so), then
+  // the Department Head signs the matching section.
+  recordEmployeeStartSignature: async (
+    id: number, pdf: Blob, signedByName: string, verificationId: string,
+    signatureImage?: { bytes: Uint8Array; type: 'png' | 'jpeg' }
+  ): Promise<HiringRequestDetail> => {
+    const formData = new FormData();
+    formData.append('pdf', pdf, 'starting-date.pdf');
+    formData.append('signedByName', signedByName);
+    formData.append('verificationId', verificationId);
+    if (signatureImage) {
+      formData.append('signatureImage', new Blob([new Uint8Array(signatureImage.bytes)], { type: `image/${signatureImage.type}` }), `sig.${signatureImage.type}`);
+    }
+    const { data } = await apiClient.post(`${API_BASE}/${id}/employee-start-sign`, formData, { headers: { 'Content-Type': undefined } });
+    return data;
+  },
+
+  recordNotStarting: async (id: number): Promise<HiringRequestDetail> => {
+    const { data } = await apiClient.post(`${API_BASE}/${id}/not-starting`);
+    return data;
+  },
+
+  managerStartSign: async (
+    id: number, pdf: Blob, signedByName: string, verificationId: string,
+    signatureImage?: { bytes: Uint8Array; type: 'png' | 'jpeg' }
+  ): Promise<HiringRequestDetail> => {
+    const formData = new FormData();
+    formData.append('pdf', pdf, 'starting-date.pdf');
+    formData.append('signedByName', signedByName);
+    formData.append('verificationId', verificationId);
+    if (signatureImage) {
+      formData.append('signatureImage', new Blob([new Uint8Array(signatureImage.bytes)], { type: `image/${signatureImage.type}` }), `sig.${signatureImage.type}`);
+    }
+    const { data } = await apiClient.post(`${API_BASE}/${id}/manager-start-sign`, formData, { headers: { 'Content-Type': undefined } });
+    return data;
+  },
+
+  getPdfBytes: async (id: number): Promise<ArrayBuffer> => {
+    const { data } = await apiClient.get(`${API_BASE}/${id}/starting-date-pdf`, { responseType: 'arraybuffer' });
     return data;
   },
 
