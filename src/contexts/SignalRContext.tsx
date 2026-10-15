@@ -5,7 +5,7 @@ import { useAuth } from './AuthContext';
 
 interface SignalRContextType {
   invoke: (eventName: string, payload?: any) => Promise<void>;
-  listen: (eventName: string, handler: (data: any) => void) => void;
+  listen: (eventName: string, handler: (data: any) => void) => () => void;
   connectionState: signalR.HubConnectionState;
   isConnected: boolean;
 }
@@ -73,6 +73,12 @@ export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ child
     if (roleArray.includes('GeneralManager')) return 'GeneralManager' as UserRole;
     if (roleArray.includes('DepartmentHead')) return 'DepartmentHead' as UserRole;
     if (roleArray.includes('DepartmentCoordinator')) return 'DepartmentCoordinator' as UserRole;
+    // Creative Workflow roles — each joins its own SignalR group so creative request
+    // changes reach the right screens in real time. News/Programs Producers are the
+    // existing 'Booking' role (handled by the fallback below), not a separate one.
+    if (roleArray.includes('SocialMedia')) return 'SocialMedia' as UserRole;
+    if (roleArray.includes('GraphicsTeam')) return 'GraphicsTeam' as UserRole;
+    if (roleArray.includes('MotionGraphicsTeam')) return 'MotionGraphicsTeam' as UserRole;
     return 'Booking';
   }, [user]);
 

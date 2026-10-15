@@ -8,7 +8,7 @@ import {
   LayoutDashboard, ClipboardList, FileBarChart, Search, CalendarCheck,
   Handshake, ChevronDown, UserCheck, UserRoundCog, FileSignature, ShieldCheck,
   Phone, Contact, CalendarRange, ScrollText, Clapperboard, MonitorPlay, CalendarClock,
-  PanelLeftClose, PanelLeftOpen, Workflow,
+  PanelLeftClose, PanelLeftOpen, Workflow, Palette, ListChecks,
 } from 'lucide-react';
 import { HrLanguageProvider, HrLanguageToggle } from '../../hr_workflow/context/HrLanguageContext';
 import { cn } from '@/lib/utils';
@@ -326,6 +326,8 @@ export const BookingDashboard: React.FC = () => {
     if (pathParts[0] === 'dtl-booking') return 'dtl-booking';
     if (pathParts[0] === 'dtl-guest') return 'dtl-guest';
     if (pathParts[0] === 'dtl-dashboard') return 'dtl-dashboard';
+    if (pathParts[0] === 'creative-requests') return 'creative-requests';
+    if (pathParts[0] === 'creative-reference') return 'creative-reference';
     if (pathParts[0] === 'rota') return 'rota';
     if (pathParts[0] === 'schedule') return 'schedule';
     if (pathParts[0] === 'hr') return 'hr';
@@ -385,6 +387,13 @@ export const BookingDashboard: React.FC = () => {
     user?.roles?.includes('AssignmentLead');
   const hasDtlDashboardAccess =
     user?.roles?.includes('Admin') || user?.roles?.includes('AssignmentLead');
+  // News/Programs Producers are the existing 'Booking' role, not a separate one.
+  const hasCreativeAccess =
+    user?.roles?.includes('Admin') ||
+    user?.roles?.includes('SocialMedia') ||
+    user?.roles?.includes('Booking') ||
+    user?.roles?.includes('GraphicsTeam') ||
+    user?.roles?.includes('MotionGraphicsTeam');
 
   const getAllowedRoles = (): UserRole[] => {
     if (!user?.roles?.length) return [];
@@ -457,6 +466,15 @@ export const BookingDashboard: React.FC = () => {
         { key: 'dtl-guest', icon: Contact, label: 'Guest', path: '/dtl-guest', visible: !!hasDtlAccess, isActive: currentSection === 'dtl-guest' },
       ],
     },
+    {
+      key: 'creative',
+      icon: Palette,
+      label: 'Creative',
+      items: [
+        { key: 'creative-requests', icon: Palette, label: 'Booking', path: '/creative-requests', visible: !!hasCreativeAccess, isActive: currentSection === 'creative-requests' },
+        { key: 'creative-reference', icon: ListChecks, label: 'Reference Lists', path: '/creative-reference', visible: !!user?.roles?.includes('Admin'), isActive: currentSection === 'creative-reference' },
+      ],
+    },
   ]
     .map((group) => ({ ...group, items: group.items.filter((item) => item.visible) }))
     .filter((group) => group.items.length > 0);
@@ -485,6 +503,8 @@ export const BookingDashboard: React.FC = () => {
       case 'dtl-booking': return 'DTL Booking';
       case 'dtl-guest': return 'DTL Guest';
       case 'dtl-dashboard': return 'DTL Dashboard';
+      case 'creative-requests': return 'Creative Requests';
+      case 'creative-reference': return 'Creative Reference Lists';
       default: return currentRole;
     }
   })();

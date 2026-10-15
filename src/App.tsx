@@ -49,6 +49,10 @@ import { DtlBookingListPage } from './dtl_workflow/components/DtlBookingListPage
 import { DtlBookingDetailPage } from './dtl_workflow/components/DtlBookingDetailPage';
 import { DtlGuestListPage } from './dtl_workflow/components/DtlGuestListPage';
 import { DtlDashboardPage } from './dtl_workflow/components/DtlDashboardPage';
+import { CreativeRequestListPage } from './creative_workflow/components/CreativeRequestListPage';
+import { CreativeRequestFormPage } from './creative_workflow/components/CreativeRequestFormPage';
+import { CreativeRequestDetailPage } from './creative_workflow/components/CreativeRequestDetailPage';
+import { CreativeProgramsScreensAdminPage } from './creative_workflow/components/CreativeProgramsScreensAdminPage';
 
 function App() {
   const { isAuthenticated, user, isLoading } = useAuth();
@@ -81,6 +85,11 @@ function App() {
     if (roles.includes("AssignmentLead")) return "/dtl-dashboard";
     if (roles.includes("AssignmentTeam")) return "/dtl-booking";
     if (roles.includes("CR")) return "/dtl-booking";
+    // Booking (News/Programs Producers) already has its own default route above — Creative
+    // Requests is an additional feature they reach via the sidebar, not their landing page.
+    if (roles.includes("SocialMedia")) return "/creative-requests";
+    if (roles.includes("GraphicsTeam")) return "/creative-requests";
+    if (roles.includes("MotionGraphicsTeam")) return "/creative-requests";
 
     // No workflow role — still allowed to view the programme schedule
     return "/schedule";
@@ -432,6 +441,44 @@ function App() {
             </ProtectedRoute>
           }
         />
+        {/** CREATIVE WORKFLOW — On-Air Graphics requests between Social Media / News-Programs
+            Producers and the Creative Department's Graphics Team / Motion Graphics Team
+            (see src/creative_workflow). Per-action permissions (who can create which
+            request type, who can fulfill/approve) are narrowed further inside each page
+            via creativePermissionsFor. */}
+        <Route
+          path="creative-requests"
+          element={
+            <ProtectedRoute allowedRoles={['SocialMedia', 'Booking', 'GraphicsTeam', 'MotionGraphicsTeam', 'Admin']}>
+              <CreativeRequestListPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="creative-requests/new"
+          element={
+            <ProtectedRoute allowedRoles={['SocialMedia', 'Booking', 'Admin']}>
+              <CreativeRequestFormPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="creative-requests/:id"
+          element={
+            <ProtectedRoute allowedRoles={['SocialMedia', 'Booking', 'GraphicsTeam', 'MotionGraphicsTeam', 'Admin']}>
+              <CreativeRequestDetailPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="creative-reference"
+          element={
+            <ProtectedRoute allowedRoles={['Admin']}>
+              <CreativeProgramsScreensAdminPage />
+            </ProtectedRoute>
+          }
+        />
+
         <Route
           path="dtl-dashboard"
           element={
