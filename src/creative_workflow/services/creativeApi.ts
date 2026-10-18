@@ -193,13 +193,22 @@ export async function listCreativeScreens(): Promise<CreativeScreen[]> {
   return data;
 }
 
-export async function createCreativeScreen(name: string, imageUrl?: string): Promise<CreativeScreen> {
-  const { data } = await apiClient.post<CreativeScreen>('/api/creative/screens', { name, imageUrl });
+export interface CreativeScreenInput {
+  name: string;
+  imageUrl?: string | null;
+  description?: string | null;
+  useForNewsHeadline: boolean;
+  useForVideoWall: boolean;
+}
+
+export async function createCreativeScreen(input: CreativeScreenInput): Promise<CreativeScreen> {
+  const { data } = await apiClient.post<CreativeScreen>('/api/creative/screens', input);
   return data;
 }
 
-export async function updateCreativeScreen(id: number, name: string, imageUrl?: string): Promise<CreativeScreen> {
-  const { data } = await apiClient.put<CreativeScreen>(`/api/creative/screens/${id}`, { name, imageUrl });
+// Full replace on the server — always send every field, or the omitted ones get cleared.
+export async function updateCreativeScreen(id: number, input: CreativeScreenInput): Promise<CreativeScreen> {
+  const { data } = await apiClient.put<CreativeScreen>(`/api/creative/screens/${id}`, input);
   return data;
 }
 

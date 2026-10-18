@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { CreativeDocumentUploadField } from './CreativeDocumentUploadField';
+import { CreativeScreenPicker } from './CreativeScreenPicker';
 import { MultiFileUploadField } from '@/components/ui/multi-file-upload-field';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
@@ -32,6 +33,7 @@ import {
   CREATIVE_REQUEST_TYPE_LABEL,
   canCreateRequestType,
   type CreativeRequestType,
+  type CreativeScreen,
   type CreativeSection,
   type FillerData,
   type FillerSection,
@@ -45,7 +47,6 @@ import {
   type VideoWallPresentationData,
 } from '../types/creative';
 
-const NEWS_HEADLINE_SCREENS = ['Full (S2+S3+S4)', 'S2 only'];
 const PACKAGE_ITEMS: NonNullable<SocialMediaHeadlineData['packageItems']> = [
   'Headlines',
   'Carrousel',
@@ -85,7 +86,7 @@ export function CreativeRequestFormPage() {
     platform: 'QBC',
     selectType: 'Headline',
   });
-  const [newsData, setNewsData] = useState<NewsHeadlineData>({ screen: NEWS_HEADLINE_SCREENS[0], headlineText: '' });
+  const [newsData, setNewsData] = useState<NewsHeadlineData>({ screen: '', headlineText: '' });
   const [pvwData, setPvwData] = useState<ProgramVideoWallData>({ screen: '', topics: [] });
   const [vwpData, setVwpData] = useState<VideoWallPresentationData>({ title: '', screen: '' });
   const [fillerData, setFillerData] = useState<FillerData>({ sections: [] });
@@ -94,6 +95,9 @@ export function CreativeRequestFormPage() {
 
   const { data: programs = [] } = useQuery({ queryKey: ['creative-programs'], queryFn: listCreativePrograms });
   const { data: screens = [] } = useQuery({ queryKey: ['creative-screens'], queryFn: listCreativeScreens });
+  // Each form only offers the screens an admin has marked for it on the Reference Lists page.
+  const newsHeadlineScreens = useMemo(() => screens.filter((s) => s.useForNewsHeadline), [screens]);
+  const videoWallScreens = useMemo(() => screens.filter((s) => s.useForVideoWall), [screens]);
 
   const leadTimeHours = CREATIVE_LEAD_TIME_HOURS[requestType];
   const leadTimeWarning = useMemo(() => {
@@ -145,8 +149,9 @@ export function CreativeRequestFormPage() {
         }
       }
     }
-    if (requestType === CREATIVE_REQUEST_TYPE.NewsHeadline && !newsData.headlineText) {
-      next['news.headlineText'] = 'Headline Text is required.';
+    if (requestType === CREATIVE_REQUEST_TYPE.NewsHeadline) {
+      if (!newsData.screen) next['news.screen'] = 'Screen is required.';
+      if (!newsData.headlineText) next['news.headlineText'] = 'Headline Text is required.';
     }
     if (requestType === CREATIVE_REQUEST_TYPE.ProgramVideoWall) {
       if (!program) next['pvw.program'] = 'Program is required.';
@@ -349,7 +354,7 @@ export function CreativeRequestFormPage() {
         <SocialMediaHeadlineForm data={smData} onChange={setSmData} errors={errors} />
       )}
       {requestType === CREATIVE_REQUEST_TYPE.NewsHeadline && (
-        <NewsHeadlineForm data={newsData} onChange={setNewsData} errors={errors} />
+        <NewsHeadlineForm data={newsData} onChange={setNewsData} screens={newsHeadlineScreens} errors={errors} />
       )}
       {requestType === CREATIVE_REQUEST_TYPE.ProgramVideoWall && (
         <ProgramVideoWallForm
@@ -358,7 +363,7 @@ export function CreativeRequestFormPage() {
           program={program}
           onProgramChange={setProgram}
           programs={programs}
-          screens={screens}
+          screens={videoWallScreens}
           errors={errors}
         />
       )}
@@ -369,7 +374,7 @@ export function CreativeRequestFormPage() {
           program={program}
           onProgramChange={setProgram}
           programs={programs}
-          screens={screens}
+          screens={videoWallScreens}
           errors={errors}
         />
       )}
@@ -628,10 +633,12 @@ function SectionListEditor({
 function NewsHeadlineForm({
   data,
   onChange,
+  screens,
   errors,
 }: {
   data: NewsHeadlineData;
   onChange: (d: NewsHeadlineData) => void;
+  screens: CreativeScreen[];
   errors: Record<string, string>;
 }) {
   return (
@@ -643,29 +650,18 @@ function NewsHeadlineForm({
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-2">
-            <Label htmlFor="news-screen">
-              Select Screen <span className="text-red-500">*</span>
-            </Label>
-            <Select value={data.screen} onValueChange={(v) => onChange({ ...data, screen: v })}>
-              <SelectTrigger id="news-screen">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {NEWS_HEADLINE_SCREENS.map((s) => (
-                  <SelectItem key={s} value={s}>{s}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <CreativeDocumentUploadField
-            id="news-reference-image"
-            label="Reference Image (optional)"
-            value={data.referenceImage}
-            onChange={(ref) => onChange({ ...data, referenceImage: ref ?? undefined })}
-            accept="image/*"
+        <div className="space-y-3">
+          <Label id="news-screen-label">
+            Select Screen <span className="text-red-500">*</span>
+          </Label>
+          <CreativeScreenPicker
+            id="news-screen"
+            value={data.screen}
+            onChange={(v) => onChange({ ...data, screen: v })}
+            screens={screens}
+            invalid={!!errors['news.screen']}
           />
+          {errors['news.screen'] && <p className="text-sm text-red-500">{errors['news.screen']}</p>}
         </div>
         <div className="space-y-2">
           <Label htmlFor="news-headline-text">
@@ -680,6 +676,15 @@ function NewsHeadlineForm({
           />
           {errors['news.headlineText'] && <p className="text-sm text-red-500">{errors['news.headlineText']}</p>}
           <p className="text-xs text-muted-foreground">This could be the same story headline — it will not go on air.</p>
+        </div>
+        <div className="md:w-1/2 md:pr-3">
+          <CreativeDocumentUploadField
+            id="news-reference-image"
+            label="Reference Image (optional)"
+            value={data.referenceImage}
+            onChange={(ref) => onChange({ ...data, referenceImage: ref ?? undefined })}
+            accept="image/*"
+          />
         </div>
       </CardContent>
     </Card>
@@ -702,7 +707,7 @@ function ProgramVideoWallForm({
   program: string;
   onProgramChange: (p: string) => void;
   programs: { id: number; name: string }[];
-  screens: { id: number; name: string }[];
+  screens: CreativeScreen[];
   errors: Record<string, string>;
 }) {
   function addTopic() {
@@ -741,22 +746,19 @@ function ProgramVideoWallForm({
             </Select>
             {errors['pvw.program'] && <p className="text-sm text-red-500">{errors['pvw.program']}</p>}
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="pvw-screen">
-              Select Screen <span className="text-red-500">*</span>
-            </Label>
-            <Select value={data.screen} onValueChange={(v) => onChange({ ...data, screen: v })}>
-              <SelectTrigger id="pvw-screen" className={errors['pvw.screen'] ? 'border-red-500' : ''}>
-                <SelectValue placeholder="Select a screen" />
-              </SelectTrigger>
-              <SelectContent>
-                {screens.map((s) => (
-                  <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {errors['pvw.screen'] && <p className="text-sm text-red-500">{errors['pvw.screen']}</p>}
-          </div>
+        </div>
+        <div className="space-y-3">
+          <Label id="pvw-screen-label">
+            Select Screen <span className="text-red-500">*</span>
+          </Label>
+          <CreativeScreenPicker
+            id="pvw-screen"
+            value={data.screen}
+            onChange={(v) => onChange({ ...data, screen: v })}
+            screens={screens}
+            invalid={!!errors['pvw.screen']}
+          />
+          {errors['pvw.screen'] && <p className="text-sm text-red-500">{errors['pvw.screen']}</p>}
         </div>
 
         <div className="space-y-3">
@@ -837,7 +839,7 @@ function VideoWallPresentationForm({
   program: string;
   onProgramChange: (p: string) => void;
   programs: { id: number; name: string }[];
-  screens: { id: number; name: string }[];
+  screens: CreativeScreen[];
   errors: Record<string, string>;
 }) {
   return (
@@ -878,22 +880,19 @@ function VideoWallPresentationForm({
             </Select>
             {errors['vwp.program'] && <p className="text-sm text-red-500">{errors['vwp.program']}</p>}
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="vwp-screen">
-              Select Screen <span className="text-red-500">*</span>
-            </Label>
-            <Select value={data.screen} onValueChange={(v) => onChange({ ...data, screen: v })}>
-              <SelectTrigger id="vwp-screen" className={errors['vwp.screen'] ? 'border-red-500' : ''}>
-                <SelectValue placeholder="Select a screen" />
-              </SelectTrigger>
-              <SelectContent>
-                {screens.map((s) => (
-                  <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {errors['vwp.screen'] && <p className="text-sm text-red-500">{errors['vwp.screen']}</p>}
-          </div>
+        </div>
+        <div className="space-y-3">
+          <Label id="vwp-screen-label">
+            Select Screen <span className="text-red-500">*</span>
+          </Label>
+          <CreativeScreenPicker
+            id="vwp-screen"
+            value={data.screen}
+            onChange={(v) => onChange({ ...data, screen: v })}
+            screens={screens}
+            invalid={!!errors['vwp.screen']}
+          />
+          {errors['vwp.screen'] && <p className="text-sm text-red-500">{errors['vwp.screen']}</p>}
         </div>
         <p className="text-xs text-muted-foreground">This request type normally needs at least 6 hours' notice.</p>
       </CardContent>

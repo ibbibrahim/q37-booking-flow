@@ -28,11 +28,13 @@ import {
   completeCreativeRequest,
   getCreativeRequest,
   getCreativeRequestTransitions,
+  listCreativeScreens,
   unapproveCreativeRequest,
   uploadCreativeAttachment,
 } from '../services/creativeApi';
 import { useCreativeRequestChanged } from '../hooks/useCreativeRequestChanged';
 import { CreativeCommentThread } from './CreativeCommentThread';
+import { ScreenThumb } from './CreativeScreenPicker';
 import {
   CREATIVE_REQUEST_STATUS,
   CREATIVE_REQUEST_TYPE,
@@ -41,6 +43,7 @@ import {
   canFulfill,
   creativePermissionsFor,
   type CreativeRequestTransition,
+  type CreativeScreen,
   type FillerData,
   type LowerThirdData,
   type NewsHeadlineData,
@@ -128,6 +131,8 @@ export function CreativeRequestDetailPage() {
     queryFn: () => getCreativeRequestTransitions(requestId),
     enabled: Number.isFinite(requestId),
   });
+
+  const { data: screens = [] } = useQuery({ queryKey: ['creative-screens'], queryFn: listCreativeScreens });
 
   useCreativeRequestChanged((updated) => {
     if (updated.id === requestId) {
@@ -332,7 +337,12 @@ export function CreativeRequestDetailPage() {
 
               <div className="space-y-3 pt-1 border-t border-border">
                 <p className="text-sm font-semibold text-card-foreground pt-4">Request Specification</p>
-                <TypeSpecificDetails requestType={request.requestType} program={request.program} data={typeData} />
+                <TypeSpecificDetails
+                  requestType={request.requestType}
+                  program={request.program}
+                  data={typeData}
+                  screens={screens}
+                />
               </div>
             </CardContent>
           </Card>
@@ -594,10 +604,12 @@ function TypeSpecificDetails({
   requestType,
   program,
   data,
+  screens,
 }: {
   requestType: string;
   program?: string | null;
   data: Record<string, unknown> | null;
+  screens: CreativeScreen[];
 }) {
   if (!data) return <p className="text-sm text-muted-foreground">No additional details.</p>;
 
@@ -650,7 +662,10 @@ function TypeSpecificDetails({
             <SpecRow label="Screen" value={d.screen} />
             <SpecRow label="Headline Text" value={d.headlineText} emphasis />
           </div>
-          {d.referenceImage && <ImageThumb label="Reference Image" file={d.referenceImage} />}
+          <div className="flex flex-wrap gap-3">
+            <ScreenPreview name={d.screen} screens={screens} />
+            {d.referenceImage && <ImageThumb label="Reference Image" file={d.referenceImage} />}
+          </div>
         </div>
       );
     }
@@ -662,6 +677,7 @@ function TypeSpecificDetails({
             {program && <SpecRow label="Program" value={program} />}
             <SpecRow label="Screen" value={d.screen} />
           </div>
+          <ScreenPreview name={d.screen} screens={screens} />
           {d.topics && d.topics.length > 0 && (
             <SubsectionList label="Topics">
               {d.topics.map((t, i) => (
@@ -681,10 +697,13 @@ function TypeSpecificDetails({
     case CREATIVE_REQUEST_TYPE.VideoWallPresentation: {
       const d = data as unknown as VideoWallPresentationData;
       return (
-        <div className="space-y-1.5">
-          <SpecRow label="Title" value={d.title} />
-          <SpecRow label="Show Name" value={program} />
-          <SpecRow label="Screen" value={d.screen} />
+        <div className="space-y-3">
+          <div className="space-y-1.5">
+            <SpecRow label="Title" value={d.title} />
+            <SpecRow label="Show Name" value={program} />
+            <SpecRow label="Screen" value={d.screen} />
+          </div>
+          <ScreenPreview name={d.screen} screens={screens} />
         </div>
       );
     }
@@ -743,6 +762,28 @@ function TypeSpecificDetails({
     default:
       return null;
   }
+}
+
+// The selected studio screen's reference photo, looked up by name from the admin-managed
+// screen list. Renders nothing when that screen has no photo (or no longer exists).
+function ScreenPreview({ name, screens }: { name?: string; screens: CreativeScreen[] }) {
+  const screen = screens.find((s) => s.name === name);
+  if (!screen?.imageUrl) return null;
+  return (
+    <a
+      href={screen.imageUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="group block w-full max-w-xs overflow-hidden rounded-lg border border-border transition-colors hover:border-primary/40"
+    >
+      <ScreenThumb screen={screen} className="aspect-video w-full rounded-none shadow-none" />
+      <div className="px-2.5 py-1.5">
+        <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Screen</p>
+        <p className="text-sm font-medium text-card-foreground group-hover:text-primary">{screen.name}</p>
+        {screen.description && <p className="text-xs text-muted-foreground">{screen.description}</p>}
+      </div>
+    </a>
+  );
 }
 
 // Flat "Label: value" row — matches the compact specification-list style, used for simple

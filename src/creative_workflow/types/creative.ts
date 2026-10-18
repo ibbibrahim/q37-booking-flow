@@ -268,4 +268,9 @@ export interface CreativeScreen {
   id: number;
   name: string;
   imageUrl: string | null;
+  // Where the screen sits in the studio — shown under its photo in the screen picker.
+  description: string | null;
+  // Which request forms offer this screen (set per screen on the Reference Lists page).
+  useForNewsHeadline: boolean;
+  useForVideoWall: boolean; // Program Video Wall + Video Wall Presentation
 }
