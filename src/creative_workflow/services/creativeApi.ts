@@ -89,13 +89,20 @@ export async function updateCreativeRequestStatus(
 
 // The response payload shape depends on RequestType: Social Media Headline wants a drive
 // link, Filler/Lower Third/Special Request want a share-folder path, and News Headline/
-// Program Video Wall/Video Wall Presentation just need at least one attachment already
-// uploaded via uploadCreativeAttachment (validated server-side).
+// Program Video Wall/Video Wall Presentation need a confirmation that the image was uploaded
+// to Vizrt's own Image Library under the generated imageLibraryCode (validated server-side).
 export async function completeCreativeRequest(
   id: number,
-  opts: { driveLink?: string; responsePath?: string; comment?: string },
+  opts: { driveLink?: string; responsePath?: string; imageLibraryConfirmed?: boolean; comment?: string },
 ): Promise<CreativeRequest> {
   const { data } = await apiClient.patch<CreativeRequest>(`/api/creative/requests/${id}/complete`, opts);
+  return data;
+}
+
+// "Claim & Start Working" — locks the request to the caller and, for Image-Library types,
+// generates the Vizrt deliverable name (returned on the updated request as imageLibraryCode).
+export async function claimCreativeRequest(id: number): Promise<CreativeRequest> {
+  const { data } = await apiClient.patch<CreativeRequest>(`/api/creative/requests/${id}/claim`, {});
   return data;
 }
 

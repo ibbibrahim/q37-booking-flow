@@ -46,6 +46,15 @@ export const MOTION_GRAPHICS_TEAM_REQUEST_TYPES: CreativeRequestType[] = [
   CREATIVE_REQUEST_TYPE.SpecialRequest,
 ];
 
+// Whose deliverable is a name in Vizrt's own Image Library (we generate the name, Graphics
+// Team uploads the file there themselves — we never store it). Mirrors the backend's
+// CreativeRequestTypes.ImageLibraryTypes.
+export const IMAGE_LIBRARY_REQUEST_TYPES: CreativeRequestType[] = [
+  CREATIVE_REQUEST_TYPE.NewsHeadline,
+  CREATIVE_REQUEST_TYPE.ProgramVideoWall,
+  CREATIVE_REQUEST_TYPE.VideoWallPresentation,
+];
+
 // Lead time (hours) the doc asks requesters to respect before AirDate/AirTime — enforced as a
 // soft warning only, never blocks submission.
 export const CREATIVE_LEAD_TIME_HOURS: Partial<Record<CreativeRequestType, number>> = {
@@ -111,6 +120,32 @@ export function canFulfill(roles: string[], requestType: CreativeRequestType): b
   return GRAPHICS_TEAM_REQUEST_TYPES.includes(requestType)
     ? perms.canFulfillGraphicsRequest
     : perms.canFulfillMotionGraphicsRequest;
+}
+
+// Everything News/Programs Producers (the 'Booking' role) may submit — every type except
+// Social Media Headline, which is SocialMedia's alone. Mirrors the backend's
+// CreativeRequestTypes.BookingCreatableTypes.
+const BOOKING_CREATABLE_TYPES: CreativeRequestType[] = [
+  CREATIVE_REQUEST_TYPE.NewsHeadline,
+  CREATIVE_REQUEST_TYPE.ProgramVideoWall,
+  CREATIVE_REQUEST_TYPE.VideoWallPresentation,
+  CREATIVE_REQUEST_TYPE.Filler,
+  CREATIVE_REQUEST_TYPE.LowerThird,
+  CREATIVE_REQUEST_TYPE.SpecialRequest,
+];
+
+// Which request types the caller's role(s) may even see in the list — mirrors the backend's
+// AllowedRequestTypesForCaller scoping, so the "Type" filter never offers an option that
+// would just come back empty (or worse, imply they could see a request that isn't theirs).
+export function visibleRequestTypesFor(roles: string[]): CreativeRequestType[] {
+  if (roles.includes('Admin')) return Object.values(CREATIVE_REQUEST_TYPE);
+
+  const visible = new Set<CreativeRequestType>();
+  if (roles.includes('SocialMedia')) visible.add(CREATIVE_REQUEST_TYPE.SocialMediaHeadline);
+  if (roles.includes('Booking')) BOOKING_CREATABLE_TYPES.forEach((t) => visible.add(t));
+  if (roles.includes('GraphicsTeam')) GRAPHICS_TEAM_REQUEST_TYPES.forEach((t) => visible.add(t));
+  if (roles.includes('MotionGraphicsTeam')) MOTION_GRAPHICS_TEAM_REQUEST_TYPES.forEach((t) => visible.add(t));
+  return Array.from(visible);
 }
 
 // --- Per-request-type dynamic field shapes (serialized to/from TypeSpecificData JSON) ---
@@ -226,11 +261,18 @@ export interface CreativeRequestListItem {
   createdBy: number | null;
   createdByName: string | null;
   createdAt: string;
+  claimedBy: number | null;
+  claimedByName: string | null;
 }
 
 export interface CreativeRequest extends CreativeRequestListItem {
   typeSpecificData: string | null;
   updatedAt: string;
+  claimedAt: string | null;
+  // The name Graphics Team is told to upload the finished graphic under in Vizrt's own Image
+  // Library — generated at claim time for News Headline/Program Video Wall/Video Wall
+  // Presentation; we never store the file ourselves.
+  imageLibraryCode: string | null;
   attachments: CreativeRequestAttachment[];
 }
 

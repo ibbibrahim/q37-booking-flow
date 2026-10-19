@@ -23,7 +23,7 @@ import {
   CREATIVE_REQUEST_STATUS,
   CREATIVE_REQUEST_TYPE_LABEL,
   creativePermissionsFor,
-  type CreativeRequestType,
+  visibleRequestTypesFor,
 } from '../types/creative';
 
 const PAGINATION_STORAGE_KEY = 'creative-request-list';
@@ -52,6 +52,7 @@ export function CreativeRequestListPage() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const perms = creativePermissionsFor(user?.roles ?? []);
+  const visibleTypes = visibleRequestTypesFor(user?.roles ?? []);
 
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
@@ -146,7 +147,7 @@ export function CreativeRequestListPage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="All">All types</SelectItem>
-              {(Object.keys(CREATIVE_REQUEST_TYPE_LABEL) as CreativeRequestType[]).map((t) => (
+              {visibleTypes.map((t) => (
                 <SelectItem key={t} value={t}>
                   {CREATIVE_REQUEST_TYPE_LABEL[t]}
                 </SelectItem>

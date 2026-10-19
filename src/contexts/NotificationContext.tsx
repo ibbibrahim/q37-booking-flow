@@ -193,6 +193,24 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
           }
         });
       }
+
+      // Browser notification for Creative Workflow participants — covers thread messages,
+      // claims, completions, approvals, etc. (anything the backend tags EntityType:
+      // "CreativeRequest"), so a Graphics/Motion Graphics/Social Media/Booking user gets a
+      // desktop popup for request activity even while this tab is in the background.
+      if (data.entityType === 'CreativeRequest' && shouldShowBrowserNotification()) {
+        showBrowserNotification({
+          title: data.title,
+          body: data.body || 'New activity on a creative request',
+          icon: '/Qbusiness_Logo_NEG_POS-02.png',
+          tag: `creative-${data.entityId}`,
+          playSound: true,
+          onClick: () => {
+            window.focus();
+            if (data.url) navigate(data.url);
+          }
+        });
+      }
     });
 
     const unsubscribeCreated = listen('RequestCreated', (data: WorkflowRequest) => {

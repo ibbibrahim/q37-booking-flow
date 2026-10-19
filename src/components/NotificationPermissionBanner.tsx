@@ -21,11 +21,14 @@ export const NotificationPermissionBanner: React.FC = () => {
   const [showSuccess, setShowSuccess] = useState(false);
   const [dismissed, setDismissed] = useState(false);
 
-  // Check if user is in Ingest role
-  const isIngestUser = user?.roles?.includes('Ingest') || false;
+  // Roles whose workflow already pushes native browser notifications — see
+  // NotificationContext.tsx's NotificationCreated handler for where each is consumed.
+  const CREATIVE_ROLES = ['SocialMedia', 'Booking', 'GraphicsTeam', 'MotionGraphicsTeam'];
+  const wantsBrowserNotifications =
+    user?.roles?.includes('Ingest') || user?.roles?.some((r) => CREATIVE_ROLES.includes(r)) || false;
 
   useEffect(() => {
-    if (!isIngestUser) {
+    if (!wantsBrowserNotifications) {
       return;
     }
 
@@ -45,7 +48,7 @@ export const NotificationPermissionBanner: React.FC = () => {
     } else if (currentPermission === 'denied' && hasRequestedPermission() && !dismissed) {
       setShowBanner(true);
     }
-  }, [isIngestUser, dismissed]);
+  }, [wantsBrowserNotifications, dismissed]);
 
   const handleEnableNotifications = async () => {
     setIsRequesting(true);
@@ -77,7 +80,7 @@ export const NotificationPermissionBanner: React.FC = () => {
     setShowBanner(false);
   };
 
-  if (!isIngestUser) {
+  if (!wantsBrowserNotifications) {
     return null;
   }
 
@@ -93,7 +96,7 @@ export const NotificationPermissionBanner: React.FC = () => {
           <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
           <AlertTitle className="text-green-800 dark:text-green-300">Notifications Enabled</AlertTitle>
           <AlertDescription className="text-green-700 dark:text-green-400">
-            You'll now receive desktop notifications for new booking requests
+            You'll now receive desktop notifications for new activity on your requests
           </AlertDescription>
         </Alert>
       </div>
@@ -121,7 +124,7 @@ export const NotificationPermissionBanner: React.FC = () => {
             {permission === 'default' ? (
               <>
                 <p className="text-sm">
-                  Get alerted when new booking requests arrive, even when this tab is in the background.
+                  Get alerted about new requests and messages, even when this tab is in the background.
                 </p>
                 <Button
                   onClick={handleEnableNotifications}

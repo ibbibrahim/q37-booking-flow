@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { isAxiosError } from 'axios';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Activity, ArrowLeft, Check, Copy, FileText, FolderOpen, Info, Link2 } from 'lucide-react';
+import { ArrowLeft, Building2, Calendar, Check, Clock, Copy, FileText, Flag, FolderOpen, Image as ImageIcon, Info, Link2, User, UserCheck } from 'lucide-react';
 import type { ComponentType, ReactNode } from 'react';
 import { format } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -26,12 +27,12 @@ import { useToast } from '../../contexts/ToastContext';
 import { formatFileSize } from '@/lib/formatFileSize';
 import {
   approveCreativeRequest,
+  claimCreativeRequest,
   completeCreativeRequest,
   getCreativeRequest,
   getCreativeRequestTransitions,
   listCreativeScreens,
   unapproveCreativeRequest,
-  uploadCreativeAttachment,
 } from '../services/creativeApi';
 import { useCreativeRequestChanged } from '../hooks/useCreativeRequestChanged';
 import { CreativeCommentThread } from './CreativeCommentThread';
@@ -41,9 +42,9 @@ import {
   CREATIVE_REQUEST_TYPE,
   CREATIVE_REQUEST_TYPE_LABEL,
   GRAPHICS_TEAM_REQUEST_TYPES,
+  IMAGE_LIBRARY_REQUEST_TYPES,
   canFulfill,
   creativePermissionsFor,
-  type CreativeRequestTransition,
   type CreativeScreen,
   type FillerData,
   type LowerThirdData,
@@ -60,6 +61,13 @@ const statusColors: Record<string, string> = {
   Completed: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400',
   NeedsRevision: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400',
   Approved: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400',
+};
+
+const statusDotColors: Record<string, string> = {
+  Submitted: 'bg-amber-500',
+  Completed: 'bg-blue-500',
+  NeedsRevision: 'bg-red-500',
+  Approved: 'bg-green-500',
 };
 
 const priorityColors: Record<string, string> = {
@@ -101,22 +109,6 @@ function formatRelativeTime(iso: string): string {
   return `${days} day${days === 1 ? '' : 's'} ago`;
 }
 
-// Turns a raw status transition into a plain-English sentence for the activity trail, instead
-// of showing the raw "Submitted → Completed" status codes.
-function describeTransition(t: CreativeRequestTransition, teamLabel: string): string {
-  if (!t.fromStatus) return `Request submitted and routed to ${teamLabel}`;
-  switch (t.toStatus) {
-    case CREATIVE_REQUEST_STATUS.Completed:
-      return 'Delivery marked complete, awaiting approval';
-    case CREATIVE_REQUEST_STATUS.Approved:
-      return 'Approved and ready to air';
-    case CREATIVE_REQUEST_STATUS.NeedsRevision:
-      return 'Sent back for revision';
-    default:
-      return `${t.fromStatus} → ${t.toStatus}`;
-  }
-}
-
 export function CreativeRequestDetailPage() {
   const { id } = useParams<{ id: string }>();
   const requestId = Number(id);
@@ -126,9 +118,10 @@ export function CreativeRequestDetailPage() {
   const { showToast } = useToast();
   const perms = creativePermissionsFor(user?.roles ?? []);
 
-  const [uploading, setUploading] = useState(false);
+  const [claiming, setClaiming] = useState(false);
   const [driveLink, setDriveLink] = useState('');
   const [responsePath, setResponsePath] = useState('');
+  const [imageLibraryConfirmed, setImageLibraryConfirmed] = useState(false);
   const [completeComment, setCompleteComment] = useState('');
   const [completing, setCompleting] = useState(false);
   const [approvalNote, setApprovalNote] = useState('');
@@ -186,10 +179,13 @@ export function CreativeRequestDetailPage() {
   const canFulfillThis = canFulfill(user?.roles ?? [], request.requestType);
   const isSocialMediaHeadline = request.requestType === CREATIVE_REQUEST_TYPE.SocialMediaHeadline;
   const needsResponsePath = RESPONSE_PATH_TYPES.includes(request.requestType);
-  const needsImageUpload = !isSocialMediaHeadline && !needsResponsePath;
-  const canMarkComplete =
-    canFulfillThis &&
-    (request.status === CREATIVE_REQUEST_STATUS.Submitted || request.status === CREATIVE_REQUEST_STATUS.NeedsRevision);
+  const isImageLibraryType = IMAGE_LIBRARY_REQUEST_TYPES.includes(request.requestType);
+  const isOpenForWork =
+    request.status === CREATIVE_REQUEST_STATUS.Submitted || request.status === CREATIVE_REQUEST_STATUS.NeedsRevision;
+  const isClaimedByMe = request.claimedBy != null && request.claimedBy === user?.id;
+  const isClaimedByOther = request.claimedBy != null && !isClaimedByMe;
+  const canClaim = canFulfillThis && isOpenForWork && request.claimedBy == null;
+  const canMarkComplete = canFulfillThis && isOpenForWork && isClaimedByMe;
   const canApproveOrUnapprove =
     perms.canApproveSocialMedia && isSocialMediaHeadline && request.status === CREATIVE_REQUEST_STATUS.Completed;
 
@@ -205,14 +201,31 @@ export function CreativeRequestDetailPage() {
       ? { label: 'Drive Link', value: typeData.driveLink as string, icon: Link2, isLink: true,
           tooltip: 'Where the finished graphics were uploaded for Social Media to review.' }
       : null
-    : needsResponsePath && typeData?.responsePath
-      ? { label: 'Response Path (Share Folder)', value: typeData.responsePath as string, icon: FolderOpen, isLink: false,
-          tooltip: 'Where the finished files were saved on the shared folder.' }
-      : null;
+    : needsResponsePath
+      ? typeData?.responsePath
+        ? { label: 'Response Path (Share Folder)', value: typeData.responsePath as string, icon: FolderOpen, isLink: false,
+            tooltip: 'Where the finished files were saved on the shared folder.' }
+        : null
+      : request.imageLibraryCode
+        ? { label: 'Image Library Name', value: request.imageLibraryCode, icon: ImageIcon, isLink: false,
+            tooltip: "The name Graphics Team uploads this graphic under in Vizrt's own Image Library — search for it there." }
+        : null;
 
   function copyToClipboard(text: string) {
     navigator.clipboard.writeText(text);
     showToast('Copied to clipboard', 'success');
+  }
+
+  async function handleClaim() {
+    setClaiming(true);
+    try {
+      await claimCreativeRequest(requestId);
+      showToast('Claimed — you can now work on this request', 'success');
+    } catch (err) {
+      showToast(getApiErrorMessage(err, 'Could not claim this request'), 'error');
+    } finally {
+      setClaiming(false);
+    }
   }
 
   async function handleCompleteSubmit() {
@@ -224,8 +237,8 @@ export function CreativeRequestDetailPage() {
       showToast('A share-folder path is required to mark this request complete', 'error');
       return;
     }
-    if (needsImageUpload && request!.attachments.length === 0) {
-      showToast('Upload at least one image before marking this request complete', 'error');
+    if (isImageLibraryType && !imageLibraryConfirmed) {
+      showToast('Confirm the image has been uploaded to Vizrt before marking this request complete', 'error');
       return;
     }
 
@@ -234,10 +247,12 @@ export function CreativeRequestDetailPage() {
       await completeCreativeRequest(requestId, {
         driveLink: isSocialMediaHeadline ? driveLink.trim() : undefined,
         responsePath: needsResponsePath ? responsePath.trim() : undefined,
+        imageLibraryConfirmed: isImageLibraryType ? imageLibraryConfirmed : undefined,
         comment: completeComment.trim() || undefined,
       });
       showToast('Marked as completed', 'success');
       setCompleteComment('');
+      setImageLibraryConfirmed(false);
     } catch (err) {
       showToast(getApiErrorMessage(err, 'Could not mark this request complete'), 'error');
     } finally {
@@ -288,27 +303,14 @@ export function CreativeRequestDetailPage() {
     }
   }
 
-  async function handleAttachmentUpload(file: File) {
-    setUploading(true);
-    try {
-      await uploadCreativeAttachment(requestId, file, true);
-      queryClient.invalidateQueries({ queryKey });
-      showToast('Image uploaded', 'success');
-    } catch {
-      showToast('Upload failed', 'error');
-    } finally {
-      setUploading(false);
-    }
-  }
-
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
+    <div className="max-w-7xl mx-auto space-y-6">
       <Button variant="outline" size="icon" onClick={() => navigate('/creative-requests')}>
         <ArrowLeft size={20} />
       </Button>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        <div className="lg:col-span-3 space-y-6">
           {deliverable && (
             <DeliveryCallout
               icon={deliverable.icon}
@@ -320,39 +322,42 @@ export function CreativeRequestDetailPage() {
             />
           )}
 
-          <Card>
+          <Card className="overflow-hidden">
+            <div className={`h-1 w-full ${statusDotColors[request.status] ?? 'bg-border'}`} />
             <CardContent className="pt-6 space-y-5">
-              <div className="flex items-start justify-between gap-4 flex-wrap">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <Badge className={`${statusColors[request.status] ?? ''} font-medium`}>{request.status}</Badge>
-                  <Badge className={`${priorityColors[request.priority] ?? ''} font-medium`}>
-                    {request.priority} priority
-                  </Badge>
-                </div>
-                <p className="text-sm text-muted-foreground shrink-0">
-                  Air date {format(new Date(request.airDate), 'yyyy-MM-dd')} · {request.airTime?.slice(0, 5)}
-                </p>
+              <div className="flex items-center gap-2 flex-wrap">
+                <Badge className={`${statusColors[request.status] ?? ''} gap-1.5 font-medium`}>
+                  <span className={`h-1.5 w-1.5 rounded-full ${statusDotColors[request.status] ?? 'bg-current'}`} />
+                  {request.status}
+                </Badge>
+                <Badge className={`${priorityColors[request.priority] ?? ''} gap-1.5 font-medium`}>
+                  <Flag className="h-3 w-3" />
+                  {request.priority} priority
+                </Badge>
               </div>
 
               <div>
-                <h1 className="text-2xl font-bold text-card-foreground">{request.title}</h1>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {CREATIVE_REQUEST_TYPE_LABEL[request.requestType] ?? request.requestType} • Created{' '}
-                  {formatRelativeTime(request.createdAt)} by {request.createdByName || 'Unknown'}. Routed to{' '}
-                  {teamShortLabel}.
+                <p className="text-xs font-semibold uppercase tracking-wider text-primary">
+                  {CREATIVE_REQUEST_TYPE_LABEL[request.requestType] ?? request.requestType}
+                </p>
+                <h1 className="text-2xl font-bold text-card-foreground mt-1">{request.title}</h1>
+                <p className="text-sm text-muted-foreground mt-1.5">
+                  Created {formatRelativeTime(request.createdAt)} by {request.createdByName || 'Unknown'}
+                  <span className="mx-1.5 text-muted-foreground/50">·</span>
+                  Routed to {teamShortLabel}
                 </p>
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                <StatTile label="Air Date" value={format(new Date(request.airDate), 'yyyy-MM-dd')} />
-                <StatTile label="Air Time" value={request.airTime?.slice(0, 5)} />
-                <StatTile label="Priority" value={request.priority} />
-                <StatTile label="Requester" value={request.createdByName || '—'} />
-                <StatTile label="Department" value={departmentLabel} />
+                <StatTile icon={Calendar} label="Air Date" value={format(new Date(request.airDate), 'yyyy-MM-dd')} />
+                <StatTile icon={Clock} label="Air Time" value={request.airTime?.slice(0, 5)} />
+                <StatTile icon={Flag} label="Priority" value={request.priority} />
+                <StatTile icon={User} label="Requester" value={request.createdByName || '—'} />
+                <StatTile icon={Building2} label="Department" value={departmentLabel} />
               </div>
 
-              <div className="space-y-3 pt-1 border-t border-border">
-                <p className="text-sm font-semibold text-card-foreground pt-4">Request Specification</p>
+              <div className="space-y-3 pt-4 border-t border-border">
+                <p className="text-sm font-semibold text-card-foreground">Request Specification</p>
                 <TypeSpecificDetails
                   requestType={request.requestType}
                   program={request.program}
@@ -363,21 +368,31 @@ export function CreativeRequestDetailPage() {
             </CardContent>
           </Card>
 
-          {request.attachments.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Image Library</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-wrap gap-3">
-                  {request.attachments.map((a) => (
-                    <ImageThumb
-                      key={a.id}
-                      label={a.imageCode ?? undefined}
-                      file={{ url: a.fileUrl, name: a.fileName, sizeBytes: a.fileSizeBytes, contentType: a.contentType ?? undefined }}
-                    />
-                  ))}
+          {canClaim && (
+            <Card className="border-primary/30">
+              <CardContent className="flex items-center justify-between gap-4 pt-6">
+                <div>
+                  <p className="text-sm font-semibold text-card-foreground">Not claimed yet</p>
+                  <p className="text-sm text-muted-foreground">
+                    Claim this request before working on it — only you'll be able to mark it complete afterward.
+                  </p>
                 </div>
+                <Button onClick={handleClaim} disabled={claiming} className="shrink-0">
+                  <UserCheck className="h-4 w-4 mr-2" />
+                  {claiming ? 'Claiming…' : 'Claim & Start Working'}
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          {isClaimedByOther && isOpenForWork && (
+            <Card>
+              <CardContent className="flex items-center gap-3 pt-6">
+                <UserCheck className="h-5 w-5 shrink-0 text-muted-foreground" />
+                <p className="text-sm text-muted-foreground">
+                  <span className="font-semibold text-card-foreground">{request.claimedByName || 'Someone'}</span>{' '}
+                  claimed this request and is working on it.
+                </p>
               </CardContent>
             </Card>
           )}
@@ -410,26 +425,43 @@ export function CreativeRequestDetailPage() {
                     />
                   </div>
                 )}
-                {needsImageUpload && (
-                  <div className="space-y-1.5">
-                    <Label>Upload Image (ingests into Image Library)</Label>
-                    <label className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed border-border px-3 py-2 text-sm text-muted-foreground hover:bg-muted">
-                      {uploading ? 'Uploading…' : 'Upload image'}
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        disabled={uploading}
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) handleAttachmentUpload(file);
-                          e.target.value = '';
-                        }}
-                      />
-                    </label>
-                    {request.attachments.length === 0 && (
+                {isImageLibraryType && (
+                  <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-3">
+                    <Label>Vizrt Image Library Name</Label>
+                    {request.imageLibraryCode ? (
+                      <>
+                        <div className="flex items-center justify-between gap-2 rounded-md border border-border bg-background px-3 py-2">
+                          <span className="font-mono text-sm font-semibold text-card-foreground">
+                            {request.imageLibraryCode}
+                          </span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 shrink-0"
+                            onClick={() => copyToClipboard(request.imageLibraryCode!)}
+                          >
+                            <Copy className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Upload the finished graphic into Vizrt's Image Library under this exact name, so the
+                          requester can find it.
+                        </p>
+                        <label className="flex items-start gap-2 pt-1">
+                          <Checkbox
+                            checked={imageLibraryConfirmed}
+                            onCheckedChange={(checked) => setImageLibraryConfirmed(checked === true)}
+                          />
+                          <span className="text-sm text-card-foreground">
+                            I've uploaded the image to Vizrt's Image Library as{' '}
+                            <span className="font-mono font-semibold">{request.imageLibraryCode}</span>
+                          </span>
+                        </label>
+                      </>
+                    ) : (
                       <p className="text-xs text-amber-600 dark:text-amber-400">
-                        Upload at least one image before marking this request complete.
+                        No name was generated — claim the request again to generate one.
                       </p>
                     )}
                   </div>
@@ -449,46 +481,9 @@ export function CreativeRequestDetailPage() {
               </CardContent>
             </Card>
           )}
-
-          <Card>
-            <CardHeader className="flex flex-row items-start justify-between space-y-0">
-              <div>
-                <CardTitle className="text-base">Audit Log</CardTitle>
-                <p className="text-sm text-muted-foreground mt-0.5">Every handoff decision, in sequence</p>
-              </div>
-              <Activity className="h-5 w-5 text-muted-foreground shrink-0" />
-            </CardHeader>
-            <CardContent>
-              {transitions.length === 0 ? (
-                <div className="text-sm text-muted-foreground">No activity yet</div>
-              ) : (
-                <div className="divide-y divide-border">
-                  {transitions.map((t) => {
-                    const changedAt = new Date(t.changedAt);
-                    return (
-                      <div key={t.id} className="flex items-start gap-3 py-3 first:pt-0 last:pb-0">
-                        <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary" />
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm font-medium text-card-foreground">
-                            {describeTransition(t, teamShortLabel)}
-                          </p>
-                          {t.comment && <p className="mt-0.5 text-sm text-muted-foreground">{t.comment}</p>}
-                          <p className="mt-1 text-xs text-muted-foreground">
-                            {changedAt.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })} ·{' '}
-                            {changedAt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} ·{' '}
-                            {t.changedByName || 'System'}
-                          </p>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </CardContent>
-          </Card>
         </div>
 
-        <div className="space-y-6">
+        <div className="lg:col-span-2 space-y-6 lg:sticky lg:top-6 lg:self-start">
           {canApproveOrUnapprove && (
             <Card>
               <CardHeader>
@@ -520,7 +515,14 @@ export function CreativeRequestDetailPage() {
             </Card>
           )}
 
-          <CreativeCommentThread requestId={requestId} />
+          <CreativeCommentThread
+            requestId={requestId}
+            transitions={transitions}
+            requesterName={request.createdByName}
+            requesterUserId={request.createdBy}
+            requesterLabel={departmentLabel}
+            teamLabel={`${teamShortLabel} Team`}
+          />
         </div>
       </div>
 
@@ -607,11 +609,26 @@ function DeliveryCallout({
   );
 }
 
-function StatTile({ label, value }: { label: string; value?: string | null }) {
+function StatTile({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon?: ComponentType<{ className?: string }>;
+  label: string;
+  value?: string | null;
+}) {
   return (
-    <div className="rounded-lg bg-muted/50 px-3 py-2.5">
-      <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground mb-0.5">{label}</div>
-      <div className="text-sm font-semibold text-card-foreground">{value || '—'}</div>
+    <div className="flex items-start gap-2.5 rounded-xl border border-border/60 bg-muted/40 px-3 py-2.5">
+      {Icon && (
+        <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-background text-muted-foreground">
+          <Icon className="h-3.5 w-3.5" />
+        </div>
+      )}
+      <div className="min-w-0">
+        <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground mb-0.5">{label}</div>
+        <div className="truncate text-sm font-semibold text-card-foreground">{value || '—'}</div>
+      </div>
     </div>
   );
 }
