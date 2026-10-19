@@ -7,6 +7,7 @@ export interface NotificationDTO {
   url: string;
   isRead: boolean;
   createdAt: string;
+  type: string;
   entityType: string;
   entityId: number;
   actorUserId?: number;
