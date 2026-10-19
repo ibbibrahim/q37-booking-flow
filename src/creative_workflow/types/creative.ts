@@ -167,6 +167,8 @@ export interface ProgramVideoWallData {
 export interface VideoWallPresentationData {
   title: string;
   screen: string;
+  // Added in the doc's revision — same Title/Description shape as Filler's sections.
+  sections: FillerSection[];
 }
 
 export interface FillerSection {
@@ -190,7 +192,9 @@ export interface LowerThirdData {
 }
 
 export interface SpecialRequestData {
-  images: UploadedFileRef[];
+  // Doc's "Image Link(s)" field: pasted URLs (e.g. to a shared drive image), not uploaded
+  // files — so this is a list of link strings, not UploadedFileRef.
+  imageLinks: string[];
   description: string;
   responsePath?: string;
 }

@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { isAxiosError } from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, Calendar, Loader2, Palette, Plus, Send, X } from 'lucide-react';
@@ -62,6 +63,23 @@ async function uploadSingle(file: File): Promise<string> {
   return uploadCreativeFormFile(file);
 }
 
+// The backend returns a specific validation message on a 400, but a role check that fails
+// (Forbid()) sends an empty 403 with no body — without this, that case silently fell back to
+// a generic "something went wrong" with no indication it was actually a permissions problem.
+function getSubmitErrorMessage(err: unknown): string {
+  if (isAxiosError(err)) {
+    const message = (err.response?.data as { message?: string } | undefined)?.message;
+    if (message) return message;
+    if (err.response?.status === 403) {
+      return "You don't have permission to submit this request type.";
+    }
+    if (err.response?.status === 401) {
+      return 'Your session has expired. Please sign in again.';
+    }
+  }
+  return 'Something went wrong submitting the request. Please try again.';
+}
+
 export function CreativeRequestFormPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -83,15 +101,14 @@ export function CreativeRequestFormPage() {
     requestKind: 'DailyRequest',
     packageItems: [...PACKAGE_ITEMS],
     sections: [],
-    platform: 'QBC',
     selectType: 'Headline',
   });
   const [newsData, setNewsData] = useState<NewsHeadlineData>({ screen: '', headlineText: '' });
   const [pvwData, setPvwData] = useState<ProgramVideoWallData>({ screen: '', topics: [] });
-  const [vwpData, setVwpData] = useState<VideoWallPresentationData>({ title: '', screen: '' });
+  const [vwpData, setVwpData] = useState<VideoWallPresentationData>({ title: '', screen: '', sections: [] });
   const [fillerData, setFillerData] = useState<FillerData>({ sections: [] });
   const [lowerThirdData, setLowerThirdData] = useState<LowerThirdData>({ sections: [] });
-  const [specialData, setSpecialData] = useState<SpecialRequestData>({ images: [], description: '' });
+  const [specialData, setSpecialData] = useState<SpecialRequestData>({ imageLinks: [], description: '' });
 
   const { data: programs = [] } = useQuery({ queryKey: ['creative-programs'], queryFn: listCreativePrograms });
   const { data: screens = [] } = useQuery({ queryKey: ['creative-screens'], queryFn: listCreativeScreens });
@@ -131,21 +148,63 @@ export function CreativeRequestFormPage() {
     }
   }
 
+  function isValidUrl(value: string): boolean {
+    try {
+      const url = new URL(value);
+      return url.protocol === 'http:' || url.protocol === 'https:';
+    } catch {
+      return false;
+    }
+  }
+
+  // Local calendar date (not UTC) so it lines up with the <input type="date"> value being compared.
+  function todayLocalDateString(): string {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+
   function validate(): Record<string, string> {
     const next: Record<string, string> = {};
     if (!title.trim()) next.title = 'Request Title is required.';
     if (!airDate) next.airDate = 'Air Date is required.';
     if (!airTime) next.airTime = 'Air Time is required.';
+    // Air Date/Time combined must be in the future. Attribute the error to whichever field
+    // is actually responsible: a past date is an Air Date problem even if the time looks
+    // fine in isolation; today's date with an already-passed time is an Air Time problem.
+    if (airDate && airTime && new Date(`${airDate}T${airTime}`).getTime() < Date.now()) {
+      if (airDate < todayLocalDateString()) {
+        next.airDate = 'Air Date must be in the future.';
+      } else {
+        next.airTime = 'Air Time must be in the future.';
+      }
+    }
 
     if (requestType === CREATIVE_REQUEST_TYPE.SocialMediaHeadline) {
       if (smData.requestKind === 'EventPackage') {
         if (!smData.eventName) next['sm.eventName'] = 'Event Name is required.';
         if (!smData.eventLogo) next['sm.eventLogo'] = 'Event Logo is required.';
+        if (!smData.platform) next['sm.platform'] = 'Platform is required.';
       }
       if (smData.requestKind === 'DailyRequest') {
-        if (smData.selectType === 'Headline' && !smData.title) next['sm.title'] = 'Headline Title is required.';
-        if (smData.selectType === 'Carrousel' && (!smData.sections || smData.sections.length === 0)) {
-          next['sm.sections'] = 'Add at least one section to the Carrousel.';
+        if (smData.selectType === 'Headline') {
+          if (!smData.title) next['sm.title'] = 'Headline Title is required.';
+          if (!smData.backgroundImage) next['sm.backgroundImage'] = 'Background Image is required.';
+          if (!smData.platform) next['sm.platform'] = 'Platform is required.';
+        }
+        if (smData.selectType === 'Carrousel') {
+          const sections = smData.sections ?? [];
+          if (sections.length === 0) {
+            next['sm.sections'] = 'Add at least one section to the Carrousel.';
+          } else {
+            sections.forEach((s, i) => {
+              if (!s.title?.trim()) next[`sm.sections.${i}.title`] = 'Title is required.';
+              if (!s.backgroundImage) next[`sm.sections.${i}.backgroundImage`] = 'Background Image is required.';
+            });
+          }
+          if (!smData.platform) next['sm.platform'] = 'Platform is required.';
         }
       }
     }
@@ -156,22 +215,60 @@ export function CreativeRequestFormPage() {
     if (requestType === CREATIVE_REQUEST_TYPE.ProgramVideoWall) {
       if (!program) next['pvw.program'] = 'Program is required.';
       if (!pvwData.screen) next['pvw.screen'] = 'Screen is required.';
-      if (pvwData.topics.length === 0) next['pvw.topics'] = 'Add at least one topic.';
+      if (pvwData.topics.length === 0) {
+        next['pvw.topics'] = 'Add at least one topic.';
+      } else {
+        pvwData.topics.forEach((t, i) => {
+          if (t.type === 'FullScreenGraphic') {
+            if (!t.text?.trim()) next[`pvw.topics.${i}.text`] = 'Text is required.';
+          } else {
+            if (!t.image) next[`pvw.topics.${i}.image`] = 'Image is required.';
+            if (!t.vizTemplateName?.trim()) next[`pvw.topics.${i}.vizTemplateName`] = 'Viz Template Name is required.';
+          }
+        });
+      }
     }
     if (requestType === CREATIVE_REQUEST_TYPE.VideoWallPresentation) {
       if (!program) next['vwp.program'] = 'Show Name is required.';
       if (!vwpData.title) next['vwp.title'] = 'Title is required.';
       if (!vwpData.screen) next['vwp.screen'] = 'Screen is required.';
+      if (vwpData.sections.length === 0) {
+        next['vwp.sections'] = 'Add at least one section.';
+      } else {
+        vwpData.sections.forEach((s, i) => {
+          if (!s.title?.trim()) next[`vwp.sections.${i}.title`] = 'Title is required.';
+          if (!s.description?.trim()) next[`vwp.sections.${i}.description`] = 'Description is required.';
+        });
+      }
     }
-    if (requestType === CREATIVE_REQUEST_TYPE.Filler && fillerData.sections.length === 0) {
-      next['filler.sections'] = 'Add at least one section.';
+    if (requestType === CREATIVE_REQUEST_TYPE.Filler) {
+      if (fillerData.sections.length === 0) {
+        next['filler.sections'] = 'Add at least one section.';
+      } else {
+        fillerData.sections.forEach((s, i) => {
+          if (!s.title?.trim()) next[`filler.sections.${i}.title`] = 'Title is required.';
+          if (!s.description?.trim()) next[`filler.sections.${i}.description`] = 'Description is required.';
+        });
+      }
     }
     if (requestType === CREATIVE_REQUEST_TYPE.LowerThird) {
       if (!program) next['lt.program'] = 'Program is required.';
-      if (lowerThirdData.sections.length === 0) next['lt.sections'] = 'Add at least one section.';
+      if (lowerThirdData.sections.length === 0) {
+        next['lt.sections'] = 'Add at least one section.';
+      } else {
+        lowerThirdData.sections.forEach((s, i) => {
+          if (!s.personName?.trim()) next[`lt.sections.${i}.personName`] = 'Person Name is required.';
+          if (!s.personJobTitle?.trim()) next[`lt.sections.${i}.personJobTitle`] = 'Person Job Title is required.';
+        });
+      }
     }
-    if (requestType === CREATIVE_REQUEST_TYPE.SpecialRequest && !specialData.description) {
-      next['special.description'] = 'Description is required.';
+    if (requestType === CREATIVE_REQUEST_TYPE.SpecialRequest) {
+      if (!specialData.description) next['special.description'] = 'Description is required.';
+      specialData.imageLinks.forEach((link, i) => {
+        if (link.trim() && !isValidUrl(link.trim())) {
+          next[`special.imageLinks.${i}`] = 'Enter a valid URL (e.g. https://...).';
+        }
+      });
     }
     return next;
   }
@@ -199,8 +296,8 @@ export function CreativeRequestFormPage() {
       });
       showToast('Request submitted', 'success');
       navigate(`/creative-requests/${created.id}`);
-    } catch {
-      showToast('Something went wrong submitting the request. Please try again.', 'error');
+    } catch (err) {
+      showToast(getSubmitErrorMessage(err), 'error');
     } finally {
       setSubmitting(false);
     }
@@ -424,7 +521,11 @@ function SocialMediaHeadlineForm({
           </Label>
           <Select
             value={data.requestKind}
-            onValueChange={(v) => onChange({ ...data, requestKind: v as SocialMediaHeadlineData['requestKind'] })}
+            onValueChange={(v) =>
+              // Platform's valid options differ per branch (the combined "QBC & QTV37" option
+              // only applies to Event Package) — reset it so a stale value can't carry over.
+              onChange({ ...data, requestKind: v as SocialMediaHeadlineData['requestKind'], platform: undefined })
+            }
           >
             <SelectTrigger id="sm-request-kind">
               <SelectValue />
@@ -483,6 +584,13 @@ function SocialMediaHeadlineForm({
                 />
                 {errors['sm.eventName'] && <p className="text-sm text-red-500">{errors['sm.eventName']}</p>}
               </div>
+              <PlatformSelect
+                id="sm-platform-event"
+                value={data.platform}
+                onChange={(v) => onChange({ ...data, platform: v as SocialMediaHeadlineData['platform'] })}
+                includeCombo
+                error={errors['sm.platform']}
+              />
             </div>
           </div>
         )}
@@ -521,20 +629,17 @@ function SocialMediaHeadlineForm({
                 <SectionListEditor
                   sections={data.sections ?? []}
                   onChange={(sections) => onChange({ ...data, sections })}
+                  errors={errors}
                 />
                 {errors['sm.sections'] && <p className="text-sm text-red-500">{errors['sm.sections']}</p>}
-                <div className="space-y-2 max-w-sm">
-                  <Label htmlFor="sm-platform">Select Platform</Label>
-                  <Select value={data.platform ?? 'QBC'} onValueChange={(v) => onChange({ ...data, platform: v as SocialMediaHeadlineData['platform'] })}>
-                    <SelectTrigger id="sm-platform">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="QBC">QBC</SelectItem>
-                      <SelectItem value="QTV37">QTV37</SelectItem>
-                      <SelectItem value="QBC & QTV37">QBC & QTV37</SelectItem>
-                    </SelectContent>
-                  </Select>
+                <div className="max-w-sm">
+                  <PlatformSelect
+                    id="sm-platform-carrousel"
+                    value={data.platform}
+                    onChange={(v) => onChange({ ...data, platform: v as SocialMediaHeadlineData['platform'] })}
+                    includeCombo={false}
+                    error={errors['sm.platform']}
+                  />
                 </div>
               </div>
             )}
@@ -554,13 +659,23 @@ function SocialMediaHeadlineForm({
                   />
                   {errors['sm.title'] && <p className="text-sm text-red-500">{errors['sm.title']}</p>}
                 </div>
-                <CreativeDocumentUploadField
-                  id="sm-bg-image"
-                  label="Background Image"
-                  required
-                  value={data.backgroundImage}
-                  onChange={(ref) => onChange({ ...data, backgroundImage: ref ?? undefined })}
-                  accept="image/*"
+                <div className="space-y-1">
+                  <CreativeDocumentUploadField
+                    id="sm-bg-image"
+                    label="Background Image"
+                    required
+                    value={data.backgroundImage}
+                    onChange={(ref) => onChange({ ...data, backgroundImage: ref ?? undefined })}
+                    accept="image/*"
+                  />
+                  {errors['sm.backgroundImage'] && <p className="text-sm text-red-500">{errors['sm.backgroundImage']}</p>}
+                </div>
+                <PlatformSelect
+                  id="sm-platform-headline"
+                  value={data.platform}
+                  onChange={(v) => onChange({ ...data, platform: v as SocialMediaHeadlineData['platform'] })}
+                  includeCombo={false}
+                  error={errors['sm.platform']}
                 />
               </div>
             )}
@@ -571,12 +686,50 @@ function SocialMediaHeadlineForm({
   );
 }
 
+// Platform is asked in all three Social Media Headline branches, but the combined "QBC &
+// QTV37" option only makes sense — and is only offered — when the whole request is an Event
+// Package; Daily Request (Carrousel or Headline) only offers the two individual channels.
+function PlatformSelect({
+  id,
+  value,
+  onChange,
+  includeCombo,
+  error,
+}: {
+  id: string;
+  value?: string;
+  onChange: (v: string) => void;
+  includeCombo: boolean;
+  error?: string;
+}) {
+  return (
+    <div className="space-y-2">
+      <Label htmlFor={id}>
+        Select Platform <span className="text-red-500">*</span>
+      </Label>
+      <Select value={value ?? ''} onValueChange={onChange}>
+        <SelectTrigger id={id} className={error ? 'border-red-500' : ''}>
+          <SelectValue placeholder="Select a platform" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="QBC">QBC</SelectItem>
+          <SelectItem value="QTV37">QTV37</SelectItem>
+          {includeCombo && <SelectItem value="QBC & QTV37">QBC & QTV37</SelectItem>}
+        </SelectContent>
+      </Select>
+      {error && <p className="text-sm text-red-500">{error}</p>}
+    </div>
+  );
+}
+
 function SectionListEditor({
   sections,
   onChange,
+  errors,
 }: {
   sections: CreativeSection[];
   onChange: (sections: CreativeSection[]) => void;
+  errors: Record<string, string>;
 }) {
   function updateAt(i: number, patch: Partial<(typeof sections)[number]>) {
     onChange(sections.map((s, idx) => (idx === i ? { ...s, ...patch } : s)));
@@ -602,17 +755,32 @@ function SectionListEditor({
             </button>
           </div>
           <div className="space-y-2">
-            <Label>Title</Label>
-            <Input value={s.title} onChange={(e) => updateAt(i, { title: e.target.value })} />
+            <Label>
+              Title <span className="text-red-500">*</span>
+            </Label>
+            <Input
+              value={s.title}
+              onChange={(e) => updateAt(i, { title: e.target.value })}
+              className={errors[`sm.sections.${i}.title`] ? 'border-red-500' : ''}
+            />
+            {errors[`sm.sections.${i}.title`] && (
+              <p className="text-sm text-red-500">{errors[`sm.sections.${i}.title`]}</p>
+            )}
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <CreativeDocumentUploadField
-              id={`section-bg-${i}`}
-              label="Background Image"
-              value={s.backgroundImage}
-              onChange={(ref) => updateAt(i, { backgroundImage: ref ?? undefined })}
-              accept="image/*"
-            />
+            <div className="space-y-1">
+              <CreativeDocumentUploadField
+                id={`section-bg-${i}`}
+                label="Background Image"
+                required
+                value={s.backgroundImage}
+                onChange={(ref) => updateAt(i, { backgroundImage: ref ?? undefined })}
+                accept="image/*"
+              />
+              {errors[`sm.sections.${i}.backgroundImage`] && (
+                <p className="text-sm text-red-500">{errors[`sm.sections.${i}.backgroundImage`]}</p>
+              )}
+            </div>
             <MultiFileUploadField
               id={`section-icons-${i}`}
               label="Icons"
@@ -789,8 +957,18 @@ function ProgramVideoWallForm({
               {t.type === 'FullScreenGraphic' ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label>Text</Label>
-                    <Textarea value={t.text ?? ''} onChange={(e) => updateTopic(i, { text: e.target.value })} rows={2} />
+                    <Label>
+                      Text <span className="text-red-500">*</span>
+                    </Label>
+                    <Textarea
+                      value={t.text ?? ''}
+                      onChange={(e) => updateTopic(i, { text: e.target.value })}
+                      rows={2}
+                      className={errors[`pvw.topics.${i}.text`] ? 'border-red-500' : ''}
+                    />
+                    {errors[`pvw.topics.${i}.text`] && (
+                      <p className="text-sm text-red-500">{errors[`pvw.topics.${i}.text`]}</p>
+                    )}
                   </div>
                   <CreativeDocumentUploadField
                     id={`topic-image-${i}`}
@@ -802,16 +980,31 @@ function ProgramVideoWallForm({
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <CreativeDocumentUploadField
-                    id={`topic-viz-image-${i}`}
-                    label="Image"
-                    value={t.image}
-                    onChange={(ref) => updateTopic(i, { image: ref ?? undefined })}
-                    accept="image/*"
-                  />
+                  <div className="space-y-1">
+                    <CreativeDocumentUploadField
+                      id={`topic-viz-image-${i}`}
+                      label="Image"
+                      required
+                      value={t.image}
+                      onChange={(ref) => updateTopic(i, { image: ref ?? undefined })}
+                      accept="image/*"
+                    />
+                    {errors[`pvw.topics.${i}.image`] && (
+                      <p className="text-sm text-red-500">{errors[`pvw.topics.${i}.image`]}</p>
+                    )}
+                  </div>
                   <div className="space-y-2">
-                    <Label>Viz Template Name</Label>
-                    <Input value={t.vizTemplateName ?? ''} onChange={(e) => updateTopic(i, { vizTemplateName: e.target.value })} />
+                    <Label>
+                      Viz Template Name <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      value={t.vizTemplateName ?? ''}
+                      onChange={(e) => updateTopic(i, { vizTemplateName: e.target.value })}
+                      className={errors[`pvw.topics.${i}.vizTemplateName`] ? 'border-red-500' : ''}
+                    />
+                    {errors[`pvw.topics.${i}.vizTemplateName`] && (
+                      <p className="text-sm text-red-500">{errors[`pvw.topics.${i}.vizTemplateName`]}</p>
+                    )}
                   </div>
                 </div>
               )}
@@ -842,6 +1035,16 @@ function VideoWallPresentationForm({
   screens: CreativeScreen[];
   errors: Record<string, string>;
 }) {
+  function addSection() {
+    onChange({ ...data, sections: [...data.sections, { title: '', description: '' }] });
+  }
+  function updateSectionAt(i: number, patch: Partial<FillerSection>) {
+    onChange({ ...data, sections: data.sections.map((s, idx) => (idx === i ? { ...s, ...patch } : s)) });
+  }
+  function removeSectionAt(i: number) {
+    onChange({ ...data, sections: data.sections.filter((_, idx) => idx !== i) });
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -894,6 +1097,54 @@ function VideoWallPresentationForm({
           />
           {errors['vwp.screen'] && <p className="text-sm text-red-500">{errors['vwp.screen']}</p>}
         </div>
+
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <Label>Sections</Label>
+            <Button type="button" size="sm" variant="outline" onClick={addSection}>
+              <Plus className="h-4 w-4 mr-1" /> Add Section
+            </Button>
+          </div>
+          {errors['vwp.sections'] && <p className="text-sm text-red-500">{errors['vwp.sections']}</p>}
+          {data.sections.map((s, i) => (
+            <div key={i} className="space-y-4 rounded-lg border border-border bg-card p-4">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-muted-foreground">Section {i + 1}</span>
+                <button type="button" onClick={() => removeSectionAt(i)} className="text-muted-foreground hover:text-destructive">
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <div className="space-y-2">
+                <Label>
+                  Title <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  value={s.title}
+                  onChange={(e) => updateSectionAt(i, { title: e.target.value })}
+                  className={errors[`vwp.sections.${i}.title`] ? 'border-red-500' : ''}
+                />
+                {errors[`vwp.sections.${i}.title`] && (
+                  <p className="text-sm text-red-500">{errors[`vwp.sections.${i}.title`]}</p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label>
+                  Description <span className="text-red-500">*</span>
+                </Label>
+                <Textarea
+                  value={s.description}
+                  onChange={(e) => updateSectionAt(i, { description: e.target.value })}
+                  rows={2}
+                  className={errors[`vwp.sections.${i}.description`] ? 'border-red-500' : ''}
+                />
+                {errors[`vwp.sections.${i}.description`] && (
+                  <p className="text-sm text-red-500">{errors[`vwp.sections.${i}.description`]}</p>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+
         <p className="text-xs text-muted-foreground">This request type normally needs at least 6 hours' notice.</p>
       </CardContent>
     </Card>
@@ -946,12 +1197,31 @@ function FillerForm({
               </button>
             </div>
             <div className="space-y-2">
-              <Label>Title</Label>
-              <Input value={s.title} onChange={(e) => updateAt(i, { title: e.target.value })} />
+              <Label>
+                Title <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                value={s.title}
+                onChange={(e) => updateAt(i, { title: e.target.value })}
+                className={errors[`filler.sections.${i}.title`] ? 'border-red-500' : ''}
+              />
+              {errors[`filler.sections.${i}.title`] && (
+                <p className="text-sm text-red-500">{errors[`filler.sections.${i}.title`]}</p>
+              )}
             </div>
             <div className="space-y-2">
-              <Label>Description</Label>
-              <Textarea value={s.description} onChange={(e) => updateAt(i, { description: e.target.value })} rows={2} />
+              <Label>
+                Description <span className="text-red-500">*</span>
+              </Label>
+              <Textarea
+                value={s.description}
+                onChange={(e) => updateAt(i, { description: e.target.value })}
+                rows={2}
+                className={errors[`filler.sections.${i}.description`] ? 'border-red-500' : ''}
+              />
+              {errors[`filler.sections.${i}.description`] && (
+                <p className="text-sm text-red-500">{errors[`filler.sections.${i}.description`]}</p>
+              )}
             </div>
           </div>
         ))}
@@ -1029,12 +1299,30 @@ function LowerThirdForm({
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label>Person Name</Label>
-                <Input value={s.personName} onChange={(e) => updateAt(i, { personName: e.target.value })} />
+                <Label>
+                  Person Name <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  value={s.personName}
+                  onChange={(e) => updateAt(i, { personName: e.target.value })}
+                  className={errors[`lt.sections.${i}.personName`] ? 'border-red-500' : ''}
+                />
+                {errors[`lt.sections.${i}.personName`] && (
+                  <p className="text-sm text-red-500">{errors[`lt.sections.${i}.personName`]}</p>
+                )}
               </div>
               <div className="space-y-2">
-                <Label>Person Job Title</Label>
-                <Input value={s.personJobTitle} onChange={(e) => updateAt(i, { personJobTitle: e.target.value })} />
+                <Label>
+                  Person Job Title <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  value={s.personJobTitle}
+                  onChange={(e) => updateAt(i, { personJobTitle: e.target.value })}
+                  className={errors[`lt.sections.${i}.personJobTitle`] ? 'border-red-500' : ''}
+                />
+                {errors[`lt.sections.${i}.personJobTitle`] && (
+                  <p className="text-sm text-red-500">{errors[`lt.sections.${i}.personJobTitle`]}</p>
+                )}
               </div>
             </div>
           </div>
@@ -1064,14 +1352,46 @@ function SpecialRequestForm({
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
-        <MultiFileUploadField
-          id="special-images"
-          label="Image Links"
-          value={data.images}
-          onChange={(images) => onChange({ ...data, images })}
-          onUpload={uploadSingle}
-          accept="image/*"
-        />
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <Label>Image Links (optional)</Label>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => onChange({ ...data, imageLinks: [...data.imageLinks, ''] })}
+            >
+              <Plus className="h-4 w-4 mr-1" /> Add Image Link
+            </Button>
+          </div>
+          {data.imageLinks.map((link, i) => (
+            <div key={i} className="space-y-1">
+              <div className="flex items-center gap-2">
+                <Input
+                  value={link}
+                  onChange={(e) =>
+                    onChange({
+                      ...data,
+                      imageLinks: data.imageLinks.map((l, idx) => (idx === i ? e.target.value : l)),
+                    })
+                  }
+                  placeholder="https://..."
+                  className={errors[`special.imageLinks.${i}`] ? 'border-red-500' : ''}
+                />
+                <button
+                  type="button"
+                  onClick={() => onChange({ ...data, imageLinks: data.imageLinks.filter((_, idx) => idx !== i) })}
+                  className="shrink-0 text-muted-foreground hover:text-destructive"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              {errors[`special.imageLinks.${i}`] && (
+                <p className="text-sm text-red-500">{errors[`special.imageLinks.${i}`]}</p>
+              )}
+            </div>
+          ))}
+        </div>
         <div className="space-y-2">
           <Label htmlFor="special-description">
             Description <span className="text-red-500">*</span>

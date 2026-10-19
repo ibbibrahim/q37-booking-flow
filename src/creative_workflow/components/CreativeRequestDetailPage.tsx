@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { isAxiosError } from 'axios';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Activity, ArrowLeft, Check, Copy, FileText, FolderOpen, Info, Link2 } from 'lucide-react';
@@ -73,6 +74,21 @@ const RESPONSE_PATH_TYPES: string[] = [
   CREATIVE_REQUEST_TYPE.LowerThird,
   CREATIVE_REQUEST_TYPE.SpecialRequest,
 ];
+
+// The backend rejects Complete/Approve/Unapprove with a specific, actionable reason (e.g.
+// "Only a submitted or needs-revision request can be marked complete.") — surface that
+// instead of a generic message so the user knows what actually went wrong.
+function getApiErrorMessage(err: unknown, fallback: string): string {
+  if (isAxiosError(err)) {
+    const message = (err.response?.data as { message?: string } | undefined)?.message;
+    if (message) return message;
+    // A role check that fails sends an empty 403/401 with no message body — say so explicitly
+    // instead of silently falling back to a generic, uninformative error.
+    if (err.response?.status === 403) return "You don't have permission to do this.";
+    if (err.response?.status === 401) return 'Your session has expired. Please sign in again.';
+  }
+  return fallback;
+}
 
 function formatRelativeTime(iso: string): string {
   const diffMs = Date.now() - new Date(iso).getTime();
@@ -222,8 +238,8 @@ export function CreativeRequestDetailPage() {
       });
       showToast('Marked as completed', 'success');
       setCompleteComment('');
-    } catch {
-      showToast('Could not mark this request complete', 'error');
+    } catch (err) {
+      showToast(getApiErrorMessage(err, 'Could not mark this request complete'), 'error');
     } finally {
       setCompleting(false);
     }
@@ -250,8 +266,8 @@ export function CreativeRequestDetailPage() {
       await approveCreativeRequest(requestId, approvalNote.trim() || undefined);
       showToast('Approved', 'success');
       setApprovalNote('');
-    } catch {
-      showToast('Could not approve this request', 'error');
+    } catch (err) {
+      showToast(getApiErrorMessage(err, 'Could not approve this request'), 'error');
     } finally {
       setSubmittingApproval(null);
       setConfirmAction(null);
@@ -264,8 +280,8 @@ export function CreativeRequestDetailPage() {
       await unapproveCreativeRequest(requestId, approvalNote.trim());
       showToast('Sent back for revision', 'success');
       setApprovalNote('');
-    } catch {
-      showToast('Could not send this back for revision', 'error');
+    } catch (err) {
+      showToast(getApiErrorMessage(err, 'Could not send this back for revision'), 'error');
     } finally {
       setSubmittingApproval(null);
       setConfirmAction(null);
@@ -624,13 +640,19 @@ function TypeSpecificDetails({
               <>
                 <SpecRow label="Event Name" value={d.eventName} />
                 <SpecRow label="Package" value={d.packageItems?.join(' / ')} />
+                <SpecRow label="Platform" value={d.platform} />
               </>
             )}
             {d.requestKind === 'DailyRequest' && (
               <>
                 <SpecRow label="Event Name" value={d.dailyEventName} />
                 <SpecRow label="Subtype" value={d.selectType} />
-                {d.selectType === 'Headline' && <SpecRow label="Headline Title" value={d.title} emphasis />}
+                {d.selectType === 'Headline' && (
+                  <>
+                    <SpecRow label="Headline Title" value={d.title} emphasis />
+                    <SpecRow label="Platform" value={d.platform} />
+                  </>
+                )}
                 {d.selectType === 'Carrousel' && <SpecRow label="Platform" value={d.platform} />}
               </>
             )}
@@ -704,6 +726,15 @@ function TypeSpecificDetails({
             <SpecRow label="Screen" value={d.screen} />
           </div>
           <ScreenPreview name={d.screen} screens={screens} />
+          {d.sections && d.sections.length > 0 && (
+            <SubsectionList>
+              {d.sections.map((s, i) => (
+                <Subsection key={i} index={i} title={s.title}>
+                  <p className="text-sm text-muted-foreground">{s.description}</p>
+                </Subsection>
+              ))}
+            </SubsectionList>
+          )}
         </div>
       );
     }
@@ -751,9 +782,23 @@ function TypeSpecificDetails({
           <div className="space-y-1.5">
             <SpecRow label="Description" value={d.description} emphasis />
           </div>
-          {d.images && d.images.length > 0 && (
-            <div className="flex flex-wrap gap-3">
-              {d.images.map((img, i) => <ImageThumb key={i} label="Image" file={img} />)}
+          {d.imageLinks && d.imageLinks.filter(Boolean).length > 0 && (
+            <div className="space-y-1.5">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Image Links</p>
+              <ul className="space-y-1">
+                {d.imageLinks.filter(Boolean).map((link, i) => (
+                  <li key={i}>
+                    <a
+                      href={link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="break-all text-sm text-primary hover:underline"
+                    >
+                      {link}
+                    </a>
+                  </li>
+                ))}
+              </ul>
             </div>
           )}
         </div>
