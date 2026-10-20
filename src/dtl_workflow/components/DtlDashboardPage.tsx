@@ -1,10 +1,11 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { CalendarClock, CheckCircle2, Users, XCircle } from 'lucide-react';
+import { CalendarClock, CheckCircle2, Mic, Users, XCircle } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
-import { listDtlBookings, listDtlGuests } from '../services/dtlApi';
+import { listDtlBookings, listDtlGuests, listDtlReporters } from '../services/dtlApi';
 import { useDtlBookingChanged } from '../hooks/useDtlBookingChanged';
 import { DTL_BOOKING_STATUS } from '../types/dtl';
 import { DtlGuestBookingReport } from './DtlGuestBookingReport';
+import { DtlReporterDailyReport } from './DtlReporterDailyReport';
 
 function StatCard({
   icon: Icon,
@@ -39,11 +40,18 @@ export function DtlDashboardPage() {
     queryClient.invalidateQueries({ queryKey: ['dtl-dashboard-bookings-total'] });
     queryClient.invalidateQueries({ queryKey: ['dtl-dashboard-bookings-completed'] });
     queryClient.invalidateQueries({ queryKey: ['dtl-dashboard-bookings-cancelled'] });
+    queryClient.invalidateQueries({ queryKey: ['dtl-reporter-daily-counts'] });
   });
 
   const guestsQuery = useQuery({
     queryKey: ['dtl-dashboard-guests-total'],
     queryFn: () => listDtlGuests({ page: 1, perPage: 1 }),
+    refetchOnMount: 'always',
+  });
+
+  const reportersQuery = useQuery({
+    queryKey: ['dtl-dashboard-reporters-total'],
+    queryFn: () => listDtlReporters({ page: 1, perPage: 1 }),
     refetchOnMount: 'always',
   });
 
@@ -72,17 +80,25 @@ export function DtlDashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
         <StatCard
           icon={Users}
           label="Guests"
           value={guestsQuery.data?.totalItems ?? 0}
           isLoading={guestsQuery.isLoading}
         />
+        <StatCard
+          icon={Mic}
+          label="Reporters"
+          value={reportersQuery.data?.totalItems ?? 0}
+          isLoading={reportersQuery.isLoading}
+        />
         <StatCard icon={CalendarClock} label="Active bookings" value={active} isLoading={bookingsQuery.isLoading} />
         <StatCard icon={CheckCircle2} label="Completed" value={completed} isLoading={completedQuery.isLoading} />
         <StatCard icon={XCircle} label="Cancelled" value={cancelled} isLoading={cancelledQuery.isLoading} />
       </div>
+
+      <DtlReporterDailyReport />
 
       <DtlGuestBookingReport />
     </div>

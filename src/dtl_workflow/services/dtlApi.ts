@@ -1,6 +1,6 @@
 import apiClient from '../../utils/apiClient';
 import { dateToQatarIso } from './dtlTime';
-import type { DtlBooking, DtlBookingReport, DtlGuest, DtlProgram } from '../types/dtl';
+import type { DtlBooking, DtlBookingReport, DtlBookingType, DtlGuest, DtlProgram, DtlReporter } from '../types/dtl';
 
 interface DtlListResult<T> {
   items: T[];
@@ -27,6 +27,7 @@ export async function listDtlBookings(opts: {
   perPage: number;
   search?: string;
   status?: string;
+  type?: DtlBookingType;
   sortBy?: DtlBookingSortBy;
   sortDescending?: boolean;
 }): Promise<DtlListResult<DtlBooking>> {
@@ -36,6 +37,7 @@ export async function listDtlBookings(opts: {
       pageSize: opts.perPage,
       search: opts.search?.trim() || undefined,
       status: opts.status || undefined,
+      type: opts.type || undefined,
       sortBy: opts.sortBy || 'time',
       sortDescending: opts.sortDescending ?? true,
     },
@@ -213,8 +215,79 @@ export async function deleteDtlGuest(id: number): Promise<void> {
   await apiClient.delete(`/api/dtl/guests/${id}`);
 }
 
-export type NewDtlBookingInput = {
-  guestId: number;
+export async function listDtlReporters(opts: {
+  page: number;
+  perPage: number;
+  search?: string;
+}): Promise<DtlListResult<DtlReporter>> {
+  const { data } = await apiClient.get<RawListResult<DtlReporter>>('/api/dtl/reporters', {
+    params: { page: opts.page, pageSize: opts.perPage, search: opts.search?.trim() || undefined },
+  });
+  return toListResult(data);
+}
+
+export async function getDtlReporter(id: number): Promise<DtlReporter> {
+  const { data } = await apiClient.get<DtlReporter>(`/api/dtl/reporters/${id}`);
+  return data;
+}
+
+export async function searchDtlReporters(query: string, limit = 8): Promise<DtlReporter[]> {
+  const q = query.trim();
+  if (!q) return [];
+  const { data } = await apiClient.get<RawListResult<DtlReporter>>('/api/dtl/reporters', {
+    params: { search: q, page: 1, pageSize: limit },
+  });
+  return data.items;
+}
+
+// Same payload as a guest; document uploads go through uploadDtlGuestDocument too.
+export async function createDtlReporter(data: NewDtlGuestInput): Promise<DtlReporter> {
+  const { data: created } = await apiClient.post<DtlReporter>('/api/dtl/reporters', data);
+  return created;
+}
+
+export async function updateDtlReporter(id: number, data: NewDtlGuestInput): Promise<DtlReporter> {
+  const { data: updated } = await apiClient.put<DtlReporter>(`/api/dtl/reporters/${id}`, data);
+  return updated;
+}
+
+/** Soft-deletes the reporter (backend sets is_deleted = true; the row/history is kept). */
+export async function deleteDtlReporter(id: number): Promise<void> {
+  await apiClient.delete(`/api/dtl/reporters/${id}`);
+}
+
+export interface DtlReporterDailyCount {
+  /** Qatar calendar date, yyyy-MM-dd. */
+  date: string;
+  /** Distinct reporters booked that day. */
+  reporterCount: number;
+  bookingCount: number;
+}
+
+export async function getDtlReporterDailyCounts(opts: {
+  from?: Date;
+  to?: Date;
+  statuses?: string[];
+}): Promise<DtlReporterDailyCount[]> {
+  const params = new URLSearchParams();
+  if (opts.from) params.set('from', dateToQatarIso(opts.from));
+  if (opts.to) params.set('to', dateToQatarIso(opts.to));
+  for (const status of opts.statuses ?? []) params.append('statuses', status);
+
+  const { data } = await apiClient.get<DtlReporterDailyCount[]>(
+    `/api/dtl/reporters/daily-counts?${params.toString()}`,
+  );
+  return data;
+}
+
+// guestId is used for guest bookings, reporterId for reporter bookings.
+type DtlBookingParticipantInput = {
+  type: DtlBookingType;
+  guestId?: number;
+  reporterId?: number;
+};
+
+export type NewDtlBookingInput = DtlBookingParticipantInput & {
   programId: number;
   location?: string;
   time: string;
@@ -222,8 +295,7 @@ export type NewDtlBookingInput = {
   status?: string;
 };
 
-export type UpdateDtlBookingInput = {
-  guestId: number;
+export type UpdateDtlBookingInput = DtlBookingParticipantInput & {
   programId: number;
   location?: string;
   time: string;

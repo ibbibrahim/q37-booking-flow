@@ -16,6 +16,16 @@ export interface DtlGuest {
   updated: string;
 }
 
+// Reporters are stored in their own table but have exactly the same fields as guests.
+export type DtlReporter = DtlGuest;
+
+export const DTL_BOOKING_TYPE = {
+  Guest: 'guest',
+  Reporter: 'reporter',
+} as const;
+
+export type DtlBookingType = (typeof DTL_BOOKING_TYPE)[keyof typeof DTL_BOOKING_TYPE];
+
 export interface DtlLogEntry {
   text: string;
   at: string;
@@ -75,6 +85,9 @@ export interface DtlBooking {
   sentBy: string | null;
   guestId: number | null;
   guestName: string | null;
+  type: DtlBookingType;
+  reporterId: number | null;
+  reporterName: string | null;
   link: string | null;
   location: string | null;
   notes: string | null;

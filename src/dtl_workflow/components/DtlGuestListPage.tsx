@@ -9,24 +9,25 @@ import {
   getInitialPageSize,
 } from '@/components/ui/list-pagination-bar';
 import { useToast } from '@/contexts/ToastContext';
-import { deleteDtlGuest, listDtlGuests } from '../services/dtlApi';
+import { DTL_PEOPLE } from '../services/dtlPeople';
 import { useDtlPermissions } from '../hooks/useDtlRole';
-import type { DtlGuest } from '../types/dtl';
+import type { DtlBookingType, DtlGuest } from '../types/dtl';
 import { CreateDtlGuestModal } from './CreateDtlGuestModal';
 import { EditDtlGuestModal } from './EditDtlGuestModal';
 import { ManageDtlProgramsModal } from './ManageDtlProgramsModal';
 
-const PAGINATION_STORAGE_KEY = 'dtl-guest-list';
-
-export function DtlGuestListPage() {
+// kind="reporter" renders the DTL Reporter tab: same table and forms, backed by the reporters API.
+export function DtlGuestListPage({ kind = 'guest' }: { kind?: DtlBookingType }) {
+  const people = DTL_PEOPLE[kind];
+  const paginationStorageKey = `dtl-${kind}-list`;
   const queryClient = useQueryClient();
   const perms = useDtlPermissions();
   const { showToast } = useToast();
 
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
-  const [page, setPage] = useState(() => getInitialPage(PAGINATION_STORAGE_KEY));
-  const [pageSize, setPageSize] = useState(() => getInitialPageSize(PAGINATION_STORAGE_KEY, 10));
+  const [page, setPage] = useState(() => getInitialPage(paginationStorageKey));
+  const [pageSize, setPageSize] = useState(() => getInitialPageSize(paginationStorageKey, 10));
   const [showCreate, setShowCreate] = useState(false);
   const [editingGuest, setEditingGuest] = useState<DtlGuest | null>(null);
   const [showPrograms, setShowPrograms] = useState(false);
@@ -41,8 +42,8 @@ export function DtlGuestListPage() {
   }, [searchInput]);
 
   const { data, isLoading, isError } = useQuery({
-    queryKey: ['dtl-guests', page, pageSize, search],
-    queryFn: () => listDtlGuests({ page, perPage: pageSize, search }),
+    queryKey: [people.queryKey, page, pageSize, search],
+    queryFn: () => people.list({ page, perPage: pageSize, search }),
     placeholderData: (prev) => prev,
   });
 
@@ -50,18 +51,18 @@ export function DtlGuestListPage() {
   const totalItems = data?.totalItems ?? 0;
 
   function invalidate() {
-    queryClient.invalidateQueries({ queryKey: ['dtl-guests'] });
+    queryClient.invalidateQueries({ queryKey: [people.queryKey] });
   }
 
   async function handleDelete(guest: DtlGuest) {
-    if (!window.confirm(`Delete the guest "${guest.name}"?`)) return;
+    if (!window.confirm(`Delete the ${people.noun} "${guest.name}"?`)) return;
     setDeletingId(guest.id);
     try {
-      await deleteDtlGuest(guest.id);
+      await people.remove(guest.id);
       invalidate();
-      showToast('Guest deleted', 'success');
+      showToast(`${people.label} deleted`, 'success');
     } catch (err: any) {
-      showToast(err?.response?.data?.message || 'Could not delete this guest.', 'error');
+      showToast(err?.response?.data?.message || `Could not delete this ${people.noun}.`, 'error');
     } finally {
       setDeletingId(null);
     }
@@ -73,7 +74,7 @@ export function DtlGuestListPage() {
     <div className="space-y-6">
       <div className="flex items-center gap-3">
         <div className="flex-1" />
-        {perms.canManagePrograms && (
+        {kind === 'guest' && perms.canManagePrograms && (
           <button
             type="button"
             onClick={() => setShowPrograms(true)}
@@ -116,7 +117,7 @@ export function DtlGuestListPage() {
           setPage(1);
           setPageSize(n);
         }}
-        storageKey={PAGINATION_STORAGE_KEY}
+        storageKey={paginationStorageKey}
         disabled={isLoading}
       />
 
@@ -146,13 +147,13 @@ export function DtlGuestListPage() {
               ) : isError ? (
                 <tr>
                   <td colSpan={showActionsColumn ? 7 : 6} className="py-16 text-center text-destructive">
-                    Could not load guests. Check your connection and try again.
+                    Could not load {people.noun}s. Check your connection and try again.
                   </td>
                 </tr>
               ) : items.length === 0 ? (
                 <tr>
                   <td colSpan={showActionsColumn ? 7 : 6} className="py-16 text-center text-muted-foreground">
-                    No guests found.
+                    No {people.noun}s found.
                   </td>
                 </tr>
               ) : (
@@ -198,6 +199,7 @@ export function DtlGuestListPage() {
       </div>
 
       <CreateDtlGuestModal
+        kind={kind}
         open={showCreate}
         onClose={() => setShowCreate(false)}
         onCreated={() => {
@@ -209,6 +211,7 @@ export function DtlGuestListPage() {
       />
 
       <EditDtlGuestModal
+        kind={kind}
         guest={editingGuest}
         onClose={() => setEditingGuest(null)}
         onUpdated={() => invalidate()}

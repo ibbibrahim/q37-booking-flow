@@ -124,7 +124,7 @@ export function DtlLinkField({
                 ? 'bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400'
                 : 'cursor-not-allowed bg-muted text-muted-foreground'
             }`}
-            title={whatsappUrl ? 'Send via WhatsApp' : 'Add a link and a guest WhatsApp/phone number first'}
+            title={whatsappUrl ? 'Send via WhatsApp' : 'Add a link and a WhatsApp/phone number first'}
           >
             WhatsApp
           </a>
@@ -137,7 +137,7 @@ export function DtlLinkField({
                 ? 'bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-400'
                 : 'cursor-not-allowed bg-muted text-muted-foreground'
             }`}
-            title={canEmail ? 'Send the link by email' : 'Add a link and a guest email first'}
+            title={canEmail ? 'Send the link by email' : 'Add a link and an email address first'}
           >
             {sendingEmail ? 'Sending…' : 'Email'}
           </button>

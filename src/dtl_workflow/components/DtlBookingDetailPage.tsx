@@ -11,12 +11,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { appendDtlBookingLog, getDtlBooking, getDtlGuest, updateDtlBookingStatus } from '../services/dtlApi';
+import { appendDtlBookingLog, getDtlBooking, updateDtlBookingStatus } from '../services/dtlApi';
+import { DTL_PEOPLE } from '../services/dtlPeople';
 import { formatDtlTimeShort, readDtlLogs } from '../services/dtlHistory';
 import { formatQatarDateOnly, formatQatarTimeOnly, nowInQatar, QATAR_TIME_LABEL } from '../services/dtlTime';
 import { useDtlRole, useDtlPermissions } from '../hooks/useDtlRole';
 import { useDtlBookingChanged } from '../hooks/useDtlBookingChanged';
-import { DTL_BOOKING_STATUS, DTL_TERMINAL_STATUSES, type DtlBooking, type DtlGuest } from '../types/dtl';
+import { DTL_BOOKING_STATUS, DTL_BOOKING_TYPE, DTL_TERMINAL_STATUSES, type DtlBooking, type DtlGuest } from '../types/dtl';
 import { DtlLinkField } from './DtlLinkField';
 import { DtlReasonPromptModal } from './DtlReasonPromptModal';
 import { CreateDtlBookingModal } from './CreateDtlBookingModal';
@@ -26,6 +27,15 @@ const statusColors: Record<string, string> = {
   Completed: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border-transparent',
   Cancelled: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 border-transparent',
 };
+
+// The booking's guest or reporter id, and how to fetch that person.
+function participantOf(b: DtlBooking) {
+  const isReporter = b.type === DTL_BOOKING_TYPE.Reporter;
+  return {
+    id: isReporter ? b.reporterId : b.guestId,
+    people: DTL_PEOPLE[isReporter ? DTL_BOOKING_TYPE.Reporter : DTL_BOOKING_TYPE.Guest],
+  };
+}
 
 function DetailField({ label, value }: { label: string; value?: string | null }) {
   return (
@@ -43,6 +53,7 @@ export function DtlBookingDetailPage() {
   const perms = useDtlPermissions();
 
   const [booking, setBooking] = useState<DtlBooking | null>(null);
+  // The linked guest or reporter (both share the DtlGuest shape).
   const [guest, setGuest] = useState<DtlGuest | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -62,7 +73,8 @@ export function DtlBookingDetailPage() {
         if (cancelled) return;
         setBooking(b);
         setLoadError(null);
-        return b.guestId ? getDtlGuest(b.guestId) : null;
+        const { id: personId, people } = participantOf(b);
+        return personId ? people.get(personId) : null;
       })
       .then((g) => {
         if (cancelled || !g) return;
@@ -80,14 +92,20 @@ export function DtlBookingDetailPage() {
     };
   }, [id]);
 
+  // Re-fetches the linked person when the booking now points at a different guest/reporter.
+  function syncParticipant(updated: DtlBooking) {
+    const { id: personId, people } = participantOf(updated);
+    if (!personId) {
+      setGuest(null);
+    } else if (updated.type !== booking?.type || personId !== guest?.id) {
+      people.get(personId).then(setGuest).catch(() => {});
+    }
+  }
+
   useDtlBookingChanged((updated) => {
     if (updated.id !== id) return;
+    syncParticipant(updated);
     setBooking(updated);
-    if (updated.guestId && updated.guestId !== guest?.id) {
-      getDtlGuest(updated.guestId).then(setGuest).catch(() => {});
-    } else if (!updated.guestId) {
-      setGuest(null);
-    }
   });
 
   const isTerminal = booking ? DTL_TERMINAL_STATUSES.includes(booking.status) : false;
@@ -123,10 +141,8 @@ export function DtlBookingDetailPage() {
   }
 
   function handleEdited(updated: DtlBooking) {
+    syncParticipant(updated);
     setBooking(updated);
-    if (updated.guestId && updated.guestId !== guest?.id) {
-      getDtlGuest(updated.guestId).then(setGuest).catch(() => {});
-    }
   }
 
   async function handleWhatsAppSent() {
@@ -176,6 +192,7 @@ export function DtlBookingDetailPage() {
   }
 
   const logs = readDtlLogs(booking);
+  const participantLabel = participantOf(booking).people.label;
 
   return (
     <div className="space-y-6">
@@ -350,7 +367,7 @@ export function DtlBookingDetailPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <UserIcon size={20} />
-                Guest
+                {participantLabel}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -364,7 +381,7 @@ export function DtlBookingDetailPage() {
                   <DetailField label="Country" value={guest.country} />
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground">No guest linked.</p>
+                <p className="text-sm text-muted-foreground">No {participantLabel.toLowerCase()} linked.</p>
               )}
             </CardContent>
           </Card>
@@ -375,7 +392,7 @@ export function DtlBookingDetailPage() {
         <CreateDtlBookingModal
           open
           booking={booking}
-          guest={guest}
+          participant={guest}
           onClose={() => setEditing(false)}
           onCreated={handleEdited}
         />

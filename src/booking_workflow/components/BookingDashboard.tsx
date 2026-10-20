@@ -7,7 +7,7 @@ import {
   Film, Inbox, CalendarDays, Briefcase,
   LayoutDashboard, ClipboardList, FileBarChart, Search, CalendarCheck,
   Handshake, ChevronDown, UserCheck, UserRoundCog, FileSignature, ShieldCheck,
-  Phone, Contact, CalendarRange, ScrollText, Clapperboard, MonitorPlay, CalendarClock,
+  Phone, Contact, Mic, CalendarRange, ScrollText, Clapperboard, MonitorPlay, CalendarClock,
   PanelLeftClose, PanelLeftOpen, Workflow, Palette, ListChecks,
 } from 'lucide-react';
 import { HrLanguageProvider, HrLanguageToggle } from '../../hr_workflow/context/HrLanguageContext';
@@ -325,6 +325,7 @@ export const BookingDashboard: React.FC = () => {
     if (pathParts[0] === 'admin' && pathParts[1] === 'users') return 'admin-users';
     if (pathParts[0] === 'dtl-booking') return 'dtl-booking';
     if (pathParts[0] === 'dtl-guest') return 'dtl-guest';
+    if (pathParts[0] === 'dtl-reporter') return 'dtl-reporter';
     if (pathParts[0] === 'dtl-dashboard') return 'dtl-dashboard';
     if (pathParts[0] === 'creative-requests') return 'creative-requests';
     if (pathParts[0] === 'creative-reference') return 'creative-reference';
@@ -464,6 +465,7 @@ export const BookingDashboard: React.FC = () => {
         { key: 'dtl-dashboard', icon: LayoutDashboard, label: 'Dashboard', path: '/dtl-dashboard', visible: !!(hasDtlAccess && hasDtlDashboardAccess), isActive: currentSection === 'dtl-dashboard' },
         { key: 'dtl-booking', icon: Phone, label: 'Booking', path: '/dtl-booking', visible: !!hasDtlAccess, isActive: currentSection === 'dtl-booking' },
         { key: 'dtl-guest', icon: Contact, label: 'Guest', path: '/dtl-guest', visible: !!hasDtlAccess, isActive: currentSection === 'dtl-guest' },
+        { key: 'dtl-reporter', icon: Mic, label: 'Reporter', path: '/dtl-reporter', visible: !!hasDtlAccess, isActive: currentSection === 'dtl-reporter' },
       ],
     },
     {
@@ -502,6 +504,7 @@ export const BookingDashboard: React.FC = () => {
       case 'bit': return 'BIT Checklists';
       case 'dtl-booking': return 'DTL Booking';
       case 'dtl-guest': return 'DTL Guest';
+      case 'dtl-reporter': return 'DTL Reporter';
       case 'dtl-dashboard': return 'DTL Dashboard';
       case 'creative-requests': return 'Creative Requests';
       case 'creative-reference': return 'Creative Reference Lists';
@@ -532,6 +535,7 @@ export const BookingDashboard: React.FC = () => {
       case 'bit': return 'Daily, weekly and monthly system readiness checklists';
       case 'dtl-booking': return 'Create and manage down-the-line guest bookings';
       case 'dtl-guest': return 'Search, create, and edit DTL guest contacts';
+      case 'dtl-reporter': return 'Search, create, and edit DTL reporter contacts';
       case 'dtl-dashboard': return 'Overview of DTL guests and bookings';
       default: return getRoleDescription(currentRole);
     }

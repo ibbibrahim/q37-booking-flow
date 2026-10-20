@@ -437,7 +437,15 @@ function App() {
           path="dtl-guest"
           element={
             <ProtectedRoute allowedRoles={['CR', 'AssignmentTeam', 'AssignmentLead', 'Admin']}>
-              <DtlGuestListPage />
+              <DtlGuestListPage key="guest" kind="guest" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="dtl-reporter"
+          element={
+            <ProtectedRoute allowedRoles={['CR', 'AssignmentTeam', 'AssignmentLead', 'Admin']}>
+              <DtlGuestListPage key="reporter" kind="reporter" />
             </ProtectedRoute>
           }
         />

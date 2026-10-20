@@ -20,12 +20,18 @@ import { listDtlBookings, type DtlBookingSortBy } from '../services/dtlApi';
 import { formatDtlTimeShort } from '../services/dtlHistory';
 import { useDtlPermissions } from '../hooks/useDtlRole';
 import { useDtlBookingChanged } from '../hooks/useDtlBookingChanged';
-import { DTL_BOOKING_STATUS } from '../types/dtl';
+import { DTL_BOOKING_STATUS, DTL_BOOKING_TYPE, type DtlBookingType } from '../types/dtl';
 import { CreateDtlBookingModal } from './CreateDtlBookingModal';
 import { ArrowDown, ArrowUp } from 'lucide-react';
 
 const PAGINATION_STORAGE_KEY = 'dtl-booking-list';
 const STATUS_OPTIONS = ['All', DTL_BOOKING_STATUS.Created, DTL_BOOKING_STATUS.Completed, DTL_BOOKING_STATUS.Cancelled];
+
+const TYPE_OPTIONS: { value: 'All' | DtlBookingType; label: string }[] = [
+  { value: 'All', label: 'Guests & reporters' },
+  { value: DTL_BOOKING_TYPE.Guest, label: 'Guests' },
+  { value: DTL_BOOKING_TYPE.Reporter, label: 'Reporters' },
+];
 
 const statusColors: Record<string, string> = {
   created: 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400',
@@ -41,6 +47,7 @@ export function DtlBookingListPage() {
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('All');
+  const [type, setType] = useState<'All' | DtlBookingType>('All');
   const [page, setPage] = useState(() => getInitialPage(PAGINATION_STORAGE_KEY));
   const [pageSize, setPageSize] = useState(() => getInitialPageSize(PAGINATION_STORAGE_KEY, 10));
   const [showCreate, setShowCreate] = useState(false);
@@ -56,13 +63,14 @@ export function DtlBookingListPage() {
   }, [searchInput]);
 
   const { data, isLoading, isError } = useQuery({
-    queryKey: ['dtl-bookings', page, pageSize, search, status, sortBy, sortDescending],
+    queryKey: ['dtl-bookings', page, pageSize, search, status, type, sortBy, sortDescending],
     queryFn: () =>
       listDtlBookings({
         page,
         perPage: pageSize,
         search,
         status: status === 'All' ? undefined : status,
+        type: type === 'All' ? undefined : type,
         sortBy,
         sortDescending,
       }),
@@ -107,7 +115,7 @@ export function DtlBookingListPage() {
           <div className="relative">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder="Search program, guest, status, created by…"
+              placeholder="Search program, guest, reporter, location…"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               className="pl-9"
@@ -127,6 +135,24 @@ export function DtlBookingListPage() {
               {STATUS_OPTIONS.map((s) => (
                 <SelectItem key={s} value={s}>
                   {s === 'All' ? 'All statuses' : s}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select
+            value={type}
+            onValueChange={(v) => {
+              setPage(1);
+              setType(v as 'All' | DtlBookingType);
+            }}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {TYPE_OPTIONS.map((o) => (
+                <SelectItem key={o.value} value={o.value}>
+                  {o.label}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -159,7 +185,7 @@ export function DtlBookingListPage() {
                   </button>
                 </th>
                 <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground whitespace-nowrap">Program</th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground whitespace-nowrap">Guest</th>
+                <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground whitespace-nowrap">Guest / Reporter</th>
                 <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground whitespace-nowrap">Status</th>
                 <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground whitespace-nowrap">Created By</th>
                 <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground whitespace-nowrap">
@@ -199,7 +225,18 @@ export function DtlBookingListPage() {
                   >
                     <td className="py-3 px-4 text-sm text-muted-foreground font-mono">{b.id}</td>
                     <td className="py-3 px-4 text-sm font-medium text-card-foreground">{b.programName || '—'}</td>
-                    <td className="py-3 px-4 text-sm text-muted-foreground">{b.guestName || '—'}</td>
+                    <td className="py-3 px-4 text-sm text-muted-foreground">
+                      {b.type === DTL_BOOKING_TYPE.Reporter ? (
+                        <span className="inline-flex items-center gap-2">
+                          {b.reporterName || '—'}
+                          <span className="rounded-full bg-sky-100 px-2 py-0.5 text-[11px] font-medium text-sky-700 dark:bg-sky-900/30 dark:text-sky-400">
+                            Reporter
+                          </span>
+                        </span>
+                      ) : (
+                        b.guestName || '—'
+                      )}
+                    </td>
                     <td className="py-3 px-4 text-sm">
                       <span
                         className={`px-3 py-1 rounded-full text-xs font-medium ${

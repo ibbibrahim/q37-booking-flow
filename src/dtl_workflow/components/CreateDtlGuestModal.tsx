@@ -8,26 +8,30 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { GuestFieldsForm, emptyGuestUploads, type GuestUploadsValue } from './GuestFieldsForm';
-import { createDtlGuest } from '../services/dtlApi';
+import { DTL_PEOPLE } from '../services/dtlPeople';
 import {
   emptyGuestFields,
   validateGuestFields,
   type GuestFieldErrors,
   type GuestFieldsValue,
 } from '../services/dtlValidation';
-import type { DtlGuest } from '../types/dtl';
+import type { DtlBookingType, DtlGuest } from '../types/dtl';
 import { cn } from '@/lib/utils';
 import { DTL_DIALOG_CONTENT_CLASS, DTL_DIALOG_FOOTER_CLASS } from './dtlDialogStyles';
 
+// kind="reporter" reuses this form for DTL reporters (same fields, separate table).
 export function CreateDtlGuestModal({
   open,
   onClose,
   onCreated,
+  kind = 'guest',
 }: {
   open: boolean;
   onClose: () => void;
   onCreated: (guest: DtlGuest) => void;
+  kind?: DtlBookingType;
 }) {
+  const people = DTL_PEOPLE[kind];
   const [fields, setFields] = useState<GuestFieldsValue>(emptyGuestFields);
   const [uploads, setUploads] = useState<GuestUploadsValue>(emptyGuestUploads);
   const [touched, setTouched] = useState<Set<keyof GuestFieldsValue>>(new Set());
@@ -60,7 +64,7 @@ export function CreateDtlGuestModal({
 
     setSubmitting(true);
     try {
-      const created = await createDtlGuest({
+      const created = await people.create({
         name: fields.name.trim(),
         email: fields.email.trim(),
         phone: fields.phone.trim(),
@@ -75,7 +79,7 @@ export function CreateDtlGuestModal({
       onCreated(created);
       handleClose();
     } catch {
-      setError('Something went wrong while creating the guest.');
+      setError(`Something went wrong while creating the ${people.noun}.`);
     } finally {
       setSubmitting(false);
     }
@@ -85,7 +89,7 @@ export function CreateDtlGuestModal({
     <Dialog open={open} onOpenChange={(o) => !o && handleClose()}>
       <DialogContent className={cn(DTL_DIALOG_CONTENT_CLASS, 'sm:max-w-[600px]')} onInteractOutside={(e) => e.preventDefault()}>
         <DialogHeader>
-          <DialogTitle>New guest</DialogTitle>
+          <DialogTitle>New {people.noun}</DialogTitle>
         </DialogHeader>
 
         <div className="py-2">
@@ -105,7 +109,7 @@ export function CreateDtlGuestModal({
             Cancel
           </Button>
           <Button type="button" onClick={handleSubmit} disabled={submitting}>
-            {submitting ? 'Creating…' : 'Create guest'}
+            {submitting ? 'Creating…' : `Create ${people.noun}`}
           </Button>
         </DialogFooter>
       </DialogContent>

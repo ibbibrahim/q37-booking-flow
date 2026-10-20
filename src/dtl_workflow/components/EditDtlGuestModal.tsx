@@ -8,26 +8,30 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { GuestFieldsForm, emptyGuestUploads, type GuestUploadsValue } from './GuestFieldsForm';
-import { updateDtlGuest } from '../services/dtlApi';
+import { DTL_PEOPLE } from '../services/dtlPeople';
 import {
   emptyGuestFields,
   validateGuestFields,
   type GuestFieldErrors,
   type GuestFieldsValue,
 } from '../services/dtlValidation';
-import type { DtlGuest } from '../types/dtl';
+import type { DtlBookingType, DtlGuest } from '../types/dtl';
 import { cn } from '@/lib/utils';
 import { DTL_DIALOG_CONTENT_CLASS, DTL_DIALOG_FOOTER_CLASS } from './dtlDialogStyles';
 
+// kind="reporter" reuses this form for DTL reporters (same fields, separate table).
 export function EditDtlGuestModal({
   guest,
   onClose,
   onUpdated,
+  kind = 'guest',
 }: {
   guest: DtlGuest | null;
   onClose: () => void;
   onUpdated: (guest: DtlGuest) => void;
+  kind?: DtlBookingType;
 }) {
+  const people = DTL_PEOPLE[kind];
   const [fields, setFields] = useState<GuestFieldsValue>(emptyGuestFields);
   const [uploads, setUploads] = useState<GuestUploadsValue>(emptyGuestUploads);
   const [touched, setTouched] = useState<Set<keyof GuestFieldsValue>>(new Set());
@@ -77,7 +81,7 @@ export function EditDtlGuestModal({
 
     setSubmitting(true);
     try {
-      const updated = await updateDtlGuest(guest.id, {
+      const updated = await people.update(guest.id, {
         name: fields.name.trim(),
         email: fields.email.trim(),
         phone: fields.phone.trim(),
@@ -92,7 +96,7 @@ export function EditDtlGuestModal({
       onUpdated(updated);
       handleClose();
     } catch {
-      setError('Something went wrong while saving the guest.');
+      setError(`Something went wrong while saving the ${people.noun}.`);
     } finally {
       setSubmitting(false);
     }
@@ -102,7 +106,7 @@ export function EditDtlGuestModal({
     <Dialog open={guest !== null} onOpenChange={(o) => !o && handleClose()}>
       <DialogContent className={cn(DTL_DIALOG_CONTENT_CLASS, 'sm:max-w-[600px]')} onInteractOutside={(e) => e.preventDefault()}>
         <DialogHeader>
-          <DialogTitle>Edit guest</DialogTitle>
+          <DialogTitle>Edit {people.noun}</DialogTitle>
         </DialogHeader>
 
         <div className="py-2">

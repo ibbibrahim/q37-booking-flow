@@ -22,43 +22,49 @@ import {
   appendDtlBookingLog,
   createDtlBooking,
   listDtlPrograms,
-  searchDtlGuests,
   updateDtlBooking,
   updateDtlBookingStatus,
 } from '../services/dtlApi';
 import { useDtlRole } from '../hooks/useDtlRole';
 import { nowInQatar, qatarInputToIso, QATAR_TIME_LABEL, toQatarInputValue, formatDtlBookingTime } from '../services/dtlTime';
-import { DTL_BOOKING_STATUS, type DtlBooking, type DtlGuest } from '../types/dtl';
+import { DTL_BOOKING_STATUS, DTL_BOOKING_TYPE, type DtlBooking, type DtlBookingType, type DtlGuest } from '../types/dtl';
+import { DTL_PEOPLE } from '../services/dtlPeople';
 import { cn } from '@/lib/utils';
 import { DTL_DIALOG_CONTENT_CLASS, DTL_DIALOG_FOOTER_CLASS } from './dtlDialogStyles';
+
+function participantInput(type: DtlBookingType, id: number) {
+  return type === DTL_BOOKING_TYPE.Reporter ? { type, reporterId: id } : { type, guestId: id };
+}
 
 function describeChange(label: string, from: string, to: string): string {
   return `${label}: ${from || '(empty)'} → ${to || '(empty)'}`;
 }
 
-// Pass `booking` (and its `guest`) to open the modal in edit mode. Mount it conditionally so the
-// form state initialises from the booking each time it opens.
+// Pass `booking` (and its guest or reporter as `participant`) to open the modal in edit mode. Mount
+// it conditionally so the form state initialises from the booking each time it opens.
 export function CreateDtlBookingModal({
   open,
   onClose,
   onCreated,
   booking,
-  guest,
+  participant,
 }: {
   open: boolean;
   onClose: () => void;
   onCreated: (booking: DtlBooking) => void;
   booking?: DtlBooking;
-  guest?: DtlGuest | null;
+  participant?: DtlGuest | null;
 }) {
   const { displayName } = useDtlRole();
   const isEdit = !!booking;
 
+  const [type, setType] = useState<DtlBookingType>(booking?.type ?? DTL_BOOKING_TYPE.Guest);
+  const people = DTL_PEOPLE[type];
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<DtlGuest[]>([]);
   const [settledQuery, setSettledQuery] = useState('');
-  const [selectedGuest, setSelectedGuest] = useState<DtlGuest | null>(guest ?? null);
-  const [showCreateGuest, setShowCreateGuest] = useState(false);
+  const [selectedPerson, setSelectedPerson] = useState<DtlGuest | null>(participant ?? null);
+  const [showCreatePerson, setShowCreatePerson] = useState(false);
 
   const [programId, setProgramId] = useState<number | null>(booking?.programId ?? null);
   const [durationTouched, setDurationTouched] = useState(booking?.durationMinutes != null);
@@ -86,7 +92,7 @@ export function CreateDtlBookingModal({
 
     let cancelled = false;
     const handle = setTimeout(() => {
-      searchDtlGuests(q)
+      DTL_PEOPLE[type].search(q)
         .then((items) => {
           if (cancelled) return;
           setResults(items);
@@ -102,14 +108,25 @@ export function CreateDtlBookingModal({
       cancelled = true;
       clearTimeout(handle);
     };
-  }, [query]);
+  }, [query, type]);
+
+  function changeType(next: DtlBookingType) {
+    if (next === type) return;
+    setType(next);
+    setQuery('');
+    setResults([]);
+    setSettledQuery('');
+    setSelectedPerson(null);
+    setError(null);
+  }
 
   function resetAndClose() {
     if (submitting) return;
     setQuery('');
     setResults([]);
     setSettledQuery('');
-    setSelectedGuest(null);
+    setType(DTL_BOOKING_TYPE.Guest);
+    setSelectedPerson(null);
     setProgramId(null);
     setDurationTouched(false);
     setLocation('');
@@ -126,8 +143,8 @@ export function CreateDtlBookingModal({
       setError('Select a program.');
       return;
     }
-    if (!selectedGuest) {
-      setError('Search for and select a guest, or create a new one.');
+    if (!selectedPerson) {
+      setError(`Search for and select a ${people.noun}, or create a new one.`);
       return;
     }
     if (!time) {
@@ -146,8 +163,16 @@ export function CreateDtlBookingModal({
         const minutes = (n: number | null) => (n != null ? `${n} min` : '');
 
         const changed: string[] = [];
-        if (selectedGuest.id !== booking.guestId) {
-          changed.push(describeChange('Guest', guest?.name ?? booking.guestName ?? '', selectedGuest.name));
+        const previousId = booking.type === DTL_BOOKING_TYPE.Reporter ? booking.reporterId : booking.guestId;
+        if (type !== booking.type || selectedPerson.id !== previousId) {
+          const previousLabel = DTL_PEOPLE[booking.type ?? DTL_BOOKING_TYPE.Guest].label;
+          const previousName =
+            participant?.name ?? (booking.type === DTL_BOOKING_TYPE.Reporter ? booking.reporterName : booking.guestName) ?? '';
+          changed.push(
+            type === booking.type
+              ? describeChange(people.label, previousName, selectedPerson.name)
+              : describeChange('Booked for', `${previousLabel} ${previousName}`, `${people.label} ${selectedPerson.name}`),
+          );
         }
         if (programId !== booking.programId) {
           changed.push(describeChange('Program', booking.programName, programName(programId)));
@@ -163,7 +188,7 @@ export function CreateDtlBookingModal({
         }
 
         const input = {
-          guestId: selectedGuest.id,
+          ...participantInput(type, selectedPerson.id),
           programId,
           location: nextLocation || undefined,
           time: nextTime,
@@ -204,7 +229,7 @@ export function CreateDtlBookingModal({
     try {
       const booking = await createDtlBooking(
         {
-          guestId: selectedGuest.id,
+          ...participantInput(type, selectedPerson.id),
           programId,
           location: location.trim() || undefined,
           time: qatarInputToIso(time),
@@ -231,14 +256,35 @@ export function CreateDtlBookingModal({
 
           <div className="space-y-6 py-2">
             <section>
+              <h3 className="text-sm font-semibold text-foreground">Booking for</h3>
+              <div role="radiogroup" className="mt-3 grid grid-cols-2 gap-1 rounded-lg bg-muted p-1">
+                {(Object.values(DTL_BOOKING_TYPE) as DtlBookingType[]).map((t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    role="radio"
+                    aria-checked={type === t}
+                    onClick={() => changeType(t)}
+                    className={cn(
+                      'rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
+                      type === t ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground',
+                    )}
+                  >
+                    {DTL_PEOPLE[t].label}
+                  </button>
+                ))}
+              </div>
+            </section>
+
+            <section>
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-foreground">Guest</h3>
+                <h3 className="text-sm font-semibold text-foreground">{people.label}</h3>
                 <button
                   type="button"
-                  onClick={() => setShowCreateGuest(true)}
+                  onClick={() => setShowCreatePerson(true)}
                   className="text-xs font-medium text-primary hover:underline"
                 >
-                  + Create new guest
+                  + Create new {people.noun}
                 </button>
               </div>
 
@@ -247,18 +293,18 @@ export function CreateDtlBookingModal({
                   value={query}
                   onChange={(e) => {
                     setQuery(e.target.value);
-                    setSelectedGuest(null);
+                    setSelectedPerson(null);
                   }}
-                  placeholder="Search existing guests by name, email or phone…"
+                  placeholder={`Search existing ${people.noun}s by name, email or phone…`}
                 />
-                {selectedGuest ? (
+                {selectedPerson ? (
                   <div className="mt-2 flex items-center justify-between rounded-md border border-primary/30 bg-primary/5 px-3 py-2 text-sm">
                     <span className="text-foreground">
-                      {selectedGuest.name} · {selectedGuest.email || selectedGuest.phone}
+                      {selectedPerson.name} · {selectedPerson.email || selectedPerson.phone}
                     </span>
                     <button
                       type="button"
-                      onClick={() => setSelectedGuest(null)}
+                      onClick={() => setSelectedPerson(null)}
                       className="text-xs font-medium text-primary hover:underline"
                     >
                       Change
@@ -269,14 +315,14 @@ export function CreateDtlBookingModal({
                     {searching && <p className="px-3 py-2 text-xs text-muted-foreground">Searching…</p>}
                     {!searching && trimmedQuery && displayResults.length === 0 && (
                       <p className="px-3 py-2 text-xs text-muted-foreground">
-                        No guests found. Use "+ Create new guest" above.
+                        No {people.noun}s found. Use "+ Create new {people.noun}" above.
                       </p>
                     )}
                     {displayResults.map((g) => (
                       <button
                         type="button"
                         key={g.id}
-                        onClick={() => setSelectedGuest(g)}
+                        onClick={() => setSelectedPerson(g)}
                         className="block w-full px-3 py-2 text-left text-sm hover:bg-muted"
                       >
                         <span className="font-medium text-foreground">{g.name}</span>
@@ -370,12 +416,13 @@ export function CreateDtlBookingModal({
       </Dialog>
 
       <CreateDtlGuestModal
-        open={showCreateGuest}
-        onClose={() => setShowCreateGuest(false)}
-        onCreated={(guest) => {
-          setSelectedGuest(guest);
+        kind={type}
+        open={showCreatePerson}
+        onClose={() => setShowCreatePerson(false)}
+        onCreated={(person) => {
+          setSelectedPerson(person);
           setQuery('');
-          setShowCreateGuest(false);
+          setShowCreatePerson(false);
         }}
       />
     </>
