@@ -9,7 +9,7 @@ import { ListFilterBar } from '@/components/ui/list-filter-bar';
 import { useToast } from '@/contexts/ToastContext';
 import { getDtlBookingReport } from '../services/dtlApi';
 import { exportDtlReportToDocx, exportDtlReportToExcel, exportDtlReportToPdf } from '../utils/dtlReportExport';
-import { DTL_BOOKING_STATUS } from '../types/dtl';
+import { DTL_BOOKING_STATUS, type DtlBookingReport } from '../types/dtl';
 
 type RangeKind = 'month' | 'lastMonth' | 'year' | 'all' | 'custom';
 type ExportFormat = 'pdf' | 'docx' | 'excel';
@@ -46,6 +46,24 @@ function toDateInputValue(d: Date) {
   return d.toISOString().slice(0, 10);
 }
 
+// Drops bookings on free (price 0) programs and recomputes each guest's programs, booking count and
+// amount from the remaining entries; guests left with no paid bookings are removed from the listing.
+function withoutFreeBookings(report: DtlBookingReport): DtlBookingReport {
+  const rows = report.rows
+    .map((r) => {
+      const entries = r.entries.filter((e) => e.price > 0);
+      return {
+        ...r,
+        entries,
+        programNames: [...new Set(entries.map((e) => e.programName))],
+        bookingCount: entries.length,
+        amount: entries.reduce((sum, e) => sum + e.price, 0),
+      };
+    })
+    .filter((r) => r.bookingCount > 0);
+  return { ...report, rows, grandTotal: rows.reduce((sum, r) => sum + r.amount, 0) };
+}
+
 export function DtlGuestBookingReport() {
   const { showToast } = useToast();
 
@@ -53,6 +71,7 @@ export function DtlGuestBookingReport() {
   const [customFrom, setCustomFrom] = useState(() => toDateInputValue(startOfMonth(new Date())));
   const [customTo, setCustomTo] = useState(() => toDateInputValue(new Date()));
   const [statuses, setStatuses] = useState<string[]>([DTL_BOOKING_STATUS.Completed]);
+  const [includeFree, setIncludeFree] = useState(true);
   const [exportingFormat, setExportingFormat] = useState<ExportFormat | null>(null);
 
   function toggleStatus(status: string) {
@@ -79,13 +98,18 @@ export function DtlGuestBookingReport() {
     }
   }, [range, customFrom, customTo]);
 
-  const { data: report, isLoading, isError } = useQuery({
+  const { data: rawReport, isLoading, isError } = useQuery({
     queryKey: ['dtl-booking-report', range, from?.getTime(), to?.getTime(), statuses],
     queryFn: () => getDtlBookingReport({ from, to, statuses }),
     refetchOnMount: 'always',
   });
 
+  const report = useMemo(
+    () => (rawReport && !includeFree ? withoutFreeBookings(rawReport) : rawReport),
+    [rawReport, includeFree],
+  );
   const rows = report?.rows ?? [];
+  const totalBookings = rows.reduce((sum, r) => sum + r.bookingCount, 0);
 
   async function handleExport(format: ExportFormat) {
     if (!report) return;
@@ -196,7 +220,36 @@ export function DtlGuestBookingReport() {
               ))}
             </div>
           </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs text-muted-foreground">Free guests</Label>
+            <div className="flex flex-wrap items-center gap-2">
+              {[
+                { value: true, label: 'Include' },
+                { value: false, label: 'Exclude' },
+              ].map((opt) => (
+                <button
+                  key={opt.label}
+                  type="button"
+                  onClick={() => setIncludeFree(opt.value)}
+                  className={`rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
+                    includeFree === opt.value
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted text-muted-foreground hover:bg-muted/70'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
         </ListFilterBar>
+
+        {report && !isLoading && !isError && (
+          <p className="text-sm text-muted-foreground">
+            {rows.length} guest{rows.length === 1 ? '' : 's'} · {totalBookings} booking{totalBookings === 1 ? '' : 's'}
+          </p>
+        )}
 
         <div className="overflow-x-auto rounded-lg border border-border">
           <table className="w-full min-w-[1000px]">

@@ -46,8 +46,8 @@ export function CreateDtlProgramModal({
       return;
     }
     const priceValue = Number(price);
-    if (!price || Number.isNaN(priceValue) || priceValue <= 0) {
-      setError('Enter a valid price greater than 0.');
+    if (price.trim() === '' || Number.isNaN(priceValue) || priceValue < 0) {
+      setError('Enter a valid price (0 or more). Use 0 for a free program.');
       return;
     }
 
