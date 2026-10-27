@@ -75,6 +75,9 @@ export function DtlBookingListPage() {
         sortDescending,
       }),
     placeholderData: (prev) => prev,
+    // Coming back from a booking detail (where status/link may have changed) must show fresh data,
+    // not the cached list still within the global staleTime.
+    refetchOnMount: 'always',
   });
 
   useDtlBookingChanged(() => {

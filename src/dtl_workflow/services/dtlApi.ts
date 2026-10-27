@@ -98,11 +98,14 @@ export async function getDtlBookingReport(opts: {
   from?: Date;
   to?: Date;
   statuses?: string[];
+  /** false drops bookings on free (price 0) programs, and guests left with none. */
+  includeFree?: boolean;
 }): Promise<DtlBookingReport> {
   const params = new URLSearchParams();
   if (opts.from) params.set('from', dateToQatarIso(opts.from));
   if (opts.to) params.set('to', dateToQatarIso(opts.to));
   for (const status of opts.statuses ?? []) params.append('statuses', status);
+  if (opts.includeFree === false) params.set('includeFree', 'false');
 
   const { data } = await apiClient.get<DtlBookingReport>(
     `/api/dtl/guests/booking-report?${params.toString()}`,

@@ -225,7 +225,9 @@ export function DtlBookingDetailPage() {
             <Button onClick={() => setPendingAction('complete')}>Mark as completed</Button>
           )}
           {perms.canComplete && isTerminal && (
-            <DropdownMenu>
+            // modal={false}: a modal menu that hands off to a Dialog on select leaves Radix's
+            // `pointer-events: none` stuck on <body> after the dialog closes, freezing the page.
+            <DropdownMenu modal={false}>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline">
                   Change status
