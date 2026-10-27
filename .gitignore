@@ -21,3 +21,6 @@ dist-ssr
 *.sln
 *.sw?
 .env
+
+.agents
+.claude/settings.local.json

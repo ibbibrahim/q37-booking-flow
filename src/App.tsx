@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
+import { PageHeaderProvider } from './contexts/PageHeaderContext';
 import { Login } from './components/Login';
 import { Unauthorized } from './components/Unauthorized';
 import { ProtectedRoute } from './components/ProtectedRoute';
@@ -31,6 +32,7 @@ import { LeaveRequestPage } from './hr_workflow/pages/LeaveRequestPage';
 import { LeaveRequestEditorPage } from './hr_workflow/pages/LeaveRequestEditorPage';
 import { LeaveFreelancerAcknowledgePage } from './hr_workflow/pages/LeaveFreelancerAcknowledgePage';
 import { ContractRenewalPage } from './hr_workflow/pages/ContractRenewalPage';
+import { ContractRenewalDetailPage } from './hr_workflow/pages/ContractRenewalDetailPage';
 import { ContractPreviewPage } from './hr_workflow/pages/ContractPreviewPage';
 import { FinancialReportsPage } from './hr_workflow/pages/FinancialReportsPage';
 import { HiringReportsPage } from './hr_workflow/pages/HiringReportsPage';
@@ -41,6 +43,7 @@ import { FreelanceProfileFormPage } from './hr_workflow/pages/FreelanceProfileFo
 import { FreelanceProfileReviewPage } from './hr_workflow/pages/FreelanceProfileReviewPage';
 import { HiringRequestsPage } from './hr_workflow/pages/HiringRequestsPage';
 import { InterviewEvaluationPage } from './hr_workflow/pages/InterviewEvaluationPage';
+import { InterviewManagerReviewPage } from './hr_workflow/pages/InterviewManagerReviewPage';
 import { StartingDatePage } from './hr_workflow/pages/StartingDatePage';
 import { BITChecklistDashboardPage } from './bit_workflow/pages/BITChecklistDashboardPage';
 import { BITChecklistListPage } from './bit_workflow/pages/BITChecklistListPage';
@@ -138,7 +141,9 @@ function App() {
         path="/"
         element={
           <ProtectedRoute>
-            <BookingDashboard />
+            <PageHeaderProvider>
+              <BookingDashboard />
+            </PageHeaderProvider>
           </ProtectedRoute>
         }
       >
@@ -535,10 +540,12 @@ function App() {
           <Route path="leave-requests/:id/edit" element={<LeaveRequestEditorPage />} />
           <Route path="leave-requests/:id/acknowledge" element={<LeaveFreelancerAcknowledgePage />} />
           <Route path="freelance-hiring/contract-renewal" element={<ContractRenewalPage />} />
+          <Route path="freelance-hiring/contract-renewal/renewals/:batchId" element={<ContractRenewalDetailPage />} />
           <Route path="freelance-hiring/contract-renewal/:id/preview" element={<ContractPreviewPage />} />
           <Route path="freelance-hiring/profile-submissions" element={<FreelanceProfileReviewPage />} />
           <Route path="freelance-hiring/hiring-requests" element={<HiringRequestsPage />} />
           <Route path="freelance-hiring/hiring-requests/:id/interview" element={<InterviewEvaluationPage />} />
+          <Route path="freelance-hiring/hiring-requests/:id/interview/review" element={<InterviewManagerReviewPage />} />
           <Route path="freelance-hiring/hiring-requests/:id/starting-date" element={<StartingDatePage />} />
           <Route path="reports/financial" element={<FinancialReportsPage />} />
           <Route path="reports/hiring" element={<HiringReportsPage />} />

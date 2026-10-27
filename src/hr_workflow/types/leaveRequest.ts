@@ -8,6 +8,8 @@ export type SuspensionType = 'Full' | 'Partial';
 
 export interface LeaveRequestSummary {
   id: number;
+  /** "LV-{year}-{0000001}" — stable reference, never resets per year. */
+  applicationRef: string | null;
   status: LeaveRequestStatus;
   employeeId: number;
   employeeFullNameEn: string | null;

@@ -16,6 +16,7 @@ import { leaveRequestApi } from '../api/leaveRequestApi';
 import { loadLeaveSuspensionTemplate, fillLeaveEmployeeInfo } from '../utils/leaveSuspensionPdf';
 import { RequestHistoryModal } from '../components/RequestHistoryModal';
 import { formatDate } from '../utils/hrUtils';
+import { usePageHeader } from '@/contexts/PageHeaderContext';
 import { LEAVE_REQUEST_STATUS_LABELS, type LeaveRequestStatus } from '../types/leaveRequest';
 
 const LEAVE_EVENT_LABELS: Record<string, string> = {
@@ -55,15 +56,14 @@ export function LeaveRequestPage() {
     [listen, queryClient]
   );
 
+  usePageHeader(
+    'Leave Request',
+    'Freelancer suspension-of-services notices — approved by the Department Head, then acknowledged by the freelancer in person. Permanent staff leave is managed in Muwarid.'
+  );
+
   return (
     <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Leave Request</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Freelancer suspension-of-services notices — approved by the Department Head, then acknowledged by the freelancer in person. Permanent staff leave is managed in Muwarid.
-          </p>
-        </div>
+      <div className="flex justify-end">
         <Button onClick={() => setCreateOpen(true)}>
           <Plus size={16} className="mr-1" /> New Leave Request
         </Button>
@@ -92,7 +92,10 @@ export function LeaveRequestPage() {
               )}
               {requests.map((r) => (
                 <TableRow key={r.id}>
-                  <TableCell className="font-medium text-foreground">{r.employeeFullNameEn}</TableCell>
+                  <TableCell className="font-medium text-foreground">
+                    <p>{r.employeeFullNameEn}</p>
+                    {r.applicationRef && <p className="text-[11px] font-normal text-muted-foreground tabular-nums">{r.applicationRef}</p>}
+                  </TableCell>
                   <TableCell className="text-muted-foreground">{r.departmentNameEn ?? '—'}</TableCell>
                   <TableCell>{r.suspensionType ?? '—'}</TableCell>
                   <TableCell>{r.startDate ? formatDate(r.startDate) : '—'} – {r.endDate ? formatDate(r.endDate) : '—'}</TableCell>

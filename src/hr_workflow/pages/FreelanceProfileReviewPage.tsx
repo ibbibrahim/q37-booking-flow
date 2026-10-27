@@ -12,6 +12,7 @@ import { getApiErrorMessage } from '@/utils/apiError';
 import { hrApi } from '../api/hrApi';
 import { freelanceProfileReviewApi } from '../api/freelanceProfileApi';
 import { formatDate } from '../utils/hrUtils';
+import { usePageHeader } from '@/contexts/PageHeaderContext';
 import type { FreelanceProfileStatus } from '../types/freelanceProfile';
 
 const STATUS_BADGE: Record<FreelanceProfileStatus, string> = {
@@ -108,13 +109,10 @@ export function FreelanceProfileReviewPage() {
   const fileLink = (label: string, url: string | null) =>
     url ? <a href={url} target="_blank" rel="noreferrer" className="text-primary underline text-xs">{label}</a> : null;
 
+  usePageHeader('Freelance Profile Submissions', 'Review profiles submitted via the public form, then approve to merge or reject.');
+
   return (
     <div className="space-y-4">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Freelance Profile Submissions</h1>
-        <p className="text-sm text-muted-foreground mt-1">Review profiles submitted via the public form, then approve to merge or reject.</p>
-      </div>
-
       <Card>
         <CardContent className="p-0">
           <Table>

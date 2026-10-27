@@ -1,4 +1,4 @@
-import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
 import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 
@@ -17,6 +17,24 @@ export interface InteractivePdfEditorHandle {
 
 interface Props {
   pdfBytes: Uint8Array;
+  /** Fires with the full current checkbox state after every checkbox click —
+   * lets a caller compute something derived live (e.g. a score tally) without
+   * polling getCheckboxValues(). Optional; existing callers are unaffected. */
+  onCheckboxChange?: (values: Record<string, boolean>) => void;
+  /** Sets of checkbox field names (e.g. the 5 score boxes in one scoring
+   * rubric row) that behave like a radio group — checking one in a group
+   * unchecks the others in that same group. Checkboxes not listed in any
+   * group stay independent, as before. Optional; existing callers that don't
+   * pass this see no change in behavior. */
+  checkboxGroups?: readonly (readonly string[])[];
+  /** Clickable "sign here" hot-zones drawn on top of the rendered page, for
+   * blank areas of the document that aren't PDF form fields at all (e.g. a
+   * signature cell). Pass only the slots that should currently be
+   * clickable — once a caller stamps a signature into one and reloads the
+   * PDF with new `pdfBytes`, simply omit that slot to make it disappear
+   * (the stamped image shows through the page raster instead). Optional. */
+  signatureSlots?: { id: string; page: number; rect: { x: number; y: number; width: number; height: number }; label?: string }[];
+  onSignSlotClick?: (id: string) => void;
 }
 
 interface RenderedPage {
@@ -47,6 +65,16 @@ interface CheckboxOverlay {
   initialChecked: boolean;
 }
 
+interface SignatureSlotOverlay {
+  id: string;
+  page: number;
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+  label?: string;
+}
+
 const RENDER_SCALE = 1.6;
 // Matches contractPdf.ts's FIELD_FONT_SIZE (9pt) at RENDER_SCALE, so what the
 // coordinator sees while typing looks like what gets baked into the saved
@@ -60,6 +88,30 @@ function getMeasureCtx(): CanvasRenderingContext2D {
     measureCtx = document.createElement('canvas').getContext('2d')!;
   }
   return measureCtx;
+}
+
+/** Samples the rendered canvas inside a slot's rect (shrunk a few px on each
+ * side, to dodge the cell's own border lines) and reports whether there's
+ * already drawn content there — a signature baked in from an earlier
+ * session, say. Used to auto-hide a "sign here" prompt that would otherwise
+ * sit directly on top of a signature that's already there. */
+function regionHasInk(ctx: CanvasRenderingContext2D, left: number, top: number, width: number, height: number): boolean {
+  const inset = 4;
+  const x = Math.max(0, Math.round(left + inset));
+  const y = Math.max(0, Math.round(top + inset));
+  const w = Math.max(1, Math.round(width - inset * 2));
+  const h = Math.max(1, Math.round(height - inset * 2));
+  if (x + w > ctx.canvas.width || y + h > ctx.canvas.height) return false;
+
+  const { data } = ctx.getImageData(x, y, w, h);
+  let darkPixels = 0;
+  for (let i = 0; i < data.length; i += 4) {
+    const [r, g, b, a] = [data[i], data[i + 1], data[i + 2], data[i + 3]];
+    if (a > 10 && (r < 200 || g < 200 || b < 200)) darkPixels++;
+  }
+  // A handful of stray dark pixels (JPEG-ish artifacts, anti-aliasing) isn't
+  // a signature — real ink covers a meaningfully larger area than that.
+  return darkPixels > 25;
 }
 
 /** Shrinks the font size (down to a floor) until `text` actually fits
@@ -86,15 +138,26 @@ function fitFontSize(text: string, maxWidth: number): number {
  * is only ever shown once, through its live input, never baked into the
  * background image underneath it too. */
 export const InteractivePdfEditor = forwardRef<InteractivePdfEditorHandle, Props>(function InteractivePdfEditor(
-  { pdfBytes },
+  { pdfBytes, onCheckboxChange, checkboxGroups, signatureSlots, onSignSlotClick },
   ref
 ) {
   const [pages, setPages] = useState<RenderedPage[]>([]);
   const [overlays, setOverlays] = useState<FieldOverlay[]>([]);
   const [checkboxOverlays, setCheckboxOverlays] = useState<CheckboxOverlay[]>([]);
+  const [signatureSlotOverlays, setSignatureSlotOverlays] = useState<SignatureSlotOverlay[]>([]);
   const [loading, setLoading] = useState(true);
   const valuesRef = useRef<Record<string, string>>({});
   const checkboxValuesRef = useRef<Record<string, boolean>>({});
+  const checkboxElsRef = useRef<Record<string, HTMLInputElement | null>>({});
+
+  // field name -> its group (if any), rebuilt only when the groups prop itself changes.
+  const groupByField = useMemo(() => {
+    const map = new Map<string, readonly string[]>();
+    for (const group of checkboxGroups ?? []) {
+      for (const name of group) map.set(name, group);
+    }
+    return map;
+  }, [checkboxGroups]);
 
   useImperativeHandle(ref, () => ({
     getFieldValues: () => ({ ...valuesRef.current }),
@@ -111,6 +174,7 @@ export const InteractivePdfEditor = forwardRef<InteractivePdfEditorHandle, Props
       setPages([]);
       setOverlays([]);
       setCheckboxOverlays([]);
+      setSignatureSlotOverlays([]);
       valuesRef.current = {};
       checkboxValuesRef.current = {};
 
@@ -184,12 +248,33 @@ export const InteractivePdfEditor = forwardRef<InteractivePdfEditorHandle, Props
           }
         }
 
+        // Signature slots aren't PDF form fields/annotations — their rects
+        // come from the `signatureSlots` prop in PDF point space (bottom-left
+        // origin, same convention as pdf-lib), so they go through the exact
+        // same viewport transform as the real annotations above. A slot that
+        // already has ink in it (signed in an earlier session, or just
+        // stamped and reloaded) is dropped rather than shown, so the "+ Sign"
+        // prompt never sits on top of an actual signature.
+        const pageSlotOverlays: SignatureSlotOverlay[] = (signatureSlots ?? [])
+          .filter((s) => s.page === pageNumber)
+          .map((s) => {
+            const [sx1, sy1] = viewport.convertToViewportPoint(s.rect.x, s.rect.y);
+            const [sx2, sy2] = viewport.convertToViewportPoint(s.rect.x + s.rect.width, s.rect.y + s.rect.height);
+            return {
+              id: s.id, page: pageNumber, label: s.label,
+              left: Math.min(sx1, sx2), top: Math.min(sy1, sy2),
+              width: Math.abs(sx2 - sx1), height: Math.abs(sy2 - sy1),
+            };
+          })
+          .filter((o) => !ctx || !regionHasInk(ctx, o.left, o.top, o.width, o.height));
+
         if (cancelled) return;
         valuesRef.current = { ...valuesRef.current, ...pageValues };
         checkboxValuesRef.current = { ...checkboxValuesRef.current, ...pageCheckboxValues };
         setPages((prev) => [...prev, { pageNumber, imageUrl, width: viewport.width, height: viewport.height }].sort((a, b) => a.pageNumber - b.pageNumber));
         setOverlays((prev) => [...prev, ...pageOverlays]);
         setCheckboxOverlays((prev) => [...prev, ...pageCheckboxOverlays]);
+        setSignatureSlotOverlays((prev) => [...prev, ...pageSlotOverlays]);
         if (!firstPageReady) {
           firstPageReady = true;
           setLoading(false);
@@ -197,6 +282,12 @@ export const InteractivePdfEditor = forwardRef<InteractivePdfEditorHandle, Props
       };
 
       await Promise.all(Array.from({ length: doc.numPages }, (_, i) => renderPage(i + 1)));
+      // Lets a caller that needs the document's own pre-existing checkbox
+      // state right away (e.g. showing a score tally computed from boxes the
+      // loaded PDF already has checked) get it without waiting for the user
+      // to click anything — harmless no-op for callers that don't care,
+      // since it reports whatever's already loaded.
+      if (!cancelled) onCheckboxChange?.({ ...checkboxValuesRef.current });
     })();
 
     return () => {
@@ -255,12 +346,45 @@ export const InteractivePdfEditor = forwardRef<InteractivePdfEditorHandle, Props
                 key={o.name}
                 type="checkbox"
                 defaultChecked={o.initialChecked}
+                ref={(el) => {
+                  checkboxElsRef.current[o.name] = el;
+                }}
                 onChange={(e) => {
-                  checkboxValuesRef.current[o.name] = e.target.checked;
+                  const checked = e.target.checked;
+                  checkboxValuesRef.current[o.name] = checked;
+                  if (checked) {
+                    // Radio-like group: uncheck every other box in the same
+                    // group, both in the DOM (these are uncontrolled inputs,
+                    // so the element itself has to be told directly) and in
+                    // the tracked values.
+                    const group = groupByField.get(o.name);
+                    if (group) {
+                      for (const other of group) {
+                        if (other === o.name || !checkboxValuesRef.current[other]) continue;
+                        checkboxValuesRef.current[other] = false;
+                        const otherEl = checkboxElsRef.current[other];
+                        if (otherEl) otherEl.checked = false;
+                      }
+                    }
+                  }
+                  onCheckboxChange?.({ ...checkboxValuesRef.current });
                 }}
                 className="absolute cursor-pointer accent-[#3f83f8]"
                 style={{ left: o.left, top: o.top, width: Math.max(o.width, 10), height: Math.max(o.height, 10) }}
               />
+            ))}
+          {signatureSlotOverlays
+            .filter((s) => s.page === p.pageNumber)
+            .map((s) => (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => onSignSlotClick?.(s.id)}
+                className="absolute flex items-center justify-center gap-1 rounded-[2px] border border-dashed border-[#3f83f8] bg-[#3f83f8]/10 hover:bg-[#3f83f8]/20 text-[#1a56db] text-[11px] font-medium"
+                style={{ left: s.left, top: s.top, width: s.width, height: s.height }}
+              >
+                {s.label ?? '+ Sign'}
+              </button>
             ))}
         </div>
       ))}

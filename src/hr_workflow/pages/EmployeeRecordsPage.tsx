@@ -14,6 +14,7 @@ import { StatTile } from '../components/StatTile';
 import { EmployeeAvatar } from '../components/EmployeeAvatar';
 import { hrApi } from '../api/hrApi';
 import { useHrLanguage, bilingual } from '../context/HrLanguageContext';
+import { usePageHeader } from '@/contexts/PageHeaderContext';
 import { hrEmployeeStatusBadgeClass, formatDate } from '../utils/hrUtils';
 import type { HrContractType, HrEmployeeStatus } from '../types/hrApi';
 
@@ -110,14 +111,11 @@ export function EmployeeRecordsPage({ contractType }: Props) {
 
   const heading = isPermanent ? t('permanentEmployees') : t('freelanceEmployees');
   const subtitle = isPermanent ? t('permanentSubtitle') : t('freelanceSubtitle');
+  usePageHeader(heading, subtitle);
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">{heading}</h1>
-          <p className="text-sm text-muted-foreground mt-1">{subtitle}</p>
-        </div>
+      <div className="flex justify-end">
         <Button onClick={() => navigate(`/hr/employees/${typeSlug}/new`)}>
           <Plus size={16} className="mr-1" /> {t('addEmployee')}
         </Button>

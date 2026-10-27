@@ -11,6 +11,8 @@ import type {
   ConvertToPermanentDto,
   HrQidScanResult,
   HrContract,
+  HrContractBatch,
+  HrContractBatchDetail,
   HrContractSignerRole,
   HrSignatureMethod,
   HrContractAuditSummary,
@@ -122,13 +124,61 @@ export const hrApi = {
 
   // Contract signing — the PDF itself is generated/stamped client-side
   // (pdf-lib); the backend just stores the working copy and the audit trail.
-  createContract: async (employeeId: number, pdf: Blob): Promise<HrContract> => {
+  // Pass batchId (from createContractBatch) to link this contract to a
+  // batch — the backend then uses THAT batch's term/approval letter and
+  // startDate/endDate/approvalLetter here are ignored. Without a batchId,
+  // startDate/endDate/approvalLetter are only meaningful for the first
+  // contract in a cycle — all optional.
+  createContract: async (
+    employeeId: number,
+    pdf: Blob,
+    options?: { startDate?: string; endDate?: string; approvalLetter?: File; batchId?: number }
+  ): Promise<HrContract> => {
     const formData = new FormData();
     formData.append('employeeId', String(employeeId));
     formData.append('pdf', pdf, 'contract.pdf');
+    if (options?.batchId) {
+      formData.append('batchId', String(options.batchId));
+    } else {
+      if (options?.startDate) formData.append('startDate', options.startDate);
+      if (options?.endDate) formData.append('endDate', options.endDate);
+      if (options?.approvalLetter) formData.append('approvalLetter', options.approvalLetter);
+    }
     const { data } = await apiClient.post(`${API_BASE}/contracts`, formData, {
       headers: { 'Content-Type': undefined },
     });
+    return data;
+  },
+
+  // Creates the shared batch header for a "Start Contract Renewal"
+  // submission — one term + one approval letter upload. Call this once,
+  // then createContract(..., { batchId }) once per selected employee.
+  createContractBatch: async (
+    startDate: string,
+    endDate: string,
+    employeeCount: number,
+    approvalLetter?: File
+  ): Promise<HrContractBatch> => {
+    const formData = new FormData();
+    formData.append('startDate', startDate);
+    formData.append('endDate', endDate);
+    formData.append('employeeCount', String(employeeCount));
+    if (approvalLetter) formData.append('approvalLetter', approvalLetter);
+    const { data } = await apiClient.post(`${API_BASE}/contract-batches`, formData, {
+      headers: { 'Content-Type': undefined },
+    });
+    return data;
+  },
+
+  // Most recent first — the Contract Renewal page's "Batches" view.
+  getContractBatches: async (): Promise<HrContractBatch[]> => {
+    const { data } = await apiClient.get(`${API_BASE}/contract-batches`);
+    return data;
+  },
+
+  // The batch plus its member contracts — the batch detail drill-down.
+  getContractBatchDetail: async (batchId: number): Promise<HrContractBatchDetail> => {
+    const { data } = await apiClient.get(`${API_BASE}/contract-batches/${batchId}`);
     return data;
   },
 

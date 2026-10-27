@@ -15,7 +15,7 @@ export function StatTile({ label, value, icon: Icon, hint, accentClassName }: St
     <Card>
       <CardContent className="p-5 flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-sm text-muted-foreground truncate">{label}</p>
+          <p className="text-sm text-muted-foreground">{label}</p>
           <p className="text-2xl font-bold text-card-foreground mt-1 tabular-nums">{value}</p>
           {hint && <p className="text-xs text-muted-foreground mt-1">{hint}</p>}
         </div>
