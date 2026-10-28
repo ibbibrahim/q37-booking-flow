@@ -13,6 +13,7 @@ import {
   ExternalLink,
   FolderOpen,
   ListChecks,
+  Link2,
 } from 'lucide-react';
 import {
   getBookingTypeLabel,
@@ -29,6 +30,7 @@ import { formatBookingStoredDateTime } from '@/studio_booking/utils/timeUtils';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
   Table,
@@ -72,6 +74,7 @@ export const RequestDetail: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [selectedLink, setSelectedLink] = useState<DownloadLinkDto | null>(null);
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
+  const [togglingLinkId, setTogglingLinkId] = useState<number | null>(null);
   const [markAllDoneOpen, setMarkAllDoneOpen] = useState(false);
   const [markAllDoneRunning, setMarkAllDoneRunning] = useState(false);
 
@@ -178,6 +181,17 @@ export const RequestDetail: React.FC = () => {
     }
   };
 
+  const handleToggleLinkDone = async (link: DownloadLinkDto, checked: boolean) => {
+    setTogglingLinkId(link.id);
+    try {
+      await handleUpdateDownloadLink(link.id, checked ? 'Done' : 'Pending', link.ingestNotes || '');
+    } catch {
+      // handleUpdateDownloadLink already reports the error via toast
+    } finally {
+      setTogglingLinkId(null);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
@@ -245,8 +259,8 @@ export const RequestDetail: React.FC = () => {
   
     return (
       <div>
-        <div className="text-xs font-medium text-muted-foreground mb-1">{label}</div>
-        <div className="text-sm text-card-foreground break-all">
+        <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">{label}</div>
+        <div className="text-sm font-medium text-card-foreground break-all">
           {isUrl ? (
             <a
               href={value}
@@ -260,6 +274,28 @@ export const RequestDetail: React.FC = () => {
             value
           )}
         </div>
+      </div>
+    );
+  };
+
+  const renderIngestNeededField = (value: string | undefined) => {
+    if (!value) return null;
+
+    const isYes = value.trim().toLowerCase() === 'yes';
+
+    return (
+      <div>
+        <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Ingest Needed</div>
+        <Badge
+          variant="outline"
+          className={
+            isYes
+              ? 'bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800'
+              : 'bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-800/40 dark:text-slate-400 dark:border-slate-700'
+          }
+        >
+          {value}
+        </Badge>
       </div>
     );
   };
@@ -466,6 +502,7 @@ export const RequestDetail: React.FC = () => {
                   {request.feedStartTime && renderField("Feed Start Time", formatBookingStoredDateTime(request.feedStartTime))}
                   {request.feedEndTime && renderField("Feed End Time", formatBookingStoredDateTime(request.feedEndTime))}
                   {renderField('Studio', request.studio)}
+                  {renderIngestNeededField(request.ingestNeeded)}
                 </div>
 
                 {((request.bookingType === "Invite Guest for News" || request.bookingType === "Invite Guest for Program") && request.guestDetail) ||
@@ -474,7 +511,13 @@ export const RequestDetail: React.FC = () => {
                   <div className="pt-6 border-t border-border">
                     {request.bookingType === "Download and Ingest" && request.downloadLinks ? (
                       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                        <h3 className="text-sm font-semibold text-card-foreground">Download Details</h3>
+                        <div className="flex items-center gap-2.5">
+                          <h3 className="text-sm font-semibold text-card-foreground">Download Details</h3>
+                          <Badge className="gap-1.5 border-transparent bg-blue-600 font-semibold text-white shadow-sm dark:bg-blue-500">
+                            <Link2 className="h-3.5 w-3.5" />
+                            {request.downloadLinks.length} {request.downloadLinks.length === 1 ? 'Link' : 'Links'}
+                          </Badge>
+                        </div>
                         {canManageIngest && pendingDownloadLinks.length > 0 && (
                           <Button
                             type="button"
@@ -515,6 +558,7 @@ export const RequestDetail: React.FC = () => {
                           <Table>
                             <TableHeader>
                               <TableRow>
+                                <TableHead className="w-[48px]">#</TableHead>
                                 <TableHead className="w-[100px]">Source</TableHead>
                                 <TableHead>URL</TableHead>
                                 <TableHead className="w-[120px]">Status</TableHead>
@@ -541,6 +585,9 @@ export const RequestDetail: React.FC = () => {
 
                               return (
                                 <TableRow key={link.id || index}>
+                                  <TableCell className="text-sm text-muted-foreground font-medium">
+                                    {index + 1}
+                                  </TableCell>
                                   <TableCell>
                                     <Badge variant="secondary">{link.source}</Badge>
                                   </TableCell>
@@ -556,9 +603,36 @@ export const RequestDetail: React.FC = () => {
                                     </a>
                                   </TableCell>
                                   <TableCell>
-                                    <Badge variant="outline" className={getStatusColor(link.ingestStatus)}>
-                                      {link.ingestStatus}
-                                    </Badge>
+                                    <div className="flex items-center gap-2">
+                                      {userRole === 'Ingest' && (
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            <span>
+                                              <Checkbox
+                                                checked={isDownloadLinkDone(link.ingestStatus)}
+                                                disabled={togglingLinkId === link.id}
+                                                onCheckedChange={(checked) =>
+                                                  handleToggleLinkDone(link, checked === true)
+                                                }
+                                                aria-label={
+                                                  isDownloadLinkDone(link.ingestStatus)
+                                                    ? 'Mark as Pending'
+                                                    : 'Mark as Done'
+                                                }
+                                              />
+                                            </span>
+                                          </TooltipTrigger>
+                                          <TooltipContent>
+                                            {isDownloadLinkDone(link.ingestStatus)
+                                              ? 'Uncheck to set back to Pending'
+                                              : 'Check to mark as Done'}
+                                          </TooltipContent>
+                                        </Tooltip>
+                                      )}
+                                      <Badge variant="outline" className={getStatusColor(link.ingestStatus)}>
+                                        {link.ingestStatus}
+                                      </Badge>
+                                    </div>
                                   </TableCell>
                                   <TableCell>
                                     {link.ingestNotes && link.ingestNotes.length > 50 ? (
@@ -642,15 +716,6 @@ export const RequestDetail: React.FC = () => {
                     ) : null}
                   </div>
                 ) : null}
-
-                <div className="pt-6 border-t border-border">
-                  <h3 className="text-sm font-semibold text-card-foreground mb-3">
-                    Resources Needed
-                  </h3>
-                  <div className="text-sm text-card-foreground">
-                    {request.resourcesNeeded || 'None specified'}
-                  </div>
-                </div>
 
                 {request.notes && (
                   <div className="pt-6 border-t border-border">

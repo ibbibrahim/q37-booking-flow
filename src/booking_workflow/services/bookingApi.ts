@@ -14,11 +14,15 @@ export interface BookingRequestSearchBody {
   pageSize: number;
   searchQuery?: string | null;
   status?: string | null;
+  /** When set (non-empty), takes precedence over `status` — matches any status in the list. */
+  statuses?: string[] | null;
   bookingType?: string | null;
   dateFrom?: string | null;
   dateTo?: string | null;
   createdAtFrom?: string | null;
   createdAtTo?: string | null;
+  /** When set, only returns requests created by this user — used by the Booking screen's "my requests only" filter. */
+  createdBy?: number | null;
 }
 
 export interface BookingRequestSearchResponse {
@@ -34,24 +38,35 @@ function buildSearchPayload(body: BookingRequestSearchBody): Record<string, unkn
     pageSize: body.pageSize,
   };
   if (body.searchQuery?.trim()) payload.searchQuery = body.searchQuery.trim();
-  if (body.status?.trim()) payload.status = body.status.trim();
+  if (body.statuses?.length) {
+    payload.statuses = body.statuses;
+  } else if (body.status?.trim()) {
+    payload.status = body.status.trim();
+  }
   if (body.bookingType?.trim()) payload.bookingType = body.bookingType.trim();
   if (body.dateFrom) payload.dateFrom = body.dateFrom;
   if (body.dateTo) payload.dateTo = body.dateTo;
   if (body.createdAtFrom) payload.createdAtFrom = body.createdAtFrom;
   if (body.createdAtTo) payload.createdAtTo = body.createdAtTo;
+  if (body.createdBy) payload.createdBy = body.createdBy;
   return payload;
 }
 
 function visibleForRole(req: WorkflowRequest, userRole: UserRole): boolean {
   if (userRole === 'NOC') {
+    // NOC only handles Incoming Feed requests — Download/Camera Card ingest bookings never reach them.
     return (
-      req.status === 'Submitted' ||
-      req.status === 'With NOC' ||
-      req.status === 'Clarification Requested' ||
-      req.status === 'Resources Added' ||
-      req.status === 'Completed' ||
-      req.status === 'Partially Completed'
+      req.bookingType === 'Incoming Feed' &&
+      (
+        req.status === 'Submitted' ||
+        req.status === 'With NOC' ||
+        req.status === 'Clarification Requested' ||
+        req.status === 'Resources Added' ||
+        req.status === 'With Ingest' ||
+        req.status === 'Completed' ||
+        req.status === 'Partially Completed' ||
+        req.status === 'Not Done'
+      )
     );
   }
   if (userRole === 'Ingest') {
