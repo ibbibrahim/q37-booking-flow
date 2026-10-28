@@ -42,7 +42,7 @@ import { ListFilterBar, FilterActiveFiltersRow } from '@/components/ui/list-filt
 import { ListPaginationBar, getInitialPage, getInitialPageSize } from '@/components/ui/list-pagination-bar';
 
 const PAGINATION_STORAGE_KEY = 'booking-workflow:list';
-const FILTERS_STORAGE_KEY = 'booking-workflow:list:filters:v1';
+const FILTERS_STORAGE_KEY = 'booking-workflow:list:filters:v2';
 
 interface RequestListProps {
   userRole: UserRole;
@@ -81,7 +81,8 @@ function loadPersistedFilters(): PersistedFilters {
         searchQuery: '',
         statusFilter: 'All',
         bookingTypeFilter: 'All',
-        onlyMine: false,
+        // Booking requesters see only their own requests by default until they opt out.
+        onlyMine: true,
       };
     }
     const parsed = JSON.parse(raw) as PersistedFilters;
@@ -91,14 +92,14 @@ function loadPersistedFilters(): PersistedFilters {
       bookingTypeFilter: (parsed.bookingTypeFilter as BookingTypeFilter) ?? 'All',
       createdFrom: parsed.createdFrom,
       createdTo: parsed.createdTo,
-      onlyMine: typeof parsed.onlyMine === 'boolean' ? parsed.onlyMine : false,
+      onlyMine: typeof parsed.onlyMine === 'boolean' ? parsed.onlyMine : true,
     };
   } catch {
     return {
       searchQuery: '',
       statusFilter: 'All',
       bookingTypeFilter: 'All',
-      onlyMine: false,
+      onlyMine: true,
     };
   }
 }

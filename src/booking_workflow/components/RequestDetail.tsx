@@ -736,7 +736,7 @@ export const RequestDetail: React.FC = () => {
             {nocResources.length > 0 && (
               <Card>
                 <CardHeader>
-                  <CardTitle>Allocated Resources by NOC</CardTitle>
+                  <CardTitle>Allocated Resources by CR</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
