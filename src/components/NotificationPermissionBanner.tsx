@@ -25,7 +25,10 @@ export const NotificationPermissionBanner: React.FC = () => {
   // NotificationContext.tsx's NotificationCreated handler for where each is consumed.
   const CREATIVE_ROLES = ['SocialMedia', 'Booking', 'GraphicsTeam', 'MotionGraphicsTeam'];
   const wantsBrowserNotifications =
-    user?.roles?.includes('Ingest') || user?.roles?.some((r) => CREATIVE_ROLES.includes(r)) || false;
+    user?.roles?.includes('Ingest') ||
+    user?.roles?.includes('NOC') ||
+    user?.roles?.some((r) => CREATIVE_ROLES.includes(r)) ||
+    false;
 
   useEffect(() => {
     if (!wantsBrowserNotifications) {
