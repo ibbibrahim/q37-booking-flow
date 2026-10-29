@@ -29,6 +29,7 @@ import {
   approveCreativeRequest,
   claimCreativeRequest,
   completeCreativeRequest,
+  generateCreativeImageLibraryName,
   getCreativeRequest,
   getCreativeRequestTransitions,
   listCreativeScreens,
@@ -122,6 +123,8 @@ export function CreativeRequestDetailPage() {
   const [driveLink, setDriveLink] = useState('');
   const [responsePath, setResponsePath] = useState('');
   const [imageLibraryConfirmed, setImageLibraryConfirmed] = useState(false);
+  const [imageFreeText, setImageFreeText] = useState('');
+  const [generatingName, setGeneratingName] = useState(false);
   const [completeComment, setCompleteComment] = useState('');
   const [completing, setCompleting] = useState(false);
   const [approvalNote, setApprovalNote] = useState('');
@@ -206,10 +209,7 @@ export function CreativeRequestDetailPage() {
         ? { label: 'Response Path (Share Folder)', value: typeData.responsePath as string, icon: FolderOpen, isLink: false,
             tooltip: 'Where the finished files were saved on the shared folder.' }
         : null
-      : request.imageLibraryCode
-        ? { label: 'Image Library Name', value: request.imageLibraryCode, icon: ImageIcon, isLink: false,
-            tooltip: "The name Graphics Team uploads this graphic under in Vizrt's own Image Library — search for it there." }
-        : null;
+      : null;
 
   function copyToClipboard(text: string) {
     navigator.clipboard.writeText(text);
@@ -228,6 +228,23 @@ export function CreativeRequestDetailPage() {
     }
   }
 
+  async function handleGenerateImageName() {
+    if (!imageFreeText.trim()) {
+      showToast('Add a short free-text differentiator for this image', 'error');
+      return;
+    }
+    setGeneratingName(true);
+    try {
+      await generateCreativeImageLibraryName(requestId, imageFreeText.trim());
+      showToast('Image Library name generated', 'success');
+      setImageFreeText('');
+    } catch (err) {
+      showToast(getApiErrorMessage(err, 'Could not generate an Image Library name'), 'error');
+    } finally {
+      setGeneratingName(false);
+    }
+  }
+
   async function handleCompleteSubmit() {
     if (isSocialMediaHeadline && !driveLink.trim()) {
       showToast('A drive link is required to mark this request complete', 'error');
@@ -237,8 +254,12 @@ export function CreativeRequestDetailPage() {
       showToast('A share-folder path is required to mark this request complete', 'error');
       return;
     }
+    if (isImageLibraryType && request.imageLibraryNames.length === 0) {
+      showToast('Generate at least one Image Library name before marking this request complete', 'error');
+      return;
+    }
     if (isImageLibraryType && !imageLibraryConfirmed) {
-      showToast('Confirm the image has been uploaded to Vizrt before marking this request complete', 'error');
+      showToast('Confirm the image(s) have been uploaded to Vizrt before marking this request complete', 'error');
       return;
     }
 
@@ -397,6 +418,61 @@ export function CreativeRequestDetailPage() {
             </Card>
           )}
 
+          {isImageLibraryType && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <ImageIcon className="h-4 w-4" />
+                  Vizrt Image Library Names
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  One name per image produced for this request — search for each by its name in Vizrt.
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {isClaimedByMe && isOpenForWork && (
+                  <div className="flex items-end gap-2 rounded-lg border border-dashed border-border p-3">
+                    <div className="flex-1 space-y-1.5">
+                      <Label htmlFor="image-free-text">Free text for a new image</Label>
+                      <Input
+                        id="image-free-text"
+                        placeholder="e.g. Iran"
+                        value={imageFreeText}
+                        onChange={(e) => setImageFreeText(e.target.value)}
+                      />
+                    </div>
+                    <Button onClick={handleGenerateImageName} disabled={generatingName} className="shrink-0">
+                      {generatingName ? 'Generating…' : 'Generate'}
+                    </Button>
+                  </div>
+                )}
+                {request.imageLibraryNames.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No images generated yet.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {request.imageLibraryNames.map((n) => (
+                      <div
+                        key={n.id}
+                        className="flex items-center justify-between gap-2 rounded-md border border-border bg-muted/30 px-3 py-2"
+                      >
+                        <span className="font-mono text-sm font-semibold text-card-foreground break-all">{n.code}</span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 shrink-0"
+                          onClick={() => copyToClipboard(n.code)}
+                        >
+                          <Copy className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
           {canMarkComplete && (
             <Card className="border-primary/30">
               <CardHeader>
@@ -427,41 +503,19 @@ export function CreativeRequestDetailPage() {
                 )}
                 {isImageLibraryType && (
                   <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-3">
-                    <Label>Vizrt Image Library Name</Label>
-                    {request.imageLibraryCode ? (
-                      <>
-                        <div className="flex items-center justify-between gap-2 rounded-md border border-border bg-background px-3 py-2">
-                          <span className="font-mono text-sm font-semibold text-card-foreground">
-                            {request.imageLibraryCode}
-                          </span>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 shrink-0"
-                            onClick={() => copyToClipboard(request.imageLibraryCode!)}
-                          >
-                            <Copy className="h-3.5 w-3.5" />
-                          </Button>
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                          Upload the finished graphic into Vizrt's Image Library under this exact name, so the
-                          requester can find it.
-                        </p>
-                        <label className="flex items-start gap-2 pt-1">
-                          <Checkbox
-                            checked={imageLibraryConfirmed}
-                            onCheckedChange={(checked) => setImageLibraryConfirmed(checked === true)}
-                          />
-                          <span className="text-sm text-card-foreground">
-                            I've uploaded the image to Vizrt's Image Library as{' '}
-                            <span className="font-mono font-semibold">{request.imageLibraryCode}</span>
-                          </span>
-                        </label>
-                      </>
+                    {request.imageLibraryNames.length > 0 ? (
+                      <label className="flex items-start gap-2">
+                        <Checkbox
+                          checked={imageLibraryConfirmed}
+                          onCheckedChange={(checked) => setImageLibraryConfirmed(checked === true)}
+                        />
+                        <span className="text-sm text-card-foreground">
+                          I've uploaded the image(s) above to Vizrt's Image Library under those exact names.
+                        </span>
+                      </label>
                     ) : (
                       <p className="text-xs text-amber-600 dark:text-amber-400">
-                        No name was generated — claim the request again to generate one.
+                        Generate at least one Image Library name above before completing.
                       </p>
                     )}
                   </div>
@@ -664,9 +718,9 @@ function TypeSpecificDetails({
               <>
                 <SpecRow label="Event Name" value={d.dailyEventName} />
                 <SpecRow label="Subtype" value={d.selectType} />
-                {d.selectType === 'Headline' && (
+                {(d.selectType === 'Headline' || d.selectType === 'Reel Cover') && (
                   <>
-                    <SpecRow label="Headline Title" value={d.title} emphasis />
+                    <SpecRow label="Content" value={d.content} emphasis />
                     <SpecRow label="Platform" value={d.platform} />
                   </>
                 )}
@@ -674,14 +728,20 @@ function TypeSpecificDetails({
               </>
             )}
           </div>
-          {d.requestKind === 'EventPackage' && d.eventLogo && <ImageThumb label="Event Logo" file={d.eventLogo} />}
-          {d.requestKind === 'DailyRequest' && d.selectType === 'Headline' && d.backgroundImage && (
+          {d.requestKind === 'EventPackage' && d.eventLogos && d.eventLogos.length > 0 && (
+            <div className="flex flex-wrap gap-3">
+              {d.eventLogos.map((logo, i) => (
+                <ImageThumb key={i} label={i === 0 ? 'Event Logo' : undefined} file={logo} />
+              ))}
+            </div>
+          )}
+          {d.requestKind === 'DailyRequest' && (d.selectType === 'Headline' || d.selectType === 'Reel Cover') && d.backgroundImage && (
             <ImageThumb label="Background Image" file={d.backgroundImage} />
           )}
           {d.requestKind === 'DailyRequest' && d.selectType === 'Carrousel' && d.sections && d.sections.length > 0 && (
-            <SubsectionList>
+            <SubsectionList label="Slides">
               {d.sections.map((s, i) => (
-                <Subsection key={i} index={i} title={s.title}>
+                <Subsection key={i} index={i} title={s.content}>
                   <div className="flex flex-wrap gap-3">
                     {s.backgroundImage && <ImageThumb label="Background" file={s.backgroundImage} />}
                     {s.icons?.map((icon, j) => <ImageThumb key={j} label="Icon" file={icon} />)}
@@ -704,6 +764,8 @@ function TypeSpecificDetails({
           <div className="flex flex-wrap gap-3">
             <ScreenPreview name={d.screen} screens={screens} />
             {d.referenceImage && <ImageThumb label="Reference Image" file={d.referenceImage} />}
+            {d.logos?.map((logo, i) => <ImageThumb key={`logo-${i}`} label={i === 0 ? 'Logo' : undefined} file={logo} />)}
+            {d.flags?.map((flag, i) => <ImageThumb key={`flag-${i}`} label={i === 0 ? 'Flag' : undefined} file={flag} />)}
           </div>
         </div>
       );
@@ -717,15 +779,11 @@ function TypeSpecificDetails({
             <SpecRow label="Screen" value={d.screen} />
           </div>
           <ScreenPreview name={d.screen} screens={screens} />
-          {d.topics && d.topics.length > 0 && (
-            <SubsectionList label="Topics">
-              {d.topics.map((t, i) => (
-                <Subsection key={i} index={i} title={t.type === 'FullScreenGraphic' ? 'Full Screen Graphic' : 'Viz Template Graphic'}>
-                  <div className="space-y-1 mb-2">
-                    {t.text && <SpecRow label="Text" value={t.text} />}
-                    {t.vizTemplateName && <SpecRow label="Viz Template" value={t.vizTemplateName} />}
-                  </div>
-                  {t.image && <ImageThumb label="Image" file={t.image} />}
+          {d.slides && d.slides.length > 0 && (
+            <SubsectionList label="Slides">
+              {d.slides.map((s, i) => (
+                <Subsection key={i} index={i} title={s.content}>
+                  {s.image && <ImageThumb label="Image" file={s.image} />}
                 </Subsection>
               ))}
             </SubsectionList>
@@ -738,16 +796,15 @@ function TypeSpecificDetails({
       return (
         <div className="space-y-3">
           <div className="space-y-1.5">
-            <SpecRow label="Title" value={d.title} />
             <SpecRow label="Show Name" value={program} />
             <SpecRow label="Screen" value={d.screen} />
           </div>
           <ScreenPreview name={d.screen} screens={screens} />
-          {d.sections && d.sections.length > 0 && (
-            <SubsectionList>
-              {d.sections.map((s, i) => (
-                <Subsection key={i} index={i} title={s.title}>
-                  <p className="text-sm text-muted-foreground">{s.description}</p>
+          {d.slides && d.slides.length > 0 && (
+            <SubsectionList label="Slides">
+              {d.slides.map((s, i) => (
+                <Subsection key={i} index={i} title={s.content}>
+                  {s.image && <ImageThumb label="Image Reference" file={s.image} />}
                 </Subsection>
               ))}
             </SubsectionList>

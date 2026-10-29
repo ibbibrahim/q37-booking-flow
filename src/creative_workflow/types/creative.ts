@@ -27,7 +27,7 @@ export const CREATIVE_REQUEST_TYPE_LABEL: Record<CreativeRequestType, string> = 
   SocialMediaHeadline: 'Social Media Headline',
   NewsHeadline: 'News Headline',
   ProgramVideoWall: 'Program Video Wall',
-  VideoWallPresentation: 'Video Wall Presentation',
+  VideoWallPresentation: 'Presentation',
   Filler: 'Filler',
   LowerThird: 'Lower Third',
   SpecialRequest: 'Special Request',
@@ -58,7 +58,7 @@ export const IMAGE_LIBRARY_REQUEST_TYPES: CreativeRequestType[] = [
 // Lead time (hours) the doc asks requesters to respect before AirDate/AirTime — enforced as a
 // soft warning only, never blocks submission.
 export const CREATIVE_LEAD_TIME_HOURS: Partial<Record<CreativeRequestType, number>> = {
-  NewsHeadline: 1,
+  NewsHeadline: 0.5,
   ProgramVideoWall: 1,
   VideoWallPresentation: 6,
 };
@@ -157,7 +157,7 @@ export function visibleRequestTypesFor(roles: string[]): CreativeRequestType[] {
 // byte-for-byte identical to what download produces.
 
 export interface CreativeSection {
-  title: string;
+  content: string;
   backgroundImage?: UploadedFileRef;
   icons?: UploadedFileRef[];
 }
@@ -166,44 +166,43 @@ export interface SocialMediaHeadlineData {
   requestKind: 'EventPackage' | 'DailyRequest';
   // Event Package fields
   packageItems?: ('Headlines' | 'Carrousel' | 'Photo Gallery' | 'Real Templates')[];
-  eventLogo?: UploadedFileRef;
+  eventLogos?: UploadedFileRef[];
   eventName?: string;
   // Daily Request fields
   dailyEventName?: string;
-  selectType?: 'Carrousel' | 'Headline';
+  selectType?: 'Carrousel' | 'Headline' | 'Reel Cover';
   // Carrousel
   sections?: CreativeSection[];
   platform?: 'QBC' | 'QTV37' | 'QBC & QTV37';
-  // Headline
-  title?: string;
+  // Headline / Reel Cover (same fields, shared by both)
+  content?: string;
   backgroundImage?: UploadedFileRef;
   // Response
   driveLink?: string;
 }
 
 export interface NewsHeadlineData {
-  screen: 'Full (S2+S3+S4)' | 'S2 only' | string;
+  screen: string;
   headlineText: string;
   referenceImage?: UploadedFileRef;
+  logos?: UploadedFileRef[];
+  flags?: UploadedFileRef[];
 }
 
-export interface ProgramVideoWallTopic {
-  type: 'FullScreenGraphic' | 'VizTemplateGraphic';
-  text?: string;
+export interface ProgramVideoWallSlide {
+  content: string;
   image?: UploadedFileRef;
-  vizTemplateName?: string;
 }
 
 export interface ProgramVideoWallData {
   screen: string;
-  topics: ProgramVideoWallTopic[];
+  slides: ProgramVideoWallSlide[];
 }
 
 export interface VideoWallPresentationData {
-  title: string;
   screen: string;
-  // Added in the doc's revision — same Title/Description shape as Filler's sections.
-  sections: FillerSection[];
+  // Same Content/Image Reference shape as Program Video Wall's slides.
+  slides: ProgramVideoWallSlide[];
 }
 
 export interface FillerSection {
@@ -265,14 +264,22 @@ export interface CreativeRequestListItem {
   claimedByName: string | null;
 }
 
+// One name Graphics Team generated for Vizrt's own Image Library — a request can need several
+// (one per actual image produced), each told apart by its own free-text differentiator.
+export interface CreativeImageLibraryName {
+  id: number;
+  code: string;
+  freeText: string;
+  createdBy: number | null;
+  createdByName: string | null;
+  createdAt: string;
+}
+
 export interface CreativeRequest extends CreativeRequestListItem {
   typeSpecificData: string | null;
   updatedAt: string;
   claimedAt: string | null;
-  // The name Graphics Team is told to upload the finished graphic under in Vizrt's own Image
-  // Library — generated at claim time for News Headline/Program Video Wall/Video Wall
-  // Presentation; we never store the file ourselves.
-  imageLibraryCode: string | null;
+  imageLibraryNames: CreativeImageLibraryName[];
   attachments: CreativeRequestAttachment[];
 }
 

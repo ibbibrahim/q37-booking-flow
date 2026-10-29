@@ -89,8 +89,8 @@ export async function updateCreativeRequestStatus(
 
 // The response payload shape depends on RequestType: Social Media Headline wants a drive
 // link, Filler/Lower Third/Special Request want a share-folder path, and News Headline/
-// Program Video Wall/Video Wall Presentation need a confirmation that the image was uploaded
-// to Vizrt's own Image Library under the generated imageLibraryCode (validated server-side).
+// Program Video Wall/Video Wall Presentation need a confirmation that the image(s) were
+// uploaded to Vizrt's own Image Library under the generated names (validated server-side).
 export async function completeCreativeRequest(
   id: number,
   opts: { driveLink?: string; responsePath?: string; imageLibraryConfirmed?: boolean; comment?: string },
@@ -99,10 +99,16 @@ export async function completeCreativeRequest(
   return data;
 }
 
-// "Claim & Start Working" — locks the request to the caller and, for Image-Library types,
-// generates the Vizrt deliverable name (returned on the updated request as imageLibraryCode).
+// "Claim & Start Working" — locks the request to the caller.
 export async function claimCreativeRequest(id: number): Promise<CreativeRequest> {
   const { data } = await apiClient.patch<CreativeRequest>(`/api/creative/requests/${id}/claim`, {});
+  return data;
+}
+
+// "Generate Image Name" — Image-Library types only, one call per image actually produced.
+// freeText is what tells apart multiple images generated for the same request.
+export async function generateCreativeImageLibraryName(id: number, freeText: string): Promise<CreativeRequest> {
+  const { data } = await apiClient.post<CreativeRequest>(`/api/creative/requests/${id}/image-names`, { freeText });
   return data;
 }
 

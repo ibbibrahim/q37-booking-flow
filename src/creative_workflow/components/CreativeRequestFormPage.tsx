@@ -42,7 +42,7 @@ import {
   type LowerThirdSection,
   type NewsHeadlineData,
   type ProgramVideoWallData,
-  type ProgramVideoWallTopic,
+  type ProgramVideoWallSlide,
   type SocialMediaHeadlineData,
   type SpecialRequestData,
   type VideoWallPresentationData,
@@ -104,8 +104,8 @@ export function CreativeRequestFormPage() {
     selectType: 'Headline',
   });
   const [newsData, setNewsData] = useState<NewsHeadlineData>({ screen: '', headlineText: '' });
-  const [pvwData, setPvwData] = useState<ProgramVideoWallData>({ screen: '', topics: [] });
-  const [vwpData, setVwpData] = useState<VideoWallPresentationData>({ title: '', screen: '', sections: [] });
+  const [pvwData, setPvwData] = useState<ProgramVideoWallData>({ screen: '', slides: [] });
+  const [vwpData, setVwpData] = useState<VideoWallPresentationData>({ screen: '', slides: [] });
   const [fillerData, setFillerData] = useState<FillerData>({ sections: [] });
   const [lowerThirdData, setLowerThirdData] = useState<LowerThirdData>({ sections: [] });
   const [specialData, setSpecialData] = useState<SpecialRequestData>({ imageLinks: [], description: '' });
@@ -122,7 +122,8 @@ export function CreativeRequestFormPage() {
     const airAt = new Date(`${airDate}T${airTime}`);
     const hoursUntil = (airAt.getTime() - Date.now()) / 3_600_000;
     if (hoursUntil < leadTimeHours) {
-      return `This request type normally needs at least ${leadTimeHours} hour${leadTimeHours > 1 ? 's' : ''}' notice — Air Time is sooner than that.`;
+      const label = leadTimeHours < 1 ? `${Math.round(leadTimeHours * 60)} minutes` : `${leadTimeHours} hour${leadTimeHours > 1 ? 's' : ''}`;
+      return `This request type normally needs at least ${label}' notice — Air Time is sooner than that.`;
     }
     return null;
   }, [leadTimeHours, airDate, airTime]);
@@ -185,22 +186,22 @@ export function CreativeRequestFormPage() {
     if (requestType === CREATIVE_REQUEST_TYPE.SocialMediaHeadline) {
       if (smData.requestKind === 'EventPackage') {
         if (!smData.eventName) next['sm.eventName'] = 'Event Name is required.';
-        if (!smData.eventLogo) next['sm.eventLogo'] = 'Event Logo is required.';
+        if (!smData.eventLogos || smData.eventLogos.length === 0) next['sm.eventLogos'] = 'At least one Event Logo is required.';
         if (!smData.platform) next['sm.platform'] = 'Platform is required.';
       }
       if (smData.requestKind === 'DailyRequest') {
-        if (smData.selectType === 'Headline') {
-          if (!smData.title) next['sm.title'] = 'Headline Title is required.';
+        if (smData.selectType === 'Headline' || smData.selectType === 'Reel Cover') {
+          if (!smData.content) next['sm.content'] = 'Content is required.';
           if (!smData.backgroundImage) next['sm.backgroundImage'] = 'Background Image is required.';
           if (!smData.platform) next['sm.platform'] = 'Platform is required.';
         }
         if (smData.selectType === 'Carrousel') {
           const sections = smData.sections ?? [];
           if (sections.length === 0) {
-            next['sm.sections'] = 'Add at least one section to the Carrousel.';
+            next['sm.sections'] = 'Add at least one slide to the Carrousel.';
           } else {
             sections.forEach((s, i) => {
-              if (!s.title?.trim()) next[`sm.sections.${i}.title`] = 'Title is required.';
+              if (!s.content?.trim()) next[`sm.sections.${i}.content`] = 'Content is required.';
               if (!s.backgroundImage) next[`sm.sections.${i}.backgroundImage`] = 'Background Image is required.';
             });
           }
@@ -215,29 +216,22 @@ export function CreativeRequestFormPage() {
     if (requestType === CREATIVE_REQUEST_TYPE.ProgramVideoWall) {
       if (!program) next['pvw.program'] = 'Program is required.';
       if (!pvwData.screen) next['pvw.screen'] = 'Screen is required.';
-      if (pvwData.topics.length === 0) {
-        next['pvw.topics'] = 'Add at least one topic.';
+      if (pvwData.slides.length === 0) {
+        next['pvw.slides'] = 'Add at least one slide.';
       } else {
-        pvwData.topics.forEach((t, i) => {
-          if (t.type === 'FullScreenGraphic') {
-            if (!t.text?.trim()) next[`pvw.topics.${i}.text`] = 'Text is required.';
-          } else {
-            if (!t.image) next[`pvw.topics.${i}.image`] = 'Image is required.';
-            if (!t.vizTemplateName?.trim()) next[`pvw.topics.${i}.vizTemplateName`] = 'Viz Template Name is required.';
-          }
+        pvwData.slides.forEach((s, i) => {
+          if (!s.content?.trim()) next[`pvw.slides.${i}.content`] = 'Description is required.';
         });
       }
     }
     if (requestType === CREATIVE_REQUEST_TYPE.VideoWallPresentation) {
       if (!program) next['vwp.program'] = 'Show Name is required.';
-      if (!vwpData.title) next['vwp.title'] = 'Title is required.';
       if (!vwpData.screen) next['vwp.screen'] = 'Screen is required.';
-      if (vwpData.sections.length === 0) {
-        next['vwp.sections'] = 'Add at least one section.';
+      if (vwpData.slides.length === 0) {
+        next['vwp.slides'] = 'Add at least one slide.';
       } else {
-        vwpData.sections.forEach((s, i) => {
-          if (!s.title?.trim()) next[`vwp.sections.${i}.title`] = 'Title is required.';
-          if (!s.description?.trim()) next[`vwp.sections.${i}.description`] = 'Description is required.';
+        vwpData.slides.forEach((s, i) => {
+          if (!s.content?.trim()) next[`vwp.slides.${i}.content`] = 'Content is required.';
         });
       }
     }
@@ -561,17 +555,6 @@ function SocialMediaHeadlineForm({
               </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-1">
-                <CreativeDocumentUploadField
-                  id="event-logo"
-                  label="Event Logo"
-                  required
-                  value={data.eventLogo}
-                  onChange={(ref) => onChange({ ...data, eventLogo: ref ?? undefined })}
-                  accept="image/*"
-                />
-                {errors['sm.eventLogo'] && <p className="text-sm text-red-500">{errors['sm.eventLogo']}</p>}
-              </div>
               <div className="space-y-2">
                 <Label htmlFor="event-name">
                   Event Name <span className="text-red-500">*</span>
@@ -584,13 +567,28 @@ function SocialMediaHeadlineForm({
                 />
                 {errors['sm.eventName'] && <p className="text-sm text-red-500">{errors['sm.eventName']}</p>}
               </div>
-              <PlatformSelect
-                id="sm-platform-event"
-                value={data.platform}
-                onChange={(v) => onChange({ ...data, platform: v as SocialMediaHeadlineData['platform'] })}
-                includeCombo
-                error={errors['sm.platform']}
-              />
+              <div className="space-y-1">
+                <MultiFileUploadField
+                  id="event-logo"
+                  label="Event Logo(s)"
+                  value={data.eventLogos ?? []}
+                  onChange={(eventLogos) => onChange({ ...data, eventLogos })}
+                  onUpload={uploadSingle}
+                  accept="image/*"
+                />
+                {errors['sm.eventLogos'] && <p className="text-sm text-red-500">{errors['sm.eventLogos']}</p>}
+              </div>
+            </div>
+            <div className="border-t border-border/60 pt-5">
+              <div className="max-w-xs">
+                <PlatformSelect
+                  id="sm-platform-event"
+                  value={data.platform}
+                  onChange={(v) => onChange({ ...data, platform: v as SocialMediaHeadlineData['platform'] })}
+                  includeCombo
+                  error={errors['sm.platform']}
+                />
+              </div>
             </div>
           </div>
         )}
@@ -611,7 +609,15 @@ function SocialMediaHeadlineForm({
                 <Label htmlFor="sm-select-type">Social Subtype</Label>
                 <Select
                   value={data.selectType ?? 'Headline'}
-                  onValueChange={(v) => onChange({ ...data, selectType: v as SocialMediaHeadlineData['selectType'] })}
+                  onValueChange={(v) =>
+                    onChange({
+                      ...data,
+                      selectType: v as SocialMediaHeadlineData['selectType'],
+                      // Carrousel is pointless with zero slides — seed one so the editor
+                      // never opens on the empty state the user has to click past.
+                      sections: v === 'Carrousel' && (data.sections ?? []).length === 0 ? [{ content: '' }] : data.sections,
+                    })
+                  }
                 >
                   <SelectTrigger id="sm-select-type">
                     <SelectValue />
@@ -619,64 +625,73 @@ function SocialMediaHeadlineForm({
                   <SelectContent>
                     <SelectItem value="Carrousel">Carrousel</SelectItem>
                     <SelectItem value="Headline">Headline</SelectItem>
+                    <SelectItem value="Reel Cover">Reel Cover</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
 
             {data.selectType === 'Carrousel' && (
-              <div className="space-y-4">
+              <div className="space-y-6">
                 <SectionListEditor
                   sections={data.sections ?? []}
                   onChange={(sections) => onChange({ ...data, sections })}
                   errors={errors}
                 />
-                {errors['sm.sections'] && <p className="text-sm text-red-500">{errors['sm.sections']}</p>}
-                <div className="max-w-sm">
-                  <PlatformSelect
-                    id="sm-platform-carrousel"
-                    value={data.platform}
-                    onChange={(v) => onChange({ ...data, platform: v as SocialMediaHeadlineData['platform'] })}
-                    includeCombo={false}
-                    error={errors['sm.platform']}
-                  />
+                <div className="border-t border-border/60 pt-5">
+                  <div className="max-w-xs">
+                    <PlatformSelect
+                      id="sm-platform-carrousel"
+                      value={data.platform}
+                      onChange={(v) => onChange({ ...data, platform: v as SocialMediaHeadlineData['platform'] })}
+                      includeCombo={false}
+                      error={errors['sm.platform']}
+                    />
+                  </div>
                 </div>
               </div>
             )}
 
-            {data.selectType === 'Headline' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="sm-title">
-                    Headline Title <span className="text-red-500">*</span>
-                  </Label>
-                  <Input
-                    id="sm-title"
-                    value={data.title ?? ''}
-                    onChange={(e) => onChange({ ...data, title: e.target.value })}
-                    placeholder="Headline text"
-                    className={errors['sm.title'] ? 'border-red-500' : ''}
-                  />
-                  {errors['sm.title'] && <p className="text-sm text-red-500">{errors['sm.title']}</p>}
+            {(data.selectType === 'Headline' || data.selectType === 'Reel Cover') && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="sm-content">
+                      Content <span className="text-red-500">*</span>
+                    </Label>
+                    <Textarea
+                      id="sm-content"
+                      value={data.content ?? ''}
+                      onChange={(e) => onChange({ ...data, content: e.target.value })}
+                      placeholder={data.selectType === 'Reel Cover' ? 'Reel cover text' : 'Headline text'}
+                      rows={4}
+                      className={errors['sm.content'] ? 'border-red-500' : ''}
+                    />
+                    {errors['sm.content'] && <p className="text-sm text-red-500">{errors['sm.content']}</p>}
+                  </div>
+                  <div className="space-y-1">
+                    <CreativeDocumentUploadField
+                      id="sm-bg-image"
+                      label="Background Image"
+                      required
+                      value={data.backgroundImage}
+                      onChange={(ref) => onChange({ ...data, backgroundImage: ref ?? undefined })}
+                      accept="image/*"
+                    />
+                    {errors['sm.backgroundImage'] && <p className="text-sm text-red-500">{errors['sm.backgroundImage']}</p>}
+                  </div>
                 </div>
-                <div className="space-y-1">
-                  <CreativeDocumentUploadField
-                    id="sm-bg-image"
-                    label="Background Image"
-                    required
-                    value={data.backgroundImage}
-                    onChange={(ref) => onChange({ ...data, backgroundImage: ref ?? undefined })}
-                    accept="image/*"
-                  />
-                  {errors['sm.backgroundImage'] && <p className="text-sm text-red-500">{errors['sm.backgroundImage']}</p>}
+                <div className="border-t border-border/60 pt-5">
+                  <div className="max-w-xs">
+                    <PlatformSelect
+                      id="sm-platform-headline"
+                      value={data.platform}
+                      onChange={(v) => onChange({ ...data, platform: v as SocialMediaHeadlineData['platform'] })}
+                      includeCombo={false}
+                      error={errors['sm.platform']}
+                    />
+                  </div>
                 </div>
-                <PlatformSelect
-                  id="sm-platform-headline"
-                  value={data.platform}
-                  onChange={(v) => onChange({ ...data, platform: v as SocialMediaHeadlineData['platform'] })}
-                  includeCombo={false}
-                  error={errors['sm.platform']}
-                />
               </div>
             )}
           </div>
@@ -740,31 +755,49 @@ function SectionListEditor({
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <Label>Sections</Label>
-        <Button type="button" size="sm" variant="outline" onClick={() => onChange([...sections, { title: '' }])}>
-          <Plus className="h-4 w-4 mr-1" /> Add Section
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <Label>
+            Slides <span className="text-red-500">*</span>
+          </Label>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Each slide needs its own content, background image, and optional icons.
+          </p>
+        </div>
+        <Button type="button" size="sm" variant="outline" onClick={() => onChange([...sections, { content: '' }])}>
+          <Plus className="h-4 w-4 mr-1" /> Add Slide
         </Button>
       </div>
+      {errors['sm.sections'] && <p className="text-sm text-red-500">{errors['sm.sections']}</p>}
+      {sections.length === 0 && (
+        <div className="rounded-lg border border-dashed border-border py-8 text-center text-sm text-muted-foreground">
+          No slides yet — click "Add Slide" to start building the carrousel.
+        </div>
+      )}
       {sections.map((s, i) => (
         <div key={i} className="space-y-4 rounded-lg border border-border bg-card p-4">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-muted-foreground">Section {i + 1}</span>
+            <div className="flex items-center gap-2">
+              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[11px] font-semibold text-primary">
+                {i + 1}
+              </span>
+              <span className="text-sm font-medium text-card-foreground">Slide {i + 1}</span>
+            </div>
             <button type="button" onClick={() => removeAt(i)} className="text-muted-foreground hover:text-destructive">
               <X className="h-4 w-4" />
             </button>
           </div>
           <div className="space-y-2">
             <Label>
-              Title <span className="text-red-500">*</span>
+              Content <span className="text-red-500">*</span>
             </Label>
-            <Input
-              value={s.title}
-              onChange={(e) => updateAt(i, { title: e.target.value })}
-              className={errors[`sm.sections.${i}.title`] ? 'border-red-500' : ''}
+            <Textarea
+              value={s.content}
+              onChange={(e) => updateAt(i, { content: e.target.value })}
+              className={errors[`sm.sections.${i}.content`] ? 'border-red-500' : ''}
             />
-            {errors[`sm.sections.${i}.title`] && (
-              <p className="text-sm text-red-500">{errors[`sm.sections.${i}.title`]}</p>
+            {errors[`sm.sections.${i}.content`] && (
+              <p className="text-sm text-red-500">{errors[`sm.sections.${i}.content`]}</p>
             )}
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -845,12 +878,28 @@ function NewsHeadlineForm({
           {errors['news.headlineText'] && <p className="text-sm text-red-500">{errors['news.headlineText']}</p>}
           <p className="text-xs text-muted-foreground">This could be the same story headline — it will not go on air.</p>
         </div>
-        <div className="md:w-1/2 md:pr-3">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <CreativeDocumentUploadField
             id="news-reference-image"
             label="Reference Image (optional)"
             value={data.referenceImage}
             onChange={(ref) => onChange({ ...data, referenceImage: ref ?? undefined })}
+            accept="image/*"
+          />
+          <MultiFileUploadField
+            id="news-logos"
+            label="Logos (optional)"
+            value={data.logos ?? []}
+            onChange={(logos) => onChange({ ...data, logos })}
+            onUpload={uploadSingle}
+            accept="image/*"
+          />
+          <MultiFileUploadField
+            id="news-flags"
+            label="Flags (optional)"
+            value={data.flags ?? []}
+            onChange={(flags) => onChange({ ...data, flags })}
+            onUpload={uploadSingle}
             accept="image/*"
           />
         </div>
@@ -878,14 +927,14 @@ function ProgramVideoWallForm({
   screens: CreativeScreen[];
   errors: Record<string, string>;
 }) {
-  function addTopic() {
-    onChange({ ...data, topics: [...data.topics, { type: 'FullScreenGraphic', text: '' }] });
+  function addSlide() {
+    onChange({ ...data, slides: [...data.slides, { content: '' }] });
   }
-  function updateTopic(i: number, patch: Partial<ProgramVideoWallTopic>) {
-    onChange({ ...data, topics: data.topics.map((t, idx) => (idx === i ? { ...t, ...patch } : t)) });
+  function updateSlide(i: number, patch: Partial<ProgramVideoWallSlide>) {
+    onChange({ ...data, slides: data.slides.map((s, idx) => (idx === i ? { ...s, ...patch } : s)) });
   }
-  function removeTopic(i: number) {
-    onChange({ ...data, topics: data.topics.filter((_, idx) => idx !== i) });
+  function removeSlide(i: number) {
+    onChange({ ...data, slides: data.slides.filter((_, idx) => idx !== i) });
   }
 
   return (
@@ -930,84 +979,59 @@ function ProgramVideoWallForm({
         </div>
 
         <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <Label>Topics</Label>
-            <Button type="button" size="sm" variant="outline" onClick={addTopic}>
-              <Plus className="h-4 w-4 mr-1" /> Add Topic
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <Label>
+                Slides <span className="text-red-500">*</span>
+              </Label>
+              <p className="text-xs text-muted-foreground mt-0.5">Each slide needs a description and an optional image.</p>
+            </div>
+            <Button type="button" size="sm" variant="outline" onClick={addSlide}>
+              <Plus className="h-4 w-4 mr-1" /> Add Slides
             </Button>
           </div>
-          {errors['pvw.topics'] && <p className="text-sm text-red-500">{errors['pvw.topics']}</p>}
-          {data.topics.map((t, i) => (
+          {errors['pvw.slides'] && <p className="text-sm text-red-500">{errors['pvw.slides']}</p>}
+          {data.slides.length === 0 && (
+            <div className="rounded-lg border border-dashed border-border py-8 text-center text-sm text-muted-foreground">
+              No slides yet — click "Add Slides" to start.
+            </div>
+          )}
+          {data.slides.map((s, i) => (
             <div key={i} className="space-y-4 rounded-lg border border-border bg-card p-4">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-muted-foreground">Topic {i + 1}</span>
-                <button type="button" onClick={() => removeTopic(i)} className="text-muted-foreground hover:text-destructive">
+                <div className="flex items-center gap-2">
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[11px] font-semibold text-primary">
+                    {i + 1}
+                  </span>
+                  <span className="text-sm font-medium text-card-foreground">Slide {i + 1}</span>
+                </div>
+                <button type="button" onClick={() => removeSlide(i)} className="text-muted-foreground hover:text-destructive">
                   <X className="h-4 w-4" />
                 </button>
               </div>
-              <Select value={t.type} onValueChange={(v) => updateTopic(i, { type: v as ProgramVideoWallTopic['type'] })}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="FullScreenGraphic">Full Screen Graphic</SelectItem>
-                  <SelectItem value="VizTemplateGraphic">Viz Template Graphic</SelectItem>
-                </SelectContent>
-              </Select>
-              {t.type === 'FullScreenGraphic' ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label>
-                      Text <span className="text-red-500">*</span>
-                    </Label>
-                    <Textarea
-                      value={t.text ?? ''}
-                      onChange={(e) => updateTopic(i, { text: e.target.value })}
-                      rows={2}
-                      className={errors[`pvw.topics.${i}.text`] ? 'border-red-500' : ''}
-                    />
-                    {errors[`pvw.topics.${i}.text`] && (
-                      <p className="text-sm text-red-500">{errors[`pvw.topics.${i}.text`]}</p>
-                    )}
-                  </div>
-                  <CreativeDocumentUploadField
-                    id={`topic-image-${i}`}
-                    label="Image (optional)"
-                    value={t.image}
-                    onChange={(ref) => updateTopic(i, { image: ref ?? undefined })}
-                    accept="image/*"
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label>
+                    Description <span className="text-red-500">*</span>
+                  </Label>
+                  <Textarea
+                    value={s.content}
+                    onChange={(e) => updateSlide(i, { content: e.target.value })}
+                    rows={3}
+                    className={errors[`pvw.slides.${i}.content`] ? 'border-red-500' : ''}
                   />
+                  {errors[`pvw.slides.${i}.content`] && (
+                    <p className="text-sm text-red-500">{errors[`pvw.slides.${i}.content`]}</p>
+                  )}
                 </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-1">
-                    <CreativeDocumentUploadField
-                      id={`topic-viz-image-${i}`}
-                      label="Image"
-                      required
-                      value={t.image}
-                      onChange={(ref) => updateTopic(i, { image: ref ?? undefined })}
-                      accept="image/*"
-                    />
-                    {errors[`pvw.topics.${i}.image`] && (
-                      <p className="text-sm text-red-500">{errors[`pvw.topics.${i}.image`]}</p>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <Label>
-                      Viz Template Name <span className="text-red-500">*</span>
-                    </Label>
-                    <Input
-                      value={t.vizTemplateName ?? ''}
-                      onChange={(e) => updateTopic(i, { vizTemplateName: e.target.value })}
-                      className={errors[`pvw.topics.${i}.vizTemplateName`] ? 'border-red-500' : ''}
-                    />
-                    {errors[`pvw.topics.${i}.vizTemplateName`] && (
-                      <p className="text-sm text-red-500">{errors[`pvw.topics.${i}.vizTemplateName`]}</p>
-                    )}
-                  </div>
-                </div>
-              )}
+                <CreativeDocumentUploadField
+                  id={`slide-image-${i}`}
+                  label="Image (optional)"
+                  value={s.image}
+                  onChange={(ref) => updateSlide(i, { image: ref ?? undefined })}
+                  accept="image/*"
+                />
+              </div>
             </div>
           ))}
         </div>
@@ -1035,14 +1059,14 @@ function VideoWallPresentationForm({
   screens: CreativeScreen[];
   errors: Record<string, string>;
 }) {
-  function addSection() {
-    onChange({ ...data, sections: [...data.sections, { title: '', description: '' }] });
+  function addSlide() {
+    onChange({ ...data, slides: [...data.slides, { content: '' }] });
   }
-  function updateSectionAt(i: number, patch: Partial<FillerSection>) {
-    onChange({ ...data, sections: data.sections.map((s, idx) => (idx === i ? { ...s, ...patch } : s)) });
+  function updateSlide(i: number, patch: Partial<ProgramVideoWallSlide>) {
+    onChange({ ...data, slides: data.slides.map((s, idx) => (idx === i ? { ...s, ...patch } : s)) });
   }
-  function removeSectionAt(i: number) {
-    onChange({ ...data, sections: data.sections.filter((_, idx) => idx !== i) });
+  function removeSlide(i: number) {
+    onChange({ ...data, slides: data.slides.filter((_, idx) => idx !== i) });
   }
 
   return (
@@ -1050,39 +1074,25 @@ function VideoWallPresentationForm({
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Palette className="h-5 w-5" />
-          Video Wall Presentation
+          Presentation
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-2">
-            <Label htmlFor="vwp-title">
-              Title <span className="text-red-500">*</span>
-            </Label>
-            <Input
-              id="vwp-title"
-              value={data.title}
-              onChange={(e) => onChange({ ...data, title: e.target.value })}
-              className={errors['vwp.title'] ? 'border-red-500' : ''}
-            />
-            {errors['vwp.title'] && <p className="text-sm text-red-500">{errors['vwp.title']}</p>}
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="vwp-show-name">
-              Show Name <span className="text-red-500">*</span>
-            </Label>
-            <Select value={program} onValueChange={onProgramChange}>
-              <SelectTrigger id="vwp-show-name" className={errors['vwp.program'] ? 'border-red-500' : ''}>
-                <SelectValue placeholder="Select a show" />
-              </SelectTrigger>
-              <SelectContent>
-                {programs.map((p) => (
-                  <SelectItem key={p.id} value={p.name}>{p.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {errors['vwp.program'] && <p className="text-sm text-red-500">{errors['vwp.program']}</p>}
-          </div>
+        <div className="space-y-2">
+          <Label htmlFor="vwp-show-name">
+            Show Name <span className="text-red-500">*</span>
+          </Label>
+          <Select value={program} onValueChange={onProgramChange}>
+            <SelectTrigger id="vwp-show-name" className={errors['vwp.program'] ? 'border-red-500' : ''}>
+              <SelectValue placeholder="Select a show" />
+            </SelectTrigger>
+            <SelectContent>
+              {programs.map((p) => (
+                <SelectItem key={p.id} value={p.name}>{p.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {errors['vwp.program'] && <p className="text-sm text-red-500">{errors['vwp.program']}</p>}
         </div>
         <div className="space-y-3">
           <Label id="vwp-screen-label">
@@ -1099,47 +1109,58 @@ function VideoWallPresentationForm({
         </div>
 
         <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <Label>Sections</Label>
-            <Button type="button" size="sm" variant="outline" onClick={addSection}>
-              <Plus className="h-4 w-4 mr-1" /> Add Section
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <Label>
+                Slides <span className="text-red-500">*</span>
+              </Label>
+              <p className="text-xs text-muted-foreground mt-0.5">Each slide needs content and an optional image reference.</p>
+            </div>
+            <Button type="button" size="sm" variant="outline" onClick={addSlide}>
+              <Plus className="h-4 w-4 mr-1" /> Add Slides
             </Button>
           </div>
-          {errors['vwp.sections'] && <p className="text-sm text-red-500">{errors['vwp.sections']}</p>}
-          {data.sections.map((s, i) => (
+          {errors['vwp.slides'] && <p className="text-sm text-red-500">{errors['vwp.slides']}</p>}
+          {data.slides.length === 0 && (
+            <div className="rounded-lg border border-dashed border-border py-8 text-center text-sm text-muted-foreground">
+              No slides yet — click "Add Slides" to start.
+            </div>
+          )}
+          {data.slides.map((s, i) => (
             <div key={i} className="space-y-4 rounded-lg border border-border bg-card p-4">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-muted-foreground">Section {i + 1}</span>
-                <button type="button" onClick={() => removeSectionAt(i)} className="text-muted-foreground hover:text-destructive">
+                <div className="flex items-center gap-2">
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[11px] font-semibold text-primary">
+                    {i + 1}
+                  </span>
+                  <span className="text-sm font-medium text-card-foreground">Slide {i + 1}</span>
+                </div>
+                <button type="button" onClick={() => removeSlide(i)} className="text-muted-foreground hover:text-destructive">
                   <X className="h-4 w-4" />
                 </button>
               </div>
-              <div className="space-y-2">
-                <Label>
-                  Title <span className="text-red-500">*</span>
-                </Label>
-                <Input
-                  value={s.title}
-                  onChange={(e) => updateSectionAt(i, { title: e.target.value })}
-                  className={errors[`vwp.sections.${i}.title`] ? 'border-red-500' : ''}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label>
+                    Content <span className="text-red-500">*</span>
+                  </Label>
+                  <Textarea
+                    value={s.content}
+                    onChange={(e) => updateSlide(i, { content: e.target.value })}
+                    rows={3}
+                    className={errors[`vwp.slides.${i}.content`] ? 'border-red-500' : ''}
+                  />
+                  {errors[`vwp.slides.${i}.content`] && (
+                    <p className="text-sm text-red-500">{errors[`vwp.slides.${i}.content`]}</p>
+                  )}
+                </div>
+                <CreativeDocumentUploadField
+                  id={`vwp-slide-image-${i}`}
+                  label="Image Reference (optional)"
+                  value={s.image}
+                  onChange={(ref) => updateSlide(i, { image: ref ?? undefined })}
+                  accept="image/*"
                 />
-                {errors[`vwp.sections.${i}.title`] && (
-                  <p className="text-sm text-red-500">{errors[`vwp.sections.${i}.title`]}</p>
-                )}
-              </div>
-              <div className="space-y-2">
-                <Label>
-                  Description <span className="text-red-500">*</span>
-                </Label>
-                <Textarea
-                  value={s.description}
-                  onChange={(e) => updateSectionAt(i, { description: e.target.value })}
-                  rows={2}
-                  className={errors[`vwp.sections.${i}.description`] ? 'border-red-500' : ''}
-                />
-                {errors[`vwp.sections.${i}.description`] && (
-                  <p className="text-sm text-red-500">{errors[`vwp.sections.${i}.description`]}</p>
-                )}
               </div>
             </div>
           ))}
