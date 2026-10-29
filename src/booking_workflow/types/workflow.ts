@@ -188,4 +188,10 @@ export const SOURCE_MAP: Record<string, string[]> = {
     "CAM 10 ISO GA1","CAM 10 ISO GA2",
     "CAM 11 ISO GA1","CAM 11 ISO GA2",
   ],
+  "Vmix": [
+    "RX 4k - 3",
+    "RX 4k - 4",
+    "RX 4k - 5",
+    "RX 4k - 6",
+  ]
 };

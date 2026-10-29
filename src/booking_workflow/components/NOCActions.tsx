@@ -189,6 +189,7 @@ export const NOCActions: React.FC<NOCActionsProps> = ({ request, onAction }) => 
                     <SelectItem value="Gallery">Gallery</SelectItem>
                     <SelectItem value="Streaming">Streaming</SelectItem>
                     <SelectItem value="ISO Recording">ISO Recording</SelectItem>
+                    <SelectItem value="Vmix">Vmix</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
