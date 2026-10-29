@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { useToast } from '@/contexts/ToastContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { usePageHeader } from '@/contexts/PageHeaderContext';
 import { getApiErrorMessage } from '@/utils/apiError';
 import { hrApi } from '../api/hrApi';
 import { ActionIconButton } from '../components/ActionIconButton';
@@ -304,6 +305,8 @@ export function FinalSignatoryApprovalsPage() {
   const hasSignature = !!signatureQuery.data;
   const isLoading = employeesQuery.isLoading || contractsQuery.isLoading;
 
+  usePageHeader('Final Approvals', 'Contract renewals awaiting final (GM) sign-off — company-wide');
+
   if (reviewItem && reviewPdfUrl) {
     return (
       <TooltipProvider delayDuration={200}>
@@ -357,13 +360,6 @@ export function FinalSignatoryApprovalsPage() {
   return (
     <TooltipProvider delayDuration={200}>
       <div className="space-y-4">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Final Approvals</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Contract renewals awaiting final (GM) sign-off — company-wide
-          </p>
-        </div>
-
         <Card>
           <CardContent className="p-4 flex items-center gap-4">
             <div

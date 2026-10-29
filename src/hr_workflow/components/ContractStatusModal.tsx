@@ -2,13 +2,25 @@ import { Check, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useHrLanguage, bilingual } from '../context/HrLanguageContext';
 import { formatDate } from '../utils/hrUtils';
-import type { HrContract, HrContractStatus, HrEmployee } from '../types/hrApi';
+import type { HrContract, HrContractStatus } from '../types/hrApi';
+
+// Only the display fields this modal actually uses — lets callers that only
+// have a renewal member's denormalized employee fields (not a full
+// HrEmployee) pass them directly, no separate employee lookup needed.
+interface DisplayEmployee {
+  fullNameEn: string;
+  fullNameAr: string;
+  jobTitleEn: string;
+  jobTitleAr: string;
+  departmentNameEn: string | null;
+  departmentNameAr: string | null;
+}
 
 interface Props {
   open: boolean;
   onClose: () => void;
   contract: HrContract;
-  employee: HrEmployee;
+  employee: DisplayEmployee;
 }
 
 const STAGE_ORDER: HrContractStatus[] = [

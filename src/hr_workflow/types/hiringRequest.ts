@@ -20,6 +20,8 @@ export interface InterviewCriteriaScore {
 
 export interface HiringRequestSummary {
   id: number;
+  /** "HIRE-{year}-{0000001}" — stable reference, never resets per year. */
+  applicationRef: string | null;
   status: HiringRequestStatus;
   departmentId: number;
   departmentNameEn: string | null;
@@ -31,6 +33,10 @@ export interface HiringRequestSummary {
   contractId: number | null;
   startIntent: 'Started' | 'NotStarted' | null;
   managerStartSignedAt: string | null;
+  /** Department Head's review/sign-off on the interview evaluation — a side
+   * track within InterviewSubmitted, informational only (doesn't gate GM
+   * approval). */
+  managerReviewedAt: string | null;
 }
 
 export interface HiringRequestDetail extends HiringRequestSummary {
@@ -46,6 +52,7 @@ export interface HiringRequestDetail extends HiringRequestSummary {
   interviewRecommendation: InterviewRecommendation | null;
   interviewComments: string | null;
   interviewPdfUrl: string | null;
+  managerReviewedByName: string | null;
 
   gmDecidedAt: string | null;
   gmApprovalDate: string | null;
@@ -53,6 +60,9 @@ export interface HiringRequestDetail extends HiringRequestSummary {
 
   ceoApprovalReferenceNo: string | null;
   ceoApprovalAt: string | null;
+  ceoApprovalLetterUrl: string | null;
+  /** The freelancer's monthly reward (salary) agreed as part of the CEO's approval. */
+  monthlyReward: number | null;
 
   startingDatePdfUrl: string | null;
   startIntent: 'Started' | 'NotStarted' | null;

@@ -57,6 +57,35 @@ export const hiringRequestApi = {
     return data;
   },
 
+  // Department Head's review of the Coordinator's interview evaluation —
+  // same multipart shape as submitInterview, since they can edit the fields
+  // and re-sign the PDF. Doesn't move the request's status.
+  managerReviewInterview: async (
+    id: number,
+    payload: {
+      interviewDate: string;
+      interviewerName: string;
+      criteriaScores: InterviewCriteriaScore[];
+      finalValuePercent: number;
+      recommendation: InterviewRecommendation;
+      comments?: string;
+    },
+    pdf: Blob
+  ): Promise<HiringRequestDetail> => {
+    const formData = new FormData();
+    formData.append('payload', JSON.stringify(payload));
+    formData.append('pdf', pdf, 'interview-evaluation.pdf');
+    const { data } = await apiClient.post(`${API_BASE}/${id}/interview/manager-review`, formData, {
+      headers: { 'Content-Type': undefined },
+    });
+    return data;
+  },
+
+  getInterviewPdfBytes: async (id: number): Promise<ArrayBuffer> => {
+    const { data } = await apiClient.get(`${API_BASE}/${id}/interview-pdf`, { responseType: 'arraybuffer' });
+    return data;
+  },
+
   // The GM's decision happens outside the system — HRAdmin records it
   // directly once the interview is submitted, with the actual date GM
   // approved on.
@@ -70,8 +99,22 @@ export const hiringRequestApi = {
     return data;
   },
 
-  recordCeoApproval: async (id: number, referenceNo: string, approvalAt: string): Promise<HiringRequestDetail> => {
-    const { data } = await apiClient.post(`${API_BASE}/${id}/ceo-approval`, { referenceNo, approvalAt });
+  // Multipart since the approval letter is optional — payload carries the
+  // structured fields (reference no., date, monthly reward), `letter` is
+  // whatever file HR chose, or omitted entirely.
+  recordCeoApproval: async (
+    id: number,
+    referenceNo: string,
+    approvalAt: string,
+    monthlyReward: number | null,
+    letter?: File
+  ): Promise<HiringRequestDetail> => {
+    const formData = new FormData();
+    formData.append('payload', JSON.stringify({ referenceNo, approvalAt, monthlyReward }));
+    if (letter) formData.append('letter', letter);
+    const { data } = await apiClient.post(`${API_BASE}/${id}/ceo-approval`, formData, {
+      headers: { 'Content-Type': undefined },
+    });
     return data;
   },
 
@@ -88,6 +131,38 @@ export const hiringRequestApi = {
     if (jobTitleAr) formData.append('jobTitleAr', jobTitleAr);
     formData.append('pdf', pdf);
     const { data } = await apiClient.post(`${API_BASE}/${id}/starting-date`, formData, {
+      headers: { 'Content-Type': undefined },
+    });
+    return data;
+  },
+
+  // The Starting Date detail tab's own save action — independent of
+  // setStartingDate above, callable any time to attach/update the NOC
+  // letter, establishment card, bank certificate, and bank details. All
+  // params optional; only whatever's passed gets saved.
+  saveStartingDateDocuments: async (
+    id: number,
+    documents?: { employerNocLetter?: File; employerEstablishmentCard?: File; bankCertificate?: File },
+    paymentMethod?: 'BankTransfer' | 'Cheque',
+    bankDetails?: {
+      bankBeneficiaryName?: string;
+      bankName?: string;
+      bankBranch?: string;
+      bankAccountNumber?: string;
+      bankIban?: string;
+    }
+  ): Promise<HiringRequestDetail> => {
+    const formData = new FormData();
+    if (documents?.employerNocLetter) formData.append('employerNocLetter', documents.employerNocLetter);
+    if (documents?.employerEstablishmentCard) formData.append('employerEstablishmentCard', documents.employerEstablishmentCard);
+    if (documents?.bankCertificate) formData.append('bankCertificate', documents.bankCertificate);
+    if (paymentMethod) formData.append('paymentMethod', paymentMethod);
+    if (bankDetails?.bankBeneficiaryName) formData.append('bankBeneficiaryName', bankDetails.bankBeneficiaryName);
+    if (bankDetails?.bankName) formData.append('bankName', bankDetails.bankName);
+    if (bankDetails?.bankBranch) formData.append('bankBranch', bankDetails.bankBranch);
+    if (bankDetails?.bankAccountNumber) formData.append('bankAccountNumber', bankDetails.bankAccountNumber);
+    if (bankDetails?.bankIban) formData.append('bankIban', bankDetails.bankIban);
+    const { data } = await apiClient.post(`${API_BASE}/${id}/starting-date-documents`, formData, {
       headers: { 'Content-Type': undefined },
     });
     return data;

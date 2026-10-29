@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSignalR } from '@/contexts/SignalRContext';
 import {
   Briefcase, Building2, Calendar, CheckCircle2, ChevronRight, Clock, ClipboardList, Copy,
-  FileText, Landmark, Link as LinkIcon, Loader2, PenTool, Phone, Plus, Search as SearchIcon, Tag,
-  ShieldCheck, UserX, Users, UserCheck, X, XCircle,
+  FileText, Landmark, Link as LinkIcon, Loader2, PenTool, Phone, Plus, Save, ScanLine, Search as SearchIcon, Tag,
+  ShieldCheck, Upload, UserX, Users, UserCheck, X, XCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -19,13 +19,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { ListFilterBar, FilterActiveFiltersRow } from '@/components/ui/list-filter-bar';
 import { ListPaginationBar, getInitialPage, getInitialPageSize } from '@/components/ui/list-pagination-bar';
+import { cn } from '@/lib/utils';
 import { StatTile } from '../components/StatTile';
 import { useToast } from '@/contexts/ToastContext';
+import { usePageHeader } from '@/contexts/PageHeaderContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { getApiErrorMessage } from '@/utils/apiError';
 import { hrApi } from '../api/hrApi';
 import { hiringRequestApi } from '../api/hiringRequestApi';
-import { freelanceProfileReviewApi } from '../api/freelanceProfileApi';
+import { freelanceProfileReviewApi, freelanceProfilePublicApi } from '../api/freelanceProfileApi';
 import { SignaturePad } from '../components/SignaturePad';
 import { stampEmployeeStartSignature } from '../utils/hiringFormsPdf';
 import { formatDate } from '../utils/hrUtils';
@@ -41,7 +43,7 @@ const STAGE_ORDER: HiringRequestStatus[] = [
 
 const STAGE_LABELS: Partial<Record<HiringRequestStatus, string>> = {
   Requested: 'Requested',
-  LinkGenerated: 'Link Sent',
+  LinkGenerated: 'Link Generated',
   ProfileSubmitted: 'Profile In',
   InterviewSubmitted: 'Interviewed',
   AwaitingCeoApproval: 'GM Approved',
@@ -60,12 +62,17 @@ function initials(name: string | undefined): string {
  * for the two terminal error paths (Rejected / NotStarted), which get a
  * plain status banner instead. */
 function StatusStepper({ status }: { status: HiringRequestStatus }) {
-  const currentIndex = STAGE_ORDER.indexOf(status);
+  // The stage matching `status` is itself already complete (its label names
+  // an action that already happened to reach this status), so every stage up
+  // to and including it gets a green check. The blue/ring "current" marker
+  // moves one stage ahead, onto whatever's next pending — not onto the
+  // stage that's already done.
+  const doneIndex = STAGE_ORDER.indexOf(status);
   return (
     <div className="flex items-center overflow-x-auto pb-1">
       {STAGE_ORDER.map((stage, i) => {
-        const isDone = currentIndex >= 0 && i < currentIndex;
-        const isCurrent = i === currentIndex;
+        const isDone = doneIndex >= 0 && i <= doneIndex;
+        const isCurrent = i === doneIndex + 1;
         return (
           <div key={stage} className="flex items-center shrink-0">
             <div className="flex flex-col items-center gap-1 w-[84px]">
@@ -137,11 +144,13 @@ const HIRING_EVENT_LABELS: Record<string, string> = {
   LinkGenerated: 'Candidate link generated',
   ProfileSubmitted: 'Candidate profile submitted',
   InterviewSubmitted: 'Interview evaluation submitted',
+  InterviewManagerReviewed: 'Department Head reviewed interview evaluation',
   ForwardedToGm: 'Forwarded to GM',
   GmApproved: 'GM approval recorded',
   GmRejected: 'GM rejection recorded',
   CeoApprovalRecorded: 'QMC CEO approval recorded',
   StartingDateSet: 'Starting date set',
+  StartingDateDocumentsSaved: 'Candidate documents saved',
   EmployeeStartSigned: 'Candidate signed — confirmed started',
   NotStartingReported: 'Coordinator reported candidate did not start',
   ManagerStartSigned: 'Department Head signed starting date confirmation',
@@ -226,7 +235,12 @@ export function HiringRequestsPage() {
   const filteredRequests = requests.filter((r) => {
     if (statusFilter !== 'all' && bucketOf(r.status) !== statusFilter) return false;
     if (departmentFilter !== 'all' && String(r.departmentId) !== departmentFilter) return false;
-    if (q && !r.candidateName.toLowerCase().includes(q) && !r.positionTitle.toLowerCase().includes(q)) return false;
+    if (
+      q &&
+      !r.candidateName.toLowerCase().includes(q) &&
+      !r.positionTitle.toLowerCase().includes(q) &&
+      !r.applicationRef?.toLowerCase().includes(q)
+    ) return false;
     return true;
   });
 
@@ -238,15 +252,11 @@ export function HiringRequestsPage() {
   const safePage = Math.min(page, totalPages);
   const pagedRequests = filteredRequests.slice((safePage - 1) * pageSize, safePage * pageSize);
 
+  usePageHeader('New Freelancer Hiring', 'Track freelancer hiring from first contact through onboarding.');
+
   return (
     <div className="space-y-4">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">New Freelancer Hiring</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Track freelancer hiring from first contact through onboarding.
-          </p>
-        </div>
+      <div className="flex justify-end gap-3">
         {(isHRAdmin || isDepartmentCoordinator) && (
           <Button className="gap-1.5" onClick={() => setCreateOpen(true)}>
             <Plus size={15} /> Request Candidate Link
@@ -368,7 +378,10 @@ export function HiringRequestsPage() {
                       <Avatar className="h-8 w-8 shrink-0">
                         <AvatarFallback className="bg-primary/10 text-primary text-xs font-bold">{initials(r.candidateName)}</AvatarFallback>
                       </Avatar>
-                      {r.candidateName}
+                      <div className="min-w-0">
+                        <p className="truncate">{r.candidateName}</p>
+                        {r.applicationRef && <p className="text-[11px] font-normal text-muted-foreground tabular-nums">{r.applicationRef}</p>}
+                      </div>
                     </div>
                   </TableCell>
                   <TableCell>
@@ -564,6 +577,12 @@ function DetailModal({ detail, loading, isHRAdmin, isDepartmentCoordinator, busy
               <h3 className="text-lg font-bold text-foreground truncate">{detail ? detail.candidateName : 'Loading…'}</h3>
               {detail && (
                 <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1.5 flex-wrap">
+                  {detail.applicationRef && (
+                    <>
+                      <span className="font-medium text-foreground tabular-nums">{detail.applicationRef}</span>
+                      <span className="text-border">&middot;</span>
+                    </>
+                  )}
                   <Briefcase size={11} /> {detail.positionTitle}
                   <span className="text-border">&middot;</span>
                   {detail.departmentNameEn}
@@ -599,6 +618,7 @@ function DetailModal({ detail, loading, isHRAdmin, isDepartmentCoordinator, busy
                   <TabsTrigger value="overview" className="gap-1.5"><ClipboardList size={13} /> Overview</TabsTrigger>
                   <TabsTrigger value="profile" className="gap-1.5"><FileText size={13} /> Profile &amp; Documents</TabsTrigger>
                   <TabsTrigger value="interview" className="gap-1.5"><CheckCircle2 size={13} /> Interview</TabsTrigger>
+                  <TabsTrigger value="starting-date" className="gap-1.5"><Calendar size={13} /> Starting Date</TabsTrigger>
                   <TabsTrigger value="history" className="gap-1.5"><Clock size={13} /> History</TabsTrigger>
                 </TabsList>
               </div>
@@ -693,6 +713,14 @@ function DetailModal({ detail, loading, isHRAdmin, isDepartmentCoordinator, busy
           {/* CeoApproved -> Coordinator sets starting date + creates the employee */}
           {detail.status === 'CeoApproved' && isDepartmentCoordinator && (
             <ActionBlock title={`CEO approved on ${detail.ceoApprovalAt ? formatDate(detail.ceoApprovalAt) : ''} (Ref: ${detail.ceoApprovalReferenceNo})`}>
+              {(detail.monthlyReward != null || detail.ceoApprovalLetterUrl) && (
+                <div className="flex items-center gap-3 mb-2 text-xs text-muted-foreground">
+                  {detail.monthlyReward != null && (
+                    <span>Monthly Reward: <span className="font-medium text-foreground">QAR {detail.monthlyReward.toLocaleString()}</span></span>
+                  )}
+                  <FileChip label="Approval Letter" url={detail.ceoApprovalLetterUrl} />
+                </div>
+              )}
               <Button className="gap-1.5" disabled={busy} onClick={() => navigate(`/hr/freelance-hiring/hiring-requests/${detail.id}/starting-date`)}>
                 <ClipboardList size={14} /> Set Starting Date &amp; Create Employee
               </Button>
@@ -735,7 +763,27 @@ function DetailModal({ detail, loading, isHRAdmin, isDepartmentCoordinator, busy
                   <Button variant="destructive" className="flex-1 gap-1.5" disabled={busy} onClick={() => setNotStartedOpen(true)}>
                     <UserX size={14} /> Did Not Start
                   </Button>
-                  <Button className="flex-1 gap-1.5" disabled={busy} onClick={() => run(() => hiringRequestApi.convert(detail.id), 'Candidate converted to employee.', 'Failed to convert.')}>
+                  <Button
+                    className="flex-1 gap-1.5" disabled={busy}
+                    onClick={async () => {
+                      setBusy(true);
+                      try {
+                        const updated = await hiringRequestApi.convert(detail.id);
+                        showToast('Candidate converted to employee.', 'success');
+                        onChanged();
+                        // Hands straight off into starting their contract —
+                        // the Coordinator doesn't have to go hunt for this
+                        // employee again in the Contract Renewal list.
+                        if (updated.convertedEmployeeId) {
+                          navigate(`/hr/freelance-hiring/contract-renewal/${updated.convertedEmployeeId}/preview`);
+                        }
+                      } catch (err) {
+                        showToast(getApiErrorMessage(err, 'Failed to convert.'), 'error');
+                      } finally {
+                        setBusy(false);
+                      }
+                    }}
+                  >
                     <CheckCircle2 size={14} /> Convert to Employee
                   </Button>
                 </div>
@@ -761,6 +809,10 @@ function DetailModal({ detail, loading, isHRAdmin, isDepartmentCoordinator, busy
 
                 <TabsContent value="interview" className="mt-0">
                   <InterviewTab detail={detail} />
+                </TabsContent>
+
+                <TabsContent value="starting-date" className="mt-0">
+                  <StartingDateTab detail={detail} />
                 </TabsContent>
 
                 <TabsContent value="history" className="mt-0">
@@ -844,6 +896,10 @@ function DetailModal({ detail, loading, isHRAdmin, isDepartmentCoordinator, busy
 function CeoApprovalModal({ hiringRequestId, onClose, onSaved, showToast }: any) {
   const [referenceNo, setReferenceNo] = useState('');
   const [approvalAt, setApprovalAt] = useState('');
+  // Both optional — the letter and the reward aren't always known/available
+  // yet when HR is recording the CEO's approval itself.
+  const [monthlyReward, setMonthlyReward] = useState('');
+  const [letter, setLetter] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
 
   const handleSubmit = async () => {
@@ -853,7 +909,13 @@ function CeoApprovalModal({ hiringRequestId, onClose, onSaved, showToast }: any)
     }
     setSaving(true);
     try {
-      await hiringRequestApi.recordCeoApproval(hiringRequestId, referenceNo.trim(), new Date(approvalAt).toISOString());
+      await hiringRequestApi.recordCeoApproval(
+        hiringRequestId,
+        referenceNo.trim(),
+        new Date(approvalAt).toISOString(),
+        monthlyReward.trim() ? Number(monthlyReward) : null,
+        letter ?? undefined
+      );
       onSaved();
     } catch (err) {
       showToast(getApiErrorMessage(err, 'Failed to record CEO approval.'), 'error');
@@ -872,6 +934,30 @@ function CeoApprovalModal({ hiringRequestId, onClose, onSaved, showToast }: any)
         <div>
           <Label className="mb-1.5 block">Approval Date &amp; Time</Label>
           <Input type="datetime-local" value={approvalAt} onChange={(e) => setApprovalAt(e.target.value)} />
+        </div>
+        <div>
+          <Label className="mb-1.5 block">Monthly Reward (QAR)</Label>
+          <Input
+            type="number" min={0} step="0.01" placeholder="Freelancer's salary"
+            value={monthlyReward} onChange={(e) => setMonthlyReward(e.target.value)}
+          />
+        </div>
+        <div>
+          <Label className="mb-1.5 block">Approval Letter</Label>
+          <input
+            id="ceo-approval-letter-input"
+            type="file"
+            accept="application/pdf,image/*"
+            className="hidden"
+            onChange={(e) => setLetter(e.target.files?.[0] ?? null)}
+          />
+          <Button
+            type="button" variant="outline" size="sm" className="max-w-full gap-1.5"
+            onClick={() => document.getElementById('ceo-approval-letter-input')?.click()}
+          >
+            <Upload size={14} />
+            <span className="truncate">{letter ? letter.name : 'Choose file (optional)'}</span>
+          </Button>
         </div>
         <Button className="w-full gap-1.5" disabled={saving} onClick={handleSubmit}>
           {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck size={14} />} Record Approval
@@ -1167,6 +1253,7 @@ function InterviewTab({ detail }: { detail: HiringRequestDetail }) {
             label="Recommendation"
             value={detail.interviewRecommendation ? RECOMMENDATION_LABELS[detail.interviewRecommendation as InterviewRecommendation] : null}
           />
+          <Field label="Reviewed By (Dept. Head)" value={detail.managerReviewedByName} />
         </div>
         {detail.interviewComments && (
           <div className="mt-3 pt-3 border-t border-border">
@@ -1182,6 +1269,325 @@ function InterviewTab({ detail }: { detail: HiringRequestDetail }) {
         <FileChip label="View Interview Evaluation PDF" url={detail.interviewPdfUrl} />
       ) : (
         <p className="text-xs text-muted-foreground">No PDF on file.</p>
+      )}
+    </div>
+  );
+}
+
+/** Starting Date summary — the signature chain (candidate confirming they
+ * started, Department Head countersigning) lives only on the official PDF,
+ * same pattern as the Interview tab, so this just surfaces the handful of
+ * fields captured back to the system plus the PDF itself. Also owns the NOC
+ * letter/establishment card/bank certificate uploads — these aren't part of
+ * the Starting Date PDF submission itself since they often aren't on hand at
+ * exactly that moment; this tab lets the Coordinator attach them whenever
+ * they come in, and scan the bank certificate to fill the bank fields. */
+function StartingDateTab({ detail }: { detail: HiringRequestDetail }) {
+  const { showToast } = useToast();
+  const queryClient = useQueryClient();
+  const submissionId = detail.freelanceProfileSubmissionId;
+
+  const submissionQuery = useQuery({
+    queryKey: ['hr-freelance-profile-submission', submissionId],
+    queryFn: () => freelanceProfileReviewApi.getById(submissionId as number),
+    enabled: submissionId !== null,
+  });
+  const submission = submissionQuery.data;
+
+  const [employerNocLetter, setEmployerNocLetter] = useState<File | null>(null);
+  const [employerEstablishmentCard, setEmployerEstablishmentCard] = useState<File | null>(null);
+  const [bankCertificate, setBankCertificate] = useState<File | null>(null);
+
+  const [paymentMethod, setPaymentMethod] = useState<'BankTransfer' | 'Cheque'>('BankTransfer');
+  const [bankBeneficiaryName, setBankBeneficiaryName] = useState('');
+  const [bankName, setBankName] = useState('');
+  const [bankBranch, setBankBranch] = useState('');
+  const [bankAccountNumber, setBankAccountNumber] = useState('');
+  const [bankIban, setBankIban] = useState('');
+  const seededRef = useRef(false);
+
+  // Seeds the editable fields from whatever's already on the submission
+  // exactly once, so a SignalR-driven re-fetch while the Coordinator is
+  // mid-edit doesn't clobber what they've typed.
+  useEffect(() => {
+    if (seededRef.current || !submission) return;
+    seededRef.current = true;
+    setPaymentMethod(submission.paymentMethod ?? 'BankTransfer');
+    setBankBeneficiaryName(submission.bankBeneficiaryName ?? '');
+    setBankName(submission.bankName ?? '');
+    setBankBranch(submission.bankBranch ?? '');
+    setBankAccountNumber(submission.bankAccountNumber ?? '');
+    setBankIban(submission.bankIban ?? '');
+  }, [submission]);
+
+  const [scanning, setScanning] = useState(false);
+  const [scanWarnings, setScanWarnings] = useState<string[]>([]);
+  const [saving, setSaving] = useState(false);
+
+  const handleScanBankCertificate = async () => {
+    if (!bankCertificate) return;
+    setScanning(true);
+    try {
+      const result = await freelanceProfilePublicApi.scanBankCertificate(bankCertificate);
+      if (result.beneficiaryName) setBankBeneficiaryName(result.beneficiaryName);
+      if (result.bankName) setBankName(result.bankName);
+      if (result.branch) setBankBranch(result.branch);
+      if (result.accountNumber) setBankAccountNumber(result.accountNumber);
+      if (result.iban) setBankIban(result.iban);
+      setScanWarnings(result.warnings);
+    } catch (err) {
+      showToast(getApiErrorMessage(err, 'Failed to scan bank certificate.'), 'error');
+    } finally {
+      setScanning(false);
+    }
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await hiringRequestApi.saveStartingDateDocuments(
+        detail.id,
+        {
+          employerNocLetter: employerNocLetter ?? undefined,
+          employerEstablishmentCard: employerEstablishmentCard ?? undefined,
+          bankCertificate: bankCertificate ?? undefined,
+        },
+        paymentMethod,
+        { bankBeneficiaryName, bankName, bankBranch, bankAccountNumber, bankIban }
+      );
+      setEmployerNocLetter(null);
+      setEmployerEstablishmentCard(null);
+      setBankCertificate(null);
+      queryClient.invalidateQueries({ queryKey: ['hr-freelance-profile-submission', submissionId] });
+      showToast('Documents saved.', 'success');
+    } catch (err) {
+      showToast(getApiErrorMessage(err, 'Failed to save documents.'), 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (!detail.startingDatePdfUrl && !detail.startingDate) {
+    return <p className="text-sm text-muted-foreground py-8 text-center">No starting date set yet.</p>;
+  }
+  return (
+    <div className="space-y-4 text-sm">
+      <div className="rounded-lg border border-border bg-muted/30 p-3.5">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2.5">
+          <Field label="Starting Date" value={detail.startingDate ? formatDate(detail.startingDate) : null} />
+          <Field label="CEO Approval Ref" value={detail.ceoApprovalReferenceNo} />
+          <Field label="Monthly Reward" value={detail.monthlyReward != null ? `QAR ${detail.monthlyReward.toLocaleString()}` : null} />
+          <Field
+            label="Outcome"
+            value={detail.startIntent === 'Started' ? 'Started' : detail.startIntent === 'NotStarted' ? 'Did not show up' : null}
+          />
+          <Field
+            label="Candidate Signed"
+            value={detail.employeeStartSignedByName ? `${detail.employeeStartSignedByName} · ${detail.employeeStartSignedAt ? formatDate(detail.employeeStartSignedAt) : ''}` : null}
+          />
+          <Field
+            label="Dept. Head Signed"
+            value={detail.managerStartSignedByName ? `${detail.managerStartSignedByName} · ${detail.managerStartSignedAt ? formatDate(detail.managerStartSignedAt) : ''}` : null}
+          />
+        </div>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        The signature chain (candidate confirming they started, Department Head countersigning) is recorded directly on the official form.
+      </p>
+      {detail.startingDatePdfUrl ? (
+        <FileChip label="View Starting Date PDF" url={detail.startingDatePdfUrl} />
+      ) : (
+        <p className="text-xs text-muted-foreground">No PDF on file.</p>
+      )}
+
+      {submissionId !== null && (
+        <div className="rounded-lg border border-border p-4 space-y-4">
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <p className="text-xs font-semibold text-foreground uppercase tracking-wide">Candidate Documents</p>
+            <PaymentMethodToggle value={paymentMethod} onChange={setPaymentMethod} />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <DocumentSlot
+              label="NOC Letter"
+              file={employerNocLetter}
+              existingUrl={submission?.employerNocLetterUrl}
+              onSelect={setEmployerNocLetter}
+            />
+            <DocumentSlot
+              label="Establishment Card"
+              file={employerEstablishmentCard}
+              existingUrl={submission?.employerEstablishmentCardUrl}
+              onSelect={setEmployerEstablishmentCard}
+            />
+            {paymentMethod === 'BankTransfer' && (
+              <DocumentSlot
+                label="Bank Certificate"
+                file={bankCertificate}
+                existingUrl={submission?.bankCertificateUrl}
+                onSelect={setBankCertificate}
+              />
+            )}
+          </div>
+
+          {paymentMethod === 'BankTransfer' ? (
+            <>
+              <div className="flex items-center justify-between flex-wrap gap-2 pt-1">
+                <p className="text-xs text-muted-foreground">Bank details — fill in by hand, or scan the certificate above.</p>
+                <Button
+                  type="button" size="sm" variant="outline" className="h-8 gap-1.5"
+                  disabled={!bankCertificate || scanning}
+                  onClick={handleScanBankCertificate}
+                >
+                  {scanning ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ScanLine size={13} />}
+                  {scanning ? 'Reading…' : 'Scan & Fill Bank Details'}
+                </Button>
+              </div>
+              {scanWarnings.length > 0 && (
+                <p className="text-[11px] text-warning -mt-2">Couldn't read: {scanWarnings.join(', ')}</p>
+              )}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs mb-1 block">Beneficiary Name</Label>
+                  <Input className="h-9" value={bankBeneficiaryName} onChange={(e) => setBankBeneficiaryName(e.target.value)} />
+                </div>
+                <div>
+                  <Label className="text-xs mb-1 block">Bank Name</Label>
+                  <Input className="h-9" value={bankName} onChange={(e) => setBankName(e.target.value)} />
+                </div>
+                <div>
+                  <Label className="text-xs mb-1 block">Branch</Label>
+                  <Input className="h-9" value={bankBranch} onChange={(e) => setBankBranch(e.target.value)} />
+                </div>
+                <div>
+                  <Label className="text-xs mb-1 block">Account Number</Label>
+                  <Input className="h-9" value={bankAccountNumber} onChange={(e) => setBankAccountNumber(e.target.value)} />
+                </div>
+                <div className="sm:col-span-2">
+                  <Label className="text-xs mb-1 block">IBAN</Label>
+                  <Input className="h-9" value={bankIban} onChange={(e) => setBankIban(e.target.value)} />
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="rounded-md bg-warning/10 border border-warning/20 px-3 py-2.5 flex items-center gap-2">
+              <Landmark size={14} className="text-warning shrink-0" />
+              <p className="text-xs text-foreground">
+                Paid by cheque — no bank details needed. If they open a bank account later, update it from their employee record.
+              </p>
+            </div>
+          )}
+
+          <Button size="sm" className="gap-1.5" disabled={saving} onClick={handleSave}>
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save size={14} />} {saving ? 'Saving…' : 'Save Documents'}
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Segmented control — Bank Transfer is the default, matching how every
+ * existing record behaves; Cheque is the explicit opt-in for candidates who
+ * don't have a bank account yet. */
+function PaymentMethodToggle({
+  value, onChange,
+}: { value: 'BankTransfer' | 'Cheque'; onChange: (v: 'BankTransfer' | 'Cheque') => void }) {
+  return (
+    <div className="inline-flex rounded-lg border border-border p-0.5 bg-muted/40 shrink-0">
+      {(['BankTransfer', 'Cheque'] as const).map((option) => (
+        <button
+          key={option}
+          type="button"
+          onClick={() => onChange(option)}
+          className={cn(
+            'px-3 py-1.5 text-xs font-medium rounded-md transition-colors',
+            value === option ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+          )}
+        >
+          {option === 'BankTransfer' ? 'Bank Transfer' : 'Cheque'}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function isLikelyImageUrl(url: string): boolean {
+  return /\.(png|jpe?g|webp|gif)(\?|$)/i.test(url);
+}
+
+/** A document upload slot that actually shows the file, not just its name —
+ * an image thumbnail, an inline PDF preview, or a generic document icon as
+ * the fallback, plus View/Replace actions. Works the same whether showing a
+ * file just picked locally (not yet saved) or one already on the record. */
+function DocumentSlot({
+  label, file, existingUrl, onSelect,
+}: { label: string; file: File | null; existingUrl?: string | null; onSelect: (file: File | null) => void }) {
+  const inputId = useRef(`doc-upload-${Math.random().toString(36).slice(2)}`).current;
+  const [localPreviewUrl, setLocalPreviewUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!file) { setLocalPreviewUrl(null); return; }
+    const url = URL.createObjectURL(file);
+    setLocalPreviewUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [file]);
+
+  const previewUrl = localPreviewUrl ?? existingUrl ?? null;
+  const isImage = file ? file.type.startsWith('image/') : !!existingUrl && isLikelyImageUrl(existingUrl);
+  const isPdf = file ? file.type === 'application/pdf' : !!existingUrl && existingUrl.toLowerCase().includes('.pdf');
+  const hasSomething = !!file || !!existingUrl;
+
+  return (
+    <div className="space-y-1.5">
+      <Label className="text-xs text-muted-foreground">{label}</Label>
+      <input
+        id={inputId}
+        type="file"
+        accept="application/pdf,image/*"
+        className="hidden"
+        onChange={(e) => onSelect(e.target.files?.[0] ?? null)}
+      />
+      {hasSomething ? (
+        <div className="rounded-lg border border-border bg-card overflow-hidden">
+          {isImage && previewUrl ? (
+            <img src={previewUrl} alt={label} className="w-full h-28 object-cover bg-muted" />
+          ) : isPdf && previewUrl ? (
+            <embed src={previewUrl} type="application/pdf" className="w-full h-28 bg-muted" />
+          ) : (
+            <div className="w-full h-28 flex items-center justify-center bg-muted">
+              <FileText size={26} className="text-muted-foreground" />
+            </div>
+          )}
+          <div className="px-2.5 py-1.5 flex items-center justify-between gap-2 border-t border-border">
+            <span className="text-[11px] text-foreground truncate" title={file?.name}>
+              {file ? file.name : 'Uploaded'}
+            </span>
+            <div className="flex items-center gap-2 shrink-0">
+              {previewUrl && (
+                <a href={previewUrl} target="_blank" rel="noreferrer" className="text-[11px] text-primary hover:underline">
+                  View
+                </a>
+              )}
+              <button
+                type="button"
+                onClick={() => document.getElementById(inputId)?.click()}
+                className="text-[11px] text-muted-foreground hover:text-foreground underline"
+              >
+                Replace
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => document.getElementById(inputId)?.click()}
+          className="w-full h-28 rounded-lg border-2 border-dashed border-border hover:border-primary hover:bg-primary/5 flex flex-col items-center justify-center gap-1.5 text-muted-foreground hover:text-primary transition-colors"
+        >
+          <Upload size={18} />
+          <span className="text-[11px] font-medium">Click to upload</span>
+        </button>
       )}
     </div>
   );

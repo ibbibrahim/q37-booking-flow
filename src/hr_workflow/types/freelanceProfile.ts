@@ -57,6 +57,9 @@ export interface FreelanceProfileSubmission {
   relativeFullName: string | null;
   relativeRelationship: string | null;
   relativeDepartment: string | null;
+  /** Not every candidate has a bank account yet — Cheque means the bank
+   * certificate/fields below are deliberately empty, not missing data. */
+  paymentMethod: 'BankTransfer' | 'Cheque';
   bankCertificateUrl: string | null;
   bankBeneficiaryName: string | null;
   bankName: string | null;

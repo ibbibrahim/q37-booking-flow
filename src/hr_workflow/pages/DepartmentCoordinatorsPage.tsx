@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/contexts/ToastContext';
 import { getApiErrorMessage } from '@/utils/apiError';
 import { hrApi } from '../api/hrApi';
+import { usePageHeader } from '@/contexts/PageHeaderContext';
 
 /** Assigns which user(s) coordinate which department(s) — the operational,
  * non-approval role that requests new hires, runs interviews, and handles
@@ -60,16 +61,13 @@ export function DepartmentCoordinatorsPage() {
     }
   };
 
+  usePageHeader(
+    'Department Coordinators',
+    "Assign who coordinates each department's day-to-day hiring and leave paperwork. A user needs the DepartmentCoordinator role granted first (Users admin screen) before they appear below."
+  );
+
   return (
     <div className="space-y-4">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Department Coordinators</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Assign who coordinates each department's day-to-day hiring and leave paperwork. A user needs the
-          DepartmentCoordinator role granted first (Users admin screen) before they appear below.
-        </p>
-      </div>
-
       <Card>
         <CardContent className="p-4 flex flex-col sm:flex-row items-end gap-3">
           <div className="flex-1 w-full">

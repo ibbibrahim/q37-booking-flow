@@ -11,6 +11,7 @@ import { hrApi } from '../api/hrApi';
 import { useHrLanguage, bilingual } from '../context/HrLanguageContext';
 import { formatDate, CONTRACT_STATUS_LABEL, CONTRACT_STATUS_BADGE_CLASS } from '../utils/hrUtils';
 import type { HrContractStatus } from '../types/hrApi';
+import { usePageHeader } from '@/contexts/PageHeaderContext';
 
 // Every stage a freelance contract renewal actually moves through, in order —
 // drives both the "by stage" chart and which statuses count as "in progress".
@@ -28,6 +29,7 @@ const STAGE_ORDER: HrContractStatus[] = [
 export function HiringReportsPage() {
   const colors = useHRChartColors();
   const { language, t } = useHrLanguage();
+  usePageHeader('Hiring Reports', 'Freelance contract renewal volume, stage distribution, and outcomes');
 
   const employeesQuery = useQuery({
     queryKey: ['hr-employees', 'Freelance', 'hiring-reports'],
@@ -90,12 +92,6 @@ export function HiringReportsPage() {
 
   return (
     <div className="space-y-4">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Hiring Reports</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Freelance contract renewal volume, stage distribution, and outcomes
-        </p>
-      </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         <StatTile label="Total Requests" value={total} icon={FileStack} />

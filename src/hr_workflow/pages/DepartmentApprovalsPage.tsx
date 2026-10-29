@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { CheckCircle2, Eye, PenTool, RotateCcw, Undo2, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -20,6 +21,7 @@ import { ReturnContractModal } from '../components/ReturnContractModal';
 import { stampDepartmentHeadSignature } from '../utils/contractPdf';
 import { stampDeptHeadSignature as stampLeaveDeptHeadSignature } from '../utils/leaveSuspensionPdf';
 import { useHrLanguage, bilingual } from '../context/HrLanguageContext';
+import { usePageHeader } from '@/contexts/PageHeaderContext';
 import { CONTRACT_STATUS_LABEL, CONTRACT_STATUS_BADGE_CLASS, formatDate } from '../utils/hrUtils';
 import type { HrContract, HrEmployee, HrSignatureMethod } from '../types/hrApi';
 
@@ -59,6 +61,15 @@ export function DepartmentApprovalsPage() {
     queryKey: ['hr-department-head-me'],
     queryFn: hrApi.getMyDepartmentHead,
   });
+
+  // Genuinely dynamic subtitle (depends on fetched data) — this is exactly
+  // why usePageHeader exists rather than a static route→title lookup table.
+  usePageHeader(
+    'Department Approvals',
+    meQuery.data
+      ? `Contract renewals awaiting your signature — ${bilingual(language, meQuery.data.departmentNameEn, meQuery.data.departmentNameAr)}`
+      : null
+  );
 
   const signatureQuery = useQuery({
     queryKey: ['hr-department-head-signature-me'],
@@ -307,7 +318,6 @@ export function DepartmentApprovalsPage() {
     );
   }
 
-  const departmentLabel = bilingual(language, meQuery.data.departmentNameEn, meQuery.data.departmentNameAr);
   const hasSignature = !!signatureQuery.data;
   const isLoading = employeesQuery.isLoading || contractsQuery.isLoading;
 
@@ -364,13 +374,6 @@ export function DepartmentApprovalsPage() {
   return (
     <TooltipProvider delayDuration={200}>
       <div className="space-y-4">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Department Approvals</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Contract renewals awaiting your signature — {departmentLabel}
-          </p>
-        </div>
-
         <Card>
           <CardContent className="p-4 flex items-center gap-4">
             <div
@@ -485,6 +488,7 @@ export function DepartmentApprovalsPage() {
         </Card>
 
         <LeaveNoticesSection signatureBytesRef={signatureBytesRef} hasSignature={hasSignature} signerName={signerName} />
+        <InterviewReviewsSection />
         <StartingDateConfirmationsSection signatureBytesRef={signatureBytesRef} hasSignature={hasSignature} signerName={signerName} />
 
         <SignaturePad
@@ -595,6 +599,60 @@ function LeaveNoticesSection({
                     onClick={() => handleSign(r.id, r.employeeFullNameEn)}
                   >
                     <CheckCircle2 size={14} /> {signingId === r.id ? 'Signing…' : 'Sign'}
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
+  );
+}
+
+// Interview evaluations awaiting this Department Head's review — unlike the
+// other sections here, this one opens a full editor (the Department Head can
+// edit the Coordinator's fields/scores, not just stamp a saved signature),
+// so it links out to a dedicated page rather than signing inline.
+function InterviewReviewsSection() {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  const listQuery = useQuery({ queryKey: ['hr-hiring-requests', 'department-approvals'], queryFn: hiringRequestApi.getAll });
+  const pending = (listQuery.data ?? []).filter((r) => r.status === 'InterviewSubmitted' && !r.managerReviewedAt);
+
+  const { listen } = useSignalR();
+  useEffect(
+    () => listen('HiringRequestChanged', () => queryClient.invalidateQueries({ queryKey: ['hr-hiring-requests'] })),
+    [listen, queryClient]
+  );
+
+  if (pending.length === 0) return null;
+
+  return (
+    <Card>
+      <CardContent className="p-4 space-y-3">
+        <h2 className="text-sm font-semibold text-foreground">Interview Evaluations Awaiting Your Review</h2>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Candidate</TableHead>
+              <TableHead>Position</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {pending.map((r) => (
+              <TableRow key={r.id}>
+                <TableCell className="font-medium text-foreground">{r.candidateName}</TableCell>
+                <TableCell className="text-muted-foreground">{r.positionTitle}</TableCell>
+                <TableCell className="text-right">
+                  <Button
+                    size="sm"
+                    className="gap-1.5"
+                    onClick={() => navigate(`/hr/freelance-hiring/hiring-requests/${r.id}/interview/review`)}
+                  >
+                    <Eye size={14} /> Review
                   </Button>
                 </TableCell>
               </TableRow>

@@ -295,15 +295,53 @@ export interface HrContractSignature {
 
 export interface HrContract {
   id: number;
+  /** "CON-{year}-{0000001}" — stable reference, never resets per year. */
+  applicationRef: string | null;
   envelopeId: string;
   employeeId: number;
   status: HrContractStatus;
   pdfUrl: string;
+  /** The contract's validity period — set once at creation (New or Start New Renewal). */
+  startDate: string | null;
+  endDate: string | null;
+  approvalLetterUrl: string | null;
+  /** Set when this contract was created as part of a "Start Contract Renewal" batch. */
+  batchId: number | null;
   sha256Hash: string | null;
   certificateUrl: string | null;
   createdAt: string;
   updatedAt: string;
   signatures: HrContractSignature[];
+}
+
+/** One "Start Contract Renewal" submission — the shared term/approval
+ * letter applied across however many employees were selected together. */
+export interface HrContractBatch {
+  id: number;
+  label: string;
+  startDate: string;
+  endDate: string;
+  approvalLetterUrl: string | null;
+  employeeCount: number;
+  createdAt: string;
+  /** Current member contracts bucketed by status, e.g. { AwaitingEmployeeSignature: 8, Completed: 3 }. */
+  statusCounts: Partial<Record<HrContractStatus, number>>;
+}
+
+export interface HrContractBatchMember {
+  employeeId: number;
+  employeeFullNameEn: string;
+  employeeFullNameAr: string;
+  employeeJobTitleEn: string;
+  employeeJobTitleAr: string;
+  employeeDepartmentNameEn: string | null;
+  employeeDepartmentNameAr: string | null;
+  contract: HrContract;
+}
+
+export interface HrContractBatchDetail {
+  batch: HrContractBatch;
+  members: HrContractBatchMember[];
 }
 
 export interface HrContractEvent {

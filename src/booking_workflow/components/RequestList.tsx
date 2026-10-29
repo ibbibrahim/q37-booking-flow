@@ -9,6 +9,7 @@ import {
   Calendar,
   Tag,
   Layers,
+  User,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { endOfDay, startOfDay } from 'date-fns';
@@ -23,10 +24,13 @@ import {
   type BookingType,
 } from '../types/workflow';
 import { mockApi } from '../services/bookingApi';
+import { useAuth } from '@/contexts/AuthContext';
 
 import { DateRangePicker } from '@/components/DateRangePicker';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import {
   Select,
   SelectContent,
@@ -38,7 +42,7 @@ import { ListFilterBar, FilterActiveFiltersRow } from '@/components/ui/list-filt
 import { ListPaginationBar, getInitialPage, getInitialPageSize } from '@/components/ui/list-pagination-bar';
 
 const PAGINATION_STORAGE_KEY = 'booking-workflow:list';
-const FILTERS_STORAGE_KEY = 'booking-workflow:list:filters:v1';
+const FILTERS_STORAGE_KEY = 'booking-workflow:list:filters:v2';
 
 interface RequestListProps {
   userRole: UserRole;
@@ -58,6 +62,7 @@ interface PersistedFilters {
   bookingTypeFilter: BookingTypeFilter;
   createdFrom?: string;
   createdTo?: string;
+  onlyMine: boolean;
 }
 
 function parseIsoDateRange(fromIso?: string, toIso?: string): DateRange | undefined {
@@ -76,6 +81,8 @@ function loadPersistedFilters(): PersistedFilters {
         searchQuery: '',
         statusFilter: 'All',
         bookingTypeFilter: 'All',
+        // Booking requesters see only their own requests by default until they opt out.
+        onlyMine: true,
       };
     }
     const parsed = JSON.parse(raw) as PersistedFilters;
@@ -85,12 +92,14 @@ function loadPersistedFilters(): PersistedFilters {
       bookingTypeFilter: (parsed.bookingTypeFilter as BookingTypeFilter) ?? 'All',
       createdFrom: parsed.createdFrom,
       createdTo: parsed.createdTo,
+      onlyMine: typeof parsed.onlyMine === 'boolean' ? parsed.onlyMine : true,
     };
   } catch {
     return {
       searchQuery: '',
       statusFilter: 'All',
       bookingTypeFilter: 'All',
+      onlyMine: true,
     };
   }
 }
@@ -146,7 +155,6 @@ const bookingTypeColors: Record<string, string> = {
 
 const LIST_STATUSES: (WorkflowStatus | 'All')[] = [
   'All',
-  'Draft',
   'With NOC',
   'Clarification Requested',
   'With Ingest',
@@ -156,17 +164,31 @@ const LIST_STATUSES: (WorkflowStatus | 'All')[] = [
 
 const BOOKING_TYPES: BookingType[] = [
   'Incoming Feed',
-  'Invite Guest for News',
-  'Invite Guest for Program',
   'Download and Ingest',
   'Camera Card and Ingest',
 ];
+
+/** Statuses each role sees when no explicit status filter is chosen ("All states"). Mirrors visibleForRole in bookingApi.ts. */
+const ROLE_VISIBLE_STATUSES: Partial<Record<UserRole, WorkflowStatus[]>> = {
+  NOC: [
+    'Submitted',
+    'With NOC',
+    'Clarification Requested',
+    'Resources Added',
+    'With Ingest',
+    'Completed',
+    'Partially Completed',
+    'Not Done',
+  ],
+  Ingest: ['With Ingest', 'Completed', 'Not Done', 'Partially Completed'],
+};
 
 export const RequestList: React.FC<RequestListProps> = ({
   userRole,
   onCreateNew,
   refreshSignal = 0,
 }) => {
+  const { user } = useAuth();
   const persisted = useMemo(() => loadPersistedFilters(), []);
   const [searchTerm, setSearchTerm] = useState(persisted.searchQuery);
   const [debouncedSearch, setDebouncedSearch] = useState(persisted.searchQuery);
@@ -175,6 +197,8 @@ export const RequestList: React.FC<RequestListProps> = ({
   const [createdDateRange, setCreatedDateRange] = useState<DateRange | undefined>(() =>
     parseIsoDateRange(persisted.createdFrom, persisted.createdTo)
   );
+  // Booking requesters only: lets them see just the requests they personally created.
+  const [onlyMine, setOnlyMine] = useState<boolean>(persisted.onlyMine);
 
   const [items, setItems] = useState<WorkflowRequest[]>([]);
   const [total, setTotal] = useState(0);
@@ -210,21 +234,29 @@ export const RequestList: React.FC<RequestListProps> = ({
       bookingTypeFilter,
       createdFrom: createdDateRange?.from?.toISOString(),
       createdTo: createdDateRange?.to?.toISOString(),
+      onlyMine,
     });
-  }, [searchTerm, statusFilter, bookingTypeFilter, createdDateRange]);
+  }, [searchTerm, statusFilter, bookingTypeFilter, createdDateRange, onlyMine]);
 
   const buildBody = useCallback(() => {
     const created = rangeToApi(createdDateRange);
+    // When no explicit status is picked, scope the query server-side to what this role is allowed to see,
+    // instead of fetching everything and filtering client-side after pagination (see ROLE_VISIBLE_STATUSES).
+    const roleStatuses = statusFilter === 'All' ? ROLE_VISIBLE_STATUSES[userRole] : undefined;
     return {
       page: currentPage,
       pageSize,
       searchQuery: debouncedSearch.trim() || undefined,
       status: statusFilter !== 'All' ? statusFilter : undefined,
-      bookingType: bookingTypeFilter !== 'All' ? bookingTypeFilter : undefined,
+      statuses: roleStatuses,
+      // NOC only deals with Incoming Feed requests — Download/Camera Card ingest bookings aren't theirs.
+      bookingType: userRole === 'NOC' ? 'Incoming Feed' : (bookingTypeFilter !== 'All' ? bookingTypeFilter : undefined),
       createdAtFrom: created.from ?? null,
       createdAtTo: created.to ?? null,
+      // Requester self-filter — Booking screen only.
+      createdBy: userRole === 'Booking' && onlyMine && user?.id ? user.id : undefined,
     };
-  }, [currentPage, pageSize, debouncedSearch, statusFilter, bookingTypeFilter, createdDateRange]);
+  }, [currentPage, pageSize, debouncedSearch, statusFilter, bookingTypeFilter, createdDateRange, userRole, onlyMine, user]);
 
   const runSearch = useCallback(async () => {
     setLoading(true);
@@ -236,9 +268,11 @@ export const RequestList: React.FC<RequestListProps> = ({
           pageSize: body.pageSize,
           searchQuery: body.searchQuery ?? null,
           status: body.status ?? null,
+          statuses: body.statuses ?? null,
           bookingType: body.bookingType ?? null,
           createdAtFrom: body.createdAtFrom,
           createdAtTo: body.createdAtTo,
+          createdBy: body.createdBy ?? null,
         },
         userRole
       );
@@ -278,7 +312,8 @@ export const RequestList: React.FC<RequestListProps> = ({
     !!searchTerm.trim() ||
     statusFilter !== 'All' ||
     bookingTypeFilter !== 'All' ||
-    !!(createdDateRange?.from || createdDateRange?.to);
+    !!(createdDateRange?.from || createdDateRange?.to) ||
+    onlyMine;
 
   const clearAllFilters = () => {
     setCurrentPage(1);
@@ -287,6 +322,7 @@ export const RequestList: React.FC<RequestListProps> = ({
     setStatusFilter('All');
     setBookingTypeFilter('All');
     setCreatedDateRange(undefined);
+    setOnlyMine(false);
   };
 
   const formatRangeChip = (range: DateRange | undefined) => {
@@ -405,6 +441,20 @@ export const RequestList: React.FC<RequestListProps> = ({
                       </button>
                     </Badge>
                   )}
+                  {onlyMine && (
+                    <Badge variant="secondary" className="gap-1">
+                      <User size={12} />
+                      My requests
+                      <button
+                        type="button"
+                        onClick={() => setOnlyMine(false)}
+                        className="ml-1 hover:bg-muted-foreground/20 rounded-full"
+                        aria-label="Remove my requests filter"
+                      >
+                        <X size={12} />
+                      </button>
+                    </Badge>
+                  )}
                 </FilterActiveFiltersRow>
               ) : undefined
             }
@@ -443,25 +493,27 @@ export const RequestList: React.FC<RequestListProps> = ({
                     ))}
                 </SelectContent>
               </Select>
-              <Select
-                value={bookingTypeFilter}
-                onValueChange={(value) => {
-                  setCurrentPage(1);
-                  setBookingTypeFilter(value as BookingTypeFilter);
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="All booking types" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="All">All booking types</SelectItem>
-                  {BOOKING_TYPES.map((bt) => (
-                    <SelectItem key={bt} value={bt}>
-                      {getBookingTypeLabel(bt)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {userRole !== 'NOC' && (
+                <Select
+                  value={bookingTypeFilter}
+                  onValueChange={(value) => {
+                    setCurrentPage(1);
+                    setBookingTypeFilter(value as BookingTypeFilter);
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="All booking types" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="All">All booking types</SelectItem>
+                    {BOOKING_TYPES.map((bt) => (
+                      <SelectItem key={bt} value={bt}>
+                        {getBookingTypeLabel(bt)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
               <DateRangePicker
                 value={createdDateRange}
                 onChange={(r) => {
@@ -471,6 +523,22 @@ export const RequestList: React.FC<RequestListProps> = ({
                 className="w-full"
               />
             </div>
+
+            {userRole === 'Booking' && (
+              <div className="flex items-center gap-2.5 pt-1">
+                <Switch
+                  id="only-mine"
+                  checked={onlyMine}
+                  onCheckedChange={(checked) => {
+                    setCurrentPage(1);
+                    setOnlyMine(checked);
+                  }}
+                />
+                <Label htmlFor="only-mine" className="text-sm font-normal text-muted-foreground cursor-pointer">
+                  Show my requests only
+                </Label>
+              </div>
+            )}
           </ListFilterBar>
 
           <ListPaginationBar

@@ -22,6 +22,7 @@ import qbcDarkAr from '../../assets/QBC-dark-ar.png';
 import qbcLight from '../../assets/QBC-light.png';
 import qbcLightAr from '../../assets/QBC-light-ar.png';
 import { ChangePasswordModal } from './ChangePasswordModal';
+import { usePageHeaderValue } from '../../contexts/PageHeaderContext';
 
 function ScheduleNewBadge({ compact = false }: { compact?: boolean }) {
   if (compact) {
@@ -489,7 +490,13 @@ export const BookingDashboard: React.FC = () => {
   const hasStandaloneItems = hasRotaAccess || hasTechnicalStoreAccess || hasBITAccess || hasScheduleAccess;
   const hasWorkspaceItems = navGroups.length > 0 || hasHRAccess;
 
-  const headerTitle = (() => {
+  // HR pages set their own title/subtitle via usePageHeader() instead of
+  // rendering a second, duplicate <h1> on the page itself — every other
+  // module still falls back to the static per-section text below, since
+  // only HR's pages have been converted to this pattern so far.
+  const pageHeader = usePageHeaderValue();
+
+  const headerTitle = pageHeader.title ?? (() => {
     switch (currentSection) {
       case 'callsheet': return 'Call Sheet Workflow';
       case 'inventory': return 'Inventory Management';
@@ -520,7 +527,7 @@ export const BookingDashboard: React.FC = () => {
     return () => { document.title = 'QBC | Resource Management'; };
   }, [pageTitle]);
 
-  const headerSubtitle = (() => {
+  const headerSubtitle = pageHeader.subtitle ?? (() => {
     switch (currentSection) {
       case 'callsheet': return 'Manage call sheets, equipment, and transportation requests';
       case 'inventory': return 'Manage technical store inventory items';
@@ -688,7 +695,7 @@ export const BookingDashboard: React.FC = () => {
                         open={hrFreelanceHiringOpen}
                         onToggle={() => setHrFreelanceHiringOpen((v) => !v)}
                       >
-                        {isHRAdmin && (
+                        {(isHRAdmin || isDepartmentCoordinator) && (
                           <SidebarSubItem icon={FileSignature} label="Contract Renewal" small isActive={isPath('/hr/freelance-hiring/contract-renewal')} onClick={() => goTo('/hr/freelance-hiring/contract-renewal')} />
                         )}
                         {isHRAdmin && (

@@ -58,6 +58,55 @@ function setFieldFitted(form: PDFForm, font: PDFFont, name: string, value: strin
   }
 }
 
+// Page 3, "Third: The Contract Term and Enforceability" — confirmed by
+// stamping each candidate field with its own name and rendering the page:
+// English reads "...set as of {Date 20} until {Date 21}", the Arabic mirror
+// (read right-to-left) is "...في تاريخ {Date 19} وحتى تاريخ {Date 18}". The
+// month-count fields are oddly named by the original PDF conversion tool —
+// "until" is actually the English numeral blank ("shall be (......)"), not a
+// date field at all; "fill_1_3" is its Arabic counterpart. The spelled-out
+// continuation blank (fill_3_2) is left empty rather than built out with a
+// number-to-words converter.
+const CONTRACT_DATE_FIELD_NAMES = {
+  startDateEn: 'Date 20',
+  endDateEn: 'Date 21',
+  startDateAr: 'Date 19',
+  endDateAr: 'Date 18',
+  monthsEn: 'until',
+  monthsAr: 'fill_1_3',
+} as const;
+
+function monthsBetween(startIso: string, endIso: string): number {
+  const start = new Date(startIso);
+  const end = new Date(endIso);
+  const months = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
+  return Math.max(months, 0);
+}
+
+/** Keeps the contract's validity-period fields (page 3) in sync with the
+ * Start/End Date captured when the contract was created — same "inject into
+ * the live field-value map" pattern used for the Interview/Starting Date
+ * forms. Both the English and Arabic sides get the same Gregorian dates
+ * (same "no Hijri conversion" simplification already used for the contract
+ * date elsewhere in this file). */
+export function withContractDateFields(
+  values: Record<string, string>,
+  data: { startDateIso: string; endDateIso: string }
+): Record<string, string> {
+  const startEn = formatDateEn(data.startDateIso);
+  const endEn = formatDateEn(data.endDateIso);
+  const months = String(monthsBetween(data.startDateIso, data.endDateIso));
+  return {
+    ...values,
+    [CONTRACT_DATE_FIELD_NAMES.startDateEn]: startEn,
+    [CONTRACT_DATE_FIELD_NAMES.endDateEn]: endEn,
+    [CONTRACT_DATE_FIELD_NAMES.startDateAr]: startEn,
+    [CONTRACT_DATE_FIELD_NAMES.endDateAr]: endEn,
+    [CONTRACT_DATE_FIELD_NAMES.monthsEn]: months,
+    [CONTRACT_DATE_FIELD_NAMES.monthsAr]: months,
+  };
+}
+
 /** Merges the coordinator's field values (read live from the interactive
  * editor) into the contract PDF and returns the updated bytes — same
  * mechanism as the auto-fill, just driven by the coordinator's own typing

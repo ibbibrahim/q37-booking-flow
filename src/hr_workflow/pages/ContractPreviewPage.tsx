@@ -11,6 +11,7 @@ import { fillContractTemplate, applyCoordinatorFields, stampSignaturesAtPosition
 import { InteractivePdfEditor, type InteractivePdfEditorHandle } from '../components/InteractivePdfEditor';
 import { SignaturePlacementEditor, type SignaturePlacementEditorHandle } from '../components/SignaturePlacementEditor';
 import { useHrLanguage, bilingual } from '../context/HrLanguageContext';
+import { formatDate } from '../utils/hrUtils';
 import type { HrContract } from '../types/hrApi';
 
 type Phase = 'loading' | 'editing' | 'signing' | 'viewing';
@@ -150,6 +151,11 @@ export function ContractPreviewPage() {
     const updatedBytes = await applyCoordinatorFields(currentBytes, values);
     const blob = new Blob([new Uint8Array(updatedBytes)], { type: 'application/pdf' });
 
+    // contractId is only ever null here if this page was opened directly
+    // without going through the "Start Contract Renewal" flow — the normal
+    // path already creates the contract (with its Start/End Date and
+    // Approval Letter) up front, so by the time the coordinator reaches
+    // this editor there's always an existing draft to update.
     const contract = contractId
       ? await hrApi.updateContract(contractId, blob)
       : await hrApi.createContract(employee.id, blob);
@@ -225,11 +231,22 @@ export function ContractPreviewPage() {
           <h1 className="text-lg font-bold text-foreground truncate">
             {employee ? bilingual(language, employee.fullNameEn, employee.fullNameAr) : t('contractRenewal')}
           </h1>
-          <p className="text-xs text-muted-foreground">{subtitle}</p>
+          <p className="text-xs text-muted-foreground">
+            {subtitle}
+            {statusContract?.startDate && statusContract?.endDate && (
+              <span className="ml-1.5">
+                · {formatDate(statusContract.startDate)} – {formatDate(statusContract.endDate)}
+              </span>
+            )}
+          </p>
         </div>
 
         {phase === 'editing' && (
-          <Button size="sm" className="gap-1.5" disabled={!currentBytes || saving} onClick={handleSave}>
+          <Button
+            size="sm" className="gap-1.5"
+            disabled={!currentBytes || saving}
+            onClick={handleSave}
+          >
             <Save size={14} /> {saving ? 'Saving…' : 'Save'}
           </Button>
         )}

@@ -11,6 +11,7 @@ import { departments } from '../data/departments';
 import { financeData, monthOptions } from '../data/financeSeed';
 import { formatCurrencyQAR } from '../utils/hrUtils';
 import { hrApi } from '../api/hrApi';
+import { usePageHeader } from '@/contexts/PageHeaderContext';
 
 export function FinancialReportsPage() {
   const colors = useHRChartColors();
@@ -52,13 +53,10 @@ export function FinancialReportsPage() {
 
   const topDepartment = byDepartment[0]?.dept.name ?? '—';
 
+  usePageHeader('Financial Reports', 'Freelance spend across departments, tracked monthly');
+
   return (
     <div className="space-y-4">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Financial Reports</h1>
-        <p className="text-sm text-muted-foreground mt-1">Freelance spend across departments, tracked monthly</p>
-      </div>
-
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <StatTile label={`Spend — ${currentMonth}`} value={formatCurrencyQAR(currentMonthTotal)} icon={Wallet} />
         <StatTile label="Avg. Monthly Spend (6mo)" value={formatCurrencyQAR(avgMonthlySpend)} icon={TrendingUp} />

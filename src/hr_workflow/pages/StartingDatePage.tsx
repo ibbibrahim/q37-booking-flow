@@ -4,18 +4,33 @@ import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/contexts/ToastContext';
 import { getApiErrorMessage } from '@/utils/apiError';
 import { hiringRequestApi } from '../api/hiringRequestApi';
-import { loadStartingDateTemplate, applyHiringFormValues } from '../utils/hiringFormsPdf';
+import { freelanceProfileReviewApi } from '../api/freelanceProfileApi';
+import { hrApi } from '../api/hrApi';
+import {
+  loadStartingDateTemplate, applyHiringFormValues, prefillStartingDateTemplate, withStartingDateSummaryFields,
+} from '../utils/hiringFormsPdf';
 import { InteractivePdfEditor, type InteractivePdfEditorHandle } from '../components/InteractivePdfEditor';
 
 /** The actual official "Acknowledgement of Starting Work First Time" PDF
- * template, filled directly on the document — same pattern as the Interview
- * Evaluation editor and Contract Renewal. The toolbar captures the fields
- * the hiring workflow needs back (starting date, job title, used to create
- * the hr_employees record); the rest (department/employee approval blocks,
- * attachments checklist) is filled directly on the rendered PDF. */
+ * template, filled directly on the document — same mechanism as the
+ * Interview Evaluation editor and Contract Renewal. Most candidate-identity
+ * fields (name, QID, mobile, department, job title, CEO approval reference)
+ * are pre-filled from data the system already has; "Employee No." is left
+ * blank since no employee record exists until this form is submitted, and
+ * "Section" has no upstream data source at all, so it's picked here via the
+ * toolbar dropdown instead. The toolbar captures the fields the hiring
+ * workflow needs back structurally (starting date, job title, section —
+ * used to create the hr_employees record); the rest (department/employee
+ * approval blocks, attachments checklist) is filled directly on the
+ * rendered PDF. The NOC letter/establishment card/bank certificate are NOT
+ * collected here — they're attached later on the hiring request's own
+ * Starting Date detail tab, since they often aren't on hand at exactly this
+ * moment. */
 export function StartingDatePage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -28,32 +43,75 @@ export function StartingDatePage() {
     enabled: Number.isFinite(hiringRequestId),
   });
 
+  const submissionId = detailQuery.data?.freelanceProfileSubmissionId ?? null;
+  const submissionQuery = useQuery({
+    queryKey: ['hr-freelance-profile-submission', submissionId],
+    queryFn: () => freelanceProfileReviewApi.getById(submissionId!),
+    enabled: submissionId != null,
+  });
+
+  const departmentId = detailQuery.data?.departmentId ?? null;
+  const sectionsQuery = useQuery({
+    queryKey: ['hr-sections', departmentId],
+    queryFn: () => hrApi.getSections(departmentId!),
+    enabled: departmentId != null,
+  });
+
+  const [rawTemplateBytes, setRawTemplateBytes] = useState<Uint8Array | null>(null);
   const [pdfBytes, setPdfBytes] = useState<Uint8Array | null>(null);
   const [startingDate, setStartingDate] = useState('');
-  const [jobTitleEn, setJobTitleEn] = useState('');
-  const [jobTitleAr, setJobTitleAr] = useState('');
+  const [sectionId, setSectionId] = useState('');
   const [saving, setSaving] = useState(false);
   const editorRef = useRef<InteractivePdfEditorHandle>(null);
+  const prefilledRef = useRef(false);
+
+  // The role title for the new hire — taken straight from the hiring
+  // request's own position title rather than re-typed here; there's no
+  // separate Arabic title anywhere upstream, so none is sent.
+  const jobTitleEn = detailQuery.data?.positionTitle ?? '';
 
   useEffect(() => {
-    loadStartingDateTemplate().then(setPdfBytes);
+    loadStartingDateTemplate().then(setRawTemplateBytes);
   }, []);
 
+  // Pre-fills candidate identity, position, department, CEO approval
+  // reference, and the monthly reward (if recorded) into the template's own
+  // PDF fields once the hiring request (and its linked profile submission,
+  // if any) have loaded — then hands the result to the editor exactly once,
+  // so re-fetches from SignalR updates don't wipe out anything already typed.
   useEffect(() => {
-    if (detailQuery.data?.positionTitle && !jobTitleEn) setJobTitleEn(detailQuery.data.positionTitle);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [detailQuery.data]);
+    if (!rawTemplateBytes || prefilledRef.current || !detailQuery.data) return;
+    if (submissionId != null && submissionQuery.isLoading) return;
+
+    prefilledRef.current = true;
+    const submission = submissionQuery.data;
+    prefillStartingDateTemplate(rawTemplateBytes, {
+      candidateName: submission?.fullNameEn || detailQuery.data.candidateName,
+      qid: submission?.qid,
+      mobileNumber: submission?.phoneNumber,
+      department: detailQuery.data.departmentNameEn,
+      positionTitle: detailQuery.data.positionTitle,
+      ceoApprovalReferenceNo: detailQuery.data.ceoApprovalReferenceNo,
+      monthlyReward: detailQuery.data.monthlyReward,
+    }).then(setPdfBytes);
+  }, [rawTemplateBytes, detailQuery.data, submissionId, submissionQuery.data, submissionQuery.isLoading]);
+
+  const sectionName = sectionsQuery.data?.find((s) => String(s.id) === sectionId)?.nameEn ?? null;
 
   const handleSubmit = async () => {
     if (!startingDate || !jobTitleEn.trim()) {
-      showToast('Starting date and job title are required.', 'error');
+      showToast('Starting date is required.', 'error');
       return;
     }
     if (!editorRef.current || !pdfBytes) return;
 
     setSaving(true);
     try {
-      const textValues = editorRef.current.getFieldValues();
+      const textValues = withStartingDateSummaryFields(editorRef.current.getFieldValues(), {
+        startingDateIso: startingDate,
+        jobTitleEn: jobTitleEn.trim(),
+        sectionName,
+      });
       const checkboxValues = editorRef.current.getCheckboxValues();
       const filledPdf = await applyHiringFormValues(pdfBytes, textValues, checkboxValues);
       const file = new File([new Uint8Array(filledPdf)], 'starting-date.pdf', { type: 'application/pdf' });
@@ -62,7 +120,7 @@ export function StartingDatePage() {
         hiringRequestId,
         new Date(startingDate).toISOString(),
         jobTitleEn.trim(),
-        jobTitleAr.trim() || undefined,
+        undefined,
         file
       );
       showToast('Starting date set and employee record created.', 'success');
@@ -87,9 +145,18 @@ export function StartingDatePage() {
           <p className="text-xs text-muted-foreground">Fill the official form directly on the document, then submit.</p>
         </div>
 
-        <Input type="date" className="w-36 h-9" value={startingDate} onChange={(e) => setStartingDate(e.target.value)} title="Starting Date" />
-        <Input className="w-40 h-9" placeholder="Job title (EN)" value={jobTitleEn} onChange={(e) => setJobTitleEn(e.target.value)} />
-        <Input className="w-40 h-9" placeholder="Job title (AR, optional)" value={jobTitleAr} onChange={(e) => setJobTitleAr(e.target.value)} />
+        <div className="flex items-center gap-1.5">
+          <Label htmlFor="starting-date-input" className="text-xs text-muted-foreground whitespace-nowrap">Starting Date</Label>
+          <Input id="starting-date-input" type="date" className="w-36 h-9" value={startingDate} onChange={(e) => setStartingDate(e.target.value)} />
+        </div>
+        <Select value={sectionId} onValueChange={setSectionId}>
+          <SelectTrigger className="w-44 h-9"><SelectValue placeholder="Section" /></SelectTrigger>
+          <SelectContent>
+            {(sectionsQuery.data ?? []).map((s) => (
+              <SelectItem key={s.id} value={String(s.id)}>{s.nameEn}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
         <Button size="sm" className="gap-1.5 ml-auto" disabled={!pdfBytes || saving} onClick={handleSubmit}>
           <Save size={14} /> {saving ? 'Submitting…' : 'Set Starting Date'}

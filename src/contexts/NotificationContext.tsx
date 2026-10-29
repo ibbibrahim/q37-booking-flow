@@ -194,6 +194,27 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         });
       }
 
+      // Browser notification for NOC users
+      const isNocUser = user?.roles?.includes('NOC') || false;
+
+      if (isNocUser && shouldShowBrowserNotification()) {
+        showBrowserNotification({
+          title: data.title,
+          body: data.body || 'You have a new notification',
+          icon: '/Qbusiness_Logo_NEG_POS-02.png',
+          tag: `notification-${data.id}`,
+          playSound: true,
+          onClick: () => {
+            window.focus();
+            if (data.url) {
+              navigate(data.url);
+            } else {
+              navigate('/noc');
+            }
+          }
+        });
+      }
+
       // Browser notification for Creative Workflow thread messages only — not claims,
       // completions, approvals, etc. The backend tags every notification's Type, and chat
       // messages are specifically "CreativeCommentCreated".
