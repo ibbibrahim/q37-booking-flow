@@ -13,6 +13,7 @@ import { getApiErrorMessage } from '@/utils/apiError';
 import { hrApi } from '../api/hrApi';
 import { fillContractTemplate, applyCoordinatorFields, withContractDateFields } from '../utils/contractPdf';
 import { useHrLanguage, bilingual } from '../context/HrLanguageContext';
+import type { HrContractBatchKind } from '../types/hrApi';
 
 // A contract is "in progress" (not eligible to start a fresh one) once it's
 // left the coordinator's hands — these are the only statuses that should
@@ -21,14 +22,42 @@ const IN_PROGRESS_STATUSES = new Set(['AwaitingDepartmentHeadSignature', 'Awaiti
 
 interface Props {
   open: boolean;
+  /** "New" = candidates converted through the Freelancer Hiring pipeline who
+   * don't have a contract yet. "Renewal" = everyone else, including any
+   * other employee who simply has no contract on file — per product
+   * decision, that's still a Renewal candidate, not a New one. */
+  kind: HrContractBatchKind;
   onClose: () => void;
   onCompleted: () => void;
 }
 
-/** HRAdmin's single entry point for starting a new contract renewal — one
+const COPY: Record<HrContractBatchKind, { title: string; subtitle: string; startLabel: string; startingLabel: (n: number) => string; doneToast: (n: number) => string; failToast: string }> = {
+  New: {
+    title: 'Start New Contract',
+    subtitle: 'Set one contract term and apply it across every newly hired candidate you select below.',
+    startLabel: 'Start New Contract',
+    startingLabel: (n) => `Start New Contract for ${n}`,
+    doneToast: (n) => (n === 1 ? 'New contract started.' : `New contract started for ${n} employees.`),
+    failToast: 'Failed to start new contract.',
+  },
+  Renewal: {
+    title: 'Start Contract Renewal',
+    subtitle: 'Set one contract term and apply it across every employee you select below.',
+    startLabel: 'Start Renewal',
+    startingLabel: (n) => `Start Renewal for ${n}`,
+    doneToast: (n) => (n === 1 ? 'Contract renewal started.' : `Contract renewal started for ${n} employees.`),
+    failToast: 'Failed to start contract renewal.',
+  },
+};
+
+/** HRAdmin's single entry point for starting a batch of contracts — one
  * shared Start Date / End Date / Approval Letter, applied across however
- * many employees are selected (everyone eligible is checked by default). */
-export function StartContractRenewalModal({ open, onClose, onCompleted }: Props) {
+ * many employees are selected (everyone eligible is checked by default).
+ * Shared by both Contract sub-menus; `kind` decides which employees are
+ * eligible and the copy shown, everything else (template, signature chain,
+ * batch mechanics) is identical. */
+export function StartContractBatchModal({ open, kind, onClose, onCompleted }: Props) {
+  const copy = COPY[kind];
   const { language } = useHrLanguage();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -96,13 +125,21 @@ export function StartContractRenewalModal({ open, onClose, onCompleted }: Props)
     [contractsQuery.data]
   );
 
+  // "New" = came through the Freelancer Hiring pipeline (sourceHiringRequestId
+  // set) and hasn't had a Completed/Returned contract yet — once they have
+  // one, they age out of New and become a normal Renewal candidate from then
+  // on. "Renewal" is everyone else, including any employee with no contract
+  // on file for unrelated reasons (added directly, legacy record, ...).
   const eligibleEmployees = useMemo(
     () =>
       poolEmployees.filter((e) => {
         const latest = latestByEmployeeId.get(e.id);
-        return !latest || !IN_PROGRESS_STATUSES.has(latest.status);
+        if (latest && IN_PROGRESS_STATUSES.has(latest.status)) return false;
+        const hadFirstContract = !!latest && (latest.status === 'Completed' || latest.status === 'Returned');
+        const isNewCandidate = !!e.sourceHiringRequestId && !hadFirstContract;
+        return kind === 'New' ? isNewCandidate : !isNewCandidate;
       }),
-    [poolEmployees, latestByEmployeeId]
+    [poolEmployees, latestByEmployeeId, kind]
   );
 
   // Default every eligible employee to checked — once, as soon as the
@@ -165,6 +202,7 @@ export function StartContractRenewalModal({ open, onClose, onCompleted }: Props)
         new Date(startDate).toISOString(),
         new Date(endDate).toISOString(),
         selectedEmployees.length,
+        kind,
         approvalLetter ?? undefined
       );
 
@@ -173,7 +211,7 @@ export function StartContractRenewalModal({ open, onClose, onCompleted }: Props)
         setProgress({ done: i, total: selectedEmployees.length, name: bilingual(language, emp.fullNameEn, emp.fullNameAr) });
 
         const baseBytes = await fillContractTemplate(emp);
-        const dateValues = withContractDateFields({}, { startDateIso: startDate, endDateIso: endDate });
+        const dateValues = withContractDateFields({}, { startDateIso: startDate, endDateIso: endDate, monthlyRate: emp.monthlyRate });
         const bytes = await applyCoordinatorFields(baseBytes, dateValues);
         const blob = new Blob([bytes], { type: 'application/pdf' });
 
@@ -182,20 +220,16 @@ export function StartContractRenewalModal({ open, onClose, onCompleted }: Props)
 
       queryClient.invalidateQueries({ queryKey: ['hr-contracts-by-employees'] });
       queryClient.invalidateQueries({ queryKey: ['hr-contract-batches'] });
-      showToast(
-        selectedEmployees.length === 1
-          ? 'Contract renewal started.'
-          : `Contract renewal started for ${selectedEmployees.length} employees.`,
-        'success'
-      );
+      showToast(copy.doneToast(selectedEmployees.length), 'success');
       onCompleted();
       onClose();
 
       if (selectedEmployees.length === 1) {
-        navigate(`/hr/freelance-hiring/contract-renewal/${selectedEmployees[0].id}/preview`);
+        const basePath = kind === 'New' ? 'contract-new' : 'contract-renewal';
+        navigate(`/hr/freelance-hiring/${basePath}/${selectedEmployees[0].id}/preview`);
       }
     } catch (err) {
-      showToast(getApiErrorMessage(err, 'Failed to start contract renewal.'), 'error');
+      showToast(getApiErrorMessage(err, copy.failToast), 'error');
     } finally {
       setProcessing(false);
       setProgress(null);
@@ -210,10 +244,8 @@ export function StartContractRenewalModal({ open, onClose, onCompleted }: Props)
         {/* Header */}
         <div className="px-6 py-5 border-b border-border flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <h3 className="text-base font-semibold text-foreground tracking-tight">Start Contract Renewal</h3>
-            <p className="text-sm text-muted-foreground mt-0.5">
-              Set one contract term and apply it across every employee you select below.
-            </p>
+            <h3 className="text-base font-semibold text-foreground tracking-tight">{copy.title}</h3>
+            <p className="text-sm text-muted-foreground mt-0.5">{copy.subtitle}</p>
           </div>
           <button
             type="button"
@@ -324,7 +356,6 @@ export function StartContractRenewalModal({ open, onClose, onCompleted }: Props)
                 )}
                 {visibleEmployees.map((emp) => {
                   const checked = selectedIds.has(emp.id);
-                  const latest = latestByEmployeeId.get(emp.id);
                   return (
                     <label
                       key={emp.id}
@@ -342,9 +373,6 @@ export function StartContractRenewalModal({ open, onClose, onCompleted }: Props)
                           {bilingual(language, emp.departmentNameEn, emp.departmentNameAr)}
                         </p>
                       </div>
-                      {latest && (latest.status === 'Completed' || latest.status === 'Returned') && (
-                        <span className="text-[11px] text-muted-foreground shrink-0">Renewal</span>
-                      )}
                     </label>
                   );
                 })}
@@ -380,8 +408,8 @@ export function StartContractRenewalModal({ open, onClose, onCompleted }: Props)
               {processing
                 ? 'Starting…'
                 : selectedEmployees.length > 1
-                ? `Start Renewal for ${selectedEmployees.length}`
-                : 'Start Renewal'}
+                ? copy.startingLabel(selectedEmployees.length)
+                : copy.startLabel}
             </Button>
           </div>
         </div>

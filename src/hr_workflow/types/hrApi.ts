@@ -132,6 +132,10 @@ export interface HrEmployee {
   reward: string | null;
   profilePictureUrl: string | null;
   recentlyConvertedToPermanent: boolean;
+  /** Set when this employee was created by converting a candidate through
+   * the New Freelancer Hiring pipeline — null otherwise. The Contract
+   * module's "New" vs "Renewal" picker is scoped by this field. */
+  sourceHiringRequestId: number | null;
 
   // ---- Extended profile — populated when a freelance profile submission
   // was approved and merged; null for employees added directly via
@@ -314,11 +318,16 @@ export interface HrContract {
   signatures: HrContractSignature[];
 }
 
-/** One "Start Contract Renewal" submission — the shared term/approval
- * letter applied across however many employees were selected together. */
+/** One "Start Contract Renewal" (or "Start New Contract") submission — the
+ * shared term/approval letter applied across however many employees were
+ * selected together. kind is fixed at creation by which Contract sub-menu
+ * started it. */
+export type HrContractBatchKind = 'New' | 'Renewal';
+
 export interface HrContractBatch {
   id: number;
   label: string;
+  kind: HrContractBatchKind;
   startDate: string;
   endDate: string;
   approvalLetterUrl: string | null;

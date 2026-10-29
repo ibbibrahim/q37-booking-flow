@@ -21,6 +21,8 @@ export interface LeaveRequestSummary {
   endDate: string | null;
   totalDays: number | null;
   createdAt: string;
+  deptHeadSignedByName: string | null;
+  deptHeadSignedAt: string | null;
 }
 
 export interface LeaveRequestDetail extends LeaveRequestSummary {

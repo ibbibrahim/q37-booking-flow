@@ -12,6 +12,7 @@ import type {
   HrQidScanResult,
   HrContract,
   HrContractBatch,
+  HrContractBatchKind,
   HrContractBatchDetail,
   HrContractSignerRole,
   HrSignatureMethod,
@@ -150,19 +151,22 @@ export const hrApi = {
     return data;
   },
 
-  // Creates the shared batch header for a "Start Contract Renewal"
-  // submission — one term + one approval letter upload. Call this once,
-  // then createContract(..., { batchId }) once per selected employee.
+  // Creates the shared batch header for a "Start Contract Renewal" (or
+  // "Start New Contract") submission — one term + one approval letter
+  // upload. Call this once, then createContract(..., { batchId }) once per
+  // selected employee.
   createContractBatch: async (
     startDate: string,
     endDate: string,
     employeeCount: number,
+    kind: HrContractBatchKind,
     approvalLetter?: File
   ): Promise<HrContractBatch> => {
     const formData = new FormData();
     formData.append('startDate', startDate);
     formData.append('endDate', endDate);
     formData.append('employeeCount', String(employeeCount));
+    formData.append('kind', kind);
     if (approvalLetter) formData.append('approvalLetter', approvalLetter);
     const { data } = await apiClient.post(`${API_BASE}/contract-batches`, formData, {
       headers: { 'Content-Type': undefined },
@@ -170,9 +174,10 @@ export const hrApi = {
     return data;
   },
 
-  // Most recent first — the Contract Renewal page's "Batches" view.
-  getContractBatches: async (): Promise<HrContractBatch[]> => {
-    const { data } = await apiClient.get(`${API_BASE}/contract-batches`);
+  // Most recent first — the Contract page's "Batches" view. kind scopes to
+  // one of the two Contract sub-menus (New/Renewal); omitted returns both.
+  getContractBatches: async (kind?: HrContractBatchKind): Promise<HrContractBatch[]> => {
+    const { data } = await apiClient.get(`${API_BASE}/contract-batches`, { params: kind ? { kind } : undefined });
     return data;
   },
 

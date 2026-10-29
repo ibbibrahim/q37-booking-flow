@@ -4,8 +4,9 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSignalR } from '@/contexts/SignalRContext';
 import {
   Briefcase, Building2, Calendar, CheckCircle2, ChevronRight, Clock, ClipboardList, Copy,
-  FileText, Landmark, Link as LinkIcon, Loader2, PenTool, Phone, Plus, Save, ScanLine, Search as SearchIcon, Tag,
+  FileSignature, FileText, Landmark, Link as LinkIcon, Loader2, PenTool, Phone, Plus, Save, ScanLine, Search as SearchIcon, Tag,
   ShieldCheck, Upload, UserX, Users, UserCheck, X, XCircle,
+  type LucideIcon,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -17,6 +18,16 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { ListFilterBar, FilterActiveFiltersRow } from '@/components/ui/list-filter-bar';
 import { ListPaginationBar, getInitialPage, getInitialPageSize } from '@/components/ui/list-pagination-bar';
 import { cn } from '@/lib/utils';
@@ -541,6 +552,19 @@ function DetailModal({ detail, loading, isHRAdmin, isDepartmentCoordinator, busy
   const [rejectOpen, setRejectOpen] = useState(false);
   const [notStartedOpen, setNotStartedOpen] = useState(false);
   const [employeeSignOpen, setEmployeeSignOpen] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<{
+    title: string;
+    description: string;
+    confirmLabel?: string;
+    icon?: LucideIcon;
+    destructive?: boolean;
+    onConfirm: () => void;
+  } | null>(null);
+  // Shown once after a successful Convert — the hiring flow ends here; this
+  // replaces the "Candidate Converted to Employee" / "Next Step: Start the
+  // Contract" emails that used to fire at this point (removed on request),
+  // so the handoff to Contract → New is still communicated, just in-app.
+  const [convertedInfo, setConvertedInfo] = useState<{ candidateName: string } | null>(null);
 
   const run = async (fn: () => Promise<any>, successMsg: string, failMsg: string) => {
     setBusy(true);
@@ -637,7 +661,16 @@ function DetailModal({ detail, loading, isHRAdmin, isDepartmentCoordinator, busy
           {/* Requested -> generate link (HR) */}
           {detail.status === 'Requested' && isHRAdmin && (
             <ActionBlock title="Generate the candidate link">
-              <Button className="gap-1.5" disabled={busy} onClick={() => run(() => hiringRequestApi.generateLink(detail.id), 'Link generated.', 'Failed to generate link.')}>
+              <Button
+                className="gap-1.5" disabled={busy}
+                onClick={() => setConfirmAction({
+                  title: 'Generate candidate link?',
+                  description: 'A 30-day link will be created for this candidate to submit their profile. You can copy and forward it to them afterward.',
+                  confirmLabel: 'Generate Link',
+                  icon: LinkIcon,
+                  onConfirm: () => run(() => hiringRequestApi.generateLink(detail.id), 'Link generated.', 'Failed to generate link.'),
+                })}
+              >
                 <LinkIcon size={14} /> Generate Link
               </Button>
             </ActionBlock>
@@ -655,7 +688,14 @@ function DetailModal({ detail, loading, isHRAdmin, isDepartmentCoordinator, busy
                 <Button
                   size="sm" variant="ghost" className="gap-1.5 mt-1.5 text-muted-foreground"
                   disabled={busy}
-                  onClick={() => run(() => hiringRequestApi.generateLink(detail.id), 'Link regenerated.', 'Failed to regenerate link.')}
+                  onClick={() => setConfirmAction({
+                    title: 'Regenerate the candidate link?',
+                    description: 'The current link will stop working. If you already sent it to the candidate, you’ll need to forward the new one.',
+                    confirmLabel: 'Regenerate Link',
+                    icon: LinkIcon,
+                    destructive: true,
+                    onConfirm: () => run(() => hiringRequestApi.generateLink(detail.id), 'Link regenerated.', 'Failed to regenerate link.'),
+                  })}
                 >
                   <LinkIcon size={12} /> Regenerate Link
                 </Button>
@@ -675,7 +715,9 @@ function DetailModal({ detail, loading, isHRAdmin, isDepartmentCoordinator, busy
 
           {/* InterviewSubmitted -> HR records the GM's decision directly
               (the GM's approval happens outside the system, same shallow
-              logging as CEO approval — no separate "forward" step). */}
+              logging as CEO approval — no separate "forward" step). Gated
+              on the Department Head's review/sign-off below, same pattern
+              as the Starting Date signature chain's manager-signs gate. */}
           {detail.status === 'InterviewSubmitted' && isHRAdmin && (
             <ActionBlock title="Record the GM's hiring decision">
               {detail.interviewRecommendation && (
@@ -685,14 +727,27 @@ function DetailModal({ detail, loading, isHRAdmin, isDepartmentCoordinator, busy
                 </p>
               )}
               {detail.interviewPdfUrl && <a href={detail.interviewPdfUrl} target="_blank" rel="noreferrer" className="text-primary underline text-xs block mb-2">View interview evaluation PDF</a>}
-              <div className="flex gap-2">
-                <Button variant="destructive" className="flex-1 gap-1.5" disabled={busy} onClick={() => setRejectOpen(true)}>
-                  <XCircle size={14} /> Reject
-                </Button>
-                <Button className="flex-1 gap-1.5" disabled={busy} onClick={() => setGmApproveOpen(true)}>
-                  <CheckCircle2 size={14} /> Approve
-                </Button>
-              </div>
+
+              {detail.managerReviewedAt ? (
+                <>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    Department Head reviewed{detail.managerReviewedByName ? ` by ${detail.managerReviewedByName}` : ''} on {formatDate(detail.managerReviewedAt)}.
+                  </p>
+                  <div className="flex gap-2">
+                    <Button variant="destructive" className="flex-1 gap-1.5" disabled={busy} onClick={() => setRejectOpen(true)}>
+                      <XCircle size={14} /> Reject
+                    </Button>
+                    <Button className="flex-1 gap-1.5" disabled={busy} onClick={() => setGmApproveOpen(true)}>
+                      <CheckCircle2 size={14} /> Approve
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <div className="rounded-md bg-warning/10 border border-warning/20 px-3 py-2 text-xs text-warning flex items-center gap-1.5">
+                  <Clock size={13} />
+                  Awaiting Department Head review and sign-off before the GM decision can be recorded.
+                </div>
+              )}
             </ActionBlock>
           )}
           {detail.status === 'Rejected' && (
@@ -710,33 +765,51 @@ function DetailModal({ detail, loading, isHRAdmin, isDepartmentCoordinator, busy
             </ActionBlock>
           )}
 
-          {/* CeoApproved -> Coordinator sets starting date + creates the employee */}
-          {detail.status === 'CeoApproved' && isDepartmentCoordinator && (
+          {/* CeoApproved -> Coordinator sets starting date + creates the employee.
+              The approval letter can contain sensitive CEO-only correspondence,
+              so that link is HRAdmin-only — Coordinators/Dept Heads still see
+              the reward figure (they need it for the starting date paperwork)
+              but never the letter itself. */}
+          {detail.status === 'CeoApproved' && (isDepartmentCoordinator || isHRAdmin) && (
             <ActionBlock title={`CEO approved on ${detail.ceoApprovalAt ? formatDate(detail.ceoApprovalAt) : ''} (Ref: ${detail.ceoApprovalReferenceNo})`}>
-              {(detail.monthlyReward != null || detail.ceoApprovalLetterUrl) && (
+              {(detail.monthlyReward != null || (isHRAdmin && detail.ceoApprovalLetterUrl)) && (
                 <div className="flex items-center gap-3 mb-2 text-xs text-muted-foreground">
                   {detail.monthlyReward != null && (
                     <span>Monthly Reward: <span className="font-medium text-foreground">QAR {detail.monthlyReward.toLocaleString()}</span></span>
                   )}
-                  <FileChip label="Approval Letter" url={detail.ceoApprovalLetterUrl} />
+                  {isHRAdmin && <FileChip label="Approval Letter" url={detail.ceoApprovalLetterUrl} />}
                 </div>
               )}
-              <Button className="gap-1.5" disabled={busy} onClick={() => navigate(`/hr/freelance-hiring/hiring-requests/${detail.id}/starting-date`)}>
-                <ClipboardList size={14} /> Set Starting Date &amp; Create Employee
-              </Button>
+              {isDepartmentCoordinator && (
+                <Button className="gap-1.5" disabled={busy} onClick={() => navigate(`/hr/freelance-hiring/hiring-requests/${detail.id}/starting-date`)}>
+                  <ClipboardList size={14} /> Set Starting Date &amp; Create Employee
+                </Button>
+              )}
             </ActionBlock>
           )}
 
           {/* StartingDateSet -> Coordinator records whether the candidate
               showed up, then the Department Head signs; HRAdmin converts or
-              marks not-started once that's done (unchanged from before). */}
+              marks not-started once that's done. Gated on the Department
+              Head's signature below, same pattern as the Interview
+              evaluation's manager-review gate. */}
           {detail.status === 'StartingDateSet' && (
             <ActionBlock title={`Starting date: ${detail.startingDate ? formatDate(detail.startingDate) : ''}`}>
               {detail.startingDatePdfUrl && <a href={detail.startingDatePdfUrl} target="_blank" rel="noreferrer" className="text-primary underline text-xs block mb-2">View starting date form</a>}
 
               {!detail.startIntent && isDepartmentCoordinator && (
                 <div className="flex gap-2 mb-2">
-                  <Button variant="outline" className="flex-1 gap-1.5" disabled={busy} onClick={() => run(() => hiringRequestApi.recordNotStarting(detail.id), 'Recorded — awaiting Department Head sign-off.', 'Failed to record.')}>
+                  <Button
+                    variant="outline" className="flex-1 gap-1.5" disabled={busy}
+                    onClick={() => setConfirmAction({
+                      title: 'Report candidate did not show up?',
+                      description: 'This records that the candidate did not show up for the starting date, and sends it for Department Head sign-off.',
+                      confirmLabel: 'Report Did Not Show Up',
+                      icon: UserX,
+                      destructive: true,
+                      onConfirm: () => run(() => hiringRequestApi.recordNotStarting(detail.id), 'Recorded — awaiting Department Head sign-off.', 'Failed to record.'),
+                    })}
+                  >
                     <UserX size={14} /> Report Did Not Show Up
                   </Button>
                   <Button className="flex-1 gap-1.5" disabled={busy} onClick={() => setEmployeeSignOpen(true)}>
@@ -758,36 +831,45 @@ function DetailModal({ detail, loading, isHRAdmin, isDepartmentCoordinator, busy
               <p className="text-xs text-muted-foreground mb-2">
                 Employee record created (Onboarding). HR converts to employee or records a non-start below once the signature chain above is complete.
               </p>
-              {isHRAdmin && (
+              {isHRAdmin && (detail.managerStartSignedAt ? (
                 <div className="flex gap-2">
                   <Button variant="destructive" className="flex-1 gap-1.5" disabled={busy} onClick={() => setNotStartedOpen(true)}>
                     <UserX size={14} /> Did Not Start
                   </Button>
                   <Button
                     className="flex-1 gap-1.5" disabled={busy}
-                    onClick={async () => {
-                      setBusy(true);
-                      try {
-                        const updated = await hiringRequestApi.convert(detail.id);
-                        showToast('Candidate converted to employee.', 'success');
-                        onChanged();
-                        // Hands straight off into starting their contract —
-                        // the Coordinator doesn't have to go hunt for this
-                        // employee again in the Contract Renewal list.
-                        if (updated.convertedEmployeeId) {
-                          navigate(`/hr/freelance-hiring/contract-renewal/${updated.convertedEmployeeId}/preview`);
+                    onClick={() => setConfirmAction({
+                      title: 'Convert candidate to employee?',
+                      description: 'This finalizes the candidate as an active employee and moves the request to the Contract Renewal module to start their contract.',
+                      confirmLabel: 'Convert to Employee',
+                      icon: CheckCircle2,
+                      onConfirm: async () => {
+                        setBusy(true);
+                        try {
+                          await hiringRequestApi.convert(detail.id);
+                          onChanged();
+                          // The hiring flow ends here — no auto-navigate into
+                          // an ad hoc, batch-less contract draft (that used to
+                          // skip "Start New Contract" entirely). Just tell HR
+                          // what's next; they start it properly from there.
+                          setConvertedInfo({ candidateName: detail.candidateName });
+                        } catch (err) {
+                          showToast(getApiErrorMessage(err, 'Failed to convert.'), 'error');
+                        } finally {
+                          setBusy(false);
                         }
-                      } catch (err) {
-                        showToast(getApiErrorMessage(err, 'Failed to convert.'), 'error');
-                      } finally {
-                        setBusy(false);
-                      }
-                    }}
+                      },
+                    })}
                   >
                     <CheckCircle2 size={14} /> Convert to Employee
                   </Button>
                 </div>
-              )}
+              ) : (
+                <div className="rounded-md bg-warning/10 border border-warning/20 px-3 py-2 text-xs text-warning flex items-center gap-1.5">
+                  <Clock size={13} />
+                  Awaiting Department Head signature before HR can convert or mark not-started.
+                </div>
+              ))}
             </ActionBlock>
           )}
 
@@ -889,6 +971,67 @@ function DetailModal({ detail, loading, isHRAdmin, isDepartmentCoordinator, busy
           </div>
         </Modal>
       )}
+
+      <AlertDialog open={!!confirmAction} onOpenChange={(open) => !open && setConfirmAction(null)}>
+        <AlertDialogContent className="sm:max-w-[420px]">
+          <AlertDialogHeader className="flex-row items-start gap-3.5 text-left">
+            <div
+              className={cn(
+                'flex h-11 w-11 shrink-0 items-center justify-center rounded-full ring-8',
+                confirmAction?.destructive
+                  ? 'bg-destructive/10 text-destructive ring-destructive/5'
+                  : 'bg-primary/10 text-primary ring-primary/5'
+              )}
+            >
+              {confirmAction?.icon && <confirmAction.icon size={19} strokeWidth={2.25} />}
+            </div>
+            <div className="space-y-1.5 pt-0.5">
+              <AlertDialogTitle>{confirmAction?.title}</AlertDialogTitle>
+              <AlertDialogDescription>{confirmAction?.description}</AlertDialogDescription>
+            </div>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={busy}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={busy}
+              className={cn(
+                'gap-1.5',
+                confirmAction?.destructive && 'bg-destructive text-destructive-foreground hover:bg-destructive/90'
+              )}
+              onClick={() => {
+                confirmAction?.onConfirm();
+                setConfirmAction(null);
+              }}
+            >
+              {confirmAction?.icon && <confirmAction.icon size={14} />}
+              {confirmAction?.confirmLabel ?? 'Confirm'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!convertedInfo} onOpenChange={(open) => !open && setConvertedInfo(null)}>
+        <AlertDialogContent className="sm:max-w-[420px]">
+          <AlertDialogHeader className="flex-row items-start gap-3.5 text-left">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-success/10 text-success ring-8 ring-success/5">
+              <CheckCircle2 size={19} strokeWidth={2.25} />
+            </div>
+            <div className="space-y-1.5 pt-0.5">
+              <AlertDialogTitle>Candidate converted to employee</AlertDialogTitle>
+              <AlertDialogDescription>
+                {convertedInfo?.candidateName} is now an active employee — the hiring process ends here. Next step: start
+                their contract from Contract → New.
+              </AlertDialogDescription>
+            </div>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Close</AlertDialogCancel>
+            <AlertDialogAction className="gap-1.5" onClick={() => { setConvertedInfo(null); navigate('/hr/freelance-hiring/contract-new'); }}>
+              <FileSignature size={14} /> Go to Contract → New
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
@@ -901,12 +1044,17 @@ function CeoApprovalModal({ hiringRequestId, onClose, onSaved, showToast }: any)
   const [monthlyReward, setMonthlyReward] = useState('');
   const [letter, setLetter] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
-  const handleSubmit = async () => {
+  const handleSubmitClick = () => {
     if (!referenceNo.trim() || !approvalAt) {
       showToast('Reference number and approval date/time are required.', 'error');
       return;
     }
+    setConfirmOpen(true);
+  };
+
+  const handleSubmit = async () => {
     setSaving(true);
     try {
       await hiringRequestApi.recordCeoApproval(
@@ -959,10 +1107,39 @@ function CeoApprovalModal({ hiringRequestId, onClose, onSaved, showToast }: any)
             <span className="truncate">{letter ? letter.name : 'Choose file (optional)'}</span>
           </Button>
         </div>
-        <Button className="w-full gap-1.5" disabled={saving} onClick={handleSubmit}>
+        <Button className="w-full gap-1.5" disabled={saving} onClick={handleSubmitClick}>
           {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck size={14} />} Record Approval
         </Button>
       </div>
+
+      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent className="sm:max-w-[420px]">
+          <AlertDialogHeader className="flex-row items-start gap-3.5 text-left">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary ring-8 ring-primary/5">
+              <ShieldCheck size={19} strokeWidth={2.25} />
+            </div>
+            <div className="space-y-1.5 pt-0.5">
+              <AlertDialogTitle>Record the QMC CEO approval?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Ref. {referenceNo.trim()}{approvalAt ? ` · ${formatDate(approvalAt)}` : ''}. This moves the request forward to the Starting Date step.
+              </AlertDialogDescription>
+            </div>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={saving}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={saving}
+              className="gap-1.5"
+              onClick={() => {
+                setConfirmOpen(false);
+                handleSubmit();
+              }}
+            >
+              <ShieldCheck size={14} /> Record Approval
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Modal>
   );
 }
@@ -970,12 +1147,17 @@ function CeoApprovalModal({ hiringRequestId, onClose, onSaved, showToast }: any)
 function GmApproveModal({ hiringRequestId, onClose, onSaved, showToast }: any) {
   const [approvalDate, setApprovalDate] = useState('');
   const [saving, setSaving] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
-  const handleSubmit = async () => {
+  const handleSubmitClick = () => {
     if (!approvalDate) {
       showToast('The date GM approved is required.', 'error');
       return;
     }
+    setConfirmOpen(true);
+  };
+
+  const handleSubmit = async () => {
     setSaving(true);
     try {
       await hiringRequestApi.gmApprove(hiringRequestId, new Date(approvalDate).toISOString());
@@ -994,10 +1176,39 @@ function GmApproveModal({ hiringRequestId, onClose, onSaved, showToast }: any) {
           <Label className="mb-1.5 block">Date GM Approved</Label>
           <Input type="date" value={approvalDate} onChange={(e) => setApprovalDate(e.target.value)} />
         </div>
-        <Button className="w-full gap-1.5" disabled={saving} onClick={handleSubmit}>
+        <Button className="w-full gap-1.5" disabled={saving} onClick={handleSubmitClick}>
           {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 size={14} />} Record Approval
         </Button>
       </div>
+
+      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent className="sm:max-w-[420px]">
+          <AlertDialogHeader className="flex-row items-start gap-3.5 text-left">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary ring-8 ring-primary/5">
+              <CheckCircle2 size={19} strokeWidth={2.25} />
+            </div>
+            <div className="space-y-1.5 pt-0.5">
+              <AlertDialogTitle>Record GM approval?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This logs the GM's hiring decision as approved on {approvalDate ? formatDate(approvalDate) : ''} and moves the request to CEO approval.
+              </AlertDialogDescription>
+            </div>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={saving}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={saving}
+              className="gap-1.5"
+              onClick={() => {
+                setConfirmOpen(false);
+                handleSubmit();
+              }}
+            >
+              <CheckCircle2 size={14} /> Record Approval
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Modal>
   );
 }
@@ -1253,7 +1464,14 @@ function InterviewTab({ detail }: { detail: HiringRequestDetail }) {
             label="Recommendation"
             value={detail.interviewRecommendation ? RECOMMENDATION_LABELS[detail.interviewRecommendation as InterviewRecommendation] : null}
           />
-          <Field label="Reviewed By (Dept. Head)" value={detail.managerReviewedByName} />
+          <Field
+            label="Reviewed By (Dept. Head)"
+            value={
+              detail.managerReviewedByName
+                ? `${detail.managerReviewedByName}${detail.managerReviewedAt ? ` · ${formatDate(detail.managerReviewedAt)}` : ''}`
+                : null
+            }
+          />
         </div>
         {detail.interviewComments && (
           <div className="mt-3 pt-3 border-t border-border">

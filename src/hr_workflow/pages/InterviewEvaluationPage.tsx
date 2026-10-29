@@ -5,6 +5,16 @@ import { ArrowLeft, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { useToast } from '@/contexts/ToastContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { getApiErrorMessage } from '@/utils/apiError';
@@ -64,6 +74,7 @@ export function InterviewEvaluationPage() {
   // checkboxes — see getCheckedRecommendation. Null until one is checked.
   const [recommendation, setRecommendation] = useState<InterviewRecommendation | null>(null);
   const [saving, setSaving] = useState(false);
+  const [confirmSubmitOpen, setConfirmSubmitOpen] = useState(false);
   const editorRef = useRef<InteractivePdfEditorHandle>(null);
   const prefilledRef = useRef(false);
 
@@ -128,7 +139,7 @@ export function InterviewEvaluationPage() {
     }
   };
 
-  const handleSubmit = async () => {
+  const handleSubmitClick = () => {
     if (!interviewDate) {
       showToast('Interview date is required.', 'error');
       return;
@@ -137,6 +148,11 @@ export function InterviewEvaluationPage() {
       showToast('Check one of the recommendation boxes on the document before submitting.', 'error');
       return;
     }
+    if (!editorRef.current || !pdfBytes) return;
+    setConfirmSubmitOpen(true);
+  };
+
+  const handleSubmit = async () => {
     if (!editorRef.current || !pdfBytes) return;
 
     setSaving(true);
@@ -215,7 +231,7 @@ export function InterviewEvaluationPage() {
           <span className="font-bold text-foreground">{recommendation ? RECOMMENDATION_LABELS[recommendation] : '—'}</span>
         </div>
 
-        <Button size="sm" className="gap-1.5 ml-auto" disabled={!pdfBytes || saving} onClick={handleSubmit}>
+        <Button size="sm" className="gap-1.5 ml-auto" disabled={!pdfBytes || saving} onClick={handleSubmitClick}>
           <Save size={14} /> {saving ? 'Submitting…' : 'Submit Evaluation'}
         </Button>
       </div>
@@ -248,6 +264,36 @@ export function InterviewEvaluationPage() {
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
         </div>
       )}
+
+      <AlertDialog open={confirmSubmitOpen} onOpenChange={setConfirmSubmitOpen}>
+        <AlertDialogContent className="sm:max-w-[420px]">
+          <AlertDialogHeader className="flex-row items-start gap-3.5 text-left">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary ring-8 ring-primary/5">
+              <Save size={19} strokeWidth={2.25} />
+            </div>
+            <div className="space-y-1.5 pt-0.5">
+              <AlertDialogTitle>Submit this interview evaluation?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Final Value {scorePercent}% · Recommendation: {recommendation ? RECOMMENDATION_LABELS[recommendation] : '—'}.
+                Once submitted, this moves the request forward for GM/CEO approval.
+              </AlertDialogDescription>
+            </div>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={saving}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={saving}
+              className="gap-1.5"
+              onClick={() => {
+                setConfirmSubmitOpen(false);
+                handleSubmit();
+              }}
+            >
+              <Save size={14} /> Submit Evaluation
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

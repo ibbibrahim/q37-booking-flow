@@ -306,6 +306,9 @@ export const BookingDashboard: React.FC = () => {
   const [hrOpen, setHrOpen] = useState(() => location.pathname.startsWith('/hr'));
   const [hrReportsOpen, setHrReportsOpen] = useState(() => location.pathname.startsWith('/hr/reports'));
   const [hrEmployeesOpen, setHrEmployeesOpen] = useState(() => location.pathname.startsWith('/hr/employees'));
+  const [hrContractOpen, setHrContractOpen] = useState(() =>
+    location.pathname.startsWith('/hr/freelance-hiring/contract-')
+  );
   const [hrFreelanceHiringOpen, setHrFreelanceHiringOpen] = useState(() =>
     location.pathname.startsWith('/hr/freelance-hiring') ||
     location.pathname === '/hr/department-approvals' ||
@@ -696,7 +699,16 @@ export const BookingDashboard: React.FC = () => {
                         onToggle={() => setHrFreelanceHiringOpen((v) => !v)}
                       >
                         {(isHRAdmin || isDepartmentCoordinator) && (
-                          <SidebarSubItem icon={FileSignature} label="Contract Renewal" small isActive={isPath('/hr/freelance-hiring/contract-renewal')} onClick={() => goTo('/hr/freelance-hiring/contract-renewal')} />
+                          <SidebarSubGroup
+                            icon={FileSignature}
+                            label="Contract"
+                            isActive={isPath('/hr/freelance-hiring/contract-', true)}
+                            open={hrContractOpen}
+                            onToggle={() => setHrContractOpen((v) => !v)}
+                          >
+                            <SidebarSubItem icon={UserRoundCog} label="New" small isActive={isPath('/hr/freelance-hiring/contract-new', true)} onClick={() => goTo('/hr/freelance-hiring/contract-new')} />
+                            <SidebarSubItem icon={FileSignature} label="Renewal" small isActive={isPath('/hr/freelance-hiring/contract-renewal', true)} onClick={() => goTo('/hr/freelance-hiring/contract-renewal')} />
+                          </SidebarSubGroup>
                         )}
                         {isHRAdmin && (
                           <SidebarSubItem icon={UserCheck} label="Profile Submissions" small isActive={isPath('/hr/freelance-hiring/profile-submissions')} onClick={() => goTo('/hr/freelance-hiring/profile-submissions')} />

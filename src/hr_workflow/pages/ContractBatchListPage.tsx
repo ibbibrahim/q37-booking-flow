@@ -9,15 +9,52 @@ import { Badge } from '@/components/ui/badge';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { ListPaginationBar, getInitialPage, getInitialPageSize } from '@/components/ui/list-pagination-bar';
 import { useAuth } from '@/contexts/AuthContext';
-import { StartContractRenewalModal } from '../components/StartContractRenewalModal';
+import { StartContractBatchModal } from '../components/StartContractBatchModal';
 import { StatTile } from '../components/StatTile';
 import { hrApi } from '../api/hrApi';
 import { useHrLanguage } from '../context/HrLanguageContext';
 import { usePageHeader } from '@/contexts/PageHeaderContext';
 import { formatDate } from '../utils/hrUtils';
-import type { HrContractBatch } from '../types/hrApi';
+import type { HrContractBatch, HrContractBatchKind } from '../types/hrApi';
 
-const STORAGE_KEY = 'hr-contract-renewal';
+interface Props {
+  kind: HrContractBatchKind;
+}
+
+const COPY: Record<HrContractBatchKind, {
+  titleKey: 'contractRenewal' | 'contractNew';
+  subtitleKey: 'contractRenewalSubtitle' | 'contractNewSubtitle';
+  startButton: string;
+  statLabel: string;
+  rowLabel: string;
+  emptyTitle: string;
+  emptyHint: string;
+  basePath: string;
+  storageKey: string;
+}> = {
+  New: {
+    titleKey: 'contractNew',
+    subtitleKey: 'contractNewSubtitle',
+    startButton: 'Start New Contract',
+    statLabel: 'New Contracts',
+    rowLabel: 'New Contract',
+    emptyTitle: 'No new contracts yet',
+    emptyHint: 'Use "Start New Contract" to begin one.',
+    basePath: 'contract-new',
+    storageKey: 'hr-contract-new',
+  },
+  Renewal: {
+    titleKey: 'contractRenewal',
+    subtitleKey: 'contractRenewalSubtitle',
+    startButton: 'Start Contract Renewal',
+    statLabel: 'Renewals',
+    rowLabel: 'Renewal',
+    emptyTitle: 'No contract renewals yet',
+    emptyHint: 'Use "Start Contract Renewal" to begin one.',
+    basePath: 'contract-renewal',
+    storageKey: 'hr-contract-renewal',
+  },
+};
 
 /** A renewal's at-a-glance stage, derived purely from its signed/total
  * counts — not a stored field, just a friendlier read on the same numbers
@@ -56,26 +93,28 @@ function sumStatusCounts(renewals: HrContractBatch[], statuses: string[]): numbe
   );
 }
 
-/** Contract Renewal — one list, one shape: every "Start Contract Renewal"
- * submission as its own row. Clicking into one shows its member employees
- * and the familiar per-contract actions (edit/view/sign/status/...). Only
- * HRAdmin can start a new renewal; everyone with read access can see
- * renewals relevant to them (a Department Coordinator's view is scoped
- * server-side to their own department). */
-export function ContractRenewalPage() {
+/** Contract New / Renewal — one list, one shape: every "Start New Contract"
+ * or "Start Contract Renewal" submission as its own row, scoped by `kind`.
+ * Clicking into one shows its member employees and the familiar
+ * per-contract actions (edit/view/sign/status/...). Only HRAdmin can start a
+ * batch; everyone with read access can see batches relevant to them (a
+ * Department Coordinator's view is scoped server-side to their own
+ * department). */
+export function ContractBatchListPage({ kind }: Props) {
+  const copy = COPY[kind];
   const { t } = useHrLanguage();
   const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [startRenewalOpen, setStartRenewalOpen] = useState(false);
-  const [page, setPage] = useState(() => getInitialPage(STORAGE_KEY, 1));
-  const [pageSize, setPageSize] = useState(() => getInitialPageSize(STORAGE_KEY, 10));
+  const [page, setPage] = useState(() => getInitialPage(copy.storageKey, 1));
+  const [pageSize, setPageSize] = useState(() => getInitialPageSize(copy.storageKey, 10));
 
   const isHRAdmin = user?.roles?.includes('HRAdmin') ?? false;
 
   const renewalsQuery = useQuery({
-    queryKey: ['hr-contract-batches'],
-    queryFn: hrApi.getContractBatches,
+    queryKey: ['hr-contract-batches', kind],
+    queryFn: () => hrApi.getContractBatches(kind),
   });
 
   const renewals = useMemo(() => renewalsQuery.data ?? [], [renewalsQuery.data]);
@@ -96,7 +135,7 @@ export function ContractRenewalPage() {
   );
   const completed = useMemo(() => sumStatusCounts(renewals, ['Completed']), [renewals]);
 
-  usePageHeader(t('contractRenewal'), t('contractRenewalSubtitle'));
+  usePageHeader(t(copy.titleKey), t(copy.subtitleKey));
 
   return (
     <TooltipProvider delayDuration={200}>
@@ -104,13 +143,13 @@ export function ContractRenewalPage() {
         {isHRAdmin && (
           <div className="flex justify-end">
             <Button onClick={() => setStartRenewalOpen(true)}>
-              <Plus size={16} className="mr-1" /> Start Contract Renewal
+              <Plus size={16} className="mr-1" /> {copy.startButton}
             </Button>
           </div>
         )}
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <StatTile label="Renewals" value={renewals.length} icon={Layers} />
+          <StatTile label={copy.statLabel} value={renewals.length} icon={Layers} />
           <StatTile label="Employees" value={totalEmployees} icon={Users} accentClassName="bg-info/15 text-info" />
           <StatTile label="In Progress" value={inProgress} icon={Clock} accentClassName="bg-warning/15 text-warning" />
           <StatTile label="Fully Signed" value={completed} icon={CheckCircle2} accentClassName="bg-success/15 text-success" />
@@ -122,7 +161,7 @@ export function ContractRenewalPage() {
           pageSize={pageSize}
           onPageChange={setPage}
           onPageSizeChange={handlePageSizeChange}
-          storageKey={STORAGE_KEY}
+          storageKey={copy.storageKey}
           disabled={renewalsQuery.isLoading}
         />
 
@@ -131,7 +170,7 @@ export function ContractRenewalPage() {
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
-                  <TableHead className="bg-muted/40 text-[11px] uppercase tracking-wide">Renewal</TableHead>
+                  <TableHead className="bg-muted/40 text-[11px] uppercase tracking-wide">{copy.rowLabel}</TableHead>
                   <TableHead className="bg-muted/40 text-[11px] uppercase tracking-wide">Period</TableHead>
                   <TableHead className="bg-muted/40 text-[11px] uppercase tracking-wide">People</TableHead>
                   <TableHead className="bg-muted/40 text-[11px] uppercase tracking-wide">Stage</TableHead>
@@ -150,7 +189,7 @@ export function ContractRenewalPage() {
                 {renewalsQuery.isError && (
                   <TableRow>
                     <TableCell colSpan={6} className="text-center text-destructive py-10">
-                      Failed to load renewals.
+                      Failed to load {copy.rowLabel.toLowerCase()}s.
                     </TableCell>
                   </TableRow>
                 )}
@@ -160,10 +199,8 @@ export function ContractRenewalPage() {
                       <div className="mx-auto h-11 w-11 rounded-full bg-muted flex items-center justify-center mb-3">
                         <Layers size={20} className="text-muted-foreground/60" />
                       </div>
-                      <p className="font-medium text-foreground">No contract renewals yet</p>
-                      <p className="text-sm mt-0.5">
-                        {isHRAdmin ? 'Use "Start Contract Renewal" to begin one.' : 'Nothing to show yet.'}
-                      </p>
+                      <p className="font-medium text-foreground">{copy.emptyTitle}</p>
+                      <p className="text-sm mt-0.5">{isHRAdmin ? copy.emptyHint : 'Nothing to show yet.'}</p>
                     </TableCell>
                   </TableRow>
                 )}
@@ -174,7 +211,7 @@ export function ContractRenewalPage() {
                     <TableRow
                       key={renewal.id}
                       className="cursor-pointer group"
-                      onClick={() => navigate(`/hr/freelance-hiring/contract-renewal/renewals/${renewal.id}`)}
+                      onClick={() => navigate(`/hr/freelance-hiring/${copy.basePath}/renewals/${renewal.id}`)}
                     >
                       <TableCell className="py-4">
                         <div className="flex items-center gap-3">
@@ -209,8 +246,9 @@ export function ContractRenewalPage() {
         </Card>
 
         {isHRAdmin && (
-          <StartContractRenewalModal
+          <StartContractBatchModal
             open={startRenewalOpen}
+            kind={kind}
             onClose={() => setStartRenewalOpen(false)}
             onCompleted={() => queryClient.invalidateQueries({ queryKey: ['hr-contract-batches'] })}
           />

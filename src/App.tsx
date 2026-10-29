@@ -31,7 +31,7 @@ import { EmployeeFormPage } from './hr_workflow/pages/EmployeeFormPage';
 import { LeaveRequestPage } from './hr_workflow/pages/LeaveRequestPage';
 import { LeaveRequestEditorPage } from './hr_workflow/pages/LeaveRequestEditorPage';
 import { LeaveFreelancerAcknowledgePage } from './hr_workflow/pages/LeaveFreelancerAcknowledgePage';
-import { ContractRenewalPage } from './hr_workflow/pages/ContractRenewalPage';
+import { ContractBatchListPage } from './hr_workflow/pages/ContractBatchListPage';
 import { ContractRenewalDetailPage } from './hr_workflow/pages/ContractRenewalDetailPage';
 import { ContractPreviewPage } from './hr_workflow/pages/ContractPreviewPage';
 import { FinancialReportsPage } from './hr_workflow/pages/FinancialReportsPage';
@@ -539,9 +539,12 @@ function App() {
           <Route path="leave-requests" element={<LeaveRequestPage />} />
           <Route path="leave-requests/:id/edit" element={<LeaveRequestEditorPage />} />
           <Route path="leave-requests/:id/acknowledge" element={<LeaveFreelancerAcknowledgePage />} />
-          <Route path="freelance-hiring/contract-renewal" element={<ContractRenewalPage />} />
+          <Route path="freelance-hiring/contract-renewal" element={<ContractBatchListPage kind="Renewal" />} />
           <Route path="freelance-hiring/contract-renewal/renewals/:batchId" element={<ContractRenewalDetailPage />} />
           <Route path="freelance-hiring/contract-renewal/:id/preview" element={<ContractPreviewPage />} />
+          <Route path="freelance-hiring/contract-new" element={<ContractBatchListPage kind="New" />} />
+          <Route path="freelance-hiring/contract-new/renewals/:batchId" element={<ContractRenewalDetailPage />} />
+          <Route path="freelance-hiring/contract-new/:id/preview" element={<ContractPreviewPage />} />
           <Route path="freelance-hiring/profile-submissions" element={<FreelanceProfileReviewPage />} />
           <Route path="freelance-hiring/hiring-requests" element={<HiringRequestsPage />} />
           <Route path="freelance-hiring/hiring-requests/:id/interview" element={<InterviewEvaluationPage />} />

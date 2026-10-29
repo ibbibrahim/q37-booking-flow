@@ -59,12 +59,16 @@ export function ContractRenewalDetailPage() {
 
   const batch = detailQuery.data?.batch;
   const members = detailQuery.data?.members ?? [];
+  // The batch itself knows which Contract sub-menu it was started from —
+  // drive navigation off that instead of a hardcoded path, so this page
+  // works identically whether reached from New or Renewal.
+  const basePath = batch?.kind === 'New' ? 'contract-new' : 'contract-renewal';
 
-  usePageHeader(batch?.label ?? 'Contract Renewal', batch ? `${formatDate(batch.startDate)} – ${formatDate(batch.endDate)}` : null);
+  usePageHeader(batch?.label ?? 'Contract', batch ? `${formatDate(batch.startDate)} – ${formatDate(batch.endDate)}` : null);
 
   const openPreview = (employeeId: number, mode?: 'view' | 'sign') => {
     const query = mode ? `?mode=${mode}` : '';
-    navigate(`/hr/freelance-hiring/contract-renewal/${employeeId}/preview${query}`);
+    navigate(`/hr/freelance-hiring/${basePath}/${employeeId}/preview${query}`);
   };
 
   const discardMutation = useMutation({
@@ -125,11 +129,11 @@ export function ContractRenewalDetailPage() {
     <TooltipProvider delayDuration={200}>
       <div className="space-y-4">
         <div className="flex items-center gap-3">
-          <Button variant="outline" size="icon" onClick={() => navigate('/hr/freelance-hiring/contract-renewal')}>
+          <Button variant="outline" size="icon" onClick={() => navigate(`/hr/freelance-hiring/${basePath}`)}>
             <ArrowLeft size={18} />
           </Button>
           <div className="min-w-0">
-            <h1 className="text-lg font-bold text-foreground truncate">{batch?.label ?? 'Contract Renewal'}</h1>
+            <h1 className="text-lg font-bold text-foreground truncate">{batch?.label ?? 'Contract'}</h1>
             {batch && (
               <p className="text-xs text-muted-foreground">
                 {formatDate(batch.startDate)} – {formatDate(batch.endDate)} · {batch.employeeCount} employee
@@ -172,7 +176,7 @@ export function ContractRenewalDetailPage() {
                 {detailQuery.isError && (
                   <TableRow>
                     <TableCell colSpan={6} className="text-center text-destructive py-10">
-                      Failed to load this renewal.
+                      Failed to load this batch.
                     </TableCell>
                   </TableRow>
                 )}
@@ -180,7 +184,7 @@ export function ContractRenewalDetailPage() {
                   <TableRow>
                     <TableCell colSpan={6} className="text-center text-muted-foreground py-14">
                       <FileText size={22} className="mx-auto mb-2 text-muted-foreground/60" />
-                      No employees in this renewal.
+                      No employees in this batch.
                     </TableCell>
                   </TableRow>
                 )}

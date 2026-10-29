@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Save, CheckCircle2, Undo2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -27,6 +27,7 @@ const STATUS_SUBTITLE: Record<string, string> = {
 export function ContractPreviewPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   // ?mode=view forces a read-only preview even for an in-progress draft
   // (the list page's "View" action); ?mode=new always starts a brand-new
@@ -39,6 +40,10 @@ export function ContractPreviewPage() {
   const { showToast } = useToast();
   const queryClient = useQueryClient();
   const employeeId = Number(id);
+  // Reached from either Contract sub-menu (New or Renewal) via two parallel
+  // route prefixes — read which one from the URL so "Back" returns to the
+  // list the coordinator actually came from, instead of always Renewal.
+  const basePath = location.pathname.includes('/freelance-hiring/contract-new/') ? 'contract-new' : 'contract-renewal';
 
   // The Contract Renewal list's status column reads this same data under a
   // 60s default staleTime — without invalidating it here, going back after
@@ -224,12 +229,14 @@ export function ContractPreviewPage() {
   return (
     <div className="h-[calc(100vh-2rem)] flex flex-col">
       <div className="flex items-center gap-3 p-4 border-b border-border shrink-0 flex-wrap">
-        <Button variant="outline" size="icon" onClick={() => navigate('/hr/freelance-hiring/contract-renewal')}>
+        <Button variant="outline" size="icon" onClick={() => navigate(`/hr/freelance-hiring/${basePath}`)}>
           <ArrowLeft size={20} />
         </Button>
         <div className="flex-1 min-w-0">
           <h1 className="text-lg font-bold text-foreground truncate">
-            {employee ? bilingual(language, employee.fullNameEn, employee.fullNameAr) : t('contractRenewal')}
+            {employee
+              ? bilingual(language, employee.fullNameEn, employee.fullNameAr)
+              : t(basePath === 'contract-new' ? 'contractNew' : 'contractRenewal')}
           </h1>
           <p className="text-xs text-muted-foreground">
             {subtitle}

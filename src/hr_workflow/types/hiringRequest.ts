@@ -33,10 +33,11 @@ export interface HiringRequestSummary {
   contractId: number | null;
   startIntent: 'Started' | 'NotStarted' | null;
   managerStartSignedAt: string | null;
-  /** Department Head's review/sign-off on the interview evaluation — a side
-   * track within InterviewSubmitted, informational only (doesn't gate GM
-   * approval). */
+  managerStartSignedByName: string | null;
+  /** Department Head's review/sign-off on the interview evaluation — gates
+   * GM approval (see HrHiringRequestService.GmApproveAsync/GmRejectAsync). */
   managerReviewedAt: string | null;
+  managerReviewedByName: string | null;
 }
 
 export interface HiringRequestDetail extends HiringRequestSummary {

@@ -1,12 +1,21 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { CheckCircle2, Eye, PenTool, RotateCcw, Undo2, Users } from 'lucide-react';
+import {
+  CheckCircle2, ChevronDown, ClipboardList, Eye, FileSignature, History, PenTool, RotateCcw, Undo2, UserCheck, Users,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
+  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { cn } from '@/lib/utils';
 import { useToast } from '@/contexts/ToastContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSignalR } from '@/contexts/SignalRContext';
@@ -23,7 +32,96 @@ import { stampDeptHeadSignature as stampLeaveDeptHeadSignature } from '../utils/
 import { useHrLanguage, bilingual } from '../context/HrLanguageContext';
 import { usePageHeader } from '@/contexts/PageHeaderContext';
 import { CONTRACT_STATUS_LABEL, CONTRACT_STATUS_BADGE_CLASS, formatDate } from '../utils/hrUtils';
-import type { HrContract, HrEmployee, HrSignatureMethod } from '../types/hrApi';
+import type { HrContract, HrContractSignature, HrEmployee, HrSignatureMethod } from '../types/hrApi';
+
+// --- Small shared pieces reused across this page's four approval queues ---
+
+/** Consistent "icon + title + pending count" header for each queue section. */
+function SectionHeader({ icon: Icon, title, count }: { icon: typeof FileSignature; title: string; count: number }) {
+  return (
+    <div className="flex items-center gap-2">
+      <Icon size={15} className="text-muted-foreground" />
+      <h2 className="text-sm font-semibold text-foreground">{title}</h2>
+      <Badge variant="soft">{count}</Badge>
+    </div>
+  );
+}
+
+/** Collapsed-by-default "what you already signed" strip, so a signed item
+ * is never just gone — it's one click away under the pending queue it came
+ * from. */
+function HistoryPanel({ count, children }: { count: number; children: ReactNode }) {
+  const [open, setOpen] = useState(false);
+  if (count === 0) return null;
+  return (
+    <Collapsible open={open} onOpenChange={setOpen} className="border-t border-border mt-3 pt-3">
+      <CollapsibleTrigger className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
+        <ChevronDown size={13} className={cn('transition-transform', open && 'rotate-180')} />
+        <History size={13} />
+        Recently signed by you ({count})
+      </CollapsibleTrigger>
+      <CollapsibleContent className="pt-2">{children}</CollapsibleContent>
+    </Collapsible>
+  );
+}
+
+/** Read-only PDF preview reused by every "View" action on this page — both
+ * for a pending item before signing, and for an already-signed one in a
+ * History panel. */
+function PdfQuickViewDialog({
+  open, onOpenChange, title, url,
+}: { open: boolean; onOpenChange: (open: boolean) => void; title: string; url: string | null }) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-4xl w-[90vw] h-[85vh] flex flex-col p-0 gap-0">
+        <DialogHeader className="px-5 py-3.5 border-b border-border space-y-0">
+          <DialogTitle className="text-sm">{title}</DialogTitle>
+        </DialogHeader>
+        <div className="flex-1 min-h-0 bg-muted/30">
+          {url ? (
+            <embed src={url} type="application/pdf" className="w-full h-full" />
+          ) : (
+            <div className="flex items-center justify-center h-full text-muted-foreground text-sm">Loading…</div>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/** Confirmation before stamping the saved signature — shared by the row
+ * "Sign" button, "Sign All", and the full-screen review mode's "Sign &
+ * Next" button below. */
+function SignContractConfirmDialog({
+  target, busy, onConfirm, onCancel,
+}: { target: PendingItem | null; busy: boolean; onConfirm: () => void; onCancel: () => void }) {
+  const { language } = useHrLanguage();
+  return (
+    <AlertDialog open={!!target} onOpenChange={(open) => !open && onCancel()}>
+      <AlertDialogContent className="sm:max-w-[420px]">
+        <AlertDialogHeader className="flex-row items-start gap-3.5 text-left">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary ring-8 ring-primary/5">
+            <PenTool size={19} strokeWidth={2.25} />
+          </div>
+          <div className="space-y-1.5 pt-0.5">
+            <AlertDialogTitle>Sign this contract?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {target
+                ? `This stamps your saved signature on ${bilingual(language, target.employee.fullNameEn, target.employee.fullNameAr)}'s contract and moves it forward.`
+                : ''}
+            </AlertDialogDescription>
+          </div>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={busy}>Cancel</AlertDialogCancel>
+          <AlertDialogAction disabled={busy} className="gap-1.5" onClick={onConfirm}>
+            <PenTool size={14} /> Sign
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}
 
 interface PendingItem {
   employee: HrEmployee;
@@ -54,7 +152,11 @@ export function DepartmentApprovalsPage() {
   const [returnTarget, setReturnTarget] = useState<PendingItem | null>(null);
   const [bulkReturnOpen, setBulkReturnOpen] = useState(false);
   const [returning, setReturning] = useState(false);
+  const [signConfirm, setSignConfirm] = useState<PendingItem | null>(null);
+  const [signAllConfirmOpen, setSignAllConfirmOpen] = useState(false);
+  const [historyPreview, setHistoryPreview] = useState<{ title: string; url: string | null } | null>(null);
   const objectUrlRef = useRef<string | null>(null);
+  const historyObjectUrlRef = useRef<string | null>(null);
   const signatureBytesRef = useRef<{ bytes: Uint8Array; type: 'png' | 'jpeg' } | null>(null);
 
   const meQuery = useQuery({
@@ -102,6 +204,23 @@ export function DepartmentApprovalsPage() {
         .filter((c) => c.status === 'AwaitingDepartmentHeadSignature')
         .map((c) => ({ contract: c, employee: employeeById.get(c.employeeId) }))
         .filter((p): p is PendingItem => !!p.employee),
+    [contractsQuery.data, employeeById]
+  );
+
+  // Already-signed contracts, newest first — reuses the same "latest
+  // contract per employee" data already fetched for `pending` above, so no
+  // extra query. Lets a Department Head look back at what they approved
+  // instead of it just disappearing from the page.
+  const signedHistory = useMemo(
+    () =>
+      (contractsQuery.data ?? [])
+        .map((c) => ({
+          contract: c,
+          employee: employeeById.get(c.employeeId),
+          signature: c.signatures.find((s) => s.role === 'DepartmentHead'),
+        }))
+        .filter((x): x is { contract: HrContract; employee: HrEmployee; signature: HrContractSignature } => !!x.employee && !!x.signature)
+        .sort((a, b) => new Date(b.signature.signedAt).getTime() - new Date(a.signature.signedAt).getTime()),
     [contractsQuery.data, employeeById]
   );
 
@@ -220,6 +339,24 @@ export function DepartmentApprovalsPage() {
     if (objectUrlRef.current) {
       URL.revokeObjectURL(objectUrlRef.current);
       objectUrlRef.current = null;
+    }
+  };
+
+  const openHistoryPreview = async (contractId: number, title: string) => {
+    setHistoryPreview({ title, url: null });
+    const buffer = await hrApi.getContractPdfBytes(contractId);
+    const blob = new Blob([new Uint8Array(buffer)], { type: 'application/pdf' });
+    const url = URL.createObjectURL(blob);
+    if (historyObjectUrlRef.current) URL.revokeObjectURL(historyObjectUrlRef.current);
+    historyObjectUrlRef.current = url;
+    setHistoryPreview({ title, url });
+  };
+
+  const closeHistoryPreview = () => {
+    setHistoryPreview(null);
+    if (historyObjectUrlRef.current) {
+      URL.revokeObjectURL(historyObjectUrlRef.current);
+      historyObjectUrlRef.current = null;
     }
   };
 
@@ -348,7 +485,7 @@ export function DepartmentApprovalsPage() {
               size="sm"
               className="gap-1.5"
               disabled={!hasSignature || signingContractId === reviewItem.contract.id}
-              onClick={handleSignInReview}
+              onClick={() => setSignConfirm(reviewItem)}
             >
               <CheckCircle2 size={14} />
               {signingContractId === reviewItem.contract.id ? 'Signing…' : 'Sign & Next'}
@@ -366,6 +503,12 @@ export function DepartmentApprovalsPage() {
           description={`This sends ${returnTarget ? bilingual(language, returnTarget.employee.fullNameEn, returnTarget.employee.fullNameAr) : ''}'s contract back — it becomes read-only, and HR will need to start a new renewal to correct it.`}
           loading={returning}
           onConfirm={handleReturnConfirm}
+        />
+        <SignContractConfirmDialog
+          target={signConfirm}
+          busy={signingContractId !== null}
+          onCancel={() => setSignConfirm(null)}
+          onConfirm={() => { setSignConfirm(null); handleSignInReview(); }}
         />
       </TooltipProvider>
     );
@@ -413,7 +556,7 @@ export function DepartmentApprovalsPage() {
                 size="sm"
                 className="gap-1.5 shrink-0"
                 disabled={!hasSignature || bulkProgress !== null}
-                onClick={handleSignAll}
+                onClick={() => setSignAllConfirmOpen(true)}
               >
                 <CheckCircle2 size={14} />
                 {bulkProgress ? `Signing ${bulkProgress.done + 1} of ${bulkProgress.total}…` : `Sign All (${pending.length})`}
@@ -423,6 +566,9 @@ export function DepartmentApprovalsPage() {
         </Card>
 
         <Card>
+          <CardContent className="p-4 pb-0">
+            <SectionHeader icon={FileSignature} title="Contract Renewals" count={pending.length} />
+          </CardContent>
           <CardContent className="p-0">
             <Table>
               <TableHeader>
@@ -476,7 +622,7 @@ export function DepartmentApprovalsPage() {
                             icon={CheckCircle2}
                             label={signingContractId === item.contract.id ? 'Signing…' : 'Sign'}
                             disabled={!hasSignature || signingContractId !== null}
-                            onClick={() => handleSignRow(item)}
+                            onClick={() => setSignConfirm(item)}
                           />
                         </div>
                       </TableCell>
@@ -484,6 +630,38 @@ export function DepartmentApprovalsPage() {
                   ))}
               </TableBody>
             </Table>
+          </CardContent>
+          <CardContent className="px-4 pb-4 pt-0">
+            <HistoryPanel count={signedHistory.length}>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Employee</TableHead>
+                    <TableHead>Signed By</TableHead>
+                    <TableHead>Signed At</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {signedHistory.map(({ contract, employee, signature }) => (
+                    <TableRow key={contract.id}>
+                      <TableCell className="font-medium text-foreground">
+                        {bilingual(language, employee.fullNameEn, employee.fullNameAr)}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">{signature.signedByName}</TableCell>
+                      <TableCell className="text-muted-foreground">{formatDate(signature.signedAt)}</TableCell>
+                      <TableCell className="text-right">
+                        <ActionIconButton
+                          icon={Eye}
+                          label="View"
+                          onClick={() => openHistoryPreview(contract.id, bilingual(language, employee.fullNameEn, employee.fullNameAr))}
+                        />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </HistoryPanel>
           </CardContent>
         </Card>
 
@@ -514,6 +692,47 @@ export function DepartmentApprovalsPage() {
           loading={returning}
           onConfirm={handleBulkReturnConfirm}
         />
+
+        <SignContractConfirmDialog
+          target={signConfirm}
+          busy={signingContractId !== null}
+          onCancel={() => setSignConfirm(null)}
+          onConfirm={() => { const item = signConfirm; setSignConfirm(null); if (item) handleSignRow(item); }}
+        />
+
+        <AlertDialog open={signAllConfirmOpen} onOpenChange={setSignAllConfirmOpen}>
+          <AlertDialogContent className="sm:max-w-[420px]">
+            <AlertDialogHeader className="flex-row items-start gap-3.5 text-left">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary ring-8 ring-primary/5">
+                <PenTool size={19} strokeWidth={2.25} />
+              </div>
+              <div className="space-y-1.5 pt-0.5">
+                <AlertDialogTitle>Sign all {pending.length} contracts?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This stamps your saved signature on every contract currently awaiting your signature, one by one. If one was added
+                  by mistake, return it afterward from the queue instead.
+                </AlertDialogDescription>
+              </div>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={bulkProgress !== null}>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                disabled={bulkProgress !== null}
+                className="gap-1.5"
+                onClick={() => { setSignAllConfirmOpen(false); handleSignAll(); }}
+              >
+                <PenTool size={14} /> Sign All
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        <PdfQuickViewDialog
+          open={!!historyPreview}
+          onOpenChange={(open) => !open && closeHistoryPreview()}
+          title={historyPreview?.title ?? ''}
+          url={historyPreview?.url ?? null}
+        />
       </div>
     </TooltipProvider>
   );
@@ -535,15 +754,39 @@ function LeaveNoticesSection({
   const { showToast } = useToast();
   const queryClient = useQueryClient();
   const [signingId, setSigningId] = useState<number | null>(null);
+  const [signConfirm, setSignConfirm] = useState<{ id: number; employeeName: string | null } | null>(null);
+  const [preview, setPreview] = useState<{ id: number; title: string; url: string | null } | null>(null);
+  const previewUrlRef = useRef<string | null>(null);
 
   const listQuery = useQuery({ queryKey: ['hr-leave-requests', 'department-approvals'], queryFn: leaveRequestApi.getAll });
   const pending = (listQuery.data ?? []).filter((r) => r.status === 'AwaitingDepartmentHeadSignature');
+  const signedHistory = (listQuery.data ?? [])
+    .filter((r) => !!r.deptHeadSignedAt)
+    .sort((a, b) => new Date(b.deptHeadSignedAt!).getTime() - new Date(a.deptHeadSignedAt!).getTime());
 
   const { listen } = useSignalR();
   useEffect(
     () => listen('LeaveRequestChanged', () => queryClient.invalidateQueries({ queryKey: ['hr-leave-requests'] })),
     [listen, queryClient]
   );
+
+  const openPreview = async (id: number, title: string) => {
+    setPreview({ id, title, url: null });
+    const buffer = await leaveRequestApi.getPdfBytes(id);
+    const blob = new Blob([new Uint8Array(buffer)], { type: 'application/pdf' });
+    const url = URL.createObjectURL(blob);
+    if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
+    previewUrlRef.current = url;
+    setPreview({ id, title, url });
+  };
+
+  const closePreview = () => {
+    setPreview(null);
+    if (previewUrlRef.current) {
+      URL.revokeObjectURL(previewUrlRef.current);
+      previewUrlRef.current = null;
+    }
+  };
 
   const handleSign = async (id: number, employeeName: string | null) => {
     if (!signatureBytesRef.current) {
@@ -568,12 +811,12 @@ function LeaveNoticesSection({
     }
   };
 
-  if (pending.length === 0) return null;
+  if (pending.length === 0 && signedHistory.length === 0) return null;
 
   return (
     <Card>
       <CardContent className="p-4 space-y-3">
-        <h2 className="text-sm font-semibold text-foreground">Leave / Suspension Notices Awaiting Your Signature</h2>
+        <SectionHeader icon={History} title="Leave / Suspension Notices Awaiting Your Signature" count={pending.length} />
         <Table>
           <TableHeader>
             <TableRow>
@@ -585,6 +828,13 @@ function LeaveNoticesSection({
             </TableRow>
           </TableHeader>
           <TableBody>
+            {pending.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center text-muted-foreground py-6">
+                  No leave notices awaiting your signature right now.
+                </TableCell>
+              </TableRow>
+            )}
             {pending.map((r) => (
               <TableRow key={r.id}>
                 <TableCell className="font-medium text-foreground">{r.employeeFullNameEn}</TableCell>
@@ -592,20 +842,78 @@ function LeaveNoticesSection({
                 <TableCell>{r.startDate ? formatDate(r.startDate) : '—'} – {r.endDate ? formatDate(r.endDate) : '—'}</TableCell>
                 <TableCell className="tabular-nums">{r.totalDays ?? '—'}</TableCell>
                 <TableCell className="text-right">
-                  <Button
-                    size="sm"
-                    className="gap-1.5"
-                    disabled={!hasSignature || signingId !== null}
-                    onClick={() => handleSign(r.id, r.employeeFullNameEn)}
-                  >
-                    <CheckCircle2 size={14} /> {signingId === r.id ? 'Signing…' : 'Sign'}
-                  </Button>
+                  <div className="flex justify-end gap-1.5">
+                    <ActionIconButton icon={Eye} label="View" onClick={() => openPreview(r.id, r.employeeFullNameEn ?? 'Leave Notice')} />
+                    <Button
+                      size="sm"
+                      className="gap-1.5"
+                      disabled={!hasSignature || signingId !== null}
+                      onClick={() => setSignConfirm({ id: r.id, employeeName: r.employeeFullNameEn })}
+                    >
+                      <CheckCircle2 size={14} /> {signingId === r.id ? 'Signing…' : 'Sign'}
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
+
+        <HistoryPanel count={signedHistory.length}>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Freelancer</TableHead>
+                <TableHead>Signed By</TableHead>
+                <TableHead>Signed At</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {signedHistory.map((r) => (
+                <TableRow key={r.id}>
+                  <TableCell className="font-medium text-foreground">{r.employeeFullNameEn}</TableCell>
+                  <TableCell className="text-muted-foreground">{r.deptHeadSignedByName}</TableCell>
+                  <TableCell className="text-muted-foreground">{formatDate(r.deptHeadSignedAt)}</TableCell>
+                  <TableCell className="text-right">
+                    <ActionIconButton icon={Eye} label="View" onClick={() => openPreview(r.id, r.employeeFullNameEn ?? 'Leave Notice')} />
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </HistoryPanel>
       </CardContent>
+
+      <AlertDialog open={!!signConfirm} onOpenChange={(open) => !open && setSignConfirm(null)}>
+        <AlertDialogContent className="sm:max-w-[420px]">
+          <AlertDialogHeader className="flex-row items-start gap-3.5 text-left">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary ring-8 ring-primary/5">
+              <PenTool size={19} strokeWidth={2.25} />
+            </div>
+            <div className="space-y-1.5 pt-0.5">
+              <AlertDialogTitle>Sign this leave notice?</AlertDialogTitle>
+              <AlertDialogDescription>
+                {signConfirm
+                  ? `This stamps your saved signature on ${signConfirm.employeeName ?? 'this'}'s leave notice and sends it to them to acknowledge.`
+                  : ''}
+              </AlertDialogDescription>
+            </div>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={signingId !== null}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={signingId !== null}
+              className="gap-1.5"
+              onClick={() => { const target = signConfirm; setSignConfirm(null); if (target) handleSign(target.id, target.employeeName); }}
+            >
+              <PenTool size={14} /> Sign
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <PdfQuickViewDialog open={!!preview} onOpenChange={(open) => !open && closePreview()} title={preview?.title ?? ''} url={preview?.url ?? null} />
     </Card>
   );
 }
@@ -617,9 +925,14 @@ function LeaveNoticesSection({
 function InterviewReviewsSection() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [preview, setPreview] = useState<{ id: number; title: string; url: string | null } | null>(null);
+  const previewUrlRef = useRef<string | null>(null);
 
   const listQuery = useQuery({ queryKey: ['hr-hiring-requests', 'department-approvals'], queryFn: hiringRequestApi.getAll });
   const pending = (listQuery.data ?? []).filter((r) => r.status === 'InterviewSubmitted' && !r.managerReviewedAt);
+  const signedHistory = (listQuery.data ?? [])
+    .filter((r) => !!r.managerReviewedAt)
+    .sort((a, b) => new Date(b.managerReviewedAt!).getTime() - new Date(a.managerReviewedAt!).getTime());
 
   const { listen } = useSignalR();
   useEffect(
@@ -627,12 +940,30 @@ function InterviewReviewsSection() {
     [listen, queryClient]
   );
 
-  if (pending.length === 0) return null;
+  const openPreview = async (id: number, title: string) => {
+    setPreview({ id, title, url: null });
+    const buffer = await hiringRequestApi.getInterviewPdfBytes(id);
+    const blob = new Blob([new Uint8Array(buffer)], { type: 'application/pdf' });
+    const url = URL.createObjectURL(blob);
+    if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
+    previewUrlRef.current = url;
+    setPreview({ id, title, url });
+  };
+
+  const closePreview = () => {
+    setPreview(null);
+    if (previewUrlRef.current) {
+      URL.revokeObjectURL(previewUrlRef.current);
+      previewUrlRef.current = null;
+    }
+  };
+
+  if (pending.length === 0 && signedHistory.length === 0) return null;
 
   return (
     <Card>
       <CardContent className="p-4 space-y-3">
-        <h2 className="text-sm font-semibold text-foreground">Interview Evaluations Awaiting Your Review</h2>
+        <SectionHeader icon={ClipboardList} title="Interview Evaluations Awaiting Your Review" count={pending.length} />
         <Table>
           <TableHeader>
             <TableRow>
@@ -642,6 +973,13 @@ function InterviewReviewsSection() {
             </TableRow>
           </TableHeader>
           <TableBody>
+            {pending.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={3} className="text-center text-muted-foreground py-6">
+                  No interview evaluations awaiting your review right now.
+                </TableCell>
+              </TableRow>
+            )}
             {pending.map((r) => (
               <TableRow key={r.id}>
                 <TableCell className="font-medium text-foreground">{r.candidateName}</TableCell>
@@ -659,7 +997,34 @@ function InterviewReviewsSection() {
             ))}
           </TableBody>
         </Table>
+
+        <HistoryPanel count={signedHistory.length}>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Candidate</TableHead>
+                <TableHead>Reviewed By</TableHead>
+                <TableHead>Reviewed At</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {signedHistory.map((r) => (
+                <TableRow key={r.id}>
+                  <TableCell className="font-medium text-foreground">{r.candidateName}</TableCell>
+                  <TableCell className="text-muted-foreground">{r.managerReviewedByName}</TableCell>
+                  <TableCell className="text-muted-foreground">{formatDate(r.managerReviewedAt)}</TableCell>
+                  <TableCell className="text-right">
+                    <ActionIconButton icon={Eye} label="View" onClick={() => openPreview(r.id, r.candidateName)} />
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </HistoryPanel>
       </CardContent>
+
+      <PdfQuickViewDialog open={!!preview} onOpenChange={(open) => !open && closePreview()} title={preview?.title ?? ''} url={preview?.url ?? null} />
     </Card>
   );
 }
@@ -681,17 +1046,41 @@ function StartingDateConfirmationsSection({
   const { showToast } = useToast();
   const queryClient = useQueryClient();
   const [signingId, setSigningId] = useState<number | null>(null);
+  const [signConfirm, setSignConfirm] = useState<{ id: number; intent: 'Started' | 'NotStarted'; candidateName: string } | null>(null);
+  const [preview, setPreview] = useState<{ id: number; title: string; url: string | null } | null>(null);
+  const previewUrlRef = useRef<string | null>(null);
 
   const listQuery = useQuery({ queryKey: ['hr-hiring-requests', 'department-approvals'], queryFn: hiringRequestApi.getAll });
   const pending = (listQuery.data ?? []).filter(
     (r) => r.status === 'StartingDateSet' && r.startIntent && !r.managerStartSignedAt
   );
+  const signedHistory = (listQuery.data ?? [])
+    .filter((r) => !!r.managerStartSignedAt)
+    .sort((a, b) => new Date(b.managerStartSignedAt!).getTime() - new Date(a.managerStartSignedAt!).getTime());
 
   const { listen } = useSignalR();
   useEffect(
     () => listen('HiringRequestChanged', () => queryClient.invalidateQueries({ queryKey: ['hr-hiring-requests'] })),
     [listen, queryClient]
   );
+
+  const openPreview = async (id: number, title: string) => {
+    setPreview({ id, title, url: null });
+    const buffer = await hiringRequestApi.getPdfBytes(id);
+    const blob = new Blob([new Uint8Array(buffer)], { type: 'application/pdf' });
+    const url = URL.createObjectURL(blob);
+    if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
+    previewUrlRef.current = url;
+    setPreview({ id, title, url });
+  };
+
+  const closePreview = () => {
+    setPreview(null);
+    if (previewUrlRef.current) {
+      URL.revokeObjectURL(previewUrlRef.current);
+      previewUrlRef.current = null;
+    }
+  };
 
   const handleSign = async (id: number, intent: 'Started' | 'NotStarted', candidateName: string) => {
     if (!signatureBytesRef.current) {
@@ -716,12 +1105,12 @@ function StartingDateConfirmationsSection({
     }
   };
 
-  if (pending.length === 0) return null;
+  if (pending.length === 0 && signedHistory.length === 0) return null;
 
   return (
     <Card>
       <CardContent className="p-4 space-y-3">
-        <h2 className="text-sm font-semibold text-foreground">Starting Date Confirmations Awaiting Your Signature</h2>
+        <SectionHeader icon={UserCheck} title="Starting Date Confirmations Awaiting Your Signature" count={pending.length} />
         <Table>
           <TableHeader>
             <TableRow>
@@ -732,26 +1121,91 @@ function StartingDateConfirmationsSection({
             </TableRow>
           </TableHeader>
           <TableBody>
+            {pending.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={4} className="text-center text-muted-foreground py-6">
+                  No starting date confirmations awaiting your signature right now.
+                </TableCell>
+              </TableRow>
+            )}
             {pending.map((r) => (
               <TableRow key={r.id}>
                 <TableCell className="font-medium text-foreground">{r.candidateName}</TableCell>
                 <TableCell>{r.startIntent === 'Started' ? 'Started' : 'Did not show up'}</TableCell>
                 <TableCell className="text-muted-foreground">{r.startingDate ? formatDate(r.startingDate) : '—'}</TableCell>
                 <TableCell className="text-right">
-                  <Button
-                    size="sm"
-                    className="gap-1.5"
-                    disabled={!hasSignature || signingId !== null}
-                    onClick={() => handleSign(r.id, r.startIntent as 'Started' | 'NotStarted', r.candidateName)}
-                  >
-                    <CheckCircle2 size={14} /> {signingId === r.id ? 'Signing…' : 'Sign'}
-                  </Button>
+                  <div className="flex justify-end gap-1.5">
+                    <ActionIconButton icon={Eye} label="View" onClick={() => openPreview(r.id, r.candidateName)} />
+                    <Button
+                      size="sm"
+                      className="gap-1.5"
+                      disabled={!hasSignature || signingId !== null}
+                      onClick={() => setSignConfirm({ id: r.id, intent: r.startIntent as 'Started' | 'NotStarted', candidateName: r.candidateName })}
+                    >
+                      <CheckCircle2 size={14} /> {signingId === r.id ? 'Signing…' : 'Sign'}
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
+
+        <HistoryPanel count={signedHistory.length}>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Candidate</TableHead>
+                <TableHead>Outcome</TableHead>
+                <TableHead>Signed At</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {signedHistory.map((r) => (
+                <TableRow key={r.id}>
+                  <TableCell className="font-medium text-foreground">{r.candidateName}</TableCell>
+                  <TableCell className="text-muted-foreground">{r.startIntent === 'Started' ? 'Started' : 'Did not show up'}</TableCell>
+                  <TableCell className="text-muted-foreground">{formatDate(r.managerStartSignedAt)}</TableCell>
+                  <TableCell className="text-right">
+                    <ActionIconButton icon={Eye} label="View" onClick={() => openPreview(r.id, r.candidateName)} />
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </HistoryPanel>
       </CardContent>
+
+      <AlertDialog open={!!signConfirm} onOpenChange={(open) => !open && setSignConfirm(null)}>
+        <AlertDialogContent className="sm:max-w-[420px]">
+          <AlertDialogHeader className="flex-row items-start gap-3.5 text-left">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary ring-8 ring-primary/5">
+              <PenTool size={19} strokeWidth={2.25} />
+            </div>
+            <div className="space-y-1.5 pt-0.5">
+              <AlertDialogTitle>Sign this starting date confirmation?</AlertDialogTitle>
+              <AlertDialogDescription>
+                {signConfirm
+                  ? `This stamps your saved signature confirming ${signConfirm.candidateName} ${signConfirm.intent === 'Started' ? 'started as scheduled' : 'did not show up'}. HR can then proceed with ${signConfirm.intent === 'Started' ? 'converting them to an employee' : 'marking them not-started'}.`
+                  : ''}
+              </AlertDialogDescription>
+            </div>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={signingId !== null}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={signingId !== null}
+              className="gap-1.5"
+              onClick={() => { const t = signConfirm; setSignConfirm(null); if (t) handleSign(t.id, t.intent, t.candidateName); }}
+            >
+              <PenTool size={14} /> Sign
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <PdfQuickViewDialog open={!!preview} onOpenChange={(open) => !open && closePreview()} title={preview?.title ?? ''} url={preview?.url ?? null} />
     </Card>
   );
 }

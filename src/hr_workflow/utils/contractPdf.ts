@@ -31,6 +31,42 @@ function formatDateEn(iso: string): string {
   return new Date(iso).toLocaleDateString('en-GB'); // DD/MM/YYYY
 }
 
+// Page 1's "It is on {day} corresponding to {date}, in Doha..." line wants
+// the day name (e.g. "Monday"), not another date — confirmed by stamping
+// 'on'/'Date 12' (English) and 'fill_2'/'Date 11' (Arabic mirror) and
+// rendering the page: the day-name blank comes first on both sides, the
+// date blank second.
+const DAY_NAMES_EN = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const DAY_NAMES_AR = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+
+function dayNameEn(date: Date): string {
+  return DAY_NAMES_EN[date.getDay()];
+}
+
+function dayNameAr(date: Date): string {
+  return DAY_NAMES_AR[date.getDay()];
+}
+
+function formatCurrency(amount: number): string {
+  return amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+// The "Second: Works and Tasks" department blank is immediately followed by
+// a literal printed "Department"/"إدارة" in the template — department names
+// in this system already include that word (e.g. "Operation Department",
+// "إدارة العمليات"), so filling the blank unmodified doubles it (confirmed
+// by rendering: "...at the Operation Department **Department** (as
+// prescribed...)"). Strip it off for just this one blank.
+function stripDepartmentSuffixEn(name: string | null | undefined): string | null | undefined {
+  const stripped = name?.replace(/\s*Department\s*$/i, '').trim();
+  return stripped || name;
+}
+
+function stripDepartmentSuffixAr(name: string | null | undefined): string | null | undefined {
+  const stripped = name?.replace(/^\s*إدارة\s*/, '').trim();
+  return stripped || name;
+}
+
 /** Sets a text field's value, shrinking the font size (down to a floor)
  * until the text actually fits the field's real width — a fixed size looks
  * right for short values but pdf-lib doesn't clip long ones, so they render
@@ -76,35 +112,63 @@ const CONTRACT_DATE_FIELD_NAMES = {
   monthsAr: 'fill_1_3',
 } as const;
 
+// Page 3, "Fourth: The Value of Services" — confirmed the same way as the
+// date fields above: English reads "...a Total amount of {total} QR (Only
+// {spelled-out, left blank — no number-to-words converter, same call as the
+// months field below} Qatari Riyals) to be paid on a monthly basis at an
+// amount of (QR {monthly})...", Arabic mirrors the same structure.
+const VALUE_OF_SERVICES_FIELD_NAMES = {
+  totalEn: 'Total amount of_8',
+  totalAr: 'fill_6_3',
+  monthlyEn: 'Qatari Riyals to be paid on a monthly basis at an',
+  monthlyAr: 'fill_6_333',
+} as const;
+
+// A same-calendar-month range (e.g. 1 Nov – 30 Nov) is still a real
+// 1-month contract, not "0 months" — floors at 1 for any forward date
+// range rather than showing a literal zero on a legal document.
 function monthsBetween(startIso: string, endIso: string): number {
   const start = new Date(startIso);
   const end = new Date(endIso);
   const months = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
-  return Math.max(months, 0);
+  return Math.max(months, 1);
 }
 
-/** Keeps the contract's validity-period fields (page 3) in sync with the
- * Start/End Date captured when the contract was created — same "inject into
- * the live field-value map" pattern used for the Interview/Starting Date
- * forms. Both the English and Arabic sides get the same Gregorian dates
- * (same "no Hijri conversion" simplification already used for the contract
- * date elsewhere in this file). */
+/** Keeps the contract's validity-period and value-of-services fields (page
+ * 3) in sync with the Start/End Date and the employee's monthly rate
+ * captured when the contract was created — same "inject into the live
+ * field-value map" pattern used for the Interview/Starting Date forms. Both
+ * the English and Arabic sides get the same Gregorian dates (same "no Hijri
+ * conversion" simplification already used for the contract date elsewhere
+ * in this file) and the same numerals (QR amounts aren't translated). */
 export function withContractDateFields(
   values: Record<string, string>,
-  data: { startDateIso: string; endDateIso: string }
+  data: { startDateIso: string; endDateIso: string; monthlyRate?: number | null }
 ): Record<string, string> {
   const startEn = formatDateEn(data.startDateIso);
   const endEn = formatDateEn(data.endDateIso);
-  const months = String(monthsBetween(data.startDateIso, data.endDateIso));
-  return {
+  const months = monthsBetween(data.startDateIso, data.endDateIso);
+
+  const result: Record<string, string> = {
     ...values,
     [CONTRACT_DATE_FIELD_NAMES.startDateEn]: startEn,
     [CONTRACT_DATE_FIELD_NAMES.endDateEn]: endEn,
     [CONTRACT_DATE_FIELD_NAMES.startDateAr]: startEn,
     [CONTRACT_DATE_FIELD_NAMES.endDateAr]: endEn,
-    [CONTRACT_DATE_FIELD_NAMES.monthsEn]: months,
-    [CONTRACT_DATE_FIELD_NAMES.monthsAr]: months,
+    [CONTRACT_DATE_FIELD_NAMES.monthsEn]: String(months),
+    [CONTRACT_DATE_FIELD_NAMES.monthsAr]: String(months),
   };
+
+  if (data.monthlyRate != null && data.monthlyRate > 0) {
+    const monthly = formatCurrency(data.monthlyRate);
+    const total = formatCurrency(data.monthlyRate * months);
+    result[VALUE_OF_SERVICES_FIELD_NAMES.totalEn] = total;
+    result[VALUE_OF_SERVICES_FIELD_NAMES.totalAr] = total;
+    result[VALUE_OF_SERVICES_FIELD_NAMES.monthlyEn] = monthly;
+    result[VALUE_OF_SERVICES_FIELD_NAMES.monthlyAr] = monthly;
+  }
+
+  return result;
 }
 
 /** Merges the coordinator's field values (read live from the interactive
@@ -144,16 +208,32 @@ export async function fillContractTemplate(employee: HrEmployee): Promise<Uint8A
   const form = pdfDoc.getForm();
   const setField = (name: string, value: string | null | undefined) => setFieldFitted(form, font, name, value);
 
-  const today = formatDateEn(new Date().toISOString());
+  const now = new Date();
+  const today = formatDateEn(now.toISOString());
 
-  // Contract date — both EN and AR sides get today's date. The template has
-  // a Gregorian + Hijri pair; we don't do Hijri conversion, so both get the
-  // same Gregorian-formatted date for now (low-stakes, coordinator reviews
-  // before this goes anywhere near a signature).
-  setField('on', today);
+  // Contract date line — "It is on {day} corresponding to {date}, in
+  // Doha...": day-name blank first, Gregorian-date blank second, confirmed
+  // by stamping each candidate field and rendering the page. The template
+  // has a Gregorian + Hijri pair for the date itself; we don't do Hijri
+  // conversion, so both sides get the same Gregorian-formatted date (low-
+  // stakes, coordinator reviews before this goes anywhere near a signature).
+  setField('on', dayNameEn(now));
   setField('Date 12', today);
   setField('Date 11', today);
-  setField('fill_2', today);
+  setField('fill_2', dayNameAr(now));
+
+  // Job title — appears twice: the Preamble's "requires the services of
+  // ___" and "Second: Works and Tasks"'s "in the field of ___". Both are
+  // the same concept (what the employee was engaged to do), confirmed by
+  // stamping each field and rendering the page.
+  setField('for Qatar Media Corporation QBC and likewise', employee.jobTitleEn);
+  setField('fill_1_2', employee.jobTitleAr);
+  setField('as prescribed in Appendix No 1 of this contract at 1111', employee.jobTitleEn);
+  setField('fill_6_2', employee.jobTitleAr);
+
+  // Department — "Second: Works and Tasks"'s "at the ___ Department".
+  setField('as prescribed in Appendix No 1 of this contract at the', stripDepartmentSuffixEn(employee.departmentNameEn));
+  setField('fill_4_2', stripDepartmentSuffixAr(employee.departmentNameAr));
 
   // Employee name
   setField('Second Mr', employee.fullNameEn);
