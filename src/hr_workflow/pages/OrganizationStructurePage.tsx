@@ -156,7 +156,7 @@ export function OrganizationStructurePage() {
           escapeSuspended={selected !== null}
         />
       ) : (
-        <OrgOutlineView tree={tree} expanded={expanded} onToggle={toggle} onSelect={setSelected} matchIds={matchIds} />
+        <OrgOutlineView tree={tree} expanded={expanded} onToggle={toggle} onSelect={setSelected} matchIds={matchIds} activeEmployees={activeEmployees} />
       )}
 
       <OrgUnitDrawer

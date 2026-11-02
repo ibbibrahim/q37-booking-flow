@@ -1,10 +1,13 @@
-import { useState, type ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { Briefcase, Building2, ChevronDown, Crown, Layers, UserRound } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useHrLanguage } from '../../context/HrLanguageContext';
+import type { HrEmployee } from '../../types/hrApi';
 import type { OrgNode, OrgTree } from './orgTree';
 import { orgIcon } from './orgIcons';
+import { EmployeeAvatar } from '../EmployeeAvatar';
 
 interface Props {
   tree: OrgTree;
@@ -12,6 +15,7 @@ interface Props {
   onToggle: (id: string) => void;
   onSelect: (n: OrgNode) => void;
   matchIds: Set<string> | null;
+  activeEmployees: HrEmployee[];
 }
 
 type Variant = 'root' | 'unit' | 'department' | 'section';
@@ -164,6 +168,45 @@ function TreeRow({ node, level, variant, open, onToggle, onSelect, matchIds }: {
   );
 }
 
+function EmployeeRow({ employee: e, level }: { employee: HrEmployee; level: number }) {
+  const { t, language } = useHrLanguage();
+  const name = language === 'ar' ? e.fullNameAr : e.fullNameEn;
+  const jobTitle = language === 'ar' ? e.jobTitleAr : e.jobTitleEn;
+
+  return (
+    <div
+      className="relative flex h-12 items-center gap-2 border-b border-border/70 pe-4 transition-colors hover:bg-muted/40"
+      style={{ paddingInlineStart: 12 + level * INDENT }}
+    >
+      <Elbow level={level} />
+
+      <span className="h-6 w-6 shrink-0" aria-hidden="true" />
+
+      <EmployeeAvatar profilePictureUrl={e.profilePictureUrl} gender={e.gender} name={name} size="sm" className="h-7 w-7" />
+
+      <Link
+        to={`/hr/employees/${e.contractType.toLowerCase()}/${e.id}`}
+        className="max-w-[16rem] truncate rounded-sm text-sm font-medium text-foreground hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        {name}
+      </Link>
+
+      <span dir="auto" className="hidden min-w-0 max-w-[18rem] truncate text-xs text-muted-foreground sm:flex">
+        {jobTitle}
+      </span>
+
+      <span
+        className={cn(
+          'ms-auto shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium',
+          e.contractType === 'Permanent' ? 'bg-success/15 text-success' : 'bg-violet-500/15 text-violet-600 dark:text-violet-300',
+        )}
+      >
+        {e.contractType === 'Permanent' ? t('permanent') : t('freelance')}
+      </span>
+    </div>
+  );
+}
+
 // Children sit inside the animated group so the row dividers stay continuous while it opens.
 function Group({ open, children }: { open: boolean; children: ReactNode }) {
   const reduce = useReducedMotion();
@@ -185,9 +228,53 @@ function Group({ open, children }: { open: boolean; children: ReactNode }) {
   );
 }
 
-export function OrgOutlineView({ tree, expanded, onToggle, onSelect, matchIds }: Props) {
-  const { t } = useHrLanguage();
+export function OrgOutlineView({ tree, expanded, onToggle, onSelect, matchIds, activeEmployees }: Props) {
+  const { t, language } = useHrLanguage();
   const [rootOpen, setRootOpen] = useState(true);
+  // Section rows open locally; the chart shares `expanded`, so sections stay out of it.
+  const [openSections, setOpenSections] = useState<Set<string>>(() => new Set());
+
+  const toggleSection = (id: string) =>
+    setOpenSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
+  const { bySection, directByDept } = useMemo(() => {
+    const unitNodes = [...tree.staffOffices, ...tree.lineDepartments];
+    const sectionIdsByDept = new Map<number, Set<number>>();
+    for (const unit of unitNodes) {
+      if (unit.departmentId === null) continue;
+      sectionIdsByDept.set(
+        unit.departmentId,
+        new Set(unit.children.flatMap((s) => (s.sectionId === null ? [] : [s.sectionId]))),
+      );
+    }
+
+    const sectionMap = new Map<number, HrEmployee[]>();
+    const directMap = new Map<number, HrEmployee[]>();
+    const push = (map: Map<number, HrEmployee[]>, key: number, e: HrEmployee) => {
+      const list = map.get(key);
+      if (list) list.push(e);
+      else map.set(key, [e]);
+    };
+    for (const e of activeEmployees) {
+      // Anyone whose section isn't one of the department's sections is listed directly, so nobody disappears.
+      if (e.sectionId !== null && sectionIdsByDept.get(e.departmentId)?.has(e.sectionId)) {
+        push(sectionMap, e.sectionId, e);
+      } else {
+        push(directMap, e.departmentId, e);
+      }
+    }
+
+    const displayName = (e: HrEmployee) => (language === 'ar' ? e.fullNameAr : e.fullNameEn);
+    const byName = (a: HrEmployee, b: HrEmployee) => displayName(a).localeCompare(displayName(b));
+    sectionMap.forEach((list) => list.sort(byName));
+    directMap.forEach((list) => list.sort(byName));
+    return { bySection: sectionMap, directByDept: directMap };
+  }, [tree, activeEmployees, language]);
 
   const level1: { node: OrgNode; variant: Variant }[] = [
     ...tree.staffOffices.map((node) => ({ node, variant: 'unit' as const })),
@@ -217,7 +304,8 @@ export function OrgOutlineView({ tree, expanded, onToggle, onSelect, matchIds }:
           />
           <Group open={rootOpen}>
             {level1.map(({ node, variant }) => {
-              const hasChildren = node.children.length > 0;
+              const directEmployees = (node.departmentId !== null && directByDept.get(node.departmentId)) || [];
+              const hasChildren = node.children.length > 0 || directEmployees.length > 0;
               const isOpen = expanded.has(node.id);
               return (
                 <div
@@ -237,9 +325,41 @@ export function OrgOutlineView({ tree, expanded, onToggle, onSelect, matchIds }:
                   />
                   {hasChildren && (
                     <Group open={isOpen}>
-                      {node.children.map((section) => (
-                        <div key={section.id} role="treeitem" aria-level={3}>
-                          <TreeRow node={section} level={2} variant="section" onSelect={onSelect} matchIds={matchIds} />
+                      {node.children.map((section) => {
+                        const sectionEmployees = (section.sectionId !== null && bySection.get(section.sectionId)) || [];
+                        const hasEmployees = sectionEmployees.length > 0;
+                        const sectionOpen = openSections.has(section.id);
+                        return (
+                          <div
+                            key={section.id}
+                            role="treeitem"
+                            aria-level={3}
+                            aria-expanded={hasEmployees ? sectionOpen : undefined}
+                          >
+                            <TreeRow
+                              node={section}
+                              level={2}
+                              variant="section"
+                              open={sectionOpen}
+                              onToggle={hasEmployees ? () => toggleSection(section.id) : undefined}
+                              onSelect={onSelect}
+                              matchIds={matchIds}
+                            />
+                            {hasEmployees && (
+                              <Group open={sectionOpen}>
+                                {sectionEmployees.map((e) => (
+                                  <div key={e.id} role="treeitem" aria-level={4}>
+                                    <EmployeeRow employee={e} level={3} />
+                                  </div>
+                                ))}
+                              </Group>
+                            )}
+                          </div>
+                        );
+                      })}
+                      {directEmployees.map((e) => (
+                        <div key={e.id} role="treeitem" aria-level={3}>
+                          <EmployeeRow employee={e} level={2} />
                         </div>
                       ))}
                     </Group>

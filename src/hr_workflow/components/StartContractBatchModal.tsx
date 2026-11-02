@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { X, Search, Upload, Loader2, FileText, CalendarRange, Users } from 'lucide-react';
+import { X, Search, Upload, Loader2, FileText, CalendarRange, Users, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -70,6 +70,7 @@ export function StartContractBatchModal({ open, kind, onClose, onCompleted }: Pr
   const [departmentFilter, setDepartmentFilter] = useState('all');
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [processing, setProcessing] = useState(false);
+  const [missingRateAcknowledged, setMissingRateAcknowledged] = useState(false);
   const [progress, setProgress] = useState<{ done: number; total: number; name: string } | null>(null);
   const defaultedRef = useRef(false);
   const prevOpenRef = useRef(false);
@@ -95,6 +96,7 @@ export function StartContractBatchModal({ open, kind, onClose, onCompleted }: Pr
     setDepartmentFilter('all');
     setSelectedIds(new Set());
     setProcessing(false);
+    setMissingRateAcknowledged(false);
     setProgress(null);
   }, [open]);
 
@@ -188,7 +190,27 @@ export function StartContractBatchModal({ open, kind, onClose, onCompleted }: Pr
   };
 
   const selectedEmployees = eligibleEmployees.filter((e) => selectedIds.has(e.id));
-  const canSubmit = !!startDate && !!endDate && selectedEmployees.length > 0 && !processing;
+  // 'YYYY-MM-DD' strings from <input type="date">, so string comparison is
+  // chronological.
+  const dateRangeError =
+    startDate && endDate && endDate <= startDate ? 'End Date must be after the Start Date.' : null;
+
+  // Employees without a monthly rate get their contract's total/monthly
+  // amounts left blank on the PDF — HR must explicitly acknowledge that.
+  const missingRateEmployees = selectedEmployees.filter((e) => !(e.monthlyRate != null && e.monthlyRate > 0));
+
+  // Any change to who's affected invalidates a previous acknowledgement.
+  useEffect(() => {
+    setMissingRateAcknowledged(false);
+  }, [missingRateEmployees.length]);
+
+  const canSubmit =
+    !!startDate &&
+    !!endDate &&
+    !dateRangeError &&
+    selectedEmployees.length > 0 &&
+    (missingRateEmployees.length === 0 || missingRateAcknowledged) &&
+    !processing;
 
   const handleSubmit = async () => {
     if (!canSubmit) return;
@@ -285,11 +307,12 @@ export function StartContractBatchModal({ open, kind, onClose, onCompleted }: Pr
               <div className="space-y-1.5">
                 <Label htmlFor="batch-end-date" className="text-xs text-muted-foreground">End Date</Label>
                 <Input
-                  id="batch-end-date" type="date" value={endDate}
+                  id="batch-end-date" type="date" value={endDate} min={startDate || undefined}
                   onChange={(e) => setEndDate(e.target.value)} disabled={processing}
                 />
               </div>
             </div>
+            {dateRangeError && <p className="text-xs text-destructive">{dateRangeError}</p>}
             <div>
               <input
                 id={fileInputId} type="file" accept="application/pdf,image/*" className="hidden"
@@ -384,12 +407,44 @@ export function StartContractBatchModal({ open, kind, onClose, onCompleted }: Pr
                           {bilingual(language, emp.departmentNameEn, emp.departmentNameAr)}
                         </p>
                       </div>
+                      {!(emp.monthlyRate != null && emp.monthlyRate > 0) && (
+                        <span className="shrink-0 text-[11px] font-medium text-warning">No monthly rate</span>
+                      )}
                     </label>
                   );
                 })}
               </div>
             </div>
           </div>
+
+          {missingRateEmployees.length > 0 && (
+            <div className="px-6 pb-5">
+              <div className="rounded-lg border border-warning/40 bg-warning/10 p-3.5 space-y-2.5">
+                <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                  <AlertTriangle size={15} className="shrink-0 text-warning" />
+                  {missingRateEmployees.length} selected {missingRateEmployees.length === 1 ? 'employee has' : 'employees have'} no monthly rate
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Their contract's total and monthly amounts will be left blank. Set the rate on the employee record first, or continue and have the Coordinator fill them in on the document.
+                </p>
+                <p className="text-xs text-foreground">
+                  {missingRateEmployees
+                    .slice(0, 5)
+                    .map((e) => bilingual(language, e.fullNameEn, e.fullNameAr))
+                    .join(', ')}
+                  {missingRateEmployees.length > 5 && ` and ${missingRateEmployees.length - 5} more`}
+                </p>
+                <label className="flex items-center gap-2 text-xs cursor-pointer">
+                  <Checkbox
+                    checked={missingRateAcknowledged}
+                    onCheckedChange={(v) => setMissingRateAcknowledged(v === true)}
+                    disabled={processing}
+                  />
+                  Continue without the amounts for these employees
+                </label>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Footer */}
