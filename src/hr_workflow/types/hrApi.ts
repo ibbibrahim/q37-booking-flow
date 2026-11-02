@@ -14,13 +14,18 @@ export interface HrSection {
   departmentId: number;
   nameEn: string;
   nameAr: string;
+  icon: string | null;
   sortOrder: number;
 }
+
+export type HrDepartmentUnitType = 'Department' | 'GmOffice';
 
 export interface HrDepartment {
   id: number;
   nameEn: string;
   nameAr: string;
+  unitType: HrDepartmentUnitType;
+  icon: string | null;
   sortOrder: number;
   sections: HrSection[];
 }

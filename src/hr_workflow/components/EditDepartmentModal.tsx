@@ -10,26 +10,29 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import type { HrDepartment } from '../types/hrApi';
+import { Switch } from '@/components/ui/switch';
+import type { HrDepartment, HrDepartmentUnitType } from '../types/hrApi';
 
 interface Props {
   department: HrDepartment | null;
   saving: boolean;
   onClose: () => void;
-  onSave: (nameEn: string, nameAr: string) => void;
+  onSave: (nameEn: string, nameAr: string, unitType: HrDepartmentUnitType) => void;
 }
 
-/** Small popup for renaming a department in both languages at once — the
- * two names are edited together since every place that displays a
- * department (charts, lists, filters) reads whichever language is active. */
+/** Small popup for editing a department: both names together (every place that
+ * displays a department reads whichever language is active) and whether it
+ * reports directly to the General Manager in the org chart. */
 export function EditDepartmentModal({ department, saving, onClose, onSave }: Props) {
   const [nameEn, setNameEn] = useState('');
   const [nameAr, setNameAr] = useState('');
+  const [reportsToGm, setReportsToGm] = useState(false);
 
   useEffect(() => {
     if (department) {
       setNameEn(department.nameEn);
       setNameAr(department.nameAr);
+      setReportsToGm(department.unitType === 'GmOffice');
     }
   }, [department]);
 
@@ -39,8 +42,8 @@ export function EditDepartmentModal({ department, saving, onClose, onSave }: Pro
     <Dialog open={!!department} onOpenChange={(open) => { if (!open) onClose(); }}>
       <DialogContent className="sm:max-w-sm">
         <DialogHeader>
-          <DialogTitle>Edit Department Name</DialogTitle>
-          <DialogDescription>Update the English and Arabic name for this department.</DialogDescription>
+          <DialogTitle>Edit Department</DialogTitle>
+          <DialogDescription>Update the department's names and where it appears in the org chart.</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-3">
@@ -64,13 +67,27 @@ export function EditDepartmentModal({ department, saving, onClose, onSave }: Pro
               disabled={saving}
             />
           </div>
+          <div className="flex items-center justify-between gap-4 rounded-lg border border-border p-3">
+            <div className="space-y-0.5">
+              <Label htmlFor="dept-reports-to-gm">Reports directly to General Manager</Label>
+              <p className="text-xs text-muted-foreground">
+                Shown beside the General Manager in the org chart instead of in the department row.
+              </p>
+            </div>
+            <Switch
+              id="dept-reports-to-gm"
+              checked={reportsToGm}
+              onCheckedChange={setReportsToGm}
+              disabled={saving}
+            />
+          </div>
         </div>
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={saving}>
             Cancel
           </Button>
-          <Button onClick={() => onSave(nameEn.trim(), nameAr.trim())} disabled={!canSave || saving}>
+          <Button onClick={() => onSave(nameEn.trim(), nameAr.trim(), reportsToGm ? 'GmOffice' : 'Department')} disabled={!canSave || saving}>
             {saving ? 'Saving…' : 'Save'}
           </Button>
         </DialogFooter>

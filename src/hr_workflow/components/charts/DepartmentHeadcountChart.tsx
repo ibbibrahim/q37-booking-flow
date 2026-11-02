@@ -8,7 +8,7 @@ import { hrApi } from '../../api/hrApi';
 import { EditDepartmentModal } from '../EditDepartmentModal';
 import { useHRChartColors } from '../../utils/chartColors';
 import { useHrLanguage, bilingual } from '../../context/HrLanguageContext';
-import type { HrDepartment, HrEmployee } from '../../types/hrApi';
+import type { HrDepartment, HrDepartmentUnitType, HrEmployee } from '../../types/hrApi';
 
 interface Props {
   employees: HrEmployee[];
@@ -24,8 +24,8 @@ export function DepartmentHeadcountChart({ employees, departments }: Props) {
   const [editingDepartment, setEditingDepartment] = useState<HrDepartment | null>(null);
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, nameEn, nameAr, sortOrder }: { id: number; nameEn: string; nameAr: string; sortOrder: number }) =>
-      hrApi.updateDepartment(id, { nameEn, nameAr, sortOrder }),
+    mutationFn: ({ id, nameEn, nameAr, sortOrder, unitType }: { id: number; nameEn: string; nameAr: string; sortOrder: number; unitType: HrDepartmentUnitType }) =>
+      hrApi.updateDepartment(id, { nameEn, nameAr, sortOrder, unitType }),
     onSuccess: () => {
       // Department names are read live off every employee/list/filter query
       // that shows one, not snapshotted — invalidating broadly here means
@@ -128,9 +128,9 @@ export function DepartmentHeadcountChart({ employees, departments }: Props) {
         department={editingDepartment}
         saving={updateMutation.isPending}
         onClose={() => setEditingDepartment(null)}
-        onSave={(nameEn, nameAr) => {
+        onSave={(nameEn, nameAr, unitType) => {
           if (!editingDepartment) return;
-          updateMutation.mutate({ id: editingDepartment.id, nameEn, nameAr, sortOrder: editingDepartment.sortOrder });
+          updateMutation.mutate({ id: editingDepartment.id, nameEn, nameAr, sortOrder: editingDepartment.sortOrder, unitType });
         }}
       />
     </Card>

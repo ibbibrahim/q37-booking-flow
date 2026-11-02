@@ -25,31 +25,31 @@ export const internationalLastNames = [
 ];
 
 export const nationalities = [
-  { name: 'Qatari', weight: 18 },
-  { name: 'Egyptian', weight: 12 },
-  { name: 'Indian', weight: 12 },
-  { name: 'Filipino', weight: 10 },
-  { name: 'Jordanian', weight: 8 },
-  { name: 'Lebanese', weight: 6 },
-  { name: 'Pakistani', weight: 6 },
-  { name: 'Sudanese', weight: 5 },
-  { name: 'Syrian', weight: 5 },
-  { name: 'Tunisian', weight: 4 },
-  { name: 'Moroccan', weight: 4 },
-  { name: 'British', weight: 3 },
-  { name: 'South African', weight: 3 },
-  { name: 'French', weight: 2 },
-  { name: 'American', weight: 2 },
-  { name: 'Algerian', weight: 2 },
-  { name: 'Ethiopian', weight: 2 },
-  { name: 'Iranian', weight: 2 },
-  { name: 'Iraqi', weight: 2 },
-  { name: 'Italian', weight: 1 },
-  { name: 'Palestinian', weight: 2 },
-  { name: 'Somali', weight: 1 },
-  { name: 'Turkish', weight: 1 },
-  { name: 'Yemeni', weight: 1 },
-  { name: 'Saint Kitts and Nevis', weight: 1 },
+  { name: 'Qatari', ar: 'قطري', weight: 18 },
+  { name: 'Egyptian', ar: 'مصري', weight: 12 },
+  { name: 'Indian', ar: 'هندي', weight: 12 },
+  { name: 'Filipino', ar: 'فلبيني', weight: 10 },
+  { name: 'Jordanian', ar: 'أردني', weight: 8 },
+  { name: 'Lebanese', ar: 'لبناني', weight: 6 },
+  { name: 'Pakistani', ar: 'باكستاني', weight: 6 },
+  { name: 'Sudanese', ar: 'سوداني', weight: 5 },
+  { name: 'Syrian', ar: 'سوري', weight: 5 },
+  { name: 'Tunisian', ar: 'تونسي', weight: 4 },
+  { name: 'Moroccan', ar: 'مغربي', weight: 4 },
+  { name: 'British', ar: 'بريطاني', weight: 3 },
+  { name: 'South African', ar: 'جنوب أفريقي', weight: 3 },
+  { name: 'French', ar: 'فرنسي', weight: 2 },
+  { name: 'American', ar: 'أمريكي', weight: 2 },
+  { name: 'Algerian', ar: 'جزائري', weight: 2 },
+  { name: 'Ethiopian', ar: 'إثيوبي', weight: 2 },
+  { name: 'Iranian', ar: 'إيراني', weight: 2 },
+  { name: 'Iraqi', ar: 'عراقي', weight: 2 },
+  { name: 'Italian', ar: 'إيطالي', weight: 1 },
+  { name: 'Palestinian', ar: 'فلسطيني', weight: 2 },
+  { name: 'Somali', ar: 'صومالي', weight: 1 },
+  { name: 'Turkish', ar: 'تركي', weight: 1 },
+  { name: 'Yemeni', ar: 'يمني', weight: 1 },
+  { name: 'Saint Kitts and Nevis', ar: 'سانت كيتس ونيفيس', weight: 1 },
 ];
 
 export const jobTitlesByDepartment: Record<number, string[]> = {
@@ -66,6 +66,22 @@ export const jobTitlesByDepartment: Record<number, string[]> = {
   11: ['Legal Advisor', 'Compliance Officer'],
   12: ['Administrative Assistant', 'Office Manager', 'Receptionist', 'Driver'],
 };
+
+/** Arabic form of a stored nationality for the contract's Arabic side. The
+ * employee record can hold either the demonym ("Pakistani") or the raw
+ * QID-scanned country name ("Pakistan") — see EmployeeFormPage's scan
+ * fallback — so match either, using the same shared-prefix heuristic.
+ * Falls back to the original value rather than leaving the blank empty. */
+export function nationalityAr(value: string | null | undefined): string | null | undefined {
+  const v = value?.trim().toLowerCase();
+  if (!v) return value;
+  const match =
+    nationalities.find((n) => n.name.toLowerCase() === v) ??
+    (v.length >= 4
+      ? nationalities.find((n) => n.name.toLowerCase().startsWith(v.slice(0, Math.min(v.length, 5))))
+      : undefined);
+  return match?.ar ?? value;
+}
 
 export function weightedNationality(random: () => number): string {
   const total = nationalities.reduce((s, n) => s + n.weight, 0);

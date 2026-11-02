@@ -3,6 +3,7 @@ import fontkit from '@pdf-lib/fontkit';
 import contractTemplateUrl from '../../assets/contract-template.pdf';
 import notoSansArabicUrl from '../../assets/NotoSansArabic.ttf';
 import type { HrEmployee } from '../types/hrApi';
+import { nationalityAr } from '../data/nameData';
 
 // The template PDF already has real fillable form fields (verified by
 // rendering it with debug markers and checking where each one lands) —
@@ -11,15 +12,10 @@ import type { HrEmployee } from '../types/hrApi';
 // auto-generated ones (meaningless on their own: "fill_6", "Second Mr_3"),
 // confirmed one at a time against the rendered page.
 //
-// NOTE: only fields confirmed by visual inspection are filled here. The
-// Arabic-side nationality/passport/QID-number cluster (fields "fill_6",
-// "fill_67", "fill_7") sit close enough together with inconsistent
-// auto-generated names that their exact mapping is still unconfirmed —
-// left blank intentionally rather than risk placing data in the wrong
-// slot on a legal document. The English side of those same fields IS
-// confirmed and filled. The Arabic name's second (continuation) field is
-// also left unused for now — long names may overflow the first field's
-// width, worth revisiting once the rest of the fields are mapped.
+// NOTE: every field filled here was confirmed by matching its widget rect
+// (pdf-lib) against the template's printed text positions (pdfjs text
+// content). The Arabic name's continuation field ("fill_4#1_…") and the PO
+// Box fields remain intentionally unused.
 
 // Matches the surrounding printed body text — small enough to sit clear of
 // the underline instead of the field's default "auto" size, which stretches
@@ -48,7 +44,7 @@ function dayNameAr(date: Date): string {
 }
 
 function formatCurrency(amount: number): string {
-  return amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return amount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 }
 
 // The "Second: Works and Tasks" department blank is immediately followed by
@@ -99,39 +95,137 @@ function setFieldFitted(form: PDFForm, font: PDFFont, name: string, value: strin
 // English reads "...set as of {Date 20} until {Date 21}", the Arabic mirror
 // (read right-to-left) is "...في تاريخ {Date 19} وحتى تاريخ {Date 18}". The
 // month-count fields are oddly named by the original PDF conversion tool —
-// "until" is actually the English numeral blank ("shall be (......)"), not a
-// date field at all; "fill_1_3" is its Arabic counterpart. The spelled-out
-// continuation blank (fill_3_2) is left empty rather than built out with a
-// number-to-words converter.
+// "until" is actually the English numeral blank ("( until ) ......... calendar
+// months"), not a date field at all; its spelled-out words blank is fill_3_2.
+// The Arabic line "( ...... ) / ........ أشهر ميلادية" is the reverse: the
+// bracket numeral is fill_1_3__1 and the slot after the "/" (words) is
+// fill_1_3. Page 11's "Date of commencement of providing the
+// contracted services" row also gets the Start Date — its English field is
+// misleadingly named "Times of providing the services" (like "until"),
+// confirmed by widget position.
 const CONTRACT_DATE_FIELD_NAMES = {
   startDateEn: 'Date 20',
   endDateEn: 'Date 21',
   startDateAr: 'Date 19',
   endDateAr: 'Date 18',
   monthsEn: 'until',
-  monthsAr: 'fill_1_3',
+  monthsAr: 'fill_1_3__1',
+  monthsWordsEn: 'fill_3_2',
+  monthsWordsAr: 'fill_1_3',
+  commencementEn: 'Times of providing the services',
+  commencementAr: 'fill_7_3',
 } as const;
 
 // Page 3, "Fourth: The Value of Services" — confirmed the same way as the
 // date fields above: English reads "...a Total amount of {total} QR (Only
-// {spelled-out, left blank — no number-to-words converter, same call as the
-// months field below} Qatari Riyals) to be paid on a monthly basis at an
-// amount of (QR {monthly})...", Arabic mirrors the same structure.
+// {spelled-out} Qatari Riyals) to be paid on a monthly basis at an amount of
+// (QR {monthly})...", Arabic mirrors the same structure. The spelled-out
+// blanks are the long dotted lines: "Total amount of" (after "QR (Only") in
+// English and fill_8_3 (inside "(فقط … ريال قطري لا غير)") in Arabic.
 const VALUE_OF_SERVICES_FIELD_NAMES = {
   totalEn: 'Total amount of_8',
   totalAr: 'fill_6_3',
+  totalWordsEn: 'Total amount of',
+  totalWordsAr: 'fill_8_3',
   monthlyEn: 'Qatari Riyals to be paid on a monthly basis at an',
   monthlyAr: 'fill_6_333',
 } as const;
 
-// A same-calendar-month range (e.g. 1 Nov – 30 Nov) is still a real
-// 1-month contract, not "0 months" — floors at 1 for any forward date
-// range rather than showing a literal zero on a legal document.
+// The end date is inclusive (1 Jan – 30 Jun is 6 months, 1 Nov – 31 Dec is 2),
+// so count whole months up to the day after it; a trailing part-month rounds
+// up to a full month (product decision). Floors at 1 so a same-month range
+// never shows a literal zero on a legal document. Dates are parsed as UTC so
+// the 'YYYY-MM-DD' inputs don't drift with the local timezone.
 function monthsBetween(startIso: string, endIso: string): number {
   const start = new Date(startIso);
-  const end = new Date(endIso);
-  const months = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
+  const endExclusive = new Date(endIso);
+  endExclusive.setUTCDate(endExclusive.getUTCDate() + 1);
+
+  const sD = start.getUTCDate();
+  const eD = endExclusive.getUTCDate();
+  let months =
+    (endExclusive.getUTCFullYear() - start.getUTCFullYear()) * 12 +
+    (endExclusive.getUTCMonth() - start.getUTCMonth()) -
+    (eD < sD ? 1 : 0);
+  if (eD !== sD) months += 1;
   return Math.max(months, 1);
+}
+
+const EN_ONES = [
+  'zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven',
+  'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen',
+];
+const EN_TENS = ['', '', 'twenty', 'thirty', 'forty', 'fifty', 'sixty', 'seventy', 'eighty', 'ninety'];
+
+function belowThousandEn(n: number): string {
+  const parts: string[] = [];
+  const h = Math.floor(n / 100);
+  const r = n % 100;
+  if (h) parts.push(`${EN_ONES[h]} hundred`);
+  if (r) {
+    if (r < 20) parts.push(EN_ONES[r]);
+    else parts.push(r % 10 ? `${EN_TENS[Math.floor(r / 10)]}-${EN_ONES[r % 10]}` : EN_TENS[Math.floor(r / 10)]);
+  }
+  return parts.join(' ');
+}
+
+/** Spelled-out integer (0..999,999,999) for the contract's "Only ... Qatari
+ * Riyals" / "calendar months" blanks — lowercase, no "and" (record style). */
+function numberToWordsEn(n: number): string {
+  if (n === 0) return EN_ONES[0];
+  const parts: string[] = [];
+  const millions = Math.floor(n / 1_000_000);
+  const thousands = Math.floor(n / 1000) % 1000;
+  const rest = n % 1000;
+  if (millions) parts.push(`${belowThousandEn(millions)} million`);
+  if (thousands) parts.push(`${belowThousandEn(thousands)} thousand`);
+  if (rest) parts.push(belowThousandEn(rest));
+  return parts.join(' ');
+}
+
+const AR_ONES = ['', 'واحد', 'اثنان', 'ثلاثة', 'أربعة', 'خمسة', 'ستة', 'سبعة', 'ثمانية', 'تسعة'];
+const AR_TENS = ['', '', 'عشرون', 'ثلاثون', 'أربعون', 'خمسون', 'ستون', 'سبعون', 'ثمانون', 'تسعون'];
+const AR_HUNDREDS = [
+  '', 'مائة', 'مائتان', 'ثلاثمائة', 'أربعمائة', 'خمسمائة', 'ستمائة', 'سبعمائة', 'ثمانمائة', 'تسعمائة',
+];
+
+function belowThousandAr(n: number): string {
+  const parts: string[] = [];
+  const h = Math.floor(n / 100);
+  const r = n % 100;
+  if (h) parts.push(AR_HUNDREDS[h]);
+  if (r) {
+    if (r < 10) parts.push(AR_ONES[r]);
+    else if (r === 10) parts.push('عشرة');
+    else if (r === 11) parts.push('أحد عشر');
+    else if (r === 12) parts.push('اثنا عشر');
+    else if (r < 20) parts.push(`${AR_ONES[r - 10]} عشر`);
+    else if (r % 10) parts.push(`${AR_ONES[r % 10]} و${AR_TENS[Math.floor(r / 10)]}`);
+    else parts.push(AR_TENS[Math.floor(r / 10)]);
+  }
+  return parts.join(' و');
+}
+
+// Arabic counts nouns differently by magnitude: 1 and 2 use the singular /
+// dual form, 3–10 the plural, 11+ the singular again.
+function scaledGroupAr(n: number, singular: string, dual: string, plural: string): string {
+  if (n === 1) return singular;
+  if (n === 2) return dual;
+  return `${belowThousandAr(n)} ${n <= 10 ? plural : singular}`;
+}
+
+/** Arabic masculine cardinal for an integer (0..999,999,999) — same use as
+ * numberToWordsEn, for the Arabic side of the contract. */
+function numberToWordsAr(n: number): string {
+  if (n === 0) return 'صفر';
+  const parts: string[] = [];
+  const millions = Math.floor(n / 1_000_000);
+  const thousands = Math.floor(n / 1000) % 1000;
+  const rest = n % 1000;
+  if (millions) parts.push(scaledGroupAr(millions, 'مليون', 'مليونان', 'ملايين'));
+  if (thousands) parts.push(scaledGroupAr(thousands, 'ألف', 'ألفان', 'آلاف'));
+  if (rest) parts.push(belowThousandAr(rest));
+  return parts.join(' و');
 }
 
 /** Keeps the contract's validity-period and value-of-services fields (page
@@ -148,6 +242,7 @@ export function withContractDateFields(
   const startEn = formatDateEn(data.startDateIso);
   const endEn = formatDateEn(data.endDateIso);
   const months = monthsBetween(data.startDateIso, data.endDateIso);
+  const monthsWordsEn = numberToWordsEn(months);
 
   const result: Record<string, string> = {
     ...values,
@@ -157,15 +252,26 @@ export function withContractDateFields(
     [CONTRACT_DATE_FIELD_NAMES.endDateAr]: endEn,
     [CONTRACT_DATE_FIELD_NAMES.monthsEn]: String(months),
     [CONTRACT_DATE_FIELD_NAMES.monthsAr]: String(months),
+    [CONTRACT_DATE_FIELD_NAMES.monthsWordsEn]: monthsWordsEn.charAt(0).toUpperCase() + monthsWordsEn.slice(1),
+    [CONTRACT_DATE_FIELD_NAMES.monthsWordsAr]: numberToWordsAr(months),
+    [CONTRACT_DATE_FIELD_NAMES.commencementEn]: startEn,
+    [CONTRACT_DATE_FIELD_NAMES.commencementAr]: startEn,
   };
 
   if (data.monthlyRate != null && data.monthlyRate > 0) {
     const monthly = formatCurrency(data.monthlyRate);
-    const total = formatCurrency(data.monthlyRate * months);
+    const totalAmount = Math.round(data.monthlyRate * months * 100) / 100;
+    const total = formatCurrency(totalAmount);
     result[VALUE_OF_SERVICES_FIELD_NAMES.totalEn] = total;
     result[VALUE_OF_SERVICES_FIELD_NAMES.totalAr] = total;
     result[VALUE_OF_SERVICES_FIELD_NAMES.monthlyEn] = monthly;
     result[VALUE_OF_SERVICES_FIELD_NAMES.monthlyAr] = monthly;
+    // Spelled-out total only for whole amounts — the converters don't handle
+    // fractions, so a fractional total leaves the dotted lines blank.
+    if (Number.isInteger(totalAmount)) {
+      result[VALUE_OF_SERVICES_FIELD_NAMES.totalWordsEn] = numberToWordsEn(totalAmount);
+      result[VALUE_OF_SERVICES_FIELD_NAMES.totalWordsAr] = numberToWordsAr(totalAmount);
+    }
   }
 
   return result;
@@ -235,6 +341,12 @@ export async function fillContractTemplate(employee: HrEmployee): Promise<Uint8A
   setField('as prescribed in Appendix No 1 of this contract at the', stripDepartmentSuffixEn(employee.departmentNameEn));
   setField('fill_4_2', stripDepartmentSuffixAr(employee.departmentNameAr));
 
+  // Page 11, "The field of required services" — same printed
+  // "Department"/"إدارة" suffix problem as above. fill_1_4 (the Arabic
+  // second dotted line) is left blank.
+  setField('fill_1_26', stripDepartmentSuffixEn(employee.departmentNameEn));
+  setField('fill_1_25', stripDepartmentSuffixAr(employee.departmentNameAr));
+
   // Employee name
   setField('Second Mr', employee.fullNameEn);
   setField('fill_4', employee.fullNameAr);
@@ -244,6 +356,17 @@ export async function fillContractTemplate(employee: HrEmployee): Promise<Uint8A
   setField('Second Mr_4', employee.passportNumber);
   setField('Second Mr_6', employee.qid);
   if (employee.qidExpiry) setField('Date 15', formatDateEn(employee.qidExpiry));
+
+  // Arabic mirror of the same cluster, read right-to-left — confirmed by
+  // matching each widget's rect against the template's printed text
+  // positions: fill_6 is the blank before "الجنسية", fill_67 continues
+  // "...جواز سفر رقم", fill_7 continues "...هوية قطرية برقم", Date 13 sits
+  // after "سارية حتى تاريخ". PO Box (fill_1111 / Second Mr_555) stays blank
+  // on both sides — no source field on the employee record.
+  setField('fill_6', nationalityAr(employee.nationality));
+  setField('fill_67', employee.passportNumber);
+  setField('fill_7', employee.qid);
+  if (employee.qidExpiry) setField('Date 13', formatDateEn(employee.qidExpiry));
 
   // Contact info — confirmed on both sides.
   const email = employee.emailWork ?? employee.emailPersonal;

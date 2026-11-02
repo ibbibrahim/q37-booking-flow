@@ -2,13 +2,16 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  CheckCircle2, ChevronDown, ClipboardList, Eye, FileSignature, History, PenTool, RotateCcw, Undo2, UserCheck, Users,
+  CheckCircle2, ChevronDown, ClipboardList, Eye, FileSignature, History, PenTool, RotateCcw, Search, Undo2, UserCheck, Users,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ListPaginationBar, getInitialPage, getInitialPageSize } from '@/components/ui/list-pagination-bar';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -123,6 +126,35 @@ function SignContractConfirmDialog({
   );
 }
 
+/** Case-insensitive "does this query match any of these fields" check,
+ * shared by every tab's search box. */
+function matchesSearch(query: string, ...fields: (string | null | undefined)[]): boolean {
+  const q = query.trim().toLowerCase();
+  if (!q) return true;
+  return fields.some((f) => (f ?? '').toLowerCase().includes(q));
+}
+
+/** Plain search input, same visual weight across every tab. */
+function SearchBox({ value, onChange, placeholder }: { value: string; onChange: (value: string) => void; placeholder: string }) {
+  return (
+    <div className="relative">
+      <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+      <Input className="pl-9 h-9 w-full sm:w-64" placeholder={placeholder} value={value} onChange={(e) => onChange(e.target.value)} />
+    </div>
+  );
+}
+
+/** One "nothing here" table row, reused by every tab's empty/no-results state. */
+function EmptyTableRow({ colSpan, children }: { colSpan: number; children: ReactNode }) {
+  return (
+    <TableRow>
+      <TableCell colSpan={colSpan} className="text-center text-muted-foreground py-8">
+        {children}
+      </TableCell>
+    </TableRow>
+  );
+}
+
 interface PendingItem {
   employee: HrEmployee;
   contract: HrContract;
@@ -155,6 +187,9 @@ export function DepartmentApprovalsPage() {
   const [signConfirm, setSignConfirm] = useState<PendingItem | null>(null);
   const [signAllConfirmOpen, setSignAllConfirmOpen] = useState(false);
   const [historyPreview, setHistoryPreview] = useState<{ title: string; url: string | null } | null>(null);
+  const [contractSearch, setContractSearch] = useState('');
+  const [contractPage, setContractPage] = useState(() => getInitialPage('hr-dept-approvals-contracts', 1));
+  const [contractPageSize, setContractPageSize] = useState(() => getInitialPageSize('hr-dept-approvals-contracts', 10));
   const objectUrlRef = useRef<string | null>(null);
   const historyObjectUrlRef = useRef<string | null>(null);
   const signatureBytesRef = useRef<{ bytes: Uint8Array; type: 'png' | 'jpeg' } | null>(null);
@@ -222,6 +257,15 @@ export function DepartmentApprovalsPage() {
         .filter((x): x is { contract: HrContract; employee: HrEmployee; signature: HrContractSignature } => !!x.employee && !!x.signature)
         .sort((a, b) => new Date(b.signature.signedAt).getTime() - new Date(a.signature.signedAt).getTime()),
     [contractsQuery.data, employeeById]
+  );
+
+  const filteredPending = useMemo(
+    () => pending.filter((p) => matchesSearch(contractSearch, p.employee.fullNameEn, p.employee.fullNameAr, p.employee.jobTitleEn)),
+    [pending, contractSearch]
+  );
+  const pagedPending = useMemo(
+    () => filteredPending.slice((contractPage - 1) * contractPageSize, contractPage * contractPageSize),
+    [filteredPending, contractPage, contractPageSize]
   );
 
   // The saved signature's bytes are fetched once and reused for every stamp
@@ -537,137 +581,171 @@ export function DepartmentApprovalsPage() {
             </div>
             <p className="text-xs text-muted-foreground flex-1">
               {hasSignature
-                ? 'Saved once — every contract you approve below reuses it automatically.'
-                : 'Save your signature once to start approving contracts below.'}
+                ? 'Saved once — every approval below reuses it automatically.'
+                : 'Save your signature once to start approving below.'}
             </p>
-            {pending.length > 0 && (
-              <Button
-                size="sm"
-                variant="outline"
-                className="gap-1.5 shrink-0 text-destructive hover:text-destructive"
-                disabled={bulkProgress !== null || returning}
-                onClick={() => setBulkReturnOpen(true)}
-              >
-                <RotateCcw size={14} /> Return All ({pending.length})
-              </Button>
-            )}
-            {pending.length > 0 && (
-              <Button
-                size="sm"
-                className="gap-1.5 shrink-0"
-                disabled={!hasSignature || bulkProgress !== null}
-                onClick={() => setSignAllConfirmOpen(true)}
-              >
-                <CheckCircle2 size={14} />
-                {bulkProgress ? `Signing ${bulkProgress.done + 1} of ${bulkProgress.total}…` : `Sign All (${pending.length})`}
-              </Button>
-            )}
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="p-4 pb-0">
-            <SectionHeader icon={FileSignature} title="Contract Renewals" count={pending.length} />
-          </CardContent>
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Employee</TableHead>
-                  <TableHead>Job Title</TableHead>
-                  <TableHead>Created</TableHead>
-                  <TableHead>Stage</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading && (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground py-10">
-                      Loading…
-                    </TableCell>
-                  </TableRow>
-                )}
-                {!isLoading && pending.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground py-10">
-                      No contracts awaiting your signature right now.
-                    </TableCell>
-                  </TableRow>
-                )}
-                {!isLoading &&
-                  pending.map((item) => (
-                    <TableRow key={item.contract.id}>
-                      <TableCell className="font-medium text-foreground">
-                        {bilingual(language, item.employee.fullNameEn, item.employee.fullNameAr)}
-                      </TableCell>
-                      <TableCell>{bilingual(language, item.employee.jobTitleEn, item.employee.jobTitleAr)}</TableCell>
-                      <TableCell className="text-muted-foreground">{formatDate(item.contract.createdAt)}</TableCell>
-                      <TableCell>
-                        <Badge className={CONTRACT_STATUS_BADGE_CLASS[item.contract.status]}>
-                          {CONTRACT_STATUS_LABEL[item.contract.status]}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-1.5">
-                          <ActionIconButton icon={Eye} label="View" onClick={() => openReview(item)} />
-                          <ActionIconButton
-                            icon={RotateCcw}
-                            label="Return"
-                            destructive
-                            disabled={signingContractId !== null || returning}
-                            onClick={() => setReturnTarget(item)}
-                          />
-                          <ActionIconButton
-                            icon={CheckCircle2}
-                            label={signingContractId === item.contract.id ? 'Signing…' : 'Sign'}
-                            disabled={!hasSignature || signingContractId !== null}
-                            onClick={() => setSignConfirm(item)}
-                          />
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-          <CardContent className="px-4 pb-4 pt-0">
-            <HistoryPanel count={signedHistory.length}>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Employee</TableHead>
-                    <TableHead>Signed By</TableHead>
-                    <TableHead>Signed At</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {signedHistory.map(({ contract, employee, signature }) => (
-                    <TableRow key={contract.id}>
-                      <TableCell className="font-medium text-foreground">
-                        {bilingual(language, employee.fullNameEn, employee.fullNameAr)}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">{signature.signedByName}</TableCell>
-                      <TableCell className="text-muted-foreground">{formatDate(signature.signedAt)}</TableCell>
-                      <TableCell className="text-right">
-                        <ActionIconButton
-                          icon={Eye}
-                          label="View"
-                          onClick={() => openHistoryPreview(contract.id, bilingual(language, employee.fullNameEn, employee.fullNameAr))}
-                        />
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </HistoryPanel>
-          </CardContent>
-        </Card>
+        <Tabs defaultValue="contracts">
+          <TabsList>
+            <TabsTrigger value="contracts" className="gap-1.5"><FileSignature size={13} /> Contracts</TabsTrigger>
+            <TabsTrigger value="leave" className="gap-1.5"><History size={13} /> Leave Notices</TabsTrigger>
+            <TabsTrigger value="interviews" className="gap-1.5"><ClipboardList size={13} /> Interviews</TabsTrigger>
+            <TabsTrigger value="starting-date" className="gap-1.5"><UserCheck size={13} /> Starting Date</TabsTrigger>
+          </TabsList>
 
-        <LeaveNoticesSection signatureBytesRef={signatureBytesRef} hasSignature={hasSignature} signerName={signerName} />
-        <InterviewReviewsSection />
-        <StartingDateConfirmationsSection signatureBytesRef={signatureBytesRef} hasSignature={hasSignature} signerName={signerName} />
+          <TabsContent value="contracts">
+            <Card>
+              <CardContent className="p-4 pb-0 flex flex-col sm:flex-row sm:items-center gap-3">
+                <SectionHeader icon={FileSignature} title="Contracts" count={pending.length} />
+                <div className="flex items-center gap-2 sm:ml-auto flex-wrap">
+                  <SearchBox
+                    value={contractSearch}
+                    onChange={(v) => { setContractSearch(v); setContractPage(1); }}
+                    placeholder="Search employees…"
+                  />
+                  {pending.length > 0 && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="gap-1.5 shrink-0 text-destructive hover:text-destructive"
+                      disabled={bulkProgress !== null || returning}
+                      onClick={() => setBulkReturnOpen(true)}
+                    >
+                      <RotateCcw size={14} /> Return All ({pending.length})
+                    </Button>
+                  )}
+                  {pending.length > 0 && (
+                    <Button
+                      size="sm"
+                      className="gap-1.5 shrink-0"
+                      disabled={!hasSignature || bulkProgress !== null}
+                      onClick={() => setSignAllConfirmOpen(true)}
+                    >
+                      <CheckCircle2 size={14} />
+                      {bulkProgress ? `Signing ${bulkProgress.done + 1} of ${bulkProgress.total}…` : `Sign All (${pending.length})`}
+                    </Button>
+                  )}
+                </div>
+              </CardContent>
+
+              {filteredPending.length > 0 && (
+                <CardContent className="px-4 pt-3 pb-0">
+                  <ListPaginationBar
+                    currentPage={contractPage}
+                    totalItems={filteredPending.length}
+                    pageSize={contractPageSize}
+                    onPageChange={setContractPage}
+                    onPageSizeChange={(n) => { setContractPageSize(n); setContractPage(1); }}
+                    storageKey="hr-dept-approvals-contracts"
+                    disabled={isLoading}
+                  />
+                </CardContent>
+              )}
+
+              <CardContent className="p-0 pt-3">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Employee</TableHead>
+                      <TableHead>Job Title</TableHead>
+                      <TableHead>Created</TableHead>
+                      <TableHead>Stage</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {isLoading && <EmptyTableRow colSpan={5}>Loading…</EmptyTableRow>}
+                    {!isLoading && pending.length === 0 && (
+                      <EmptyTableRow colSpan={5}>No contracts awaiting your signature right now.</EmptyTableRow>
+                    )}
+                    {!isLoading && pending.length > 0 && filteredPending.length === 0 && (
+                      <EmptyTableRow colSpan={5}>No contracts match your search.</EmptyTableRow>
+                    )}
+                    {!isLoading &&
+                      pagedPending.map((item) => (
+                        <TableRow key={item.contract.id}>
+                          <TableCell className="font-medium text-foreground">
+                            {bilingual(language, item.employee.fullNameEn, item.employee.fullNameAr)}
+                          </TableCell>
+                          <TableCell>{bilingual(language, item.employee.jobTitleEn, item.employee.jobTitleAr)}</TableCell>
+                          <TableCell className="text-muted-foreground">{formatDate(item.contract.createdAt)}</TableCell>
+                          <TableCell>
+                            <Badge className={CONTRACT_STATUS_BADGE_CLASS[item.contract.status]}>
+                              {CONTRACT_STATUS_LABEL[item.contract.status]}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-1.5">
+                              <ActionIconButton icon={Eye} label="View" onClick={() => openReview(item)} />
+                              <ActionIconButton
+                                icon={RotateCcw}
+                                label="Return"
+                                destructive
+                                disabled={signingContractId !== null || returning}
+                                onClick={() => setReturnTarget(item)}
+                              />
+                              <ActionIconButton
+                                icon={CheckCircle2}
+                                label={signingContractId === item.contract.id ? 'Signing…' : 'Sign'}
+                                disabled={!hasSignature || signingContractId !== null}
+                                onClick={() => setSignConfirm(item)}
+                              />
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+              <CardContent className="px-4 pb-4 pt-0">
+                <HistoryPanel count={signedHistory.length}>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Employee</TableHead>
+                        <TableHead>Signed By</TableHead>
+                        <TableHead>Signed At</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {signedHistory.map(({ contract, employee, signature }) => (
+                        <TableRow key={contract.id}>
+                          <TableCell className="font-medium text-foreground">
+                            {bilingual(language, employee.fullNameEn, employee.fullNameAr)}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">{signature.signedByName}</TableCell>
+                          <TableCell className="text-muted-foreground">{formatDate(signature.signedAt)}</TableCell>
+                          <TableCell className="text-right">
+                            <ActionIconButton
+                              icon={Eye}
+                              label="View"
+                              onClick={() => openHistoryPreview(contract.id, bilingual(language, employee.fullNameEn, employee.fullNameAr))}
+                            />
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </HistoryPanel>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="leave">
+            <LeaveNoticesSection signatureBytesRef={signatureBytesRef} hasSignature={hasSignature} signerName={signerName} />
+          </TabsContent>
+
+          <TabsContent value="interviews">
+            <InterviewReviewsSection />
+          </TabsContent>
+
+          <TabsContent value="starting-date">
+            <StartingDateConfirmationsSection signatureBytesRef={signatureBytesRef} hasSignature={hasSignature} signerName={signerName} />
+          </TabsContent>
+        </Tabs>
 
         <SignaturePad
           open={captureOpen}
@@ -757,12 +835,17 @@ function LeaveNoticesSection({
   const [signConfirm, setSignConfirm] = useState<{ id: number; employeeName: string | null } | null>(null);
   const [preview, setPreview] = useState<{ id: number; title: string; url: string | null } | null>(null);
   const previewUrlRef = useRef<string | null>(null);
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(() => getInitialPage('hr-dept-approvals-leave', 1));
+  const [pageSize, setPageSize] = useState(() => getInitialPageSize('hr-dept-approvals-leave', 10));
 
   const listQuery = useQuery({ queryKey: ['hr-leave-requests', 'department-approvals'], queryFn: leaveRequestApi.getAll });
   const pending = (listQuery.data ?? []).filter((r) => r.status === 'AwaitingDepartmentHeadSignature');
   const signedHistory = (listQuery.data ?? [])
     .filter((r) => !!r.deptHeadSignedAt)
     .sort((a, b) => new Date(b.deptHeadSignedAt!).getTime() - new Date(a.deptHeadSignedAt!).getTime());
+  const filteredPending = pending.filter((r) => matchesSearch(search, r.employeeFullNameEn, r.employeeFullNameAr));
+  const pagedPending = filteredPending.slice((page - 1) * pageSize, page * pageSize);
 
   const { listen } = useSignalR();
   useEffect(
@@ -811,12 +894,29 @@ function LeaveNoticesSection({
     }
   };
 
-  if (pending.length === 0 && signedHistory.length === 0) return null;
-
   return (
     <Card>
-      <CardContent className="p-4 space-y-3">
+      <CardContent className="p-4 pb-0 flex flex-col sm:flex-row sm:items-center gap-3">
         <SectionHeader icon={History} title="Leave / Suspension Notices Awaiting Your Signature" count={pending.length} />
+        <div className="sm:ml-auto">
+          <SearchBox value={search} onChange={(v) => { setSearch(v); setPage(1); }} placeholder="Search freelancers…" />
+        </div>
+      </CardContent>
+
+      {filteredPending.length > 0 && (
+        <CardContent className="px-4 pt-3 pb-0">
+          <ListPaginationBar
+            currentPage={page}
+            totalItems={filteredPending.length}
+            pageSize={pageSize}
+            onPageChange={setPage}
+            onPageSizeChange={(n) => { setPageSize(n); setPage(1); }}
+            storageKey="hr-dept-approvals-leave"
+          />
+        </CardContent>
+      )}
+
+      <CardContent className="p-4 pt-3 space-y-3">
         <Table>
           <TableHeader>
             <TableRow>
@@ -829,13 +929,12 @@ function LeaveNoticesSection({
           </TableHeader>
           <TableBody>
             {pending.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={5} className="text-center text-muted-foreground py-6">
-                  No leave notices awaiting your signature right now.
-                </TableCell>
-              </TableRow>
+              <EmptyTableRow colSpan={5}>No leave notices awaiting your signature right now.</EmptyTableRow>
             )}
-            {pending.map((r) => (
+            {pending.length > 0 && filteredPending.length === 0 && (
+              <EmptyTableRow colSpan={5}>No leave notices match your search.</EmptyTableRow>
+            )}
+            {pagedPending.map((r) => (
               <TableRow key={r.id}>
                 <TableCell className="font-medium text-foreground">{r.employeeFullNameEn}</TableCell>
                 <TableCell>{r.suspensionType}</TableCell>
@@ -927,12 +1026,17 @@ function InterviewReviewsSection() {
   const queryClient = useQueryClient();
   const [preview, setPreview] = useState<{ id: number; title: string; url: string | null } | null>(null);
   const previewUrlRef = useRef<string | null>(null);
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(() => getInitialPage('hr-dept-approvals-interviews', 1));
+  const [pageSize, setPageSize] = useState(() => getInitialPageSize('hr-dept-approvals-interviews', 10));
 
   const listQuery = useQuery({ queryKey: ['hr-hiring-requests', 'department-approvals'], queryFn: hiringRequestApi.getAll });
   const pending = (listQuery.data ?? []).filter((r) => r.status === 'InterviewSubmitted' && !r.managerReviewedAt);
   const signedHistory = (listQuery.data ?? [])
     .filter((r) => !!r.managerReviewedAt)
     .sort((a, b) => new Date(b.managerReviewedAt!).getTime() - new Date(a.managerReviewedAt!).getTime());
+  const filteredPending = pending.filter((r) => matchesSearch(search, r.candidateName, r.positionTitle));
+  const pagedPending = filteredPending.slice((page - 1) * pageSize, page * pageSize);
 
   const { listen } = useSignalR();
   useEffect(
@@ -958,12 +1062,29 @@ function InterviewReviewsSection() {
     }
   };
 
-  if (pending.length === 0 && signedHistory.length === 0) return null;
-
   return (
     <Card>
-      <CardContent className="p-4 space-y-3">
+      <CardContent className="p-4 pb-0 flex flex-col sm:flex-row sm:items-center gap-3">
         <SectionHeader icon={ClipboardList} title="Interview Evaluations Awaiting Your Review" count={pending.length} />
+        <div className="sm:ml-auto">
+          <SearchBox value={search} onChange={(v) => { setSearch(v); setPage(1); }} placeholder="Search candidates…" />
+        </div>
+      </CardContent>
+
+      {filteredPending.length > 0 && (
+        <CardContent className="px-4 pt-3 pb-0">
+          <ListPaginationBar
+            currentPage={page}
+            totalItems={filteredPending.length}
+            pageSize={pageSize}
+            onPageChange={setPage}
+            onPageSizeChange={(n) => { setPageSize(n); setPage(1); }}
+            storageKey="hr-dept-approvals-interviews"
+          />
+        </CardContent>
+      )}
+
+      <CardContent className="p-4 pt-3 space-y-3">
         <Table>
           <TableHeader>
             <TableRow>
@@ -974,13 +1095,12 @@ function InterviewReviewsSection() {
           </TableHeader>
           <TableBody>
             {pending.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={3} className="text-center text-muted-foreground py-6">
-                  No interview evaluations awaiting your review right now.
-                </TableCell>
-              </TableRow>
+              <EmptyTableRow colSpan={3}>No interview evaluations awaiting your review right now.</EmptyTableRow>
             )}
-            {pending.map((r) => (
+            {pending.length > 0 && filteredPending.length === 0 && (
+              <EmptyTableRow colSpan={3}>No interview evaluations match your search.</EmptyTableRow>
+            )}
+            {pagedPending.map((r) => (
               <TableRow key={r.id}>
                 <TableCell className="font-medium text-foreground">{r.candidateName}</TableCell>
                 <TableCell className="text-muted-foreground">{r.positionTitle}</TableCell>
@@ -1049,6 +1169,9 @@ function StartingDateConfirmationsSection({
   const [signConfirm, setSignConfirm] = useState<{ id: number; intent: 'Started' | 'NotStarted'; candidateName: string } | null>(null);
   const [preview, setPreview] = useState<{ id: number; title: string; url: string | null } | null>(null);
   const previewUrlRef = useRef<string | null>(null);
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(() => getInitialPage('hr-dept-approvals-starting-date', 1));
+  const [pageSize, setPageSize] = useState(() => getInitialPageSize('hr-dept-approvals-starting-date', 10));
 
   const listQuery = useQuery({ queryKey: ['hr-hiring-requests', 'department-approvals'], queryFn: hiringRequestApi.getAll });
   const pending = (listQuery.data ?? []).filter(
@@ -1057,6 +1180,8 @@ function StartingDateConfirmationsSection({
   const signedHistory = (listQuery.data ?? [])
     .filter((r) => !!r.managerStartSignedAt)
     .sort((a, b) => new Date(b.managerStartSignedAt!).getTime() - new Date(a.managerStartSignedAt!).getTime());
+  const filteredPending = pending.filter((r) => matchesSearch(search, r.candidateName));
+  const pagedPending = filteredPending.slice((page - 1) * pageSize, page * pageSize);
 
   const { listen } = useSignalR();
   useEffect(
@@ -1105,12 +1230,29 @@ function StartingDateConfirmationsSection({
     }
   };
 
-  if (pending.length === 0 && signedHistory.length === 0) return null;
-
   return (
     <Card>
-      <CardContent className="p-4 space-y-3">
+      <CardContent className="p-4 pb-0 flex flex-col sm:flex-row sm:items-center gap-3">
         <SectionHeader icon={UserCheck} title="Starting Date Confirmations Awaiting Your Signature" count={pending.length} />
+        <div className="sm:ml-auto">
+          <SearchBox value={search} onChange={(v) => { setSearch(v); setPage(1); }} placeholder="Search candidates…" />
+        </div>
+      </CardContent>
+
+      {filteredPending.length > 0 && (
+        <CardContent className="px-4 pt-3 pb-0">
+          <ListPaginationBar
+            currentPage={page}
+            totalItems={filteredPending.length}
+            pageSize={pageSize}
+            onPageChange={setPage}
+            onPageSizeChange={(n) => { setPageSize(n); setPage(1); }}
+            storageKey="hr-dept-approvals-starting-date"
+          />
+        </CardContent>
+      )}
+
+      <CardContent className="p-4 pt-3 space-y-3">
         <Table>
           <TableHeader>
             <TableRow>
@@ -1122,13 +1264,12 @@ function StartingDateConfirmationsSection({
           </TableHeader>
           <TableBody>
             {pending.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={4} className="text-center text-muted-foreground py-6">
-                  No starting date confirmations awaiting your signature right now.
-                </TableCell>
-              </TableRow>
+              <EmptyTableRow colSpan={4}>No starting date confirmations awaiting your signature right now.</EmptyTableRow>
             )}
-            {pending.map((r) => (
+            {pending.length > 0 && filteredPending.length === 0 && (
+              <EmptyTableRow colSpan={4}>No starting date confirmations match your search.</EmptyTableRow>
+            )}
+            {pagedPending.map((r) => (
               <TableRow key={r.id}>
                 <TableCell className="font-medium text-foreground">{r.candidateName}</TableCell>
                 <TableCell>{r.startIntent === 'Started' ? 'Started' : 'Did not show up'}</TableCell>

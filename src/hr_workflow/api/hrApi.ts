@@ -2,6 +2,7 @@ import axios from 'axios';
 import apiClient from '@/utils/apiClient';
 import type {
   HrDepartment,
+  HrDepartmentUnitType,
   HrSection,
   HrEmployee,
   HrEmployeeQuery,
@@ -41,7 +42,7 @@ export const hrApi = {
     return data;
   },
 
-  updateDepartment: async (id: number, dto: { nameEn: string; nameAr: string; sortOrder: number }): Promise<HrDepartment> => {
+  updateDepartment: async (id: number, dto: { nameEn: string; nameAr: string; sortOrder: number; unitType?: HrDepartmentUnitType }): Promise<HrDepartment> => {
     const { data } = await apiClient.put(`${API_BASE}/departments/${id}`, dto);
     return data;
   },
@@ -179,6 +180,13 @@ export const hrApi = {
   getContractBatches: async (kind?: HrContractBatchKind): Promise<HrContractBatch[]> => {
     const { data } = await apiClient.get(`${API_BASE}/contract-batches`, { params: kind ? { kind } : undefined });
     return data;
+  },
+
+  // Call once, right after every member contract in the batch has been
+  // created (i.e. after the per-employee createContract loop finishes) —
+  // emails each department's Coordinator(s) their own slice of the batch.
+  notifyContractBatchCreated: async (batchId: number): Promise<void> => {
+    await apiClient.post(`${API_BASE}/contract-batches/${batchId}/notify`);
   },
 
   // The batch plus its member contracts — the batch detail drill-down.

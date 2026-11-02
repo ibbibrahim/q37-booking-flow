@@ -25,6 +25,7 @@ import { RotaDepartmentSettingsPage } from './rota/pages/RotaDepartmentSettingsP
 import { EPGViewer } from './epg_workflow/components/EPGViewer';
 import { HRLayout } from './hr_workflow/components/HRLayout';
 import { HRDashboardPage } from './hr_workflow/pages/HRDashboardPage';
+import { OrganizationStructurePage } from './hr_workflow/pages/OrganizationStructurePage';
 import { EmployeeRecordsPage } from './hr_workflow/pages/EmployeeRecordsPage';
 import { EmployeeDetailPage } from './hr_workflow/pages/EmployeeDetailPage';
 import { EmployeeFormPage } from './hr_workflow/pages/EmployeeFormPage';
@@ -522,6 +523,7 @@ function App() {
           <Route path="department-approvals" element={<DepartmentApprovalsPage />} />
           <Route path="final-approvals" element={<FinalSignatoryApprovalsPage />} />
           <Route path="dashboard" element={<HRDashboardPage />} />
+          <Route path="org-structure" element={<OrganizationStructurePage />} />
           <Route path="employees" element={<Navigate to="/hr/employees/permanent" replace />} />
           {/* key forces a fresh mount every time this tab is navigated to —
               otherwise React sees the same component type at the same tree

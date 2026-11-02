@@ -218,6 +218,17 @@ export function StartContractBatchModal({ open, kind, onClose, onCompleted }: Pr
         await hrApi.createContract(emp.id, blob, { batchId: batch.id });
       }
 
+      // Every member contract now exists — safe to notify each department's
+      // Coordinator(s) with their own slice of the batch. Swallowed here too
+      // (on top of the backend's own best-effort handling): the batch and
+      // every contract already succeeded by this point, so a notify failure
+      // must never surface as "Failed to start..." below.
+      try {
+        await hrApi.notifyContractBatchCreated(batch.id);
+      } catch {
+        // Ignored — see comment above.
+      }
+
       queryClient.invalidateQueries({ queryKey: ['hr-contracts-by-employees'] });
       queryClient.invalidateQueries({ queryKey: ['hr-contract-batches'] });
       showToast(copy.doneToast(selectedEmployees.length), 'success');

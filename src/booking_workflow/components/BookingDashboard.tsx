@@ -8,7 +8,7 @@ import {
   LayoutDashboard, ClipboardList, FileBarChart, Search, CalendarCheck,
   Handshake, ChevronDown, UserCheck, UserRoundCog, FileSignature, ShieldCheck,
   Phone, Contact, Mic, CalendarRange, ScrollText, Clapperboard, MonitorPlay, CalendarClock,
-  PanelLeftClose, PanelLeftOpen, Workflow, Palette, ListChecks,
+  PanelLeftClose, PanelLeftOpen, Workflow, Palette, ListChecks, Network,
 } from 'lucide-react';
 import { HrLanguageProvider, HrLanguageToggle } from '../../hr_workflow/context/HrLanguageContext';
 import { cn } from '@/lib/utils';
@@ -667,6 +667,10 @@ export const BookingDashboard: React.FC = () => {
                   >
                     {isHRAdmin && (
                       <SidebarSubItem icon={LayoutDashboard} label="Dashboard" isActive={isPath('/hr/dashboard')} onClick={() => goTo('/hr/dashboard')} />
+                    )}
+
+                    {isHRAdmin && (
+                      <SidebarSubItem icon={Network} label="Organization Structure" isActive={isPath('/hr/org-structure')} onClick={() => goTo('/hr/org-structure')} />
                     )}
 
                     {isHRAdmin && (
