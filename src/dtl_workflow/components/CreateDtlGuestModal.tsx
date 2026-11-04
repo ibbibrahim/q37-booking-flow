@@ -78,8 +78,9 @@ export function CreateDtlGuestModal({
       });
       onCreated(created);
       handleClose();
-    } catch {
-      setError(`Something went wrong while creating the ${people.noun}.`);
+    } catch (err: any) {
+      // Prefer the API's message (e.g. 409 duplicate WhatsApp number) over the generic fallback.
+      setError(err?.response?.data?.message || `Something went wrong while creating the ${people.noun}.`);
     } finally {
       setSubmitting(false);
     }
