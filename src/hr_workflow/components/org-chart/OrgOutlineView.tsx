@@ -1,6 +1,6 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import { Briefcase, Building2, ChevronDown, Crown, Layers, UserRound } from 'lucide-react';
+import { Briefcase, Building2, ChevronDown, Crown, Layers, UserRound, Users } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useHrLanguage } from '../../context/HrLanguageContext';
@@ -152,9 +152,14 @@ function TreeRow({ node, level, variant, open, onToggle, onSelect, matchIds }: {
       <Meta node={node} variant={variant} />
 
       <span
-        className="shrink-0 rounded-md bg-muted px-1.5 py-0.5 text-xs font-medium tabular-nums text-foreground/80"
-        title={`${t('permanent')} ${permanent} · ${t('freelance')} ${freelance}`}
+        className={cn(
+          'inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold tabular-nums',
+          total > 0 ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground',
+        )}
+        title={`${total} ${t('headcount')} · ${t('permanent')} ${permanent} · ${t('freelance')} ${freelance}`}
+        aria-label={`${total} ${t('headcount')}`}
       >
+        <Users className="h-3 w-3" aria-hidden="true" />
         {total}
       </span>
 

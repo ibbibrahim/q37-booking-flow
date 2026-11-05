@@ -58,3 +58,13 @@ export interface SaveChecklistSubmission {
     remarks: string;
   }[];
 }
+
+/** POST/PUT body for a checklist template — server assigns id and displayOrder. */
+export interface SaveChecklistTemplate {
+  type: ChecklistType;
+  sectionName: string;
+  applicationName: string;
+  ip: string;
+  actionSteps: string[];
+  vendor: ChecklistVendor;
+}

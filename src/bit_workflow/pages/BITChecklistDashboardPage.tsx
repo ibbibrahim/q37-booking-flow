@@ -8,6 +8,7 @@ import {
   CalendarRange,
   ChevronRight,
   ListChecks,
+  Settings2,
   UserCircle2,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -156,7 +157,7 @@ export function BITChecklistDashboardPage() {
                   </div>
 
                   <div className="flex items-center justify-between border-t border-border pt-3 text-xs text-muted-foreground">
-                    <span className="inline-flex items-center gap-1.5">
+                    <span className="inline-flex items-center gap-1.5 shrink-0">
                       <ListChecks size={14} />
                       {templates.length} checks · {sections.length} {sections.length === 1 ? 'section' : 'sections'}
                     </span>
@@ -166,6 +167,19 @@ export function BITChecklistDashboardPage() {
                         <span className="truncate" title={engineerLabel}>{engineerLabel}</span>
                       </span>
                     )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="ml-auto h-7 shrink-0 px-2 text-xs"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/bit/checklist/${type}/manage`);
+                      }}
+                      onKeyDown={(e) => e.stopPropagation()}
+                    >
+                      <Settings2 size={14} />
+                      Manage
+                    </Button>
                   </div>
                 </CardContent>
               </Card>

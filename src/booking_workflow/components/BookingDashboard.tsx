@@ -8,7 +8,7 @@ import {
   LayoutDashboard, ClipboardList, FileBarChart, Search, CalendarCheck,
   Handshake, ChevronDown, UserCheck, UserRoundCog, FileSignature, ShieldCheck,
   Phone, Contact, Mic, CalendarRange, ScrollText, Clapperboard, MonitorPlay, CalendarClock,
-  PanelLeftClose, PanelLeftOpen, Workflow, Palette, ListChecks, Network,
+  PanelLeftClose, PanelLeftOpen, Workflow, Palette, ListChecks, Network, Building2,
 } from 'lucide-react';
 import { HrLanguageProvider, HrLanguageToggle } from '../../hr_workflow/context/HrLanguageContext';
 import { cn } from '@/lib/utils';
@@ -380,7 +380,7 @@ export const BookingDashboard: React.FC = () => {
   const isFinalSignatory = user?.roles?.includes('GeneralManager') ?? false;
   const hasHRAccess = isHRAdmin || isDepartmentHead || isDepartmentCoordinator || isFinalSignatory;
   // Strict: only the BIT role sees the BIT checklists — Admin does not bypass this one.
-  const hasBITAccess = user?.roles?.includes('BIT') ?? false;
+  const hasBITAccess = (user?.roles?.includes('BIT') || user?.roles?.includes('Admin')) ?? false;
   const hasEditSuiteDashboardAccess =
     user?.roles?.includes('Admin') ||
     user?.roles?.includes('Booking') ||
@@ -778,13 +778,28 @@ export const BookingDashboard: React.FC = () => {
                   />
                 )}
                 {hasBITAccess && (
-                  <SidebarItem
+                  <SidebarGroup
                     icon={ClipboardList}
-                    label="BIT Checklists"
+                    label="BIT"
                     isActive={currentSection === 'bit'}
-                    onClick={() => goTo('/bit')}
+                    open={isGroupOpen('bit', currentSection === 'bit')}
                     collapsed={sidebarCollapsed}
-                  />
+                    onToggle={() => toggleGroup('bit', currentSection === 'bit')}
+                    onCollapsedClick={() => goTo('/bit')}
+                  >
+                    <SidebarSubItem
+                      icon={ListChecks}
+                      label="Checklist"
+                      isActive={currentSection === 'bit' && !location.pathname.startsWith('/bit/vendors')}
+                      onClick={() => goTo('/bit')}
+                    />
+                    <SidebarSubItem
+                      icon={Building2}
+                      label="Vendor Directory"
+                      isActive={location.pathname.startsWith('/bit/vendors')}
+                      onClick={() => goTo('/bit/vendors')}
+                    />
+                  </SidebarGroup>
                 )}
                 {hasScheduleAccess && (
                   <SidebarItem

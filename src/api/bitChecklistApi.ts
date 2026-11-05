@@ -6,6 +6,7 @@ import type {
   ChecklistTemplate,
   ChecklistType,
   SaveChecklistSubmission,
+  SaveChecklistTemplate,
 } from '@/bit_workflow/types/checklist';
 
 const BASE = '/api/bit/checklists';
@@ -15,6 +16,26 @@ export const bitChecklistApi = {
   getTemplates: async (type: ChecklistType): Promise<ChecklistTemplate[]> => {
     const response = await apiClient.get<ChecklistTemplate[]>(`${BASE}/templates`, { params: { type } });
     return response.data;
+  },
+
+  createTemplate: async (body: SaveChecklistTemplate): Promise<ChecklistTemplate> => {
+    const response = await apiClient.post<ChecklistTemplate>(`${BASE}/templates`, body);
+    return response.data;
+  },
+
+  updateTemplate: async (id: number, body: SaveChecklistTemplate): Promise<ChecklistTemplate> => {
+    const response = await apiClient.put<ChecklistTemplate>(`${BASE}/templates/${id}`, body);
+    return response.data;
+  },
+
+  /** Removes the template from current and future checklists; past submissions keep their record. */
+  deleteTemplate: async (id: number): Promise<void> => {
+    await apiClient.delete(`${BASE}/templates/${id}`);
+  },
+
+  /** Persists the full order for a type — `ids` is every template id of that type in the new order. */
+  reorderTemplates: async (type: ChecklistType, ids: number[]): Promise<void> => {
+    await apiClient.put(`${BASE}/templates/reorder`, { ids }, { params: { type } });
   },
 
   /** Submission history for a type, newest period first. */

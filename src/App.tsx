@@ -49,6 +49,8 @@ import { StartingDatePage } from './hr_workflow/pages/StartingDatePage';
 import { BITChecklistDashboardPage } from './bit_workflow/pages/BITChecklistDashboardPage';
 import { BITChecklistListPage } from './bit_workflow/pages/BITChecklistListPage';
 import { BITChecklistFormPage } from './bit_workflow/pages/BITChecklistFormPage';
+import { BITVendorDirectoryPage } from './bit_workflow/pages/BITVendorDirectoryPage';
+import { BITChecklistManagePage } from './bit_workflow/pages/BITChecklistManagePage';
 import { DtlBookingListPage } from './dtl_workflow/components/DtlBookingListPage';
 import { DtlBookingDetailPage } from './dtl_workflow/components/DtlBookingDetailPage';
 import { DtlGuestListPage } from './dtl_workflow/components/DtlGuestListPage';
@@ -383,11 +385,11 @@ function App() {
           }
         />
 
-        {/** BIT CHECKLISTS — restricted to BIT only (strict: Admin does NOT bypass this) */}
+        {/** BIT CHECKLISTS — BIT and Admin */}
         <Route
           path="bit"
           element={
-            <ProtectedRoute allowedRoles={['BIT']} strict>
+            <ProtectedRoute allowedRoles={['BIT', 'Admin']}>
               <BITChecklistDashboardPage />
             </ProtectedRoute>
           }
@@ -395,15 +397,31 @@ function App() {
         <Route
           path="bit/checklist/:type"
           element={
-            <ProtectedRoute allowedRoles={['BIT']} strict>
+            <ProtectedRoute allowedRoles={['BIT', 'Admin']}>
               <BITChecklistListPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="bit/vendors"
+          element={
+            <ProtectedRoute allowedRoles={['BIT', 'Admin']}>
+              <BITVendorDirectoryPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="bit/checklist/:type/manage"
+          element={
+            <ProtectedRoute allowedRoles={['BIT', 'Admin']}>
+              <BITChecklistManagePage />
             </ProtectedRoute>
           }
         />
         <Route
           path="bit/checklist/:type/form"
           element={
-            <ProtectedRoute allowedRoles={['BIT']} strict>
+            <ProtectedRoute allowedRoles={['BIT', 'Admin']}>
               <BITChecklistFormPage />
             </ProtectedRoute>
           }
@@ -411,7 +429,7 @@ function App() {
         <Route
           path="bit/checklist/:type/view/:id"
           element={
-            <ProtectedRoute allowedRoles={['BIT']} strict>
+            <ProtectedRoute allowedRoles={['BIT', 'Admin']}>
               <BITChecklistFormPage readOnly />
             </ProtectedRoute>
           }
