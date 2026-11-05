@@ -12,7 +12,14 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectSeparator,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { checklistTypeLabel } from '../utils/checklistUtils';
 import { VendorBadge } from './VendorBadge';
 import type {
@@ -44,6 +51,9 @@ const VENDOR_OPTIONS: { value: ChecklistVendor; label: string }[] = [
   { value: 'other', label: 'Other/System' },
 ];
 
+/** Sentinel Select value for the "New section…" option — never saved. */
+const NEW_SECTION = '__new_section__';
+
 interface FormErrors {
   sectionName?: string;
   applicationName?: string;
@@ -64,6 +74,8 @@ export function ChecklistTemplateFormDialog({
   submitting,
 }: ChecklistTemplateFormDialogProps) {
   const [sectionName, setSectionName] = useState('');
+  /** Typing a brand-new section instead of picking one from the dropdown. */
+  const [creatingSection, setCreatingSection] = useState(false);
   const [applicationName, setApplicationName] = useState('');
   const [ip, setIp] = useState('');
   const [vendor, setVendor] = useState<ChecklistVendor>('other');
@@ -73,11 +85,13 @@ export function ChecklistTemplateFormDialog({
   useEffect(() => {
     if (!open) return;
     setSectionName(template?.sectionName ?? '');
+    setCreatingSection(sections.length === 0);
     setApplicationName(template?.applicationName ?? '');
     setIp(template?.ip ?? '');
     setVendor(template?.vendor ?? 'other');
     setSteps(template && template.actionSteps.length > 0 ? [...template.actionSteps] : ['']);
     setErrors({});
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reset only when the dialog opens
   }, [open, template]);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -114,20 +128,61 @@ export function ChecklistTemplateFormDialog({
 
         <form onSubmit={handleSubmit} className="space-y-5" noValidate>
           <div className="space-y-1.5">
-            <Label htmlFor="template-section">Section *</Label>
-            <Input
-              id="template-section"
-              list="template-section-options"
-              value={sectionName}
-              onChange={(e) => setSectionName(e.target.value)}
-              placeholder="Pick an existing section or type a new one"
-              aria-invalid={!!errors.sectionName}
-            />
-            <datalist id="template-section-options">
-              {sections.map((s) => (
-                <option key={s} value={s} />
-              ))}
-            </datalist>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="template-section">Section *</Label>
+              {creatingSection && sections.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCreatingSection(false);
+                    setSectionName(template?.sectionName ?? '');
+                  }}
+                  className="text-xs font-medium text-primary hover:underline"
+                >
+                  Choose existing section
+                </button>
+              )}
+            </div>
+            {creatingSection ? (
+              <Input
+                id="template-section"
+                value={sectionName}
+                onChange={(e) => setSectionName(e.target.value)}
+                placeholder="New section name, e.g. Evening Shift"
+                aria-invalid={!!errors.sectionName}
+                autoFocus
+              />
+            ) : (
+              <Select
+                value={sections.includes(sectionName) ? sectionName : undefined}
+                onValueChange={(value) => {
+                  if (value === NEW_SECTION) {
+                    setCreatingSection(true);
+                    setSectionName('');
+                  } else {
+                    setSectionName(value);
+                  }
+                }}
+              >
+                <SelectTrigger id="template-section" aria-invalid={!!errors.sectionName}>
+                  <SelectValue placeholder="Select a section" />
+                </SelectTrigger>
+                <SelectContent>
+                  {sections.map((s) => (
+                    <SelectItem key={s} value={s}>
+                      {s}
+                    </SelectItem>
+                  ))}
+                  <SelectSeparator />
+                  <SelectItem value={NEW_SECTION} className="text-primary">
+                    <span className="inline-flex items-center gap-1.5">
+                      <Plus size={14} />
+                      New section…
+                    </span>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            )}
             <FieldError message={errors.sectionName} />
           </div>
 
