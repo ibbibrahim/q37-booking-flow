@@ -51,6 +51,11 @@ import { BITChecklistListPage } from './bit_workflow/pages/BITChecklistListPage'
 import { BITChecklistFormPage } from './bit_workflow/pages/BITChecklistFormPage';
 import { BITVendorDirectoryPage } from './bit_workflow/pages/BITVendorDirectoryPage';
 import { BITChecklistManagePage } from './bit_workflow/pages/BITChecklistManagePage';
+import { BITTicketsPage } from './bit_workflow/pages/BITTicketsPage';
+import { BITTicketDetailPage } from './bit_workflow/pages/BITTicketDetailPage';
+import { BITTicketReportsPage } from './bit_workflow/pages/BITTicketReportsPage';
+import { BITIncidentReportPage } from './bit_workflow/pages/BITIncidentReportPage';
+import { BITIncidentRegisterPage } from './bit_workflow/pages/BITIncidentRegisterPage';
 import { DtlBookingListPage } from './dtl_workflow/components/DtlBookingListPage';
 import { DtlBookingDetailPage } from './dtl_workflow/components/DtlBookingDetailPage';
 import { DtlGuestListPage } from './dtl_workflow/components/DtlGuestListPage';
@@ -407,6 +412,46 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={['BIT', 'Admin']}>
               <BITVendorDirectoryPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="bit/tickets"
+          element={
+            <ProtectedRoute allowedRoles={['BIT', 'Admin']}>
+              <BITTicketsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="bit/tickets/reports"
+          element={
+            <ProtectedRoute allowedRoles={['BIT', 'Admin']}>
+              <BITTicketReportsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="bit/incidents"
+          element={
+            <ProtectedRoute allowedRoles={['BIT', 'Admin']}>
+              <BITIncidentRegisterPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="bit/tickets/:id/report"
+          element={
+            <ProtectedRoute allowedRoles={['BIT', 'Admin']}>
+              <BITIncidentReportPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="bit/tickets/:id"
+          element={
+            <ProtectedRoute allowedRoles={['BIT', 'Admin']}>
+              <BITTicketDetailPage />
             </ProtectedRoute>
           }
         />

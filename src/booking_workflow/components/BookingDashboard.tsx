@@ -8,8 +8,10 @@ import {
   LayoutDashboard, ClipboardList, FileBarChart, Search, CalendarCheck,
   Handshake, ChevronDown, UserCheck, UserRoundCog, FileSignature, ShieldCheck,
   Phone, Contact, Mic, CalendarRange, ScrollText, Clapperboard, MonitorPlay, CalendarClock,
-  PanelLeftClose, PanelLeftOpen, Workflow, Palette, ListChecks, Network, Building2,
+  PanelLeftClose, PanelLeftOpen, Workflow, Palette, ListChecks, Network, Building2, Ticket, Siren,
 } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { bitTicketApi } from '@/api/bitTicketApi';
 import { HrLanguageProvider, HrLanguageToggle } from '../../hr_workflow/context/HrLanguageContext';
 import { cn } from '@/lib/utils';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -130,12 +132,15 @@ function SidebarItem({ icon: Icon, label, isActive, onClick, badge, collapsed }:
 }
 
 /** Indented link inside a group. */
-function SidebarSubItem({ icon: Icon, label, isActive, onClick, small }: {
+function SidebarSubItem({ icon: Icon, label, isActive, onClick, small, badge, badgeTone = 'default' }: {
   icon: React.ElementType;
   label: string;
   isActive: boolean;
   onClick: () => void;
   small?: boolean;
+  /** Optional count shown as a small trailing pill (hidden when 0/undefined). */
+  badge?: number;
+  badgeTone?: 'default' | 'destructive';
 }) {
   return (
     <button
@@ -165,7 +170,17 @@ function SidebarSubItem({ icon: Icon, label, isActive, onClick, small }: {
           isActive ? 'text-sidebar-primary' : 'text-sidebar-foreground/50 group-hover:text-sidebar-accent-foreground'
         )}
       />
-      <span className="truncate">{label}</span>
+      <span className="truncate flex-1 min-w-0">{label}</span>
+      {badge !== undefined && badge > 0 && (
+        <span
+          className={cn(
+            'shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-semibold leading-none tabular-nums',
+            badgeTone === 'destructive' ? 'bg-destructive/15 text-destructive' : 'bg-primary/10 text-primary'
+          )}
+        >
+          {badge}
+        </span>
+      )}
     </button>
   );
 }
@@ -381,6 +396,11 @@ export const BookingDashboard: React.FC = () => {
   const hasHRAccess = isHRAdmin || isDepartmentHead || isDepartmentCoordinator || isFinalSignatory;
   // Strict: only the BIT role sees the BIT checklists — Admin does not bypass this one.
   const hasBITAccess = (user?.roles?.includes('BIT') || user?.roles?.includes('Admin')) ?? false;
+  const { data: bitSummary } = useQuery({
+    queryKey: ['bit-ticket-summary'],
+    queryFn: bitTicketApi.summary,
+    enabled: hasBITAccess,
+  });
   const hasEditSuiteDashboardAccess =
     user?.roles?.includes('Admin') ||
     user?.roles?.includes('Booking') ||
@@ -790,14 +810,40 @@ export const BookingDashboard: React.FC = () => {
                     <SidebarSubItem
                       icon={ListChecks}
                       label="Checklist"
-                      isActive={currentSection === 'bit' && !location.pathname.startsWith('/bit/vendors')}
+                      isActive={
+                        currentSection === 'bit' &&
+                        !location.pathname.startsWith('/bit/vendors') &&
+                        !location.pathname.startsWith('/bit/tickets') &&
+                        !location.pathname.startsWith('/bit/incidents')
+                      }
                       onClick={() => goTo('/bit')}
+                    />
+                    <SidebarSubItem
+                      icon={Ticket}
+                      label="Tickets"
+                      isActive={location.pathname.startsWith('/bit/tickets') && location.pathname !== '/bit/tickets/reports'}
+                      onClick={() => goTo('/bit/tickets')}
+                      badge={bitSummary?.open}
+                    />
+                    <SidebarSubItem
+                      icon={Siren}
+                      label="Incidents"
+                      isActive={location.pathname === '/bit/incidents'}
+                      onClick={() => goTo('/bit/incidents')}
+                      badge={(bitSummary?.reportsDue ?? 0) + (bitSummary?.reportsOverdue ?? 0)}
+                      badgeTone={(bitSummary?.reportsOverdue ?? 0) > 0 ? 'destructive' : 'default'}
                     />
                     <SidebarSubItem
                       icon={Building2}
                       label="Vendor Directory"
                       isActive={location.pathname.startsWith('/bit/vendors')}
                       onClick={() => goTo('/bit/vendors')}
+                    />
+                    <SidebarSubItem
+                      icon={BarChart3}
+                      label="Ticket Reports"
+                      isActive={location.pathname === '/bit/tickets/reports'}
+                      onClick={() => goTo('/bit/tickets/reports')}
                     />
                   </SidebarGroup>
                 )}
