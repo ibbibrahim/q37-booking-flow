@@ -16,6 +16,11 @@ import {
   getInitialPage,
   getInitialPageSize,
 } from '@/components/ui/list-pagination-bar';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { StatusPill } from '@/components/ui/status-pill';
+import { UserAvatar } from '@/components/ui/user-avatar';
+import type { Tone } from '@/lib/tone';
+import { cn } from '@/lib/utils';
 import { useAuth } from '../../contexts/AuthContext';
 import { listCreativeRequests } from '../services/creativeApi';
 import { useCreativeRequestChanged } from '../hooks/useCreativeRequestChanged';
@@ -35,16 +40,20 @@ const STATUS_OPTIONS = [
   CREATIVE_REQUEST_STATUS.Approved,
 ];
 
-const statusColors: Record<string, string> = {
-  Submitted: 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400',
-  Completed: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400',
-  NeedsRevision: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400',
-  Approved: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400',
+const headClass = 'h-10 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground';
+const GRID_CLASS =
+  'min-w-[1000px] [&_th]:border-r [&_td]:border-r [&_th]:border-border/70 [&_td]:border-border/70 [&_th:last-child]:border-r-0 [&_td:last-child]:border-r-0';
+
+const STATUS_TONES: Record<string, Tone> = {
+  Submitted: 'warning',
+  Completed: 'info',
+  NeedsRevision: 'destructive',
+  Approved: 'success',
 };
 
-const priorityColors: Record<string, string> = {
-  Normal: 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300',
-  Urgent: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400',
+const PRIORITY_TONES: Record<string, Tone> = {
+  Normal: 'muted',
+  Urgent: 'destructive',
 };
 
 export function CreativeRequestListPage() {
@@ -170,77 +179,84 @@ export function CreativeRequestListPage() {
         disabled={isLoading}
       />
 
-      <div className="bg-card border border-border rounded-lg overflow-hidden">
+      <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[800px]">
-            <thead>
-              <tr className="border-b border-border bg-muted/50">
-                <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground whitespace-nowrap">ID</th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground whitespace-nowrap">Title</th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground whitespace-nowrap">Type</th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground whitespace-nowrap">Program</th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground whitespace-nowrap">Status</th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground whitespace-nowrap">Priority</th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground whitespace-nowrap">Air Date</th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground whitespace-nowrap">Requested By</th>
-              </tr>
-            </thead>
-            <tbody>
+          <Table className={GRID_CLASS}>
+            <TableHeader>
+              <TableRow className="bg-muted/50 hover:bg-muted/50">
+                <TableHead className={cn(headClass, 'w-[80px]')}>ID</TableHead>
+                <TableHead className={cn(headClass, 'w-[320px]')}>Title</TableHead>
+                <TableHead className={cn(headClass, 'w-[170px]')}>Type</TableHead>
+                <TableHead className={cn(headClass, 'w-[150px]')}>Status</TableHead>
+                <TableHead className={cn(headClass, 'w-[110px]')}>Priority</TableHead>
+                <TableHead className={cn(headClass, 'w-[170px]')}>Air date</TableHead>
+                <TableHead className={cn(headClass, 'w-[200px]')}>Requested by</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {isLoading ? (
-                <tr>
-                  <td colSpan={8} className="py-16 text-center">
+                <TableRow className="hover:bg-transparent">
+                  <TableCell colSpan={7} className="py-16 text-center">
                     <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent" />
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ) : isError ? (
-                <tr>
-                  <td colSpan={8} className="py-16 text-center text-destructive">
+                <TableRow className="hover:bg-transparent">
+                  <TableCell colSpan={7} className="py-16 text-center text-destructive">
                     Could not load requests. Check your connection and try again.
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ) : items.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="py-16 text-center text-muted-foreground">
+                <TableRow className="hover:bg-transparent">
+                  <TableCell colSpan={7} className="py-16 text-center text-muted-foreground">
                     No requests found.
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ) : (
                 items.map((r) => (
-                  <tr
+                  <TableRow
                     key={r.id}
-                    className="border-b border-border hover:bg-muted/50 cursor-pointer transition-colors"
+                    className="group cursor-pointer transition-colors hover:bg-muted/30"
                     onClick={() => navigate(`/creative-requests/${r.id}`)}
                   >
-                    <td className="py-3 px-4 text-sm text-muted-foreground font-mono">{r.id}</td>
-                    <td className="py-3 px-4 text-sm font-medium text-card-foreground">{r.title}</td>
-                    <td className="py-3 px-4 text-sm text-muted-foreground">
+                    <TableCell className="py-3 font-mono text-xs tabular-nums text-muted-foreground">
+                      {r.id}
+                    </TableCell>
+                    <TableCell className="max-w-[360px] py-3">
+                      <p className="truncate font-medium text-card-foreground" title={r.title}>
+                        {r.title}
+                      </p>
+                      {r.program && <p className="truncate text-xs text-muted-foreground">{r.program}</p>}
+                    </TableCell>
+                    <TableCell className="py-3 text-sm">
                       {CREATIVE_REQUEST_TYPE_LABEL[r.requestType] ?? r.requestType}
-                    </td>
-                    <td className="py-3 px-4 text-sm text-muted-foreground">{r.program || '—'}</td>
-                    <td className="py-3 px-4 text-sm">
-                      <span
-                        className={`px-3 py-1 rounded-full text-xs font-medium ${
-                          statusColors[r.status] ??
-                          'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
-                        }`}
-                      >
-                        {r.status}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-sm">
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${priorityColors[r.priority] ?? ''}`}>
+                    </TableCell>
+                    <TableCell className="py-3">
+                      <StatusPill tone={STATUS_TONES[r.status] ?? 'muted'}>{r.status}</StatusPill>
+                    </TableCell>
+                    <TableCell className="py-3">
+                      <StatusPill tone={PRIORITY_TONES[r.priority] ?? 'muted'} ping={r.priority === 'Urgent'}>
                         {r.priority}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-sm text-muted-foreground">
+                      </StatusPill>
+                    </TableCell>
+                    <TableCell className="py-3 text-xs tabular-nums text-muted-foreground">
                       {new Date(r.airDate).toLocaleDateString()} {r.airTime}
-                    </td>
-                    <td className="py-3 px-4 text-sm">{r.createdByName || '—'}</td>
-                  </tr>
+                    </TableCell>
+                    <TableCell className="py-3">
+                      {r.createdByName ? (
+                        <div className="flex items-center gap-2">
+                          <UserAvatar name={r.createdByName} />
+                          <span className="truncate text-sm">{r.createdByName}</span>
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground/50">—</span>
+                      )}
+                    </TableCell>
+                  </TableRow>
                 ))
               )}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
       </div>
     </div>

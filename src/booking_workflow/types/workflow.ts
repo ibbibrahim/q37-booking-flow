@@ -109,6 +109,8 @@ export interface UpdateDownloadLinkDto {
 
 export interface WorkflowRequest {
   id: string;
+  /** Client-only flag for rows that just arrived (not set by the API). */
+  __isNew?: boolean;
   bookingType: BookingType;
   title: string;
   program: string;

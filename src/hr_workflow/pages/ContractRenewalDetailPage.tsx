@@ -15,10 +15,12 @@ import {
   Trash2,
   FileText,
 } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { StatusPill } from '@/components/ui/status-pill';
+import type { Tone } from '@/lib/tone';
+import { cn } from '@/lib/utils';
+import { DATA_TABLE_WRAPPER, DATA_TABLE_GRID, DATA_TABLE_HEADER_ROW, DATA_TABLE_HEAD, DATA_TABLE_ROW } from '@/lib/tableStyles';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu';
 import { ConfirmActionModal } from '@/admin/components/ConfirmActionModal';
@@ -31,8 +33,16 @@ import { ContractHistoryModal } from '../components/ContractHistoryModal';
 import { ContractVerifyUploadModal } from '../components/ContractVerifyUploadModal';
 import { useHrLanguage, bilingual } from '../context/HrLanguageContext';
 import { usePageHeader } from '@/contexts/PageHeaderContext';
-import { formatDate, CONTRACT_STATUS_LABEL, CONTRACT_STATUS_BADGE_CLASS } from '../utils/hrUtils';
-import type { HrContractBatchMember } from '../types/hrApi';
+import { formatDate, CONTRACT_STATUS_LABEL } from '../utils/hrUtils';
+import type { HrContractBatchMember, HrContractStatus } from '../types/hrApi';
+
+const CONTRACT_STATUS_TONE: Record<HrContractStatus, Tone> = {
+  AwaitingEmployeeSignature: 'warning',
+  AwaitingDepartmentHeadSignature: 'warning',
+  AwaitingFinalSignature: 'warning',
+  Completed: 'success',
+  Returned: 'destructive',
+};
 
 /** One renewal's full member list, with the same per-contract actions the
  * roster table used to offer — Edit/View/Send for Signature/Status/History/
@@ -152,36 +162,36 @@ export function ContractRenewalDetailPage() {
           </div>
         </div>
 
-        <Card>
-          <CardContent className="p-0">
-            <Table>
+        <div className={DATA_TABLE_WRAPPER}>
+          <div className="overflow-x-auto">
+            <Table className={cn(DATA_TABLE_GRID, 'min-w-[900px]')}>
               <TableHeader>
-                <TableRow>
-                  <TableHead>Contract No.</TableHead>
-                  <TableHead>Employee</TableHead>
-                  <TableHead>Job Title</TableHead>
-                  <TableHead>Department</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                <TableRow className={DATA_TABLE_HEADER_ROW}>
+                  <TableHead className={DATA_TABLE_HEAD}>Contract No.</TableHead>
+                  <TableHead className={DATA_TABLE_HEAD}>Employee</TableHead>
+                  <TableHead className={DATA_TABLE_HEAD}>Job Title</TableHead>
+                  <TableHead className={DATA_TABLE_HEAD}>Department</TableHead>
+                  <TableHead className={DATA_TABLE_HEAD}>Status</TableHead>
+                  <TableHead className={cn(DATA_TABLE_HEAD, 'text-right')}>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {detailQuery.isLoading && (
-                  <TableRow>
+                  <TableRow className="hover:bg-transparent">
                     <TableCell colSpan={6} className="text-center text-muted-foreground py-10">
                       Loading…
                     </TableCell>
                   </TableRow>
                 )}
                 {detailQuery.isError && (
-                  <TableRow>
+                  <TableRow className="hover:bg-transparent">
                     <TableCell colSpan={6} className="text-center text-destructive py-10">
                       Failed to load this batch.
                     </TableCell>
                   </TableRow>
                 )}
                 {!detailQuery.isLoading && !detailQuery.isError && members.length === 0 && (
-                  <TableRow>
+                  <TableRow className="hover:bg-transparent">
                     <TableCell colSpan={6} className="text-center text-muted-foreground py-14">
                       <FileText size={22} className="mx-auto mb-2 text-muted-foreground/60" />
                       No employees in this batch.
@@ -230,19 +240,19 @@ export function ContractRenewalDetailPage() {
                   );
 
                   return (
-                    <TableRow key={m.employeeId}>
-                      <TableCell className="text-muted-foreground tabular-nums">{contract.applicationRef ?? '—'}</TableCell>
-                      <TableCell className="font-medium text-foreground">
+                    <TableRow key={m.employeeId} className={DATA_TABLE_ROW}>
+                      <TableCell className="py-3 text-muted-foreground tabular-nums">{contract.applicationRef ?? '—'}</TableCell>
+                      <TableCell className="py-3 font-medium text-foreground">
                         {bilingual(language, m.employeeFullNameEn, m.employeeFullNameAr)}
                       </TableCell>
-                      <TableCell>{bilingual(language, m.employeeJobTitleEn, m.employeeJobTitleAr)}</TableCell>
-                      <TableCell className="text-muted-foreground">
+                      <TableCell className="py-3">{bilingual(language, m.employeeJobTitleEn, m.employeeJobTitleAr)}</TableCell>
+                      <TableCell className="py-3 text-muted-foreground">
                         {bilingual(language, m.employeeDepartmentNameEn, m.employeeDepartmentNameAr) || '—'}
                       </TableCell>
-                      <TableCell>
-                        <Badge className={CONTRACT_STATUS_BADGE_CLASS[contract.status]}>{CONTRACT_STATUS_LABEL[contract.status]}</Badge>
+                      <TableCell className="py-3">
+                        <StatusPill tone={CONTRACT_STATUS_TONE[contract.status] ?? 'muted'}>{CONTRACT_STATUS_LABEL[contract.status]}</StatusPill>
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="py-3 text-right">
                         <div className="flex justify-end gap-1.5 flex-wrap">
                           {contract.status === 'AwaitingEmployeeSignature' && (
                             <>
@@ -267,8 +277,8 @@ export function ContractRenewalDetailPage() {
                 })}
               </TableBody>
             </Table>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         <ConfirmActionModal
           open={!!discardTarget}

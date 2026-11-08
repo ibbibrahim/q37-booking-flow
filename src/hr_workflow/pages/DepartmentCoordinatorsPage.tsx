@@ -6,6 +6,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
+import { cn } from '@/lib/utils';
+import { DATA_TABLE_WRAPPER, DATA_TABLE_GRID, DATA_TABLE_HEADER_ROW, DATA_TABLE_HEAD, DATA_TABLE_ROW } from '@/lib/tableStyles';
 import { useToast } from '@/contexts/ToastContext';
 import { getApiErrorMessage } from '@/utils/apiError';
 import { hrApi } from '../api/hrApi';
@@ -98,28 +100,28 @@ export function DepartmentCoordinatorsPage() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardContent className="p-0">
-          <Table>
+      <div className={DATA_TABLE_WRAPPER}>
+        <div className="overflow-x-auto">
+          <Table className={cn(DATA_TABLE_GRID, 'min-w-[480px]')}>
             <TableHeader>
-              <TableRow>
-                <TableHead>User</TableHead>
-                <TableHead>Department</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+              <TableRow className={DATA_TABLE_HEADER_ROW}>
+                <TableHead className={DATA_TABLE_HEAD}>User</TableHead>
+                <TableHead className={DATA_TABLE_HEAD}>Department</TableHead>
+                <TableHead className={cn(DATA_TABLE_HEAD, 'text-right')}>Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {listQuery.isLoading && (
-                <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground py-10">Loading…</TableCell></TableRow>
+                <TableRow className="hover:bg-transparent"><TableCell colSpan={3} className="text-center text-muted-foreground py-10">Loading…</TableCell></TableRow>
               )}
               {!listQuery.isLoading && assignments.length === 0 && (
-                <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground py-10">No coordinators assigned yet.</TableCell></TableRow>
+                <TableRow className="hover:bg-transparent"><TableCell colSpan={3} className="text-center text-muted-foreground py-10">No coordinators assigned yet.</TableCell></TableRow>
               )}
               {assignments.map((a) => (
-                <TableRow key={a.id}>
-                  <TableCell className="font-medium text-foreground">{a.userDisplayName ?? a.userUsername}</TableCell>
-                  <TableCell>{a.departmentNameEn}</TableCell>
-                  <TableCell className="text-right">
+                <TableRow key={a.id} className={DATA_TABLE_ROW}>
+                  <TableCell className="py-3 font-medium text-foreground">{a.userDisplayName ?? a.userUsername}</TableCell>
+                  <TableCell className="py-3">{a.departmentNameEn}</TableCell>
+                  <TableCell className="py-3 text-right">
                     <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => handleRemove(a.id)}>
                       <Trash2 size={14} />
                     </Button>
@@ -128,8 +130,8 @@ export function DepartmentCoordinatorsPage() {
               ))}
             </TableBody>
           </Table>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }

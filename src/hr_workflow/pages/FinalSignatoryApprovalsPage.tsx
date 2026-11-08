@@ -4,7 +4,10 @@ import { CheckCircle2, Eye, PenTool, RotateCcw, Undo2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
+import { StatusPill } from '@/components/ui/status-pill';
+import type { Tone } from '@/lib/tone';
+import { cn } from '@/lib/utils';
+import { DATA_TABLE_WRAPPER, DATA_TABLE_GRID, DATA_TABLE_HEADER_ROW, DATA_TABLE_HEAD, DATA_TABLE_ROW } from '@/lib/tableStyles';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { useToast } from '@/contexts/ToastContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -17,8 +20,16 @@ import { ReturnContractModal } from '../components/ReturnContractModal';
 import { stampFinalSignatorySignature } from '../utils/contractPdf';
 import { generateCertificateOfCompletion } from '../utils/certificateOfCompletion';
 import { useHrLanguage, bilingual } from '../context/HrLanguageContext';
-import { CONTRACT_STATUS_LABEL, CONTRACT_STATUS_BADGE_CLASS, formatDate } from '../utils/hrUtils';
+import { CONTRACT_STATUS_LABEL, formatDate } from '../utils/hrUtils';
 import type { HrContract, HrEmployee, HrSignatureMethod } from '../types/hrApi';
+
+const CONTRACT_STATUS_TONE: Record<HrContract['status'], Tone> = {
+  AwaitingEmployeeSignature: 'warning',
+  AwaitingDepartmentHeadSignature: 'warning',
+  AwaitingFinalSignature: 'warning',
+  Completed: 'success',
+  Returned: 'destructive',
+};
 
 interface PendingItem {
   employee: HrEmployee;
@@ -408,29 +419,29 @@ export function FinalSignatoryApprovalsPage() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="p-0">
-            <Table>
+        <div className={DATA_TABLE_WRAPPER}>
+          <div className="overflow-x-auto">
+            <Table className={cn(DATA_TABLE_GRID, 'min-w-[840px]')}>
               <TableHeader>
-                <TableRow>
-                  <TableHead>Employee</TableHead>
-                  <TableHead>Department</TableHead>
-                  <TableHead>Job Title</TableHead>
-                  <TableHead>Created</TableHead>
-                  <TableHead>Stage</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                <TableRow className={DATA_TABLE_HEADER_ROW}>
+                  <TableHead className={DATA_TABLE_HEAD}>Employee</TableHead>
+                  <TableHead className={DATA_TABLE_HEAD}>Department</TableHead>
+                  <TableHead className={DATA_TABLE_HEAD}>Job Title</TableHead>
+                  <TableHead className={DATA_TABLE_HEAD}>Created</TableHead>
+                  <TableHead className={DATA_TABLE_HEAD}>Stage</TableHead>
+                  <TableHead className={cn(DATA_TABLE_HEAD, 'text-right')}>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading && (
-                  <TableRow>
+                  <TableRow className="hover:bg-transparent">
                     <TableCell colSpan={6} className="text-center text-muted-foreground py-10">
                       Loading…
                     </TableCell>
                   </TableRow>
                 )}
                 {!isLoading && pending.length === 0 && (
-                  <TableRow>
+                  <TableRow className="hover:bg-transparent">
                     <TableCell colSpan={6} className="text-center text-muted-foreground py-10">
                       No contracts awaiting final signature right now.
                     </TableCell>
@@ -438,21 +449,21 @@ export function FinalSignatoryApprovalsPage() {
                 )}
                 {!isLoading &&
                   pending.map((item) => (
-                    <TableRow key={item.contract.id}>
-                      <TableCell className="font-medium text-foreground">
+                    <TableRow key={item.contract.id} className={DATA_TABLE_ROW}>
+                      <TableCell className="py-3 font-medium text-foreground">
                         {bilingual(language, item.employee.fullNameEn, item.employee.fullNameAr)}
                       </TableCell>
-                      <TableCell className="text-muted-foreground">
+                      <TableCell className="py-3 text-muted-foreground">
                         {bilingual(language, item.employee.departmentNameEn, item.employee.departmentNameAr)}
                       </TableCell>
-                      <TableCell>{bilingual(language, item.employee.jobTitleEn, item.employee.jobTitleAr)}</TableCell>
-                      <TableCell className="text-muted-foreground">{formatDate(item.contract.createdAt)}</TableCell>
-                      <TableCell>
-                        <Badge className={CONTRACT_STATUS_BADGE_CLASS[item.contract.status]}>
+                      <TableCell className="py-3">{bilingual(language, item.employee.jobTitleEn, item.employee.jobTitleAr)}</TableCell>
+                      <TableCell className="py-3 text-muted-foreground">{formatDate(item.contract.createdAt)}</TableCell>
+                      <TableCell className="py-3">
+                        <StatusPill tone={CONTRACT_STATUS_TONE[item.contract.status] ?? 'muted'}>
                           {CONTRACT_STATUS_LABEL[item.contract.status]}
-                        </Badge>
+                        </StatusPill>
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="py-3 text-right">
                         <div className="flex justify-end gap-1.5">
                           <ActionIconButton icon={Eye} label="View" onClick={() => openReview(item)} />
                           <ActionIconButton
@@ -474,8 +485,8 @@ export function FinalSignatoryApprovalsPage() {
                   ))}
               </TableBody>
             </Table>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         <SignaturePad
           open={captureOpen}

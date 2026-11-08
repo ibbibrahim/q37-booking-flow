@@ -4,6 +4,8 @@ import { Wallet, TrendingUp, Building2 } from 'lucide-react';
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { cn } from '@/lib/utils';
+import { DATA_TABLE_WRAPPER, DATA_TABLE_GRID, DATA_TABLE_HEADER_ROW, DATA_TABLE_HEAD, DATA_TABLE_ROW } from '@/lib/tableStyles';
 import { StatTile } from '../components/StatTile';
 import { FreelanceSpendChart } from '../components/charts/FreelanceSpendChart';
 import { useHRChartColors } from '../utils/chartColors';
@@ -99,27 +101,31 @@ export function FinancialReportsPage() {
         <CardHeader className="pb-2">
           <CardTitle className="text-base">Spend by Department (6-Month Total)</CardTitle>
         </CardHeader>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Department</TableHead>
-                <TableHead className="text-right">6-Month Total</TableHead>
-                <TableHead className="text-right">Monthly Average</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {byDepartment.map(({ dept, totalForDept }) => (
-                <TableRow key={dept.id}>
-                  <TableCell className="font-medium">{dept.name}</TableCell>
-                  <TableCell className="text-right tabular-nums">{formatCurrencyQAR(totalForDept)}</TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {formatCurrencyQAR(Math.round(totalForDept / (months.length || 1)))}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+        <CardContent className="p-4 pt-2">
+          <div className={DATA_TABLE_WRAPPER}>
+            <div className="overflow-x-auto">
+              <Table className={cn(DATA_TABLE_GRID, 'min-w-[480px]')}>
+                <TableHeader>
+                  <TableRow className={DATA_TABLE_HEADER_ROW}>
+                    <TableHead className={DATA_TABLE_HEAD}>Department</TableHead>
+                    <TableHead className={cn(DATA_TABLE_HEAD, 'text-right')}>6-Month Total</TableHead>
+                    <TableHead className={cn(DATA_TABLE_HEAD, 'text-right')}>Monthly Average</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {byDepartment.map(({ dept, totalForDept }) => (
+                    <TableRow key={dept.id} className={DATA_TABLE_ROW}>
+                      <TableCell className="py-3 font-medium">{dept.name}</TableCell>
+                      <TableCell className="py-3 text-right tabular-nums">{formatCurrencyQAR(totalForDept)}</TableCell>
+                      <TableCell className="py-3 text-right tabular-nums">
+                        {formatCurrencyQAR(Math.round(totalForDept / (months.length || 1)))}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
         </CardContent>
       </Card>
     </div>

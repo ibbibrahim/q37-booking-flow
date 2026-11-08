@@ -34,8 +34,19 @@ import { stampDepartmentHeadSignature } from '../utils/contractPdf';
 import { stampDeptHeadSignature as stampLeaveDeptHeadSignature } from '../utils/leaveSuspensionPdf';
 import { useHrLanguage, bilingual } from '../context/HrLanguageContext';
 import { usePageHeader } from '@/contexts/PageHeaderContext';
-import { CONTRACT_STATUS_LABEL, CONTRACT_STATUS_BADGE_CLASS, formatDate } from '../utils/hrUtils';
+import { CONTRACT_STATUS_LABEL, formatDate } from '../utils/hrUtils';
 import type { HrContract, HrContractSignature, HrEmployee, HrSignatureMethod } from '../types/hrApi';
+import { StatusPill } from '@/components/ui/status-pill';
+import type { Tone } from '@/lib/tone';
+import { DATA_TABLE_WRAPPER, DATA_TABLE_GRID, DATA_TABLE_HEADER_ROW, DATA_TABLE_HEAD, DATA_TABLE_ROW } from '@/lib/tableStyles';
+
+const CONTRACT_STATUS_TONE: Record<HrContract['status'], Tone> = {
+  AwaitingEmployeeSignature: 'warning',
+  AwaitingDepartmentHeadSignature: 'warning',
+  AwaitingFinalSignature: 'warning',
+  Completed: 'success',
+  Returned: 'destructive',
+};
 
 // --- Small shared pieces reused across this page's four approval queues ---
 
@@ -147,7 +158,7 @@ function SearchBox({ value, onChange, placeholder }: { value: string; onChange: 
 /** One "nothing here" table row, reused by every tab's empty/no-results state. */
 function EmptyTableRow({ colSpan, children }: { colSpan: number; children: ReactNode }) {
   return (
-    <TableRow>
+    <TableRow className="hover:bg-transparent">
       <TableCell colSpan={colSpan} className="text-center text-muted-foreground py-8">
         {children}
       </TableCell>
@@ -644,15 +655,16 @@ export function DepartmentApprovalsPage() {
                 </CardContent>
               )}
 
-              <CardContent className="p-0 pt-3">
-                <Table>
+              <CardContent className="px-4 pb-4 pt-3">
+                <div className={DATA_TABLE_WRAPPER}><div className="overflow-x-auto">
+                <Table className={cn(DATA_TABLE_GRID, 'min-w-[720px]')}>
                   <TableHeader>
-                    <TableRow>
-                      <TableHead>Employee</TableHead>
-                      <TableHead>Job Title</TableHead>
-                      <TableHead>Created</TableHead>
-                      <TableHead>Stage</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
+                    <TableRow className={DATA_TABLE_HEADER_ROW}>
+                      <TableHead className={DATA_TABLE_HEAD}>Employee</TableHead>
+                      <TableHead className={DATA_TABLE_HEAD}>Job Title</TableHead>
+                      <TableHead className={DATA_TABLE_HEAD}>Created</TableHead>
+                      <TableHead className={DATA_TABLE_HEAD}>Stage</TableHead>
+                      <TableHead className={cn(DATA_TABLE_HEAD, 'text-right')}>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -665,18 +677,18 @@ export function DepartmentApprovalsPage() {
                     )}
                     {!isLoading &&
                       pagedPending.map((item) => (
-                        <TableRow key={item.contract.id}>
-                          <TableCell className="font-medium text-foreground">
+                        <TableRow key={item.contract.id} className={DATA_TABLE_ROW}>
+                          <TableCell className="py-3 font-medium text-foreground">
                             {bilingual(language, item.employee.fullNameEn, item.employee.fullNameAr)}
                           </TableCell>
-                          <TableCell>{bilingual(language, item.employee.jobTitleEn, item.employee.jobTitleAr)}</TableCell>
-                          <TableCell className="text-muted-foreground">{formatDate(item.contract.createdAt)}</TableCell>
-                          <TableCell>
-                            <Badge className={CONTRACT_STATUS_BADGE_CLASS[item.contract.status]}>
+                          <TableCell className="py-3">{bilingual(language, item.employee.jobTitleEn, item.employee.jobTitleAr)}</TableCell>
+                          <TableCell className="py-3 text-muted-foreground">{formatDate(item.contract.createdAt)}</TableCell>
+                          <TableCell className="py-3">
+                            <StatusPill tone={CONTRACT_STATUS_TONE[item.contract.status] ?? 'muted'}>
                               {CONTRACT_STATUS_LABEL[item.contract.status]}
-                            </Badge>
+                            </StatusPill>
                           </TableCell>
-                          <TableCell className="text-right">
+                          <TableCell className="py-3 text-right">
                             <div className="flex justify-end gap-1.5">
                               <ActionIconButton icon={Eye} label="View" onClick={() => openReview(item)} />
                               <ActionIconButton
@@ -698,27 +710,29 @@ export function DepartmentApprovalsPage() {
                       ))}
                   </TableBody>
                 </Table>
+                </div></div>
               </CardContent>
               <CardContent className="px-4 pb-4 pt-0">
                 <HistoryPanel count={signedHistory.length}>
-                  <Table>
+                  <div className={DATA_TABLE_WRAPPER}><div className="overflow-x-auto">
+                  <Table className={cn(DATA_TABLE_GRID, 'min-w-[600px]')}>
                     <TableHeader>
-                      <TableRow>
-                        <TableHead>Employee</TableHead>
-                        <TableHead>Signed By</TableHead>
-                        <TableHead>Signed At</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
+                      <TableRow className={DATA_TABLE_HEADER_ROW}>
+                        <TableHead className={DATA_TABLE_HEAD}>Employee</TableHead>
+                        <TableHead className={DATA_TABLE_HEAD}>Signed By</TableHead>
+                        <TableHead className={DATA_TABLE_HEAD}>Signed At</TableHead>
+                        <TableHead className={cn(DATA_TABLE_HEAD, 'text-right')}>Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {signedHistory.map(({ contract, employee, signature }) => (
-                        <TableRow key={contract.id}>
-                          <TableCell className="font-medium text-foreground">
+                        <TableRow key={contract.id} className={DATA_TABLE_ROW}>
+                          <TableCell className="py-3 font-medium text-foreground">
                             {bilingual(language, employee.fullNameEn, employee.fullNameAr)}
                           </TableCell>
-                          <TableCell className="text-muted-foreground">{signature.signedByName}</TableCell>
-                          <TableCell className="text-muted-foreground">{formatDate(signature.signedAt)}</TableCell>
-                          <TableCell className="text-right">
+                          <TableCell className="py-3 text-muted-foreground">{signature.signedByName}</TableCell>
+                          <TableCell className="py-3 text-muted-foreground">{formatDate(signature.signedAt)}</TableCell>
+                          <TableCell className="py-3 text-right">
                             <ActionIconButton
                               icon={Eye}
                               label="View"
@@ -729,6 +743,7 @@ export function DepartmentApprovalsPage() {
                       ))}
                     </TableBody>
                   </Table>
+                  </div></div>
                 </HistoryPanel>
               </CardContent>
             </Card>
@@ -917,14 +932,15 @@ function LeaveNoticesSection({
       )}
 
       <CardContent className="p-4 pt-3 space-y-3">
-        <Table>
+        <div className={DATA_TABLE_WRAPPER}><div className="overflow-x-auto">
+        <Table className={cn(DATA_TABLE_GRID, 'min-w-[720px]')}>
           <TableHeader>
-            <TableRow>
-              <TableHead>Freelancer</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead>Dates</TableHead>
-              <TableHead>Days</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+            <TableRow className={DATA_TABLE_HEADER_ROW}>
+              <TableHead className={DATA_TABLE_HEAD}>Freelancer</TableHead>
+              <TableHead className={DATA_TABLE_HEAD}>Type</TableHead>
+              <TableHead className={DATA_TABLE_HEAD}>Dates</TableHead>
+              <TableHead className={DATA_TABLE_HEAD}>Days</TableHead>
+              <TableHead className={cn(DATA_TABLE_HEAD, 'text-right')}>Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -935,12 +951,12 @@ function LeaveNoticesSection({
               <EmptyTableRow colSpan={5}>No leave notices match your search.</EmptyTableRow>
             )}
             {pagedPending.map((r) => (
-              <TableRow key={r.id}>
-                <TableCell className="font-medium text-foreground">{r.employeeFullNameEn}</TableCell>
-                <TableCell>{r.suspensionType}</TableCell>
-                <TableCell>{r.startDate ? formatDate(r.startDate) : '—'} – {r.endDate ? formatDate(r.endDate) : '—'}</TableCell>
-                <TableCell className="tabular-nums">{r.totalDays ?? '—'}</TableCell>
-                <TableCell className="text-right">
+              <TableRow key={r.id} className={DATA_TABLE_ROW}>
+                <TableCell className="py-3 font-medium text-foreground">{r.employeeFullNameEn}</TableCell>
+                <TableCell className="py-3">{r.suspensionType}</TableCell>
+                <TableCell className="py-3">{r.startDate ? formatDate(r.startDate) : '—'} – {r.endDate ? formatDate(r.endDate) : '—'}</TableCell>
+                <TableCell className="py-3 tabular-nums">{r.totalDays ?? '—'}</TableCell>
+                <TableCell className="py-3 text-right">
                   <div className="flex justify-end gap-1.5">
                     <ActionIconButton icon={Eye} label="View" onClick={() => openPreview(r.id, r.employeeFullNameEn ?? 'Leave Notice')} />
                     <Button
@@ -957,30 +973,33 @@ function LeaveNoticesSection({
             ))}
           </TableBody>
         </Table>
+        </div></div>
 
         <HistoryPanel count={signedHistory.length}>
-          <Table>
+          <div className={DATA_TABLE_WRAPPER}><div className="overflow-x-auto">
+          <Table className={cn(DATA_TABLE_GRID, 'min-w-[600px]')}>
             <TableHeader>
-              <TableRow>
-                <TableHead>Freelancer</TableHead>
-                <TableHead>Signed By</TableHead>
-                <TableHead>Signed At</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+              <TableRow className={DATA_TABLE_HEADER_ROW}>
+                <TableHead className={DATA_TABLE_HEAD}>Freelancer</TableHead>
+                <TableHead className={DATA_TABLE_HEAD}>Signed By</TableHead>
+                <TableHead className={DATA_TABLE_HEAD}>Signed At</TableHead>
+                <TableHead className={cn(DATA_TABLE_HEAD, 'text-right')}>Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {signedHistory.map((r) => (
-                <TableRow key={r.id}>
-                  <TableCell className="font-medium text-foreground">{r.employeeFullNameEn}</TableCell>
-                  <TableCell className="text-muted-foreground">{r.deptHeadSignedByName}</TableCell>
-                  <TableCell className="text-muted-foreground">{formatDate(r.deptHeadSignedAt)}</TableCell>
-                  <TableCell className="text-right">
+                <TableRow key={r.id} className={DATA_TABLE_ROW}>
+                  <TableCell className="py-3 font-medium text-foreground">{r.employeeFullNameEn}</TableCell>
+                  <TableCell className="py-3 text-muted-foreground">{r.deptHeadSignedByName}</TableCell>
+                  <TableCell className="py-3 text-muted-foreground">{formatDate(r.deptHeadSignedAt)}</TableCell>
+                  <TableCell className="py-3 text-right">
                     <ActionIconButton icon={Eye} label="View" onClick={() => openPreview(r.id, r.employeeFullNameEn ?? 'Leave Notice')} />
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
+          </div></div>
         </HistoryPanel>
       </CardContent>
 
@@ -1085,12 +1104,13 @@ function InterviewReviewsSection() {
       )}
 
       <CardContent className="p-4 pt-3 space-y-3">
-        <Table>
+        <div className={DATA_TABLE_WRAPPER}><div className="overflow-x-auto">
+        <Table className={cn(DATA_TABLE_GRID, 'min-w-[480px]')}>
           <TableHeader>
-            <TableRow>
-              <TableHead>Candidate</TableHead>
-              <TableHead>Position</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+            <TableRow className={DATA_TABLE_HEADER_ROW}>
+              <TableHead className={DATA_TABLE_HEAD}>Candidate</TableHead>
+              <TableHead className={DATA_TABLE_HEAD}>Position</TableHead>
+              <TableHead className={cn(DATA_TABLE_HEAD, 'text-right')}>Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -1101,10 +1121,10 @@ function InterviewReviewsSection() {
               <EmptyTableRow colSpan={3}>No interview evaluations match your search.</EmptyTableRow>
             )}
             {pagedPending.map((r) => (
-              <TableRow key={r.id}>
-                <TableCell className="font-medium text-foreground">{r.candidateName}</TableCell>
-                <TableCell className="text-muted-foreground">{r.positionTitle}</TableCell>
-                <TableCell className="text-right">
+              <TableRow key={r.id} className={DATA_TABLE_ROW}>
+                <TableCell className="py-3 font-medium text-foreground">{r.candidateName}</TableCell>
+                <TableCell className="py-3 text-muted-foreground">{r.positionTitle}</TableCell>
+                <TableCell className="py-3 text-right">
                   <Button
                     size="sm"
                     className="gap-1.5"
@@ -1117,30 +1137,33 @@ function InterviewReviewsSection() {
             ))}
           </TableBody>
         </Table>
+        </div></div>
 
         <HistoryPanel count={signedHistory.length}>
-          <Table>
+          <div className={DATA_TABLE_WRAPPER}><div className="overflow-x-auto">
+          <Table className={cn(DATA_TABLE_GRID, 'min-w-[600px]')}>
             <TableHeader>
-              <TableRow>
-                <TableHead>Candidate</TableHead>
-                <TableHead>Reviewed By</TableHead>
-                <TableHead>Reviewed At</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+              <TableRow className={DATA_TABLE_HEADER_ROW}>
+                <TableHead className={DATA_TABLE_HEAD}>Candidate</TableHead>
+                <TableHead className={DATA_TABLE_HEAD}>Reviewed By</TableHead>
+                <TableHead className={DATA_TABLE_HEAD}>Reviewed At</TableHead>
+                <TableHead className={cn(DATA_TABLE_HEAD, 'text-right')}>Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {signedHistory.map((r) => (
-                <TableRow key={r.id}>
-                  <TableCell className="font-medium text-foreground">{r.candidateName}</TableCell>
-                  <TableCell className="text-muted-foreground">{r.managerReviewedByName}</TableCell>
-                  <TableCell className="text-muted-foreground">{formatDate(r.managerReviewedAt)}</TableCell>
-                  <TableCell className="text-right">
+                <TableRow key={r.id} className={DATA_TABLE_ROW}>
+                  <TableCell className="py-3 font-medium text-foreground">{r.candidateName}</TableCell>
+                  <TableCell className="py-3 text-muted-foreground">{r.managerReviewedByName}</TableCell>
+                  <TableCell className="py-3 text-muted-foreground">{formatDate(r.managerReviewedAt)}</TableCell>
+                  <TableCell className="py-3 text-right">
                     <ActionIconButton icon={Eye} label="View" onClick={() => openPreview(r.id, r.candidateName)} />
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
+          </div></div>
         </HistoryPanel>
       </CardContent>
 
@@ -1253,13 +1276,14 @@ function StartingDateConfirmationsSection({
       )}
 
       <CardContent className="p-4 pt-3 space-y-3">
-        <Table>
+        <div className={DATA_TABLE_WRAPPER}><div className="overflow-x-auto">
+        <Table className={cn(DATA_TABLE_GRID, 'min-w-[600px]')}>
           <TableHeader>
-            <TableRow>
-              <TableHead>Candidate</TableHead>
-              <TableHead>Outcome</TableHead>
-              <TableHead>Starting Date</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+            <TableRow className={DATA_TABLE_HEADER_ROW}>
+              <TableHead className={DATA_TABLE_HEAD}>Candidate</TableHead>
+              <TableHead className={DATA_TABLE_HEAD}>Outcome</TableHead>
+              <TableHead className={DATA_TABLE_HEAD}>Starting Date</TableHead>
+              <TableHead className={cn(DATA_TABLE_HEAD, 'text-right')}>Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -1270,11 +1294,11 @@ function StartingDateConfirmationsSection({
               <EmptyTableRow colSpan={4}>No starting date confirmations match your search.</EmptyTableRow>
             )}
             {pagedPending.map((r) => (
-              <TableRow key={r.id}>
-                <TableCell className="font-medium text-foreground">{r.candidateName}</TableCell>
-                <TableCell>{r.startIntent === 'Started' ? 'Started' : 'Did not show up'}</TableCell>
-                <TableCell className="text-muted-foreground">{r.startingDate ? formatDate(r.startingDate) : '—'}</TableCell>
-                <TableCell className="text-right">
+              <TableRow key={r.id} className={DATA_TABLE_ROW}>
+                <TableCell className="py-3 font-medium text-foreground">{r.candidateName}</TableCell>
+                <TableCell className="py-3">{r.startIntent === 'Started' ? 'Started' : 'Did not show up'}</TableCell>
+                <TableCell className="py-3 text-muted-foreground">{r.startingDate ? formatDate(r.startingDate) : '—'}</TableCell>
+                <TableCell className="py-3 text-right">
                   <div className="flex justify-end gap-1.5">
                     <ActionIconButton icon={Eye} label="View" onClick={() => openPreview(r.id, r.candidateName)} />
                     <Button
@@ -1291,30 +1315,33 @@ function StartingDateConfirmationsSection({
             ))}
           </TableBody>
         </Table>
+        </div></div>
 
         <HistoryPanel count={signedHistory.length}>
-          <Table>
+          <div className={DATA_TABLE_WRAPPER}><div className="overflow-x-auto">
+          <Table className={cn(DATA_TABLE_GRID, 'min-w-[600px]')}>
             <TableHeader>
-              <TableRow>
-                <TableHead>Candidate</TableHead>
-                <TableHead>Outcome</TableHead>
-                <TableHead>Signed At</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+              <TableRow className={DATA_TABLE_HEADER_ROW}>
+                <TableHead className={DATA_TABLE_HEAD}>Candidate</TableHead>
+                <TableHead className={DATA_TABLE_HEAD}>Outcome</TableHead>
+                <TableHead className={DATA_TABLE_HEAD}>Signed At</TableHead>
+                <TableHead className={cn(DATA_TABLE_HEAD, 'text-right')}>Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {signedHistory.map((r) => (
-                <TableRow key={r.id}>
-                  <TableCell className="font-medium text-foreground">{r.candidateName}</TableCell>
-                  <TableCell className="text-muted-foreground">{r.startIntent === 'Started' ? 'Started' : 'Did not show up'}</TableCell>
-                  <TableCell className="text-muted-foreground">{formatDate(r.managerStartSignedAt)}</TableCell>
-                  <TableCell className="text-right">
+                <TableRow key={r.id} className={DATA_TABLE_ROW}>
+                  <TableCell className="py-3 font-medium text-foreground">{r.candidateName}</TableCell>
+                  <TableCell className="py-3 text-muted-foreground">{r.startIntent === 'Started' ? 'Started' : 'Did not show up'}</TableCell>
+                  <TableCell className="py-3 text-muted-foreground">{formatDate(r.managerStartSignedAt)}</TableCell>
+                  <TableCell className="py-3 text-right">
                     <ActionIconButton icon={Eye} label="View" onClick={() => openPreview(r.id, r.candidateName)} />
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
+          </div></div>
         </HistoryPanel>
       </CardContent>
 

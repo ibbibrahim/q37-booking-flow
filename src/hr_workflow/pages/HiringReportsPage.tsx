@@ -3,15 +3,26 @@ import { useQuery } from '@tanstack/react-query';
 import { FileStack, CheckCircle2, RotateCcw, Clock3 } from 'lucide-react';
 import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { StatusPill } from '@/components/ui/status-pill';
+import type { Tone } from '@/lib/tone';
+import { cn } from '@/lib/utils';
+import { DATA_TABLE_WRAPPER, DATA_TABLE_GRID, DATA_TABLE_HEADER_ROW, DATA_TABLE_HEAD, DATA_TABLE_ROW } from '@/lib/tableStyles';
 import { StatTile } from '../components/StatTile';
 import { useHRChartColors } from '../utils/chartColors';
 import { hrApi } from '../api/hrApi';
 import { useHrLanguage, bilingual } from '../context/HrLanguageContext';
-import { formatDate, CONTRACT_STATUS_LABEL, CONTRACT_STATUS_BADGE_CLASS } from '../utils/hrUtils';
+import { formatDate, CONTRACT_STATUS_LABEL } from '../utils/hrUtils';
 import type { HrContractStatus } from '../types/hrApi';
 import { usePageHeader } from '@/contexts/PageHeaderContext';
+
+const CONTRACT_STATUS_TONE: Record<HrContractStatus, Tone> = {
+  AwaitingEmployeeSignature: 'warning',
+  AwaitingDepartmentHeadSignature: 'warning',
+  AwaitingFinalSignature: 'warning',
+  Completed: 'success',
+  Returned: 'destructive',
+};
 
 // Every stage a freelance contract renewal actually moves through, in order —
 // drives both the "by stage" chart and which statuses count as "in progress".
@@ -184,46 +195,50 @@ export function HiringReportsPage() {
         <CardHeader className="pb-2">
           <CardTitle className="text-base">All Contract Renewals</CardTitle>
         </CardHeader>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Request #</TableHead>
-                <TableHead>Candidate</TableHead>
-                <TableHead>Department</TableHead>
-                <TableHead>Created</TableHead>
-                <TableHead>Stage</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {contracts.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground py-10">
-                    No contract renewals started yet.
-                  </TableCell>
-                </TableRow>
-              )}
-              {contracts
-                .slice()
-                .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-                .map((c) => {
-                  const emp = employeeById.get(c.employeeId);
-                  return (
-                    <TableRow key={c.id}>
-                      <TableCell className="font-medium">
-                        HR-{new Date(c.createdAt).getFullYear()}-{String(c.id).padStart(4, '0')}
-                      </TableCell>
-                      <TableCell>{emp ? bilingual(language, emp.fullNameEn, emp.fullNameAr) : '—'}</TableCell>
-                      <TableCell>{emp ? bilingual(language, emp.departmentNameEn, emp.departmentNameAr) : '—'}</TableCell>
-                      <TableCell>{formatDate(c.createdAt)}</TableCell>
-                      <TableCell>
-                        <Badge className={CONTRACT_STATUS_BADGE_CLASS[c.status]}>{CONTRACT_STATUS_LABEL[c.status]}</Badge>
+        <CardContent className="p-4 pt-2">
+          <div className={DATA_TABLE_WRAPPER}>
+            <div className="overflow-x-auto">
+              <Table className={cn(DATA_TABLE_GRID, 'min-w-[720px]')}>
+                <TableHeader>
+                  <TableRow className={DATA_TABLE_HEADER_ROW}>
+                    <TableHead className={DATA_TABLE_HEAD}>Request #</TableHead>
+                    <TableHead className={DATA_TABLE_HEAD}>Candidate</TableHead>
+                    <TableHead className={DATA_TABLE_HEAD}>Department</TableHead>
+                    <TableHead className={DATA_TABLE_HEAD}>Created</TableHead>
+                    <TableHead className={DATA_TABLE_HEAD}>Stage</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {contracts.length === 0 && (
+                    <TableRow className="hover:bg-transparent">
+                      <TableCell colSpan={5} className="text-center text-muted-foreground py-10">
+                        No contract renewals started yet.
                       </TableCell>
                     </TableRow>
-                  );
-                })}
-            </TableBody>
-          </Table>
+                  )}
+                  {contracts
+                    .slice()
+                    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                    .map((c) => {
+                      const emp = employeeById.get(c.employeeId);
+                      return (
+                        <TableRow key={c.id} className={DATA_TABLE_ROW}>
+                          <TableCell className="py-3 font-medium">
+                            HR-{new Date(c.createdAt).getFullYear()}-{String(c.id).padStart(4, '0')}
+                          </TableCell>
+                          <TableCell className="py-3">{emp ? bilingual(language, emp.fullNameEn, emp.fullNameAr) : '—'}</TableCell>
+                          <TableCell className="py-3">{emp ? bilingual(language, emp.departmentNameEn, emp.departmentNameAr) : '—'}</TableCell>
+                          <TableCell className="py-3">{formatDate(c.createdAt)}</TableCell>
+                          <TableCell className="py-3">
+                            <StatusPill tone={CONTRACT_STATUS_TONE[c.status] ?? 'muted'}>{CONTRACT_STATUS_LABEL[c.status]}</StatusPill>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
         </CardContent>
       </Card>
     </div>

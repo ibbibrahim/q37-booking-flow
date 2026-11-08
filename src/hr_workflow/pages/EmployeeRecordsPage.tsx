@@ -4,10 +4,13 @@ import { useQuery } from '@tanstack/react-query';
 import { Plus, Search as SearchIcon, Users, UserCheck, Phone, Mail, Tag, Building2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { StatusPill } from '@/components/ui/status-pill';
+import type { Tone } from '@/lib/tone';
+import { cn } from '@/lib/utils';
+import { DATA_TABLE_WRAPPER, DATA_TABLE_GRID, DATA_TABLE_HEADER_ROW, DATA_TABLE_HEAD, DATA_TABLE_ROW } from '@/lib/tableStyles';
 import { ListFilterBar, FilterActiveFiltersRow } from '@/components/ui/list-filter-bar';
 import { ListPaginationBar, getInitialPage, getInitialPageSize } from '@/components/ui/list-pagination-bar';
 import { StatTile } from '../components/StatTile';
@@ -15,8 +18,16 @@ import { EmployeeAvatar } from '../components/EmployeeAvatar';
 import { hrApi } from '../api/hrApi';
 import { useHrLanguage, bilingual } from '../context/HrLanguageContext';
 import { usePageHeader } from '@/contexts/PageHeaderContext';
-import { hrEmployeeStatusBadgeClass, formatDate } from '../utils/hrUtils';
+import { formatDate } from '../utils/hrUtils';
 import type { HrContractType, HrEmployeeStatus } from '../types/hrApi';
+
+const EMPLOYEE_STATUS_TONE: Partial<Record<HrEmployeeStatus, Tone>> = {
+  Active: 'success',
+  'On Leave': 'warning',
+  'External Secondment': 'primary',
+  Retired: 'muted',
+  'End of Service': 'destructive',
+};
 
 interface Props {
   contractType: HrContractType;
@@ -238,41 +249,41 @@ export function EmployeeRecordsPage({ contractType }: Props) {
         disabled={employeesQuery.isLoading}
       />
 
-      <Card>
-        <CardContent className="p-0">
-          <Table>
+      <div className={DATA_TABLE_WRAPPER}>
+        <div className="overflow-x-auto">
+          <Table className={cn(DATA_TABLE_GRID, 'min-w-[1200px]')}>
             <TableHeader>
-              <TableRow>
-                <TableHead>{t('employee')}</TableHead>
-                {isPermanent && <TableHead>{t('jobNumberQmc')}</TableHead>}
-                <TableHead>{t('jobTitle')}</TableHead>
-                <TableHead>{t('department')}</TableHead>
-                <TableHead>{t('contact')}</TableHead>
-                {isPermanent && <TableHead>{t('joinDate')}</TableHead>}
-                <TableHead>{t('qid')}</TableHead>
-                {isPermanent && <TableHead>{t('nationality')}</TableHead>}
-                <TableHead>{t('status')}</TableHead>
-                <TableHead className="text-right">{t('actions')}</TableHead>
+              <TableRow className={DATA_TABLE_HEADER_ROW}>
+                <TableHead className={DATA_TABLE_HEAD}>{t('employee')}</TableHead>
+                {isPermanent && <TableHead className={DATA_TABLE_HEAD}>{t('jobNumberQmc')}</TableHead>}
+                <TableHead className={DATA_TABLE_HEAD}>{t('jobTitle')}</TableHead>
+                <TableHead className={DATA_TABLE_HEAD}>{t('department')}</TableHead>
+                <TableHead className={DATA_TABLE_HEAD}>{t('contact')}</TableHead>
+                {isPermanent && <TableHead className={DATA_TABLE_HEAD}>{t('joinDate')}</TableHead>}
+                <TableHead className={DATA_TABLE_HEAD}>{t('qid')}</TableHead>
+                {isPermanent && <TableHead className={DATA_TABLE_HEAD}>{t('nationality')}</TableHead>}
+                <TableHead className={DATA_TABLE_HEAD}>{t('status')}</TableHead>
+                <TableHead className={cn(DATA_TABLE_HEAD, 'text-right')}>{t('actions')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {employeesQuery.isLoading && (
-                <TableRow>
+                <TableRow className="hover:bg-transparent">
                   <TableCell colSpan={columnCount} className="text-center text-muted-foreground py-10">
                     {t('loading')}
                   </TableCell>
                 </TableRow>
               )}
               {employeesQuery.isError && (
-                <TableRow>
+                <TableRow className="hover:bg-transparent">
                   <TableCell colSpan={columnCount} className="text-center text-destructive py-10">
                     {t('errorLoading')}
                   </TableCell>
                 </TableRow>
               )}
               {!employeesQuery.isLoading && !employeesQuery.isError && employees.map((emp) => (
-                <TableRow key={emp.id}>
-                  <TableCell className="font-medium text-foreground">
+                <TableRow key={emp.id} className={DATA_TABLE_ROW}>
+                  <TableCell className="py-3 font-medium text-foreground">
                     <div className="flex items-center gap-2.5">
                       <EmployeeAvatar profilePictureUrl={emp.profilePictureUrl} gender={emp.gender} name={emp.fullNameEn} />
                       <span>
@@ -285,10 +296,10 @@ export function EmployeeRecordsPage({ contractType }: Props) {
                       </span>
                     </div>
                   </TableCell>
-                  {isPermanent && <TableCell className="text-muted-foreground">{emp.qmcJobNo || '—'}</TableCell>}
-                  <TableCell>{bilingual(language, emp.jobTitleEn, emp.jobTitleAr)}</TableCell>
-                  <TableCell>{bilingual(language, emp.departmentNameEn, emp.departmentNameAr)}</TableCell>
-                  <TableCell>
+                  {isPermanent && <TableCell className="py-3 text-muted-foreground">{emp.qmcJobNo || '—'}</TableCell>}
+                  <TableCell className="py-3">{bilingual(language, emp.jobTitleEn, emp.jobTitleAr)}</TableCell>
+                  <TableCell className="py-3">{bilingual(language, emp.departmentNameEn, emp.departmentNameAr)}</TableCell>
+                  <TableCell className="py-3">
                     <div className="flex flex-col gap-0.5 text-xs text-muted-foreground">
                       {emp.mobileNumber && (
                         <span className="flex items-center gap-1"><Phone size={12} />{emp.mobileNumber}</span>
@@ -299,16 +310,16 @@ export function EmployeeRecordsPage({ contractType }: Props) {
                     </div>
                   </TableCell>
                   {isPermanent && (
-                    <TableCell className="text-muted-foreground">
+                    <TableCell className="py-3 text-muted-foreground">
                       {emp.joinDate ? formatDate(emp.joinDate) : '—'}
                     </TableCell>
                   )}
-                  <TableCell className="tabular-nums">{emp.qid}</TableCell>
-                  {isPermanent && <TableCell>{emp.nationality}</TableCell>}
-                  <TableCell>
-                    <Badge className={hrEmployeeStatusBadgeClass(emp.status)}>{emp.status}</Badge>
+                  <TableCell className="py-3 tabular-nums">{emp.qid}</TableCell>
+                  {isPermanent && <TableCell className="py-3">{emp.nationality}</TableCell>}
+                  <TableCell className="py-3">
+                    <StatusPill tone={EMPLOYEE_STATUS_TONE[emp.status] ?? 'muted'}>{emp.status}</StatusPill>
                   </TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="py-3 text-right">
                     <div className="flex justify-end gap-1.5">
                       <Button variant="ghost" size="sm" onClick={() => navigate(`/hr/employees/${typeSlug}/${emp.id}`)}>
                         {t('view')}
@@ -321,7 +332,7 @@ export function EmployeeRecordsPage({ contractType }: Props) {
                 </TableRow>
               ))}
               {!employeesQuery.isLoading && !employeesQuery.isError && employees.length === 0 && (
-                <TableRow>
+                <TableRow className="hover:bg-transparent">
                   <TableCell colSpan={columnCount} className="text-center text-muted-foreground py-10">
                     {t('noResults')}
                   </TableCell>
@@ -329,8 +340,8 @@ export function EmployeeRecordsPage({ contractType }: Props) {
               )}
             </TableBody>
           </Table>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }

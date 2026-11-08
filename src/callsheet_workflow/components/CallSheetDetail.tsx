@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Download, Clock, User, FileText, Mail, Edit, Copy, Check, Minus, XCircle, AlertTriangle, Info, Users, Package, DatabaseIcon } from 'lucide-react';
+import { ArrowLeft, Download, Clock, User, FileText, Mail, Edit, Copy, Check, Minus, XCircle, AlertTriangle, Info, Users, Package, DatabaseIcon, Search } from 'lucide-react';
 import { callSheetApi } from '../services/mockCallSheetApi';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSignalR } from '@/contexts/SignalRContext';
@@ -13,10 +13,15 @@ import { formatQatarDateTime } from '../utils/timezone';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Input } from '@/components/ui/input';
+import { StatusPill } from '@/components/ui/status-pill';
+import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { formatDateTime, formatTime } from '@/studio_booking/utils/timeUtils';
 import { useToast } from '@/hooks/use-toast';
 import { CallSheetPageLoader } from './CallSheetPageLoader';
+
+const EQUIPMENT_HEAD_CLASS = 'h-10 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground';
 
 export const CallSheetDetail: React.FC = () => {
   const { id } = useParams();
@@ -28,6 +33,7 @@ export const CallSheetDetail: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [equipmentSearch, setEquipmentSearch] = useState('');
   const printRef = useRef<HTMLDivElement>(null);
 
   // Check if user has TechnicalStore role
@@ -466,34 +472,62 @@ export const CallSheetDetail: React.FC = () => {
                     <Package className="h-4 w-4 text-primary" />
                   </div>
                   <h2 className="text-base font-semibold text-card-foreground">Equipment List</h2>
-                  <Badge variant="secondary" className="ml-auto text-xs">{callSheet.equipment.length} items</Badge>
+                  <div className="relative ml-auto w-44 sm:w-56">
+                    <Search size={14} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      value={equipmentSearch}
+                      onChange={(e) => setEquipmentSearch(e.target.value)}
+                      placeholder="Search equipment…"
+                      aria-label="Search equipment"
+                      className="h-8 pl-8 text-xs"
+                    />
+                  </div>
+                  <Badge variant="secondary" className="text-xs">{callSheet.equipment.length} items</Badge>
                 </div>
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-muted/20 hover:bg-muted/20">
-                      <TableHead className="w-[180px] font-semibold text-card-foreground">Category</TableHead>
-                      <TableHead className="font-semibold text-card-foreground">Item</TableHead>
-                      <TableHead className="w-[100px] text-center font-semibold text-card-foreground">Qty</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {callSheet.equipment.map((eq) => (
-                      <TableRow key={eq.id} className="hover:bg-muted/30 transition-colors">
-                        <TableCell>
-                          <Badge variant="secondary" className="text-xs font-medium uppercase tracking-wide">
-                            {eq.category}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-card-foreground">{eq.item}</TableCell>
-                        <TableCell className="text-center">
-                          <span className="inline-flex items-center justify-center min-w-[28px] h-7 px-2 rounded-md bg-primary/10 text-primary text-sm font-semibold">
-                            {eq.quantity}
-                          </span>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                {(() => {
+                  const q = equipmentSearch.trim().toLowerCase();
+                  const rows = callSheet.equipment
+                    .map((eq, i) => ({ eq, no: i + 1 }))
+                    .filter(({ eq }) => !q || eq.item.toLowerCase().includes(q) || eq.category.toLowerCase().includes(q));
+                  return (
+                    <Table className="[&_th]:border-r [&_td]:border-r [&_th]:border-border/70 [&_td]:border-border/70 [&_th:last-child]:border-r-0 [&_td:last-child]:border-r-0">
+                      <TableHeader>
+                        <TableRow className="bg-muted/50 hover:bg-muted/50">
+                          <TableHead className={cn(EQUIPMENT_HEAD_CLASS, 'w-[56px] text-center')}>#</TableHead>
+                          <TableHead className={cn(EQUIPMENT_HEAD_CLASS, 'w-[200px]')}>Category</TableHead>
+                          <TableHead className={EQUIPMENT_HEAD_CLASS}>Item</TableHead>
+                          <TableHead className={cn(EQUIPMENT_HEAD_CLASS, 'w-[80px] text-center')}>Qty</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {rows.length === 0 ? (
+                          <TableRow className="hover:bg-transparent">
+                            <TableCell colSpan={4} className="py-8 text-center text-sm text-muted-foreground">
+                              No equipment matches “{equipmentSearch.trim()}”
+                            </TableCell>
+                          </TableRow>
+                        ) : (
+                          rows.map(({ eq, no }) => (
+                            <TableRow key={eq.id} className="transition-colors hover:bg-muted/30">
+                              <TableCell className="py-3 text-center font-mono text-xs tabular-nums text-muted-foreground">
+                                {no}
+                              </TableCell>
+                              <TableCell className="py-3">
+                                <StatusPill tone="muted" ping={false}>
+                                  {eq.category}
+                                </StatusPill>
+                              </TableCell>
+                              <TableCell className="py-3 text-sm text-card-foreground">{eq.item}</TableCell>
+                              <TableCell className="py-3 text-center text-sm font-semibold tabular-nums text-card-foreground">
+                                {eq.quantity}
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        )}
+                      </TableBody>
+                    </Table>
+                  );
+                })()}
               </div>
             )}
 

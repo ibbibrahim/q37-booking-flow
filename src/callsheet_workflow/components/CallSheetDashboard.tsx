@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, FileText, Calendar, User, Search, Filter, Grid3x3, List, Check, Mail, Minus } from 'lucide-react';
-import { addDays, startOfToday, endOfToday, startOfTomorrow, endOfTomorrow, endOfDay, startOfMonth, endOfMonth, format } from 'date-fns';
+import { addDays, startOfToday, endOfToday, startOfTomorrow, endOfTomorrow, endOfDay, startOfMonth, endOfMonth, format, formatDistanceToNowStrict } from 'date-fns';
 import { DateRange } from 'react-day-picker';
 import { callSheetApi } from '../services/mockCallSheetApi';
 import { useAuth } from '@/contexts/AuthContext';
@@ -10,7 +10,12 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DateRangePicker } from '@/components/DateRangePicker';
-import type { CallSheetRequest } from '../types/callsheet';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { cn } from '@/lib/utils';
+import { UserAvatar } from '@/components/ui/user-avatar';
+import { StatusPill } from '@/components/ui/status-pill';
+import type { Tone } from '@/lib/tone';
+import type { CallSheetRequest, CallSheetStatus } from '../types/callsheet';
 import { formatQatarDateTime } from '../utils/timezone';
 import { CallsheetWeeklyCalendar } from './CallsheetWeeklyCalendar';
 import { formatDateTime } from '@/studio_booking/utils/timeUtils';
@@ -18,6 +23,19 @@ import { CallSheetPageLoader } from './CallSheetPageLoader';
 import { ListPaginationBar, getInitialPage, getInitialPageSize } from '@/components/ui/list-pagination-bar';
 
 const PAGINATION_STORAGE_KEY = 'callsheet-workflow:list';
+
+const headClass = 'h-10 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground';
+const GRID_CLASS =
+  'min-w-[1320px] [&_th]:border-r [&_td]:border-r [&_th]:border-border/70 [&_td]:border-border/70 [&_th:last-child]:border-r-0 [&_td:last-child]:border-r-0';
+
+const STATUS_TONES: Record<CallSheetStatus, Tone> = {
+  Draft: 'muted',
+  'With Technical Store': 'warning',
+  Submitted: 'info',
+  Completed: 'success',
+  Cancelled: 'destructive',
+};
+
 
 type ViewMode = 'grid' | 'list';
 
@@ -485,109 +503,119 @@ export const CallSheetDashboard: React.FC = () => {
           })}
         </div>
       ) : (
-        <div className="bg-card border border-border rounded-lg overflow-hidden">
+        <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
           <div className="overflow-x-auto">
-          <table className="w-full min-w-[900px]">
-            <thead>
-              <tr className="border-b border-border bg-muted/50">
-                <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground whitespace-nowrap">
-                  ID
-                </th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground whitespace-nowrap">
-                  Title
-                </th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground whitespace-nowrap">
-                  Department
-                </th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground whitespace-nowrap">
-                  Location
-                </th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground whitespace-nowrap">
-                  Shoot Type
-                </th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground whitespace-nowrap">
-                  Status
-                </th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground whitespace-nowrap">
-                  Announcement
-                </th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground whitespace-nowrap">
-                  Start Date/Time
-                </th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground whitespace-nowrap">
-                  End Date/Time
-                </th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground whitespace-nowrap">
-                  Created By
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {callSheets.map((callSheet) => {
-                const isCancelled = callSheet.status === 'Cancelled';
-                return (
-                  <tr
-                    key={callSheet.id}
-                    className={`border-b border-border hover:bg-muted/50 cursor-pointer transition-colors ${
-                      isCancelled ? 'opacity-60' : ''
-                    }`}
-                    onClick={() => navigate(`/callsheet/${callSheet.id}`)}
-                  >
-                    <td className="py-3 px-4 text-sm text-muted-foreground font-mono">
-                      {callSheet.id}
-                    </td>
-                    <td className={`py-3 px-4 text-sm font-medium text-card-foreground ${
-                      isCancelled ? 'line-through' : ''
-                    }`}>
-                      {callSheet.title}
-                    </td>
-                  <td className="py-3 px-4 text-sm text-muted-foreground">
-                    {callSheet.department}
-                  </td>
-                  <td className="py-3 px-4 text-sm text-muted-foreground">
-                    {callSheet.location || '-'}
-                  </td>
-                  <td className="py-3 px-4 text-sm">
-                    <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
-                      callSheet.shootType === 'Indoor'
-                        ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
-                        : 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
-                    }`}>
-                      {callSheet.shootType}
-                    </span>
-                  </td>
-                  <td className="py-3 px-4 text-sm">
-                    <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${statusColors[callSheet.status]}`}>
-                      {callSheet.status}
-                    </span>
-                  </td>
-                  <td className="py-3 px-4 text-sm">
-                    {callSheet.alreadyAnnouncedEmail ? (
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
-                        <Check className="h-3 w-3" />
-                        Email Sent
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-muted text-muted-foreground">
-                        <Minus className="h-3 w-3" />
-                        Not Sent
-                      </span>
-                    )}
-                  </td>
-                  <td className="py-3 px-4 text-sm text-muted-foreground">
-                    {callSheet.startDateTime ? formatDateTime(callSheet.startDateTime) : '-'}
-                  </td>
-                  <td className="py-3 px-4 text-sm text-muted-foreground">
-                    {callSheet.returnDateTime ? formatDateTime(callSheet.returnDateTime) : '-'}
-                  </td>
-                  <td className="py-3 px-4 text-sm text-muted-foreground">
-                    {callSheet.createdByUser?.displayName || callSheet.createdByUser?.username || '-'}
-                  </td>
-                </tr>
-                );
-              })}
-            </tbody>
-          </table>
+            <Table className={GRID_CLASS}>
+              <TableHeader>
+                <TableRow className="bg-muted/50 hover:bg-muted/50">
+                  <TableHead className={cn(headClass, 'w-[80px]')}>ID</TableHead>
+                  <TableHead className={headClass}>Title</TableHead>
+                  <TableHead className={cn(headClass, 'w-[140px]')}>Department</TableHead>
+                  <TableHead className={cn(headClass, 'w-[170px]')}>Location</TableHead>
+                  <TableHead className={cn(headClass, 'w-[110px]')}>Shoot type</TableHead>
+                  <TableHead className={cn(headClass, 'w-[170px]')}>Status</TableHead>
+                  <TableHead className={cn(headClass, 'w-[130px]')}>Announcement</TableHead>
+                  <TableHead className={cn(headClass, 'w-[160px]')}>Call time</TableHead>
+                  <TableHead className={cn(headClass, 'w-[160px]')}>Wrap time</TableHead>
+                  <TableHead className={cn(headClass, 'w-[170px]')}>Created by</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {callSheets.map((callSheet) => {
+                  const isCancelled = callSheet.status === 'Cancelled';
+                  const creatorName =
+                    callSheet.createdByUser?.displayName || callSheet.createdByUser?.username;
+                  return (
+                    <TableRow
+                      key={callSheet.id}
+                      onClick={() => navigate(`/callsheet/${callSheet.id}`)}
+                      className={cn(
+                        'group cursor-pointer transition-colors hover:bg-muted/30',
+                        isCancelled && 'opacity-60',
+                      )}
+                    >
+                      <TableCell className="py-3 font-mono text-xs tabular-nums text-muted-foreground">
+                        {callSheet.id}
+                      </TableCell>
+                      <TableCell className="max-w-[360px] py-3">
+                        <p
+                          className={cn(
+                            'truncate font-medium text-card-foreground',
+                            isCancelled && 'line-through',
+                          )}
+                          title={callSheet.title}
+                        >
+                          {callSheet.title}
+                        </p>
+                      </TableCell>
+                      <TableCell className="py-3">
+                        {callSheet.department ? (
+                          <StatusPill tone="muted" ping={false}>
+                            {callSheet.department}
+                          </StatusPill>
+                        ) : (
+                          <span className="text-muted-foreground/50">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="py-3 text-sm">
+                        {callSheet.location ? (
+                          <span className="truncate">{callSheet.location}</span>
+                        ) : (
+                          <span className="text-muted-foreground/50">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="py-3">
+                        <StatusPill tone={callSheet.shootType === 'Indoor' ? 'info' : 'success'} ping={false}>
+                          {callSheet.shootType}
+                        </StatusPill>
+                      </TableCell>
+                      <TableCell className="py-3">
+                        <StatusPill tone={STATUS_TONES[callSheet.status] ?? 'muted'} ping={false}>
+                          {callSheet.status}
+                        </StatusPill>
+                      </TableCell>
+                      <TableCell className="py-3">
+                        {callSheet.alreadyAnnouncedEmail ? (
+                          <StatusPill tone="success" ping={false}>
+                            Email sent
+                          </StatusPill>
+                        ) : (
+                          <StatusPill tone="muted" ping={false}>
+                            Not sent
+                          </StatusPill>
+                        )}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap py-3 text-xs tabular-nums text-muted-foreground">
+                        {callSheet.startDateTime ? formatDateTime(callSheet.startDateTime) : '—'}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap py-3 text-xs tabular-nums text-muted-foreground">
+                        {callSheet.returnDateTime ? formatDateTime(callSheet.returnDateTime) : '—'}
+                      </TableCell>
+                      <TableCell className="py-3">
+                        {creatorName ? (
+                          <div className="flex items-center gap-2">
+                            <UserAvatar name={creatorName} />
+                            <div className="min-w-0">
+                              <p className="truncate text-sm">{creatorName}</p>
+                              {callSheet.createdAt && (
+                                <p
+                                  className="truncate text-xs tabular-nums text-muted-foreground"
+                                  title={new Date(callSheet.createdAt).toLocaleString()}
+                                >
+                                  {formatDistanceToNowStrict(new Date(callSheet.createdAt), { addSuffix: true })}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
           </div>
         </div>
       )}

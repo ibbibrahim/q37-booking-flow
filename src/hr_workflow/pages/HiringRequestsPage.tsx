@@ -9,7 +9,9 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { StatusPill } from '@/components/ui/status-pill';
+import type { Tone } from '@/lib/tone';
+import { DATA_TABLE_WRAPPER, DATA_TABLE_GRID, DATA_TABLE_HEADER_ROW, DATA_TABLE_HEAD, DATA_TABLE_ROW } from '@/lib/tableStyles';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -127,7 +129,21 @@ const STATUS_BADGE: Record<HiringRequestStatus, string> = {
   NotStarted: 'border-transparent bg-destructive/15 text-destructive',
 };
 
-type StageBucket = 'Active' | 'AwaitingApproval' | 'Converted' | 'Stopped';
+const STATUS_TONE: Record<HiringRequestStatus, Tone> = {
+  Requested: 'muted',
+  LinkGenerated: 'info',
+  ProfileSubmitted: 'info',
+  InterviewSubmitted: 'info',
+  AwaitingGmApproval: 'warning',
+  Rejected: 'destructive',
+  AwaitingCeoApproval: 'warning',
+  CeoApproved: 'primary',
+  StartingDateSet: 'primary',
+  Converted: 'success',
+  NotStarted: 'destructive',
+};
+
+type StageBucket ='Active' | 'AwaitingApproval' | 'Converted' | 'Stopped';
 
 const BUCKET_LABELS: Record<StageBucket, string> = {
   Active: 'Active',
@@ -357,34 +373,34 @@ export function HiringRequestsPage() {
         disabled={listQuery.isLoading}
       />
 
-      <Card>
-        <CardContent className="p-0">
-          <Table>
+      <div className={DATA_TABLE_WRAPPER}>
+        <div className="overflow-x-auto">
+          <Table className={cn(DATA_TABLE_GRID, 'min-w-[720px]')}>
             <TableHeader>
-              <TableRow>
-                <TableHead>Candidate</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Requested</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="w-10" />
+              <TableRow className={DATA_TABLE_HEADER_ROW}>
+                <TableHead className={DATA_TABLE_HEAD}>Candidate</TableHead>
+                <TableHead className={DATA_TABLE_HEAD}>Role</TableHead>
+                <TableHead className={DATA_TABLE_HEAD}>Requested</TableHead>
+                <TableHead className={DATA_TABLE_HEAD}>Status</TableHead>
+                <TableHead className={cn(DATA_TABLE_HEAD, 'w-10')} />
               </TableRow>
             </TableHeader>
             <TableBody>
               {listQuery.isLoading && (
-                <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-10">Loading…</TableCell></TableRow>
+                <TableRow className="hover:bg-transparent"><TableCell colSpan={5} className="text-center text-muted-foreground py-10">Loading…</TableCell></TableRow>
               )}
               {!listQuery.isLoading && filteredRequests.length === 0 && (
-                <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-10">
+                <TableRow className="hover:bg-transparent"><TableCell colSpan={5} className="text-center text-muted-foreground py-10">
                   {requests.length === 0 ? 'No hiring requests yet.' : 'No requests match your search or filter.'}
                 </TableCell></TableRow>
               )}
               {pagedRequests.map((r) => (
                 <TableRow
                   key={r.id}
-                  className="cursor-pointer hover:bg-muted/40 transition-colors"
+                  className={cn(DATA_TABLE_ROW, 'cursor-pointer')}
                   onClick={() => setDetailId(r.id)}
                 >
-                  <TableCell className="font-medium text-foreground">
+                  <TableCell className="py-3 font-medium text-foreground">
                     <div className="flex items-center gap-2.5">
                       <Avatar className="h-8 w-8 shrink-0">
                         <AvatarFallback className="bg-primary/10 text-primary text-xs font-bold">{initials(r.candidateName)}</AvatarFallback>
@@ -395,19 +411,19 @@ export function HiringRequestsPage() {
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="py-3">
                     <p className="text-foreground">{r.positionTitle}</p>
                     <p className="text-xs text-muted-foreground">{r.departmentNameEn ?? '—'}</p>
                   </TableCell>
-                  <TableCell className="text-muted-foreground">{formatDate(r.requestedAt)}</TableCell>
-                  <TableCell><Badge className={STATUS_BADGE[r.status]}>{HIRING_REQUEST_STATUS_LABELS[r.status]}</Badge></TableCell>
-                  <TableCell><ChevronRight size={16} className="text-muted-foreground" /></TableCell>
+                  <TableCell className="py-3 text-muted-foreground">{formatDate(r.requestedAt)}</TableCell>
+                  <TableCell className="py-3"><StatusPill tone={STATUS_TONE[r.status] ?? 'muted'}>{HIRING_REQUEST_STATUS_LABELS[r.status]}</StatusPill></TableCell>
+                  <TableCell className="py-3"><ChevronRight size={16} className="text-muted-foreground" /></TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {createOpen && (
         <CreateRequestModal

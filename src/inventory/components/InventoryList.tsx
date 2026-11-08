@@ -3,7 +3,9 @@ import { Plus, Search, Edit, Trash2, ChevronLeft, ChevronRight } from 'lucide-re
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { StatusPill } from '@/components/ui/status-pill';
+import { cn } from '@/lib/utils';
 import type {
   InventoryItem,
   InventoryItemWithCategory,
@@ -18,6 +20,10 @@ import { useToast } from '@/contexts/ToastContext';
 
 type SortField = 'categoryName' | 'itemName' | 'totalQty';
 type SortDirection = 'asc' | 'desc';
+
+const headClass = 'h-10 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground';
+const GRID_CLASS =
+  'min-w-[900px] [&_th]:border-r [&_td]:border-r [&_th]:border-border/70 [&_td]:border-border/70 [&_th:last-child]:border-r-0 [&_td:last-child]:border-r-0';
 
 export const InventoryList: React.FC = () => {
   const { showToast } = useToast();
@@ -272,83 +278,65 @@ export const InventoryList: React.FC = () => {
         </div>
       </div>
 
-      <div className="bg-card border border-border rounded-lg overflow-hidden">
+      <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[700px]">
-            <thead>
-              <tr className="border-b border-border bg-muted/50">
-                <th
-                  className="text-left py-3 px-4 text-sm font-semibold text-card-foreground cursor-pointer hover:bg-muted/70 whitespace-nowrap"
+          <Table className={GRID_CLASS}>
+            <TableHeader>
+              <TableRow className="bg-muted/50 hover:bg-muted/50">
+                <TableHead
+                  className={cn(headClass, 'cursor-pointer select-none hover:text-foreground', 'w-[180px]')}
                   onClick={() => handleSort('categoryName')}
                 >
                   Category {sortField === 'categoryName' && (sortDirection === 'asc' ? '↑' : '↓')}
-                </th>
-                <th
-                  className="text-left py-3 px-4 text-sm font-semibold text-card-foreground cursor-pointer hover:bg-muted/70 whitespace-nowrap"
+                </TableHead>
+                <TableHead
+                  className={cn(headClass, 'cursor-pointer select-none hover:text-foreground')}
                   onClick={() => handleSort('itemName')}
                 >
                   Item Name {sortField === 'itemName' && (sortDirection === 'asc' ? '↑' : '↓')}
-                </th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground whitespace-nowrap">
-                  Model
-                </th>
-                <th
-                  className="text-left py-3 px-4 text-sm font-semibold text-card-foreground cursor-pointer hover:bg-muted/70 whitespace-nowrap"
+                </TableHead>
+                <TableHead className={cn(headClass, 'w-[180px]')}>Model</TableHead>
+                <TableHead
+                  className={cn(headClass, 'cursor-pointer select-none hover:text-foreground', 'w-[110px]')}
                   onClick={() => handleSort('totalQty')}
                 >
                   Total Qty {sortField === 'totalQty' && (sortDirection === 'asc' ? '↑' : '↓')}
-                </th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground whitespace-nowrap">
-                  Active
-                </th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground whitespace-nowrap">
-                  Last Updated
-                </th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground whitespace-nowrap">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody>
+                </TableHead>
+                <TableHead className={cn(headClass, 'w-[110px]')}>Active</TableHead>
+                <TableHead className={cn(headClass, 'w-[130px]')}>Last Updated</TableHead>
+                <TableHead className={cn(headClass, 'w-[240px]')}>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {paginatedItems.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="py-8 text-center text-muted-foreground">
+                <TableRow className="hover:bg-transparent">
+                  <TableCell colSpan={7} className="py-8 text-center text-muted-foreground">
                     No items found
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ) : (
                 paginatedItems.map((item) => (
-                  <tr
+                  <TableRow
                     key={item.id}
-                    className="border-b border-border hover:bg-muted/50 transition-colors"
+                    className="group transition-colors hover:bg-muted/30"
                   >
-                    <td className="py-3 px-4 text-sm text-card-foreground">
-                      {item.categoryName}
-                    </td>
-                    <td className="py-3 px-4 text-sm font-medium text-card-foreground">
+                    <TableCell className="py-3 text-sm">{item.categoryName}</TableCell>
+                    <TableCell className="py-3 text-sm font-medium text-card-foreground">
                       {item.itemName}
-                    </td>
-                    <td className="py-3 px-4 text-sm text-muted-foreground">
-                      {item.model || '—'}
-                    </td>
-                    <td className="py-3 px-4 text-sm text-card-foreground">
-                      {item.totalQty}
-                    </td>
-                    <td className="py-3 px-4 text-sm">
-                      {item.isActive ? (
-                        <Badge className="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
-                          Active
-                        </Badge>
-                      ) : (
-                        <Badge className="bg-gray-100 dark:bg-gray-900/30 text-gray-700 dark:text-gray-400">
-                          Inactive
-                        </Badge>
-                      )}
-                    </td>
-                    <td className="py-3 px-4 text-sm text-muted-foreground">
+                    </TableCell>
+                    <TableCell className="py-3 text-sm">
+                      {item.model || <span className="text-muted-foreground/50">—</span>}
+                    </TableCell>
+                    <TableCell className="py-3 text-sm tabular-nums">{item.totalQty}</TableCell>
+                    <TableCell className="py-3">
+                      <StatusPill tone={item.isActive ? 'success' : 'muted'}>
+                        {item.isActive ? 'Active' : 'Inactive'}
+                      </StatusPill>
+                    </TableCell>
+                    <TableCell className="py-3 text-xs tabular-nums text-muted-foreground">
                       {new Date(item.updatedAt).toLocaleDateString()}
-                    </td>
-                    <td className="py-3 px-4 text-sm">
+                    </TableCell>
+                    <TableCell className="py-3 text-sm">
                       <div className="flex items-center gap-2">
                         <Button
                           variant="outline"
@@ -373,12 +361,12 @@ export const InventoryList: React.FC = () => {
                           <Trash2 size={16} />
                         </button>
                       </div>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))
               )}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
 
         {filteredAndSortedItems.length > 0 && (

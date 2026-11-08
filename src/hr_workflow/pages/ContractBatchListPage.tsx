@@ -3,9 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus, Layers, Users, Clock, CheckCircle2, ChevronRight, FileSignature } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
+import { StatusPill } from '@/components/ui/status-pill';
+import type { Tone } from '@/lib/tone';
+import { cn } from '@/lib/utils';
+import { DATA_TABLE_WRAPPER, DATA_TABLE_GRID, DATA_TABLE_HEADER_ROW, DATA_TABLE_HEAD, DATA_TABLE_ROW } from '@/lib/tableStyles';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { ListPaginationBar, getInitialPage, getInitialPageSize } from '@/components/ui/list-pagination-bar';
 import { useAuth } from '@/contexts/AuthContext';
@@ -59,10 +61,10 @@ const COPY: Record<HrContractBatchKind, {
 /** A renewal's at-a-glance stage, derived purely from its signed/total
  * counts — not a stored field, just a friendlier read on the same numbers
  * the progress bar already shows. */
-function renewalStage(signed: number, total: number): { label: string; badgeClass: string } {
-  if (total > 0 && signed === total) return { label: 'Completed', badgeClass: 'border-transparent bg-success/15 text-success' };
-  if (signed === 0) return { label: 'Awaiting signatures', badgeClass: 'border-transparent bg-warning/15 text-warning' };
-  return { label: 'In progress', badgeClass: 'border-transparent bg-info/15 text-info' };
+function renewalStage(signed: number, total: number): { label: string; tone: Tone } {
+  if (total > 0 && signed === total) return { label: 'Completed', tone: 'success' };
+  if (signed === 0) return { label: 'Awaiting signatures', tone: 'warning' };
+  return { label: 'In progress', tone: 'info' };
 }
 
 /** A clean horizontal bar + fraction — how many of a renewal's contracts
@@ -165,36 +167,36 @@ export function ContractBatchListPage({ kind }: Props) {
           disabled={renewalsQuery.isLoading}
         />
 
-        <Card>
-          <CardContent className="p-0">
-            <Table>
+        <div className={DATA_TABLE_WRAPPER}>
+          <div className="overflow-x-auto">
+            <Table className={cn(DATA_TABLE_GRID, 'min-w-[860px]')}>
               <TableHeader>
-                <TableRow className="hover:bg-transparent">
-                  <TableHead className="bg-muted/40 text-[11px] uppercase tracking-wide">{copy.rowLabel}</TableHead>
-                  <TableHead className="bg-muted/40 text-[11px] uppercase tracking-wide">Period</TableHead>
-                  <TableHead className="bg-muted/40 text-[11px] uppercase tracking-wide">People</TableHead>
-                  <TableHead className="bg-muted/40 text-[11px] uppercase tracking-wide">Stage</TableHead>
-                  <TableHead className="bg-muted/40 text-[11px] uppercase tracking-wide">Signed</TableHead>
-                  <TableHead className="bg-muted/40 w-10" />
+                <TableRow className={DATA_TABLE_HEADER_ROW}>
+                  <TableHead className={DATA_TABLE_HEAD}>{copy.rowLabel}</TableHead>
+                  <TableHead className={DATA_TABLE_HEAD}>Period</TableHead>
+                  <TableHead className={DATA_TABLE_HEAD}>People</TableHead>
+                  <TableHead className={DATA_TABLE_HEAD}>Stage</TableHead>
+                  <TableHead className={DATA_TABLE_HEAD}>Signed</TableHead>
+                  <TableHead className={cn(DATA_TABLE_HEAD, 'w-10')} />
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {renewalsQuery.isLoading && (
-                  <TableRow>
+                  <TableRow className="hover:bg-transparent">
                     <TableCell colSpan={6} className="text-center text-muted-foreground py-10">
                       Loading…
                     </TableCell>
                   </TableRow>
                 )}
                 {renewalsQuery.isError && (
-                  <TableRow>
+                  <TableRow className="hover:bg-transparent">
                     <TableCell colSpan={6} className="text-center text-destructive py-10">
                       Failed to load {copy.rowLabel.toLowerCase()}s.
                     </TableCell>
                   </TableRow>
                 )}
                 {!renewalsQuery.isLoading && !renewalsQuery.isError && renewals.length === 0 && (
-                  <TableRow>
+                  <TableRow className="hover:bg-transparent">
                     <TableCell colSpan={6} className="text-center text-muted-foreground py-16">
                       <div className="mx-auto h-11 w-11 rounded-full bg-muted flex items-center justify-center mb-3">
                         <Layers size={20} className="text-muted-foreground/60" />
@@ -210,10 +212,10 @@ export function ContractBatchListPage({ kind }: Props) {
                   return (
                     <TableRow
                       key={renewal.id}
-                      className="cursor-pointer group"
+                      className={cn(DATA_TABLE_ROW, 'cursor-pointer group')}
                       onClick={() => navigate(`/hr/freelance-hiring/${copy.basePath}/renewals/${renewal.id}`)}
                     >
-                      <TableCell className="py-4">
+                      <TableCell className="py-3">
                         <div className="flex items-center gap-3">
                           <div className="shrink-0 h-9 w-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
                             <FileSignature size={16} />
@@ -224,17 +226,17 @@ export function ContractBatchListPage({ kind }: Props) {
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell className="text-muted-foreground whitespace-nowrap">
+                      <TableCell className="py-3 text-muted-foreground whitespace-nowrap">
                         {formatDate(renewal.startDate)} – {formatDate(renewal.endDate)}
                       </TableCell>
-                      <TableCell className="tabular-nums">{renewal.employeeCount}</TableCell>
-                      <TableCell>
-                        <Badge className={stage.badgeClass}>{stage.label}</Badge>
+                      <TableCell className="py-3 tabular-nums">{renewal.employeeCount}</TableCell>
+                      <TableCell className="py-3">
+                        <StatusPill tone={stage.tone}>{stage.label}</StatusPill>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="py-3">
                         <SignedProgress signed={signed} total={renewal.employeeCount} />
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="py-3">
                         <ChevronRight size={16} className="text-muted-foreground group-hover:text-foreground transition-colors" />
                       </TableCell>
                     </TableRow>
@@ -242,8 +244,8 @@ export function ContractBatchListPage({ kind }: Props) {
                 })}
               </TableBody>
             </Table>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {isHRAdmin && (
           <StartContractBatchModal

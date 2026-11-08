@@ -3,9 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Clock, Eye, Plus, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { StatusPill } from '@/components/ui/status-pill';
+import type { Tone } from '@/lib/tone';
+import { cn } from '@/lib/utils';
+import { DATA_TABLE_WRAPPER, DATA_TABLE_GRID, DATA_TABLE_HEADER_ROW, DATA_TABLE_HEAD, DATA_TABLE_ROW } from '@/lib/tableStyles';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/contexts/ToastContext';
@@ -27,11 +29,11 @@ const LEAVE_EVENT_LABELS: Record<string, string> = {
   FreelancerAcknowledged: 'Acknowledged by freelancer',
 };
 
-const STATUS_BADGE: Record<LeaveRequestStatus, string> = {
-  Draft: 'border-transparent bg-muted text-muted-foreground',
-  AwaitingDepartmentHeadSignature: 'border-transparent bg-warning/15 text-warning',
-  AwaitingFreelancerAcknowledgment: 'border-transparent bg-info/15 text-info',
-  Completed: 'border-transparent bg-success/15 text-success',
+const STATUS_TONE: Record<LeaveRequestStatus, Tone> = {
+  Draft: 'muted',
+  AwaitingDepartmentHeadSignature: 'warning',
+  AwaitingFreelancerAcknowledgment: 'info',
+  Completed: 'success',
 };
 
 /** Freelancer "leave" — legally a Temporary Suspension of Services notice
@@ -69,39 +71,39 @@ export function LeaveRequestPage() {
         </Button>
       </div>
 
-      <Card>
-        <CardContent className="p-0">
-          <Table>
+      <div className={DATA_TABLE_WRAPPER}>
+        <div className="overflow-x-auto">
+          <Table className={cn(DATA_TABLE_GRID, 'min-w-[960px]')}>
             <TableHeader>
-              <TableRow>
-                <TableHead>Freelancer</TableHead>
-                <TableHead>Department</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Dates</TableHead>
-                <TableHead>Days</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+              <TableRow className={DATA_TABLE_HEADER_ROW}>
+                <TableHead className={DATA_TABLE_HEAD}>Freelancer</TableHead>
+                <TableHead className={DATA_TABLE_HEAD}>Department</TableHead>
+                <TableHead className={DATA_TABLE_HEAD}>Type</TableHead>
+                <TableHead className={DATA_TABLE_HEAD}>Dates</TableHead>
+                <TableHead className={DATA_TABLE_HEAD}>Days</TableHead>
+                <TableHead className={DATA_TABLE_HEAD}>Status</TableHead>
+                <TableHead className={cn(DATA_TABLE_HEAD, 'text-right')}>Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {listQuery.isLoading && (
-                <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-10">Loading…</TableCell></TableRow>
+                <TableRow className="hover:bg-transparent"><TableCell colSpan={7} className="text-center text-muted-foreground py-10">Loading…</TableCell></TableRow>
               )}
               {!listQuery.isLoading && requests.length === 0 && (
-                <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-10">No leave requests yet.</TableCell></TableRow>
+                <TableRow className="hover:bg-transparent"><TableCell colSpan={7} className="text-center text-muted-foreground py-10">No leave requests yet.</TableCell></TableRow>
               )}
               {requests.map((r) => (
-                <TableRow key={r.id}>
-                  <TableCell className="font-medium text-foreground">
+                <TableRow key={r.id} className={DATA_TABLE_ROW}>
+                  <TableCell className="py-3 font-medium text-foreground">
                     <p>{r.employeeFullNameEn}</p>
                     {r.applicationRef && <p className="text-[11px] font-normal text-muted-foreground tabular-nums">{r.applicationRef}</p>}
                   </TableCell>
-                  <TableCell className="text-muted-foreground">{r.departmentNameEn ?? '—'}</TableCell>
-                  <TableCell>{r.suspensionType ?? '—'}</TableCell>
-                  <TableCell>{r.startDate ? formatDate(r.startDate) : '—'} – {r.endDate ? formatDate(r.endDate) : '—'}</TableCell>
-                  <TableCell className="tabular-nums">{r.totalDays ?? '—'}</TableCell>
-                  <TableCell><Badge className={STATUS_BADGE[r.status]}>{LEAVE_REQUEST_STATUS_LABELS[r.status]}</Badge></TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="py-3 text-muted-foreground">{r.departmentNameEn ?? '—'}</TableCell>
+                  <TableCell className="py-3">{r.suspensionType ?? '—'}</TableCell>
+                  <TableCell className="py-3">{r.startDate ? formatDate(r.startDate) : '—'} – {r.endDate ? formatDate(r.endDate) : '—'}</TableCell>
+                  <TableCell className="py-3 tabular-nums">{r.totalDays ?? '—'}</TableCell>
+                  <TableCell className="py-3"><StatusPill tone={STATUS_TONE[r.status] ?? 'muted'}>{LEAVE_REQUEST_STATUS_LABELS[r.status]}</StatusPill></TableCell>
+                  <TableCell className="py-3 text-right">
                     <div className="flex justify-end gap-1.5">
                       {r.status === 'Draft' && (
                         <Button size="sm" variant="outline" className="gap-1.5" onClick={() => navigate(`/hr/leave-requests/${r.id}/edit`)}>
@@ -127,8 +129,8 @@ export function LeaveRequestPage() {
               ))}
             </TableBody>
           </Table>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {createOpen && (
         <CreateLeaveRequestModal

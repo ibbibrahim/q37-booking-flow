@@ -3,11 +3,29 @@ import { useNavigate } from 'react-router-dom';
 import { Ban } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { EditingRequestCard } from './EditingRequestCard';
-import { getEditingStatusBadgeClass, getEditingStatusDisplayLabel } from '../utils/editingUtils';
+import { getEditingStatusDisplayLabel } from '../utils/editingUtils';
 import type { EditingRequest } from '../types/editing';
 import { formatDateTime } from '@/studio_booking/utils/timeUtils';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { StatusPill } from '@/components/ui/status-pill';
+import { UserAvatar } from '@/components/ui/user-avatar';
+import { Skeleton } from '@/components/ui/skeleton';
+import type { Tone } from '@/lib/tone';
+import { cn } from '@/lib/utils';
 
 type ViewMode = 'grid' | 'list';
+
+const headClass = 'h-10 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground';
+const GRID_CLASS =
+  'min-w-[1000px] [&_th]:border-r [&_td]:border-r [&_th]:border-border/70 [&_td]:border-border/70 [&_th:last-child]:border-r-0 [&_td:last-child]:border-r-0';
+
+const EDITING_STATUS_TONES: Record<string, Tone> = {
+  Pending: 'warning',
+  Acknowledged: 'info',
+  Completed: 'success',
+  Cancelled: 'muted',
+  Rejected: 'destructive',
+};
 
 interface EditingRequestListProps {
   requests: EditingRequest[];
@@ -34,43 +52,45 @@ export const EditingRequestList: React.FC<EditingRequestListProps> = ({
 
   if (loading) {
     return (
-      <div className="rounded-lg border border-border overflow-hidden bg-card">
-        <table className="w-full min-w-[800px]">
-          <thead>
-            <tr className="border-b border-border bg-muted/50">
-              <th className="text-left py-3 px-4 text-sm font-semibold">ID</th>
-              <th className="text-left py-3 px-4 text-sm font-semibold">Program</th>
-              <th className="text-left py-3 px-4 text-sm font-semibold">Producer</th>
-              <th className="text-left py-3 px-4 text-sm font-semibold">Status</th>
-              <th className="text-left py-3 px-4 text-sm font-semibold">Created</th>
-              <th className="text-left py-3 px-4 text-sm font-semibold">Created By</th>
-            </tr>
-          </thead>
-          <tbody>
-            {[1, 2, 3, 4, 5].map((i) => (
-              <tr key={i} className="border-b border-border">
-                <td className="py-3 px-4">
-                  <div className="h-4 w-16 bg-muted animate-pulse rounded" />
-                </td>
-                <td className="py-3 px-4">
-                  <div className="h-4 w-32 bg-muted animate-pulse rounded" />
-                </td>
-                <td className="py-3 px-4">
-                  <div className="h-4 w-24 bg-muted animate-pulse rounded" />
-                </td>
-                <td className="py-3 px-4">
-                  <div className="h-4 w-28 bg-muted animate-pulse rounded" />
-                </td>
-                <td className="py-3 px-4">
-                  <div className="h-5 w-20 bg-muted animate-pulse rounded" />
-                </td>
-                <td className="py-3 px-4">
-                  <div className="h-4 w-24 bg-muted animate-pulse rounded" />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+        <div className="overflow-x-auto">
+          <Table className={GRID_CLASS}>
+            <TableHeader>
+              <TableRow className="bg-muted/50 hover:bg-muted/50">
+                <TableHead className={cn(headClass, 'w-[80px]')}>ID</TableHead>
+                <TableHead className={cn(headClass, 'w-[280px]')}>Program</TableHead>
+                <TableHead className={cn(headClass, 'w-[200px]')}>Producer</TableHead>
+                <TableHead className={cn(headClass, 'w-[150px]')}>Status</TableHead>
+                <TableHead className={cn(headClass, 'w-[140px]')}>Created</TableHead>
+                <TableHead className={cn(headClass, 'w-[200px]')}>Created by</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {[1, 2, 3, 4, 5].map((i) => (
+                <TableRow key={i} className="hover:bg-transparent">
+                  <TableCell className="py-3.5">
+                    <Skeleton className="h-4" style={{ width: 40, maxWidth: '100%' }} />
+                  </TableCell>
+                  <TableCell className="py-3.5">
+                    <Skeleton className="h-4" style={{ width: 200, maxWidth: '100%' }} />
+                  </TableCell>
+                  <TableCell className="py-3.5">
+                    <Skeleton className="h-4" style={{ width: 120, maxWidth: '100%' }} />
+                  </TableCell>
+                  <TableCell className="py-3.5">
+                    <Skeleton className="h-4" style={{ width: 90, maxWidth: '100%' }} />
+                  </TableCell>
+                  <TableCell className="py-3.5">
+                    <Skeleton className="h-4" style={{ width: 90, maxWidth: '100%' }} />
+                  </TableCell>
+                  <TableCell className="py-3.5">
+                    <Skeleton className="h-4" style={{ width: 120, maxWidth: '100%' }} />
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       </div>
     );
   }
@@ -113,65 +133,67 @@ export const EditingRequestList: React.FC<EditingRequestListProps> = ({
   }
 
   return (
-    <div className="bg-card border border-border rounded-lg overflow-hidden">
+    <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[800px]">
-          <thead>
-            <tr className="border-b border-border bg-muted/50">
-              <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground whitespace-nowrap">
-                ID
-              </th>
-              <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground whitespace-nowrap">
-                Program
-              </th>
-              <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground whitespace-nowrap">
-                Producer
-              </th>
-              <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground whitespace-nowrap">
-                Status
-              </th>
-              <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground whitespace-nowrap">
-                Created At
-              </th>
-              <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground whitespace-nowrap">
-                Created By
-              </th>
-              {canReject && (
-                <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground whitespace-nowrap">
-                  Actions
-                </th>
-              )}
-            </tr>
-          </thead>
-          <tbody>
-            {requests.map((request) => (
-              <tr
+        <Table className={GRID_CLASS}>
+          <TableHeader>
+            <TableRow className="bg-muted/50 hover:bg-muted/50">
+              <TableHead className={cn(headClass, 'w-[80px]')}>ID</TableHead>
+              <TableHead className={cn(headClass, 'w-[280px]')}>Program</TableHead>
+              <TableHead className={cn(headClass, 'w-[200px]')}>Producer</TableHead>
+              <TableHead className={cn(headClass, 'w-[150px]')}>Status</TableHead>
+              <TableHead className={cn(headClass, 'w-[140px]')}>Created</TableHead>
+              <TableHead className={cn(headClass, 'w-[200px]')}>Created by</TableHead>
+              {canReject && <TableHead className={cn(headClass, 'w-[200px]')}>Actions</TableHead>}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {requests.map((request) => {
+              const creatorName = request.createdByUser?.displayName || request.createdByUser?.username;
+              return (
+              <TableRow
                 key={request.id}
-                className="border-b border-border hover:bg-muted/50 cursor-pointer transition-colors"
+                className="group cursor-pointer transition-colors hover:bg-muted/30"
                 onClick={() => navigate(`/editing/${request.id}`)}
               >
-                <td className="py-3 px-4 text-sm text-muted-foreground font-mono">{request.id}</td>
-                <td className="py-3 px-4 text-sm font-medium text-card-foreground">
-                  {request.programName}
-                </td>
-                <td className="py-3 px-4 text-sm text-muted-foreground">{request.producerName}</td>
-                <td className="py-3 px-4 text-sm">
-                  <span
-                    className={`px-3 py-1 rounded-full text-xs font-medium ${getEditingStatusBadgeClass(
-                      request.status
-                    )}`}
-                  >
+                <TableCell className="py-3 font-mono text-xs tabular-nums text-muted-foreground">
+                  {request.id}
+                </TableCell>
+                <TableCell className="max-w-[360px] py-3">
+                  <p className="truncate font-medium text-card-foreground" title={request.programName}>
+                    {request.programName}
+                  </p>
+                </TableCell>
+                <TableCell className="py-3">
+                  {request.producerName ? (
+                    <div className="flex items-center gap-2">
+                      <UserAvatar name={request.producerName} />
+                      <span className="truncate text-sm">{request.producerName}</span>
+                    </div>
+                  ) : (
+                    <span className="text-muted-foreground/50">—</span>
+                  )}
+                </TableCell>
+                <TableCell className="py-3">
+                  <StatusPill tone={EDITING_STATUS_TONES[request.status] ?? 'muted'}>
                     {getEditingStatusDisplayLabel(request.status)}
-                  </span>
-                </td>
-                <td className="py-3 px-4 text-sm text-muted-foreground">
+                  </StatusPill>
+                </TableCell>
+                <TableCell className="py-3 text-xs tabular-nums text-muted-foreground">
                   {formatDateTime(request.createdAt)}
-                </td>
-                <td className="py-3 px-4 text-sm text-muted-foreground">
-                  {request.createdByUser?.displayName || request.createdByUser?.username || '—'}
-                </td>
+                </TableCell>
+                <TableCell className="py-3">
+                  {creatorName ? (
+                    <div className="flex items-center gap-2">
+                      <UserAvatar name={creatorName} />
+                      <span className="truncate text-sm">{creatorName}</span>
+                    </div>
+                  ) : (
+                    <span className="text-muted-foreground/50">—</span>
+                  )}
+                </TableCell>
                 {canReject && (
-                  <td className="py-3 px-4 text-sm" onClick={(e) => e.stopPropagation()}>
+                  <TableCell className="py-3 text-sm" onClick={(e) => e.stopPropagation()}>
                     {isRejectable?.(request) && onReject ? (
                       <Button
                         variant="outline"
@@ -183,14 +205,15 @@ export const EditingRequestList: React.FC<EditingRequestListProps> = ({
                         Cannot Accommodate
                       </Button>
                     ) : (
-                      '—'
+                      <span className="text-muted-foreground/50">—</span>
                     )}
-                  </td>
+                  </TableCell>
                 )}
-              </tr>
-            ))}
-          </tbody>
-        </table>
+              </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
       </div>
     </div>
   );

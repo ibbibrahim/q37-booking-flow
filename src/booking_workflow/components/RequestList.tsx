@@ -14,7 +14,7 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { endOfDay, startOfDay } from 'date-fns';
+import { endOfDay, formatDistanceToNowStrict, startOfDay } from 'date-fns';
 import { DateRange } from 'react-day-picker';
 
 import { RequestCard } from './RequestCard';
@@ -24,9 +24,15 @@ import {
   type WorkflowStatus,
   type UserRole,
   type BookingType,
+  type Priority,
 } from '../types/workflow';
 import { mockApi } from '../services/bookingApi';
 import { useAuth } from '@/contexts/AuthContext';
+import { cn } from '@/lib/utils';
+import { UserAvatar } from '@/components/ui/user-avatar';
+import { StatusPill } from '@/components/ui/status-pill';
+import type { Tone } from '@/lib/tone';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 import { DateRangePicker } from '@/components/DateRangePicker';
 import { Input } from '@/components/ui/input';
@@ -130,38 +136,66 @@ function rangeToApi(range: DateRange | undefined): { from?: string; to?: string 
   };
 }
 
-const statusColors: Record<WorkflowStatus, { bg: string; text: string }> = {
-  Draft: { bg: 'bg-slate-100 dark:bg-slate-800', text: 'text-slate-700 dark:text-slate-300' },
-  Submitted: { bg: 'bg-blue-100 dark:bg-blue-900/30', text: 'text-blue-700 dark:text-blue-400' },
-  'With NOC': { bg: 'bg-yellow-100 dark:bg-yellow-900/30', text: 'text-yellow-700 dark:text-yellow-400' },
-  'Clarification Requested': {
-    bg: 'bg-orange-100 dark:bg-orange-900/30',
-    text: 'text-orange-700 dark:text-orange-400',
-  },
-  'Resources Added': {
-    bg: 'bg-indigo-100 dark:bg-indigo-900/30',
-    text: 'text-indigo-700 dark:text-indigo-400',
-  },
-  'With Ingest': { bg: 'bg-cyan-100 dark:bg-cyan-900/30', text: 'text-cyan-700 dark:text-cyan-400' },
-  Completed: { bg: 'bg-green-100 dark:bg-green-900/30', text: 'text-green-700 dark:text-green-400' },
-  'Not Done': { bg: 'bg-red-100 dark:bg-red-900/30', text: 'text-red-700 dark:text-red-400' },
-  'Partially Completed': { bg: 'bg-green-100 dark:bg-green-900/30', text: 'text-green-700 dark:text-green-400' },
+const headClass = 'h-10 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground';
+const GRID_CLASS =
+  'min-w-[1280px] [&_th]:border-r [&_td]:border-r [&_th]:border-border/70 [&_td]:border-border/70 [&_th:last-child]:border-r-0 [&_td:last-child]:border-r-0';
+
+const STATUS_TONES: Record<WorkflowStatus, Tone> = {
+  Draft: 'muted',
+  Submitted: 'info',
+  'With NOC': 'warning',
+  'Clarification Requested': 'warning',
+  'Resources Added': 'primary',
+  'With Ingest': 'primary',
+  Completed: 'success',
+  'Not Done': 'destructive',
+  'Partially Completed': 'success',
 };
 
-const priorityColors = {
-  Normal: 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300',
-  High: 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400',
-  Urgent: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400',
+const PRIORITY_TONES: Record<Priority, Tone> = {
+  Normal: 'muted',
+  High: 'warning',
+  Urgent: 'destructive',
 };
 
-const bookingTypeColors: Record<string, string> = {
-  'Live Broadcast': 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400',
-  'Incoming Feed': 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400',
-  'Invite Guest for News': 'bg-teal-100 dark:bg-teal-900/30 text-teal-700 dark:text-teal-400',
-  'Invite Guest for Program': 'bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-400',
-  'Download and Ingest': 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400',
-  'Camera Card and Ingest': 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400',
+/** Per-type hues kept from the original list (pill + dot), so each booking type stays distinguishable. */
+const BOOKING_TYPE_PILL: Record<BookingType, { pill: string; dot: string }> = {
+  'Incoming Feed': {
+    pill: 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800',
+    dot: 'bg-blue-500',
+  },
+  'Invite Guest for News': {
+    pill: 'bg-teal-100 text-teal-700 border-teal-200 dark:bg-teal-900/30 dark:text-teal-400 dark:border-teal-800',
+    dot: 'bg-teal-500',
+  },
+  'Invite Guest for Program': {
+    pill: 'bg-cyan-100 text-cyan-700 border-cyan-200 dark:bg-cyan-900/30 dark:text-cyan-400 dark:border-cyan-800',
+    dot: 'bg-cyan-500',
+  },
+  'Download and Ingest': {
+    pill: 'bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800',
+    dot: 'bg-emerald-500',
+  },
+  'Camera Card and Ingest': {
+    pill: 'bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800',
+    dot: 'bg-amber-500',
+  },
 };
+
+function BookingTypePill({ type }: { type: BookingType }) {
+  const style = BOOKING_TYPE_PILL[type] ?? { pill: 'bg-muted text-muted-foreground border-border', dot: 'bg-muted-foreground/60' };
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-medium whitespace-nowrap',
+        style.pill,
+      )}
+    >
+      <span className={cn('h-1.5 w-1.5 rounded-full', style.dot)} aria-hidden />
+      {getBookingTypeLabel(type)}
+    </span>
+  );
+}
 
 const LIST_STATUSES: (WorkflowStatus | 'All')[] = [
   'All',
@@ -671,117 +705,113 @@ export const RequestList: React.FC<RequestListProps> = ({
                   ))}
                 </div>
               ) : (
-                <div className="bg-card border border-border rounded-lg overflow-hidden">
+                <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
                   <div className="overflow-x-auto">
-                    <table className="w-full min-w-[800px]">
-                      <thead>
-                        <tr className="border-b border-border bg-muted/50">
-                          <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground whitespace-nowrap">
-                            ID
-                          </th>
-                          <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground whitespace-nowrap">
-                            Title
-                          </th>
-                          <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground whitespace-nowrap">
-                            Program
-                          </th>
-                          <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground whitespace-nowrap">
-                            Booking Type
-                          </th>
-                          <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground whitespace-nowrap">
-                            State
-                          </th>
-                          <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground whitespace-nowrap">
-                            Priority
-                          </th>
-                          <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground whitespace-nowrap">
-                            Created By
-                          </th>
-                          <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground whitespace-nowrap">
-                            Created At
-                          </th>
-                          <th className="text-left py-3 px-4 text-sm font-semibold text-card-foreground whitespace-nowrap">
-                            Actions
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
+                    <Table className={GRID_CLASS}>
+                      <TableHeader>
+                        <TableRow className="bg-muted/50 hover:bg-muted/50">
+                          <TableHead className={cn(headClass, 'w-[90px]')}>ID</TableHead>
+                          <TableHead className={headClass}>Title</TableHead>
+                          <TableHead className={cn(headClass, 'w-[180px]')}>Program</TableHead>
+                          <TableHead className={cn(headClass, 'w-[190px]')}>Booking type</TableHead>
+                          <TableHead className={cn(headClass, 'w-[190px]')}>State</TableHead>
+                          <TableHead className={cn(headClass, 'w-[110px]')}>Priority</TableHead>
+                          <TableHead className={cn(headClass, 'w-[170px]')}>Created by</TableHead>
+                          <TableHead className={cn(headClass, 'w-[130px]')}>Created</TableHead>
+                          <TableHead className={cn(headClass, 'w-[70px] text-right')}>Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
                         {items.map((request) => {
-                          const statusStyle = statusColors[request.status];
-                          const priorityColor = priorityColors[request.priority];
-                          const bookingTypeColor =
-                            bookingTypeColors[request.bookingType] ||
-                            'bg-gray-100 dark:bg-gray-900/30 text-gray-700 dark:text-gray-400';
-
+                          const creatorName = request.createdByUser?.displayName ?? request.createdBy;
                           return (
-                            <tr
+                            <TableRow
                               key={request.id}
-                              className="border-b border-border hover:bg-muted/50 cursor-pointer transition-colors"
                               onClick={() =>
                                 navigate(`/${userRole.toLowerCase()}/requests/${request.id}`)
                               }
+                              className={cn(
+                                'group cursor-pointer transition-colors hover:bg-muted/30',
+                                request.__isNew && 'bg-primary/[0.03]',
+                              )}
                             >
-                              <td className="py-3 px-4 text-sm text-muted-foreground font-mono">
-                                {request.id}
-                              </td>
-                              <td className="py-3 px-4 text-sm font-medium text-card-foreground">
-                                {request.title}
-                                {request.__isNew && (
-                                  <span className="ml-2 text-xs font-semibold text-red-600 animate-pulse">
-                                    ● New
-                                  </span>
+                              <TableCell
+                                className={cn(
+                                  'py-3 font-mono text-xs tabular-nums text-muted-foreground',
+                                  request.__isNew && 'border-l-2 border-l-primary',
                                 )}
-                              </td>
-                              <td className="py-3 px-4 text-sm text-muted-foreground">
-                                {request.program}
-                              </td>
-                              <td className="py-3 px-4 text-sm">
-                                <span
-                                  className={`px-3 py-1 rounded-full text-xs font-medium ${bookingTypeColor}`}
+                              >
+                                {request.id}
+                              </TableCell>
+                              <TableCell className="max-w-[360px] py-3">
+                                <p
+                                  className="flex items-center font-medium text-card-foreground"
+                                  title={request.title}
                                 >
-                                  {getBookingTypeLabel(request.bookingType)}
-                                </span>
-                              </td>
-                              <td className="py-3 px-4 text-sm">
-                                <span
-                                  className={`px-3 py-1 rounded-full text-xs font-medium ${statusStyle.bg} ${statusStyle.text}`}
-                                >
-                                  {request.status}
-                                </span>
-                              </td>
-                              <td className="py-3 px-4 text-sm">
-                                <span
-                                  className={`px-3 py-1 rounded-full text-xs font-medium ${priorityColor}`}
+                                  <span className="truncate">{request.title}</span>
+                                  {request.__isNew && (
+                                    <span className="ml-2 inline-flex items-center gap-1 align-middle text-[11px] font-semibold text-destructive">
+                                      <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-destructive" />
+                                      New
+                                    </span>
+                                  )}
+                                </p>
+                              </TableCell>
+                              <TableCell className="max-w-[200px] py-3 text-sm">
+                                {request.program ? (
+                                  <span className="block truncate" title={request.program}>
+                                    {request.program}
+                                  </span>
+                                ) : (
+                                  <span className="text-muted-foreground/50">—</span>
+                                )}
+                              </TableCell>
+                              <TableCell className="py-3">
+                                <BookingTypePill type={request.bookingType} />
+                              </TableCell>
+                              <TableCell className="py-3">
+                                <StatusPill tone={STATUS_TONES[request.status] ?? 'muted'}>{request.status}</StatusPill>
+                              </TableCell>
+                              <TableCell className="py-3">
+                                <StatusPill
+                                  tone={PRIORITY_TONES[request.priority] ?? 'muted'}
+                                  ping={request.priority === 'Urgent'}
                                 >
                                   {request.priority}
-                                </span>
-                              </td>
-                              <td className="py-3 px-4 text-sm">
-                                {request.createdByUser?.displayName ?? request.createdBy}
-                              </td>
-                              <td className="py-3 px-4 text-sm text-muted-foreground">
-                                {new Date(request.createdAt).toDateString()}
-                              </td>
-                              <td className="py-3 px-4 text-sm">
+                                </StatusPill>
+                              </TableCell>
+                              <TableCell className="py-3">
                                 <div className="flex items-center gap-2">
-                                  <button
-                                    type="button"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      navigate(`/${userRole.toLowerCase()}/requests/${request.id}`);
-                                    }}
-                                    className="p-1.5 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-card-foreground"
-                                    title="Edit"
-                                  >
-                                    <Edit size={16} />
-                                  </button>
+                                  <UserAvatar name={creatorName} />
+                                  <span className="truncate text-sm">{creatorName}</span>
                                 </div>
-                              </td>
-                            </tr>
+                              </TableCell>
+                              <TableCell
+                                className="py-3 text-xs tabular-nums text-muted-foreground"
+                                title={new Date(request.createdAt).toLocaleString()}
+                              >
+                                {formatDistanceToNowStrict(new Date(request.createdAt), { addSuffix: true })}
+                              </TableCell>
+                              <TableCell className="py-3 text-right">
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7 text-muted-foreground"
+                                  title="Edit"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    navigate(`/${userRole.toLowerCase()}/requests/${request.id}`);
+                                  }}
+                                >
+                                  <Edit size={15} />
+                                </Button>
+                              </TableCell>
+                            </TableRow>
                           );
                         })}
-                      </tbody>
-                    </table>
+                      </TableBody>
+                    </Table>
                   </div>
                 </div>
               )}

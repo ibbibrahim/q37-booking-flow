@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { CheckCircle2, Eye, Loader2, XCircle } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { StatusPill } from '@/components/ui/status-pill';
+import type { Tone } from '@/lib/tone';
+import { cn } from '@/lib/utils';
+import { DATA_TABLE_WRAPPER, DATA_TABLE_GRID, DATA_TABLE_HEADER_ROW, DATA_TABLE_HEAD, DATA_TABLE_ROW } from '@/lib/tableStyles';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/contexts/ToastContext';
@@ -15,10 +17,10 @@ import { formatDate } from '../utils/hrUtils';
 import { usePageHeader } from '@/contexts/PageHeaderContext';
 import type { FreelanceProfileStatus } from '../types/freelanceProfile';
 
-const STATUS_BADGE: Record<FreelanceProfileStatus, string> = {
-  Pending: 'border-transparent bg-warning/15 text-warning',
-  Approved: 'border-transparent bg-success/15 text-success',
-  Rejected: 'border-transparent bg-destructive/15 text-destructive',
+const STATUS_TONE: Record<FreelanceProfileStatus, Tone> = {
+  Pending: 'warning',
+  Approved: 'success',
+  Rejected: 'destructive',
 };
 
 /** HRAdmin's queue for the freelance profile submissions collected via the
@@ -113,34 +115,34 @@ export function FreelanceProfileReviewPage() {
 
   return (
     <div className="space-y-4">
-      <Card>
-        <CardContent className="p-0">
-          <Table>
+      <div className={DATA_TABLE_WRAPPER}>
+        <div className="overflow-x-auto">
+          <Table className={cn(DATA_TABLE_GRID, 'min-w-[860px]')}>
             <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>QID</TableHead>
-                <TableHead>Matched Employee</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Submitted</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+              <TableRow className={DATA_TABLE_HEADER_ROW}>
+                <TableHead className={DATA_TABLE_HEAD}>Name</TableHead>
+                <TableHead className={DATA_TABLE_HEAD}>QID</TableHead>
+                <TableHead className={DATA_TABLE_HEAD}>Matched Employee</TableHead>
+                <TableHead className={DATA_TABLE_HEAD}>Status</TableHead>
+                <TableHead className={DATA_TABLE_HEAD}>Submitted</TableHead>
+                <TableHead className={cn(DATA_TABLE_HEAD, 'text-right')}>Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {listQuery.isLoading && (
-                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-10">Loading…</TableCell></TableRow>
+                <TableRow className="hover:bg-transparent"><TableCell colSpan={6} className="text-center text-muted-foreground py-10">Loading…</TableCell></TableRow>
               )}
               {!listQuery.isLoading && submissions.length === 0 && (
-                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-10">No submissions yet.</TableCell></TableRow>
+                <TableRow className="hover:bg-transparent"><TableCell colSpan={6} className="text-center text-muted-foreground py-10">No submissions yet.</TableCell></TableRow>
               )}
               {submissions.map((s) => (
-                <TableRow key={s.id}>
-                  <TableCell className="font-medium text-foreground">{s.fullNameEn}</TableCell>
-                  <TableCell className="tabular-nums">{s.qid}</TableCell>
-                  <TableCell className="text-muted-foreground">{s.matchedEmployeeName ?? '—'}</TableCell>
-                  <TableCell><Badge className={STATUS_BADGE[s.status]}>{s.status}</Badge></TableCell>
-                  <TableCell className="text-muted-foreground">{formatDate(s.createdAt)}</TableCell>
-                  <TableCell className="text-right">
+                <TableRow key={s.id} className={DATA_TABLE_ROW}>
+                  <TableCell className="py-3 font-medium text-foreground">{s.fullNameEn}</TableCell>
+                  <TableCell className="py-3 tabular-nums">{s.qid}</TableCell>
+                  <TableCell className="py-3 text-muted-foreground">{s.matchedEmployeeName ?? '—'}</TableCell>
+                  <TableCell className="py-3"><StatusPill tone={STATUS_TONE[s.status] ?? 'muted'}>{s.status}</StatusPill></TableCell>
+                  <TableCell className="py-3 text-muted-foreground">{formatDate(s.createdAt)}</TableCell>
+                  <TableCell className="py-3 text-right">
                     <Button size="sm" variant="outline" className="gap-1.5" onClick={() => openDetail(s.id, s.matchedEmployeeId)}>
                       <Eye size={14} /> {s.status === 'Pending' ? 'Review' : 'View'}
                     </Button>
@@ -149,8 +151,8 @@ export function FreelanceProfileReviewPage() {
               ))}
             </TableBody>
           </Table>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {detailId !== null && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
