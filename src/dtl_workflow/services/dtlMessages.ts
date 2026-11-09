@@ -21,6 +21,8 @@ export function buildDtlLinkMessage(
     '*Booking Link:*',
     link,
     '',
+    'Please join 5 minutes before your scheduled time so we can check your audio and streaming preview and make sure everything is ready.',
+    '',
     'Thanks.',
   ];
 
@@ -33,6 +35,8 @@ export function buildDtlLinkMessage(
     '',
     '*رابط الحجز:*',
     link,
+    '',
+    'الرجاء الدخول على الرابط قبل 5 دقائق من الموعد',
     '',
     'شكراً.',
   ];
