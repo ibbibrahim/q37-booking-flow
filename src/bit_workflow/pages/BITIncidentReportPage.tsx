@@ -63,6 +63,7 @@ import type {
   IncidentReportPriority,
   SaveIncidentReport,
 } from '../types/incident';
+import { ticketPath } from '../utils/engineeringPaths';
 
 type SaveState = 'idle' | 'dirty' | 'saving' | 'saved' | 'error';
 
@@ -369,7 +370,7 @@ export function BITIncidentReportPage() {
 
   async function handleBack() {
     if (canEdit && saveState === 'dirty') await flush();
-    navigate(`/bit/tickets/${id}`);
+    navigate(ticketPath(id));
   }
 
   async function handlePreview() {
@@ -462,7 +463,7 @@ export function BITIncidentReportPage() {
               : getApiErrorMessage(error, 'Failed to load the incident report.')}
           </p>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => navigate(`/bit/tickets/${id}`)}>
+            <Button variant="outline" onClick={() => navigate(ticketPath(id))}>
               <ArrowLeft />
               Back to ticket
             </Button>

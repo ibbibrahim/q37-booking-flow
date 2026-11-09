@@ -55,6 +55,7 @@ import { BITTicketsPage } from './bit_workflow/pages/BITTicketsPage';
 import { BITTicketDetailPage } from './bit_workflow/pages/BITTicketDetailPage';
 import { BITTicketReportsPage } from './bit_workflow/pages/BITTicketReportsPage';
 import { BITIncidentReportPage } from './bit_workflow/pages/BITIncidentReportPage';
+import { EngineeringHomeRedirect, LegacyBitRedirect } from './bit_workflow/components/EngineeringRedirects';
 import { BITIncidentRegisterPage } from './bit_workflow/pages/BITIncidentRegisterPage';
 import { DtlBookingListPage } from './dtl_workflow/components/DtlBookingListPage';
 import { DtlBookingDetailPage } from './dtl_workflow/components/DtlBookingDetailPage';
@@ -64,6 +65,8 @@ import { CreativeRequestListPage } from './creative_workflow/components/Creative
 import { CreativeRequestFormPage } from './creative_workflow/components/CreativeRequestFormPage';
 import { CreativeRequestDetailPage } from './creative_workflow/components/CreativeRequestDetailPage';
 import { CreativeProgramsScreensAdminPage } from './creative_workflow/components/CreativeProgramsScreensAdminPage';
+
+const ENGINEERING_ROLES = ['BIT', 'CR', 'NOC', 'Admin'];
 
 function App() {
   const { isAuthenticated, user, isLoading } = useAuth();
@@ -92,7 +95,7 @@ function App() {
     if (roles.includes("HRAdmin")) return "/hr/dashboard";
     if (roles.includes("DepartmentHead")) return "/hr/department-approvals";
     if (roles.includes("GeneralManager")) return "/hr/final-approvals";
-    if (roles.includes("BIT")) return "/bit";
+    if (roles.includes("BIT")) return "/engineering";
     if (roles.includes("AssignmentLead")) return "/dtl-dashboard";
     if (roles.includes("AssignmentTeam")) return "/dtl-booking";
     if (roles.includes("CR")) return "/dtl-booking";
@@ -390,92 +393,110 @@ function App() {
           }
         />
 
-        {/** BIT CHECKLISTS — BIT and Admin */}
+        {/** ENGINEERING — BIT + Broadcast Support (CR/NOC) + Admin. Team access for checklists is enforced inside the pages. */}
         <Route
-          path="bit"
+          path="engineering"
           element={
-            <ProtectedRoute allowedRoles={['BIT', 'Admin']}>
+            <ProtectedRoute allowedRoles={ENGINEERING_ROLES}>
+              <EngineeringHomeRedirect />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="engineering/checklists/:team"
+          element={
+            <ProtectedRoute allowedRoles={ENGINEERING_ROLES}>
               <BITChecklistDashboardPage />
             </ProtectedRoute>
           }
         />
         <Route
-          path="bit/checklist/:type"
+          path="engineering/checklists/:team/:type"
           element={
-            <ProtectedRoute allowedRoles={['BIT', 'Admin']}>
+            <ProtectedRoute allowedRoles={ENGINEERING_ROLES}>
               <BITChecklistListPage />
             </ProtectedRoute>
           }
         />
         <Route
-          path="bit/vendors"
+          path="engineering/checklists/:team/:type/manage"
           element={
-            <ProtectedRoute allowedRoles={['BIT', 'Admin']}>
-              <BITVendorDirectoryPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="bit/tickets"
-          element={
-            <ProtectedRoute allowedRoles={['BIT', 'Admin']}>
-              <BITTicketsPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="bit/tickets/reports"
-          element={
-            <ProtectedRoute allowedRoles={['BIT', 'Admin']}>
-              <BITTicketReportsPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="bit/incidents"
-          element={
-            <ProtectedRoute allowedRoles={['BIT', 'Admin']}>
-              <BITIncidentRegisterPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="bit/tickets/:id/report"
-          element={
-            <ProtectedRoute allowedRoles={['BIT', 'Admin']}>
-              <BITIncidentReportPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="bit/tickets/:id"
-          element={
-            <ProtectedRoute allowedRoles={['BIT', 'Admin']}>
-              <BITTicketDetailPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="bit/checklist/:type/manage"
-          element={
-            <ProtectedRoute allowedRoles={['BIT', 'Admin']}>
+            <ProtectedRoute allowedRoles={ENGINEERING_ROLES}>
               <BITChecklistManagePage />
             </ProtectedRoute>
           }
         />
         <Route
-          path="bit/checklist/:type/form"
+          path="engineering/checklists/:team/:type/form"
           element={
-            <ProtectedRoute allowedRoles={['BIT', 'Admin']}>
+            <ProtectedRoute allowedRoles={ENGINEERING_ROLES}>
               <BITChecklistFormPage />
             </ProtectedRoute>
           }
         />
         <Route
-          path="bit/checklist/:type/view/:id"
+          path="engineering/checklists/:team/:type/view/:id"
           element={
-            <ProtectedRoute allowedRoles={['BIT', 'Admin']}>
+            <ProtectedRoute allowedRoles={ENGINEERING_ROLES}>
               <BITChecklistFormPage readOnly />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="engineering/tickets"
+          element={
+            <ProtectedRoute allowedRoles={ENGINEERING_ROLES}>
+              <BITTicketsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="engineering/tickets/reports"
+          element={
+            <ProtectedRoute allowedRoles={ENGINEERING_ROLES}>
+              <BITTicketReportsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="engineering/incidents"
+          element={
+            <ProtectedRoute allowedRoles={ENGINEERING_ROLES}>
+              <BITIncidentRegisterPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="engineering/tickets/:id/report"
+          element={
+            <ProtectedRoute allowedRoles={ENGINEERING_ROLES}>
+              <BITIncidentReportPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="engineering/tickets/:id"
+          element={
+            <ProtectedRoute allowedRoles={ENGINEERING_ROLES}>
+              <BITTicketDetailPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="engineering/vendors"
+          element={
+            <ProtectedRoute allowedRoles={ENGINEERING_ROLES}>
+              <BITVendorDirectoryPage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/** Legacy /bit links (old emails, bookmarks, notifications) */}
+        <Route
+          path="bit/*"
+          element={
+            <ProtectedRoute allowedRoles={ENGINEERING_ROLES}>
+              <LegacyBitRedirect />
             </ProtectedRoute>
           }
         />

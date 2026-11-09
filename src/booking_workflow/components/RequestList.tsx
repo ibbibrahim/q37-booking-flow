@@ -12,6 +12,11 @@ import {
   User,
   ListChecks,
   ArrowRight,
+  Radio,
+  Download,
+  Camera,
+  UserPlus,
+  type LucideIcon,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { endOfDay, formatDistanceToNowStrict, startOfDay } from 'date-fns';
@@ -158,32 +163,33 @@ const PRIORITY_TONES: Record<Priority, Tone> = {
   Urgent: 'destructive',
 };
 
-/** Per-type hues kept from the original list (pill + dot), so each booking type stays distinguishable. */
-const BOOKING_TYPE_PILL: Record<BookingType, { pill: string; dot: string }> = {
+/** Per-type hues kept from the original list; an icon (instead of the status-style dot) marks it as a booking type. */
+const BOOKING_TYPE_PILL: Record<BookingType, { pill: string; icon: LucideIcon }> = {
   'Incoming Feed': {
     pill: 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800',
-    dot: 'bg-blue-500',
+    icon: Radio,
   },
   'Invite Guest for News': {
     pill: 'bg-teal-100 text-teal-700 border-teal-200 dark:bg-teal-900/30 dark:text-teal-400 dark:border-teal-800',
-    dot: 'bg-teal-500',
+    icon: UserPlus,
   },
   'Invite Guest for Program': {
     pill: 'bg-cyan-100 text-cyan-700 border-cyan-200 dark:bg-cyan-900/30 dark:text-cyan-400 dark:border-cyan-800',
-    dot: 'bg-cyan-500',
+    icon: UserPlus,
   },
   'Download and Ingest': {
     pill: 'bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800',
-    dot: 'bg-emerald-500',
+    icon: Download,
   },
   'Camera Card and Ingest': {
     pill: 'bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800',
-    dot: 'bg-amber-500',
+    icon: Camera,
   },
 };
 
 function BookingTypePill({ type }: { type: BookingType }) {
-  const style = BOOKING_TYPE_PILL[type] ?? { pill: 'bg-muted text-muted-foreground border-border', dot: 'bg-muted-foreground/60' };
+  const style = BOOKING_TYPE_PILL[type] ?? { pill: 'bg-muted text-muted-foreground border-border', icon: Tag };
+  const Icon = style.icon;
   return (
     <span
       className={cn(
@@ -191,7 +197,7 @@ function BookingTypePill({ type }: { type: BookingType }) {
         style.pill,
       )}
     >
-      <span className={cn('h-1.5 w-1.5 rounded-full', style.dot)} aria-hidden />
+      <Icon className="h-3 w-3 shrink-0" aria-hidden />
       {getBookingTypeLabel(type)}
     </span>
   );

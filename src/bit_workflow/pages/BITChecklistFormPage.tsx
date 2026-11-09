@@ -29,16 +29,17 @@ import {
   checklistTypeLabel,
   engineersOn,
   freshItemsFrom,
-  isChecklistType,
   periodLabelFor,
   periodLabelForDate,
   sectionNamesFrom,
   submissionStatusBadgeClass,
   submissionStatusLabel,
 } from '../utils/checklistUtils';
+import { checklistList, checklistRouteRedirect } from '../utils/engineeringPaths';
 import type {
   ChecklistItem,
   ChecklistSubmissionStatus,
+  ChecklistTeam,
   ChecklistTemplate,
   ChecklistType,
 } from '../types/checklist';
@@ -49,25 +50,34 @@ function currentTimeHHmm(): string {
 }
 
 export function BITChecklistFormPage({ readOnly = false }: { readOnly?: boolean }) {
-  const { type, id } = useParams<{ type: string; id?: string }>();
+  const { team, type, id } = useParams<{ team: string; type: string; id?: string }>();
+  const { user } = useAuth();
+  const redirect = checklistRouteRedirect(user?.roles, team, type);
+  if (redirect) return <Navigate to={redirect} replace />;
 
-  if (!isChecklistType(type)) {
-    return <Navigate to="/bit" replace />;
-  }
+  const checklistTeam = team as ChecklistTeam;
+  const checklistType = type as ChecklistType;
 
   if (readOnly) {
     const viewId = Number(id);
     if (!Number.isInteger(viewId)) {
-      return <Navigate to={`/bit/checklist/${type}`} replace />;
+      return <Navigate to={checklistList(checklistTeam, checklistType)} replace />;
     }
-    return <ChecklistForm key={`view-${viewId}`} type={type} viewId={viewId} />;
+    return (
+      <ChecklistForm
+        key={`view-${checklistTeam}-${viewId}`}
+        team={checklistTeam}
+        type={checklistType}
+        viewId={viewId}
+      />
+    );
   }
 
-  // Keyed by type so state fully resets when navigating between checklist types
-  return <ChecklistForm key={type} type={type} />;
+  // Keyed by team + type so state fully resets when navigating between checklists
+  return <ChecklistForm key={`${checklistTeam}-${checklistType}`} team={checklistTeam} type={checklistType} />;
 }
 
-function ChecklistForm({ type, viewId }: { type: ChecklistType; viewId?: number }) {
+function ChecklistForm({ team, type, viewId }: { team: ChecklistTeam; type: ChecklistType; viewId?: number }) {
   const navigate = useNavigate();
   const { showToast } = useToast();
   const { user } = useAuth();
@@ -123,8 +133,8 @@ function ChecklistForm({ type, viewId }: { type: ChecklistType; viewId?: number 
     try {
       if (isViewMode) {
         const [loadedTemplates, submission] = await Promise.all([
-          bitChecklistApi.getTemplates(type),
-          bitChecklistApi.getSubmissionById(viewId!),
+          bitChecklistApi.getTemplates(team, type),
+          bitChecklistApi.getSubmissionById(team, viewId!),
         ]);
         setTemplates(loadedTemplates);
         applyItems(submission.items, loadedTemplates);
@@ -134,8 +144,8 @@ function ChecklistForm({ type, viewId }: { type: ChecklistType; viewId?: number 
         setOpenSections(Object.fromEntries(sectionNamesFrom(loadedTemplates).map((s) => [s, true])));
       } else {
         const [loadedTemplates, current] = await Promise.all([
-          bitChecklistApi.getTemplates(type),
-          bitChecklistApi.getCurrentSubmission(type),
+          bitChecklistApi.getTemplates(team, type),
+          bitChecklistApi.getCurrentSubmission(team, type),
         ]);
         setTemplates(loadedTemplates);
         applyItems(current?.items ?? freshItemsFrom(loadedTemplates), loadedTemplates);
@@ -148,7 +158,7 @@ function ChecklistForm({ type, viewId }: { type: ChecklistType; viewId?: number 
       console.error('Failed to load checklist:', err);
       if (isViewMode && isAxiosError(err) && err.response?.status === 404) {
         showToast('Checklist submission not found.', 'warning');
-        navigate(`/bit/checklist/${type}`, { replace: true });
+        navigate(checklistList(team, type), { replace: true });
         return;
       }
       setLoadError(getApiErrorMessage(err, 'Failed to load the checklist. Please try again.'));
@@ -156,7 +166,7 @@ function ChecklistForm({ type, viewId }: { type: ChecklistType; viewId?: number 
       setLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [type, viewId, isViewMode]);
+  }, [team, type, viewId, isViewMode]);
 
   useEffect(() => {
     load();
@@ -237,7 +247,7 @@ function ChecklistForm({ type, viewId }: { type: ChecklistType; viewId?: number 
     });
     // Persist the click right away so the server records the time of the tick,
     // not the time the Save Progress button is pressed.
-    enqueueSave(() => bitChecklistApi.saveCurrentSubmission(type, buildSaveBody(false)))
+    enqueueSave(() => bitChecklistApi.saveCurrentSubmission(team, type, buildSaveBody(false)))
       .then(mergeServerState)
       .catch((err) => {
         console.error('Failed to record checklist item:', err);
@@ -248,7 +258,7 @@ function ChecklistForm({ type, viewId }: { type: ChecklistType; viewId?: number 
   const handleSave = async () => {
     setSaving(true);
     try {
-      const saved = await enqueueSave(() => bitChecklistApi.saveCurrentSubmission(type, buildSaveBody(false)));
+      const saved = await enqueueSave(() => bitChecklistApi.saveCurrentSubmission(team, type, buildSaveBody(false)));
       mergeServerState(saved);
       showToast('Progress saved.', 'success');
     } catch (err) {
@@ -267,9 +277,9 @@ function ChecklistForm({ type, viewId }: { type: ChecklistType; viewId?: number 
     }
     setSubmitting(true);
     try {
-      await enqueueSave(() => bitChecklistApi.saveCurrentSubmission(type, buildSaveBody(true)));
+      await enqueueSave(() => bitChecklistApi.saveCurrentSubmission(team, type, buildSaveBody(true)));
       showToast(`${checklistTypeLabel(type)} checklist submitted.`, 'success');
-      navigate(`/bit/checklist/${type}`);
+      navigate(checklistList(team, type));
     } catch (err) {
       console.error('Failed to submit checklist:', err);
       handleWriteError(err, 'Failed to submit the checklist. Please try again.');
@@ -292,7 +302,7 @@ function ChecklistForm({ type, viewId }: { type: ChecklistType; viewId?: number 
   if (loadError) {
     return (
       <div className="space-y-4">
-        <Button variant="outline" size="icon" onClick={() => navigate(`/bit/checklist/${type}`)}>
+        <Button variant="outline" size="icon" onClick={() => navigate(checklistList(team, type))}>
           <ArrowLeft size={16} />
         </Button>
         <Card>
@@ -322,7 +332,7 @@ function ChecklistForm({ type, viewId }: { type: ChecklistType; viewId?: number 
             variant="outline"
             size="icon"
             className="shrink-0 mt-0.5"
-            onClick={() => navigate(`/bit/checklist/${type}`)}
+            onClick={() => navigate(checklistList(team, type))}
           >
             <ArrowLeft size={16} />
           </Button>
@@ -476,12 +486,14 @@ function ChecklistForm({ type, viewId }: { type: ChecklistType; viewId?: number 
                               </td>
                               <td className="py-3 px-3">
                                 <div className="flex items-center gap-2 flex-wrap">
-                                  <VendorBadge vendor={template.vendor} />
+                                  {team === 'bit' && <VendorBadge vendor={template.vendor} />}
                                   <span className="font-medium text-sm text-card-foreground">
                                     {template.applicationName}
                                   </span>
                                 </div>
-                                <p className="text-xs font-mono text-muted-foreground mt-1">{template.ip}</p>
+                                {template.ip && (
+                                  <p className="text-xs font-mono text-muted-foreground mt-1">{template.ip}</p>
+                                )}
                               </td>
                               <td className="py-3 px-3">
                                 <ol className="list-decimal list-inside space-y-0.5">

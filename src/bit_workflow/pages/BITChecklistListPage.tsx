@@ -6,17 +6,18 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
+import { useAuth } from '@/contexts/AuthContext';
 import { bitChecklistApi, getApiErrorMessage } from '@/api/bitChecklistApi';
 import {
   checklistTypeLabel,
-  isChecklistType,
   periodDateFor,
   periodLabelFor,
   periodLabelForDate,
   submissionStatusBadgeClass,
   submissionStatusLabel,
 } from '../utils/checklistUtils';
-import type { ChecklistSubmissionSummary, ChecklistType } from '../types/checklist';
+import { checklistForm, checklistHome, checklistRouteRedirect, checklistView } from '../utils/engineeringPaths';
+import type { ChecklistSubmissionSummary, ChecklistTeam, ChecklistType } from '../types/checklist';
 
 const START_LABEL: Record<ChecklistType, string> = {
   daily: "Start Today's Checklist",
@@ -31,16 +32,15 @@ const CONTINUE_LABEL: Record<ChecklistType, string> = {
 };
 
 export function BITChecklistListPage() {
-  const { type } = useParams<{ type: string }>();
+  const { team, type } = useParams<{ team: string; type: string }>();
+  const { user } = useAuth();
+  const redirect = checklistRouteRedirect(user?.roles, team, type);
+  if (redirect) return <Navigate to={redirect} replace />;
 
-  if (!isChecklistType(type)) {
-    return <Navigate to="/bit" replace />;
-  }
-
-  return <ChecklistList key={type} type={type} />;
+  return <ChecklistList key={`${team}-${type}`} team={team as ChecklistTeam} type={type as ChecklistType} />;
 }
 
-function ChecklistList({ type }: { type: ChecklistType }) {
+function ChecklistList({ team, type }: { team: ChecklistTeam; type: ChecklistType }) {
   const navigate = useNavigate();
   const [submissions, setSubmissions] = useState<ChecklistSubmissionSummary[]>([]);
   const [loading, setLoading] = useState(true);
@@ -50,14 +50,14 @@ function ChecklistList({ type }: { type: ChecklistType }) {
     setLoading(true);
     setError(null);
     try {
-      setSubmissions(await bitChecklistApi.getSubmissionSummaries(type));
+      setSubmissions(await bitChecklistApi.getSubmissionSummaries(team, type));
     } catch (err) {
       console.error('Failed to load checklist submissions:', err);
       setError(getApiErrorMessage(err, 'Failed to load submissions. Please try again.'));
     } finally {
       setLoading(false);
     }
-  }, [type]);
+  }, [team, type]);
 
   useEffect(() => {
     load();
@@ -78,7 +78,7 @@ function ChecklistList({ type }: { type: ChecklistType }) {
         className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
       >
         <div className="flex items-start gap-3">
-          <Button variant="outline" size="icon" className="shrink-0 mt-0.5" onClick={() => navigate('/bit')}>
+          <Button variant="outline" size="icon" className="shrink-0 mt-0.5" onClick={() => navigate(checklistHome(team))}>
             <ArrowLeft size={16} />
           </Button>
           <div>
@@ -88,7 +88,7 @@ function ChecklistList({ type }: { type: ChecklistType }) {
             </p>
           </div>
         </div>
-        <Button onClick={() => navigate(`/bit/checklist/${type}/form`)} className="self-start sm:self-center">
+        <Button onClick={() => navigate(checklistForm(team, type))} className="self-start sm:self-center">
           <Play size={16} className="mr-1.5" />
           {hasCurrent ? CONTINUE_LABEL[type] : START_LABEL[type]}
         </Button>
@@ -168,7 +168,7 @@ function ChecklistList({ type }: { type: ChecklistType }) {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.25, delay: 0.08 + index * 0.04 }}
                       className="border-b border-border last:border-b-0 hover:bg-muted/50 cursor-pointer transition-colors"
-                      onClick={() => navigate(`/bit/checklist/${type}/view/${submission.id}`)}
+                      onClick={() => navigate(checklistView(team, type, submission.id))}
                     >
                       <td className="py-3 px-4 text-sm font-medium text-card-foreground whitespace-nowrap">
                         {periodLabelForDate(type, submission.periodDate)}
@@ -200,7 +200,7 @@ function ChecklistList({ type }: { type: ChecklistType }) {
                           size="sm"
                           onClick={(e) => {
                             e.stopPropagation();
-                            navigate(`/bit/checklist/${type}/view/${submission.id}`);
+                            navigate(checklistView(team, type, submission.id));
                           }}
                         >
                           <Eye size={14} className="mr-1.5" /> View

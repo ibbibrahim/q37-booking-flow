@@ -18,30 +18,31 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { bitChecklistApi, getApiErrorMessage } from '@/api/bitChecklistApi';
+import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/contexts/ToastContext';
 import { usePageHeader } from '@/contexts/PageHeaderContext';
 import { ChecklistTemplateFormDialog } from '../components/ChecklistTemplateFormDialog';
 import { VendorBadge } from '../components/VendorBadge';
-import { checklistTypeLabel, isChecklistType, sectionNamesFrom } from '../utils/checklistUtils';
-import type { ChecklistTemplate, ChecklistType, SaveChecklistTemplate } from '../types/checklist';
+import { checklistTypeLabel, sectionNamesFrom, teamLabel } from '../utils/checklistUtils';
+import { checklistList, checklistRouteRedirect } from '../utils/engineeringPaths';
+import type { ChecklistTeam, ChecklistTemplate, ChecklistType, SaveChecklistTemplate } from '../types/checklist';
 
 export function BITChecklistManagePage() {
-  const { type } = useParams<{ type: string }>();
+  const { team, type } = useParams<{ team: string; type: string }>();
+  const { user } = useAuth();
+  const redirect = checklistRouteRedirect(user?.roles, team, type);
+  if (redirect) return <Navigate to={redirect} replace />;
 
-  if (!isChecklistType(type)) {
-    return <Navigate to="/bit" replace />;
-  }
-
-  return <ChecklistManage key={type} type={type} />;
+  return <ChecklistManage key={`${team}-${type}`} team={team as ChecklistTeam} type={type as ChecklistType} />;
 }
 
-function ChecklistManage({ type }: { type: ChecklistType }) {
-  usePageHeader(`Manage ${checklistTypeLabel(type)} Checklist`, 'Add, edit, reorder or remove checklist items');
+function ChecklistManage({ team, type }: { team: ChecklistTeam; type: ChecklistType }) {
+  usePageHeader(`Manage ${teamLabel(team)} ${checklistTypeLabel(type)} Checklist`, 'Add, edit, reorder or remove checklist items');
 
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { showToast } = useToast();
-  const queryKey = ['bit-checklist-templates', type];
+  const queryKey = ['bit-checklist-templates', team, type];
 
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<ChecklistTemplate | null>(null);
@@ -54,7 +55,7 @@ function ChecklistManage({ type }: { type: ChecklistType }) {
     isLoading,
     error,
     refetch,
-  } = useQuery({ queryKey, queryFn: () => bitChecklistApi.getTemplates(type) });
+  } = useQuery({ queryKey, queryFn: () => bitChecklistApi.getTemplates(team, type) });
 
   const sections = useMemo(() => sectionNamesFrom(templates), [templates]);
   const errorMessage = error ? getApiErrorMessage(error, 'Failed to load checklist items. Please try again.') : null;
@@ -68,9 +69,9 @@ function ChecklistManage({ type }: { type: ChecklistType }) {
     setSaving(true);
     try {
       if (editing) {
-        await bitChecklistApi.updateTemplate(editing.id, body);
+        await bitChecklistApi.updateTemplate(team, editing.id, body);
       } else {
-        await bitChecklistApi.createTemplate(body);
+        await bitChecklistApi.createTemplate(team, body);
       }
       await queryClient.invalidateQueries({ queryKey });
       showToast(editing ? 'Item updated' : 'Item added', 'success');
@@ -86,7 +87,7 @@ function ChecklistManage({ type }: { type: ChecklistType }) {
     if (!deleting) return;
     setDeletingBusy(true);
     try {
-      await bitChecklistApi.deleteTemplate(deleting.id);
+      await bitChecklistApi.deleteTemplate(team, deleting.id);
       await queryClient.invalidateQueries({ queryKey });
       showToast('Item removed', 'success');
       setDeleting(null);
@@ -109,7 +110,7 @@ function ChecklistManage({ type }: { type: ChecklistType }) {
     [next[index], next[target]] = [next[target], next[index]];
     queryClient.setQueryData<ChecklistTemplate[]>(queryKey, next);
     try {
-      await bitChecklistApi.reorderTemplates(type, next.map((t) => t.id));
+      await bitChecklistApi.reorderTemplates(team, type, next.map((t) => t.id));
     } catch (err) {
       showToast(getApiErrorMessage(err, 'Could not reorder items'), 'error');
     } finally {
@@ -126,7 +127,7 @@ function ChecklistManage({ type }: { type: ChecklistType }) {
         className="space-y-3"
       >
         <div className="flex flex-wrap items-center gap-3">
-          <Button variant="ghost" size="sm" onClick={() => navigate(`/bit/checklist/${type}`)}>
+          <Button variant="ghost" size="sm" onClick={() => navigate(checklistList(team, type))}>
             <ArrowLeft />
             Back
           </Button>
@@ -220,7 +221,7 @@ function ChecklistManage({ type }: { type: ChecklistType }) {
                           <span className="w-6 shrink-0 text-sm tabular-nums text-muted-foreground">
                             {globalIndex + 1}
                           </span>
-                          <VendorBadge vendor={t.vendor} className="shrink-0" />
+                          {team === 'bit' && <VendorBadge vendor={t.vendor} className="shrink-0" />}
                           <div className="min-w-0 flex-1">
                             <p className="truncate font-medium text-card-foreground">{t.applicationName}</p>
                             <p className="flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
@@ -287,6 +288,7 @@ function ChecklistManage({ type }: { type: ChecklistType }) {
       <ChecklistTemplateFormDialog
         open={formOpen}
         onOpenChange={setFormOpen}
+        team={team}
         type={type}
         template={editing}
         sections={sections}

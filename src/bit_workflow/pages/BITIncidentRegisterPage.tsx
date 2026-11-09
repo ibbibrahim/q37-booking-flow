@@ -24,6 +24,7 @@ import { useBitTicketChanged } from '../hooks/useBitTicketChanged';
 import { useNow } from '../hooks/useNow';
 import { formatDowntime } from '../utils/ticketUtils';
 import type { IncidentRegisterItem } from '../types/incident';
+import { incidentReportPath, ticketPath } from '../utils/engineeringPaths';
 
 type StateKey = 'all' | 'in_progress' | 'due' | 'overdue' | 'submitted';
 
@@ -263,7 +264,7 @@ export function BITIncidentRegisterPage() {
                     return (
                       <TableRow
                         key={r.ticketId}
-                        onClick={() => navigate(`/bit/tickets/${r.ticketId}`)}
+                        onClick={() => navigate(ticketPath(r.ticketId))}
                         className={cn(
                           'cursor-pointer transition-colors hover:bg-muted/30',
                           r.reportState === 'overdue' && 'bg-destructive/[0.03]'
@@ -302,7 +303,7 @@ export function BITIncidentRegisterPage() {
                               className="h-7 px-2 text-xs"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                navigate(`/bit/tickets/${r.ticketId}/report`);
+                                navigate(incidentReportPath(r.ticketId));
                               }}
                             >
                               {submitted ? <FileText /> : <PenLine />}

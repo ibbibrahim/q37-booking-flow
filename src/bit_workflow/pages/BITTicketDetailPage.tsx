@@ -59,6 +59,7 @@ import { useBitTicketChanged } from '../hooks/useBitTicketChanged';
 import { useNow } from '../hooks/useNow';
 import { CATEGORY_LABELS } from '../utils/ticketUtils';
 import type { BitTicketDetail, TicketPriority, TicketStatus } from '../types/ticket';
+import { ENG_PATHS, incidentReportPath } from '../utils/engineeringPaths';
 
 interface TicketAction {
   fn: () => Promise<unknown>;
@@ -211,7 +212,7 @@ export function BITTicketDetailPage() {
         queryClient.invalidateQueries({ queryKey: ['bit-ticket-summary'] }),
       ]);
       showToast('Ticket deleted', 'success');
-      navigate('/bit/tickets');
+      navigate(ENG_PATHS.tickets);
     },
     onError: (err) => showToast(getApiErrorMessage(err, 'Could not delete ticket'), 'error'),
   });
@@ -228,7 +229,7 @@ export function BITTicketDetailPage() {
             {notFound ? 'This ticket does not exist or was deleted.' : getApiErrorMessage(error, 'Failed to load ticket.')}
           </p>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => navigate('/bit/tickets')}>
+            <Button variant="outline" onClick={() => navigate(ENG_PATHS.tickets)}>
               <ArrowLeft />
               Back to tickets
             </Button>
@@ -256,7 +257,7 @@ export function BITTicketDetailPage() {
               ticket={ticket}
               now={now}
               downloading={downloading}
-              onOpenReport={() => navigate(`/bit/tickets/${id}/report`)}
+              onOpenReport={() => navigate(incidentReportPath(id))}
               onDownloadPdf={() => void downloadReportPdf(ticket)}
             />
           </motion.div>
@@ -269,7 +270,7 @@ export function BITTicketDetailPage() {
                 variant="ghost"
                 size="sm"
                 className="-ml-2 text-muted-foreground hover:bg-muted hover:text-foreground"
-                onClick={() => navigate('/bit/tickets')}
+                onClick={() => navigate(ENG_PATHS.tickets)}
               >
                 <ArrowLeft />
                 Back
@@ -455,7 +456,7 @@ export function BITTicketDetailPage() {
           onStatusChange={handleStatusSelect}
           onPriorityChange={(p) => changePriority(ticket, p)}
           onAssign={assign}
-          onOpenReport={() => navigate(`/bit/tickets/${id}/report`)}
+          onOpenReport={() => navigate(incidentReportPath(id))}
           onDownloadPdf={() => void downloadReportPdf(ticket)}
           downloading={downloading}
         />

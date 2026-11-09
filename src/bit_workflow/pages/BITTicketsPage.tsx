@@ -51,6 +51,7 @@ import type {
   TicketCategory,
   TicketPriority,
 } from '../types/ticket';
+import { ticketPath } from '../utils/engineeringPaths';
 
 type ViewKey =
   | 'open'
@@ -149,7 +150,7 @@ function TicketTableSkeleton() {
 }
 
 export function BITTicketsPage() {
-  usePageHeader('Tickets', 'Track, assign and resolve BIT issues');
+  usePageHeader('Tickets', 'Track, assign and resolve engineering issues');
 
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -477,7 +478,7 @@ export function BITTicketsPage() {
                     return (
                       <TableRow
                         key={t.id}
-                        onClick={() => navigate(`/bit/tickets/${t.id}`)}
+                        onClick={() => navigate(ticketPath(t.id))}
                         className={cn(
                           'group cursor-pointer transition-colors hover:bg-muted/30',
                           breached && 'bg-destructive/[0.03]'

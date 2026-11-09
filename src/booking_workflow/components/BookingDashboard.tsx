@@ -8,10 +8,12 @@ import {
   LayoutDashboard, ClipboardList, FileBarChart, Search, CalendarCheck,
   Handshake, ChevronDown, UserCheck, UserRoundCog, FileSignature, ShieldCheck,
   Phone, Contact, Mic, CalendarRange, ScrollText, Clapperboard, MonitorPlay, CalendarClock,
-  PanelLeftClose, PanelLeftOpen, Workflow, Palette, ListChecks, Network, Building2, Ticket, Siren,
+  PanelLeftClose, PanelLeftOpen, Workflow, Palette, ListChecks, Network, Building2, Ticket, Siren, Wrench,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { bitTicketApi } from '@/api/bitTicketApi';
+import { canAccessTeam } from '@/bit_workflow/utils/checklistUtils';
+import { ENG_BASE, ENG_PATHS } from '@/bit_workflow/utils/engineeringPaths';
 import { HrLanguageProvider, HrLanguageToggle } from '../../hr_workflow/context/HrLanguageContext';
 import { cn } from '@/lib/utils';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -351,7 +353,7 @@ export const BookingDashboard: React.FC = () => {
     if (pathParts[0] === 'rota') return 'rota';
     if (pathParts[0] === 'schedule') return 'schedule';
     if (pathParts[0] === 'hr') return 'hr';
-    if (pathParts[0] === 'bit') return 'bit';
+    if (pathParts[0] === 'engineering') return 'engineering';
     if (pathParts[0] === 'studio-booking') return 'studio-booking';
     if (pathParts[0] === 'editing' && pathParts[1] === 'dashboard') return 'editing-dashboard';
     if (pathParts[0] === 'editing' || pathParts[0] === 'editor-queue') {
@@ -394,12 +396,12 @@ export const BookingDashboard: React.FC = () => {
   const isDepartmentCoordinator = user?.roles?.includes('DepartmentCoordinator') ?? false;
   const isFinalSignatory = user?.roles?.includes('GeneralManager') ?? false;
   const hasHRAccess = isHRAdmin || isDepartmentHead || isDepartmentCoordinator || isFinalSignatory;
-  // Strict: only the BIT role sees the BIT checklists — Admin does not bypass this one.
-  const hasBITAccess = (user?.roles?.includes('BIT') || user?.roles?.includes('Admin')) ?? false;
+  // Engineering = BIT + Broadcast Support (CR/NOC); tickets, incidents and vendors are shared.
+  const hasEngineeringAccess = canAccessTeam(user?.roles, 'bit') || canAccessTeam(user?.roles, 'bs');
   const { data: bitSummary } = useQuery({
     queryKey: ['bit-ticket-summary'],
     queryFn: bitTicketApi.summary,
-    enabled: hasBITAccess,
+    enabled: hasEngineeringAccess,
   });
   const hasEditSuiteDashboardAccess =
     user?.roles?.includes('Admin') ||
@@ -510,7 +512,7 @@ export const BookingDashboard: React.FC = () => {
     setOpenGroups((prev) => ({ ...prev, [key]: !(prev[key] ?? hasActive) }));
 
   const hasScheduleAccess = !hasHRAccess;
-  const hasStandaloneItems = hasRotaAccess || hasTechnicalStoreAccess || hasBITAccess || hasScheduleAccess;
+  const hasStandaloneItems = hasRotaAccess || hasTechnicalStoreAccess || hasEngineeringAccess || hasScheduleAccess;
   const hasWorkspaceItems = navGroups.length > 0 || hasHRAccess;
 
   // HR pages set their own title/subtitle via usePageHeader() instead of
@@ -531,7 +533,7 @@ export const BookingDashboard: React.FC = () => {
       case 'schedule': return 'Programme Schedule';
       case 'admin-users': return 'User Management';
       case 'hr': return 'HR System';
-      case 'bit': return 'BIT Checklists';
+      case 'engineering': return 'Engineering';
       case 'dtl-booking': return 'DTL Booking';
       case 'dtl-guest': return 'DTL Guest';
       case 'dtl-reporter': return 'DTL Reporter';
@@ -562,7 +564,7 @@ export const BookingDashboard: React.FC = () => {
       case 'schedule': return 'QBC channel programme guide from BCM';
       case 'admin-users': return 'Manage system users, roles, and permissions';
       case 'hr': return 'Employee records, leave, hiring requests, and workforce reports';
-      case 'bit': return 'Daily, weekly and monthly system readiness checklists';
+      case 'engineering': return 'Checklists, tickets and incidents for BIT and Broadcast Support';
       case 'dtl-booking': return 'Create and manage down-the-line guest bookings';
       case 'dtl-guest': return 'Search, create, and edit DTL guest contacts';
       case 'dtl-reporter': return 'Search, create, and edit DTL reporter contacts';
@@ -797,53 +799,48 @@ export const BookingDashboard: React.FC = () => {
                     collapsed={sidebarCollapsed}
                   />
                 )}
-                {hasBITAccess && (
+                {hasEngineeringAccess && (
                   <SidebarGroup
-                    icon={ClipboardList}
-                    label="BIT"
-                    isActive={currentSection === 'bit'}
-                    open={isGroupOpen('bit', currentSection === 'bit')}
+                    icon={Wrench}
+                    label="Engineering"
+                    isActive={currentSection === 'engineering'}
+                    open={isGroupOpen('engineering', currentSection === 'engineering')}
                     collapsed={sidebarCollapsed}
-                    onToggle={() => toggleGroup('bit', currentSection === 'bit')}
-                    onCollapsedClick={() => goTo('/bit')}
+                    onToggle={() => toggleGroup('engineering', currentSection === 'engineering')}
+                    onCollapsedClick={() => goTo(ENG_BASE)}
                   >
                     <SidebarSubItem
                       icon={ListChecks}
                       label="Checklist"
-                      isActive={
-                        currentSection === 'bit' &&
-                        !location.pathname.startsWith('/bit/vendors') &&
-                        !location.pathname.startsWith('/bit/tickets') &&
-                        !location.pathname.startsWith('/bit/incidents')
-                      }
-                      onClick={() => goTo('/bit')}
+                      isActive={location.pathname.startsWith(`${ENG_BASE}/checklists`)}
+                      onClick={() => goTo(ENG_BASE)}
                     />
                     <SidebarSubItem
                       icon={Ticket}
                       label="Tickets"
-                      isActive={location.pathname.startsWith('/bit/tickets') && location.pathname !== '/bit/tickets/reports'}
-                      onClick={() => goTo('/bit/tickets')}
+                      isActive={location.pathname.startsWith(ENG_PATHS.tickets) && location.pathname !== ENG_PATHS.ticketReports}
+                      onClick={() => goTo(ENG_PATHS.tickets)}
                       badge={bitSummary?.open}
                     />
                     <SidebarSubItem
                       icon={Siren}
                       label="Incidents"
-                      isActive={location.pathname === '/bit/incidents'}
-                      onClick={() => goTo('/bit/incidents')}
+                      isActive={location.pathname === ENG_PATHS.incidents}
+                      onClick={() => goTo(ENG_PATHS.incidents)}
                       badge={(bitSummary?.reportsDue ?? 0) + (bitSummary?.reportsOverdue ?? 0)}
                       badgeTone={(bitSummary?.reportsOverdue ?? 0) > 0 ? 'destructive' : 'default'}
                     />
                     <SidebarSubItem
                       icon={Building2}
                       label="Vendor Directory"
-                      isActive={location.pathname.startsWith('/bit/vendors')}
-                      onClick={() => goTo('/bit/vendors')}
+                      isActive={location.pathname.startsWith(ENG_PATHS.vendors)}
+                      onClick={() => goTo(ENG_PATHS.vendors)}
                     />
                     <SidebarSubItem
                       icon={BarChart3}
                       label="Ticket Reports"
-                      isActive={location.pathname === '/bit/tickets/reports'}
-                      onClick={() => goTo('/bit/tickets/reports')}
+                      isActive={location.pathname === ENG_PATHS.ticketReports}
+                      onClick={() => goTo(ENG_PATHS.ticketReports)}
                     />
                   </SidebarGroup>
                 )}

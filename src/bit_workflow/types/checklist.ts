@@ -1,3 +1,5 @@
+export type ChecklistTeam = 'bit' | 'bs';
+
 export type ChecklistType = 'daily' | 'weekly' | 'monthly';
 
 /** Vendor/brand of the application — drives the brand mark shown next to each item. */

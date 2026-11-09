@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'motion/react';
 import {
   AlertCircle,
@@ -15,16 +15,23 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
+import { useAuth } from '@/contexts/AuthContext';
 import { bitChecklistApi, getApiErrorMessage } from '@/api/bitChecklistApi';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
+  CHECKLIST_TEAMS,
+  canAccessTeam,
   checklistTypeLabel,
   engineersOn,
   periodLabelFor,
   sectionNamesFrom,
   submissionStatusBadgeClass,
   submissionStatusLabel,
+  teamLabel,
+  teamTypes,
 } from '../utils/checklistUtils';
-import type { ChecklistSubmission, ChecklistTemplate, ChecklistType } from '../types/checklist';
+import { checklistHome, checklistList, checklistManage, checklistRouteRedirect } from '../utils/engineeringPaths';
+import type { ChecklistSubmission, ChecklistTeam, ChecklistTemplate, ChecklistType } from '../types/checklist';
 
 const CHECKLIST_TYPES: { type: ChecklistType; icon: React.ElementType; description: string }[] = [
   { type: 'daily', icon: CalendarCheck, description: 'Run at the start of each broadcast day' },
@@ -38,7 +45,19 @@ interface TypeOverview {
 }
 
 export function BITChecklistDashboardPage() {
+  const { team } = useParams<{ team: string }>();
+  const { user } = useAuth();
+  const redirect = checklistRouteRedirect(user?.roles, team);
+  if (redirect) return <Navigate to={redirect} replace />;
+
+  return <ChecklistDashboard key={team} team={team as ChecklistTeam} />;
+}
+
+function ChecklistDashboard({ team }: { team: ChecklistTeam }) {
+  const visibleTypes = useMemo(() => CHECKLIST_TYPES.filter(({ type }) => teamTypes(team).includes(type)), [team]);
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const switchableTeams = CHECKLIST_TEAMS.filter((t) => canAccessTeam(user?.roles, t));
   const [overview, setOverview] = useState<Partial<Record<ChecklistType, TypeOverview>>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -48,22 +67,22 @@ export function BITChecklistDashboardPage() {
     setError(null);
     try {
       const results = await Promise.all(
-        CHECKLIST_TYPES.map(async ({ type }) => {
+        visibleTypes.map(async ({ type }) => {
           const [templates, current] = await Promise.all([
-            bitChecklistApi.getTemplates(type),
-            bitChecklistApi.getCurrentSubmission(type),
+            bitChecklistApi.getTemplates(team, type),
+            bitChecklistApi.getCurrentSubmission(team, type),
           ]);
           return [type, { templates, current }] as const;
         })
       );
       setOverview(Object.fromEntries(results));
     } catch (err) {
-      console.error('Failed to load BIT checklist overview:', err);
+      console.error('Failed to load checklist overview:', err);
       setError(getApiErrorMessage(err, 'Failed to load checklists. Please try again.'));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [team, visibleTypes]);
 
   useEffect(() => {
     load();
@@ -72,11 +91,25 @@ export function BITChecklistDashboardPage() {
   return (
     <div className="space-y-6">
       <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
-        <h1 className="text-2xl font-bold text-foreground">BIT Checklists</h1>
+        <h1 className="text-2xl font-bold text-foreground">{teamLabel(team)} Checklists</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Daily, weekly and monthly system readiness checks for broadcast IT applications
+          {team === 'bs'
+            ? 'Daily pre-live checks for the gallery, studio and control room'
+            : 'Daily, weekly and monthly system readiness checks for broadcast IT applications'}
         </p>
       </motion.div>
+
+      {switchableTeams.length > 1 && (
+        <Tabs value={team} onValueChange={(v) => navigate(checklistHome(v as ChecklistTeam))}>
+          <TabsList>
+            {switchableTeams.map((t) => (
+              <TabsTrigger key={t} value={t}>
+                {teamLabel(t)}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
+      )}
 
       {loading && (
         <div className="flex items-center justify-center py-20">
@@ -98,7 +131,9 @@ export function BITChecklistDashboardPage() {
 
       {!loading && !error && (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {CHECKLIST_TYPES.map(({ type, icon: Icon, description }, index) => {
+          {visibleTypes.map(({ type, icon: Icon, description: baseDescription }, index) => {
+            const description =
+              team === 'bs' && type === 'daily' ? 'Run before going live each broadcast day' : baseDescription;
             const data = overview[type];
             const templates = data?.templates ?? [];
             const current = data?.current ?? null;
@@ -118,8 +153,8 @@ export function BITChecklistDashboardPage() {
               <Card
                 role="button"
                 tabIndex={0}
-                onClick={() => navigate(`/bit/checklist/${type}`)}
-                onKeyDown={(e) => e.key === 'Enter' && navigate(`/bit/checklist/${type}`)}
+                onClick={() => navigate(checklistList(team, type))}
+                onKeyDown={(e) => e.key === 'Enter' && navigate(checklistList(team, type))}
                 className="group h-full cursor-pointer transition-all hover:border-primary/50 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <CardContent className="p-5 space-y-4">
@@ -173,7 +208,7 @@ export function BITChecklistDashboardPage() {
                       className="ml-auto h-7 shrink-0 px-2 text-xs"
                       onClick={(e) => {
                         e.stopPropagation();
-                        navigate(`/bit/checklist/${type}/manage`);
+                        navigate(checklistManage(team, type));
                       }}
                       onKeyDown={(e) => e.stopPropagation()}
                     >

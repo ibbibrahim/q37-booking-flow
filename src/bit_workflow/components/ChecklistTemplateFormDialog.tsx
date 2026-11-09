@@ -23,6 +23,7 @@ import {
 import { checklistTypeLabel } from '../utils/checklistUtils';
 import { VendorBadge } from './VendorBadge';
 import type {
+  ChecklistTeam,
   ChecklistTemplate,
   ChecklistType,
   ChecklistVendor,
@@ -32,6 +33,7 @@ import type {
 interface ChecklistTemplateFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  team: ChecklistTeam;
   type: ChecklistType;
   /** null = create */
   template: ChecklistTemplate | null;
@@ -67,6 +69,7 @@ function FieldError({ message }: { message?: string }) {
 export function ChecklistTemplateFormDialog({
   open,
   onOpenChange,
+  team,
   type,
   template,
   sections,
@@ -108,9 +111,9 @@ export function ChecklistTemplateFormDialog({
       type,
       sectionName: sectionName.trim(),
       applicationName: applicationName.trim(),
-      ip: ip.trim(),
+      ip: team === 'bs' ? '' : ip.trim(),
       actionSteps: cleanSteps,
-      vendor,
+      vendor: team === 'bs' ? 'other' : vendor,
     });
   }
 
@@ -197,12 +200,15 @@ export function ChecklistTemplateFormDialog({
               />
               <FieldError message={errors.applicationName} />
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="template-ip">IP / host</Label>
-              <Input id="template-ip" value={ip} onChange={(e) => setIp(e.target.value)} className="font-mono" />
-            </div>
+            {team !== 'bs' && (
+              <div className="space-y-1.5">
+                <Label htmlFor="template-ip">IP / host</Label>
+                <Input id="template-ip" value={ip} onChange={(e) => setIp(e.target.value)} className="font-mono" />
+              </div>
+            )}
           </div>
 
+          {team !== 'bs' && (
           <div className="space-y-1.5">
             <Label htmlFor="template-vendor">Vendor</Label>
             <div className="flex items-center gap-3">
@@ -221,6 +227,7 @@ export function ChecklistTemplateFormDialog({
               <VendorBadge vendor={vendor} />
             </div>
           </div>
+          )}
 
           <div className="space-y-2">
             <Label>Action steps *</Label>

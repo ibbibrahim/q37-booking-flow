@@ -1,6 +1,7 @@
 import type {
   ChecklistItem,
   ChecklistSubmissionStatus,
+  ChecklistTeam,
   ChecklistTemplate,
   ChecklistType,
 } from '../types/checklist';
@@ -114,4 +115,33 @@ export function submissionStatusBadgeClass(status?: ChecklistSubmissionStatus): 
   if (status === 'completed') return 'border-transparent bg-success/15 text-success';
   if (status === 'in_progress') return 'border-transparent bg-warning/15 text-warning';
   return 'border-transparent bg-muted text-muted-foreground';
+}
+
+export const CHECKLIST_TEAMS: ChecklistTeam[] = ['bit', 'bs'];
+
+export function isChecklistTeam(value: string | undefined): value is ChecklistTeam {
+  return value === 'bit' || value === 'bs';
+}
+
+export function teamLabel(team: ChecklistTeam): string {
+  return team === 'bs' ? 'Broadcast Support' : 'BIT';
+}
+
+/** BIT runs daily/weekly/monthly; Broadcast Support runs a daily pre-live checklist only. */
+export function teamTypes(team: ChecklistTeam): ChecklistType[] {
+  return team === 'bs' ? ['daily'] : ['daily', 'weekly', 'monthly'];
+}
+
+const TEAM_ROLES: Record<ChecklistTeam, string[]> = {
+  bit: ['BIT', 'Admin'],
+  bs: ['CR', 'NOC', 'Admin'],
+};
+
+export function canAccessTeam(roles: string[] | undefined, team: ChecklistTeam): boolean {
+  return (roles ?? []).some((r) => TEAM_ROLES[team].includes(r));
+}
+
+/** Landing team for /engineering: BIT/Admin → BIT, everyone else (CR/NOC) → Broadcast Support. */
+export function defaultTeamFor(roles: string[] | undefined): ChecklistTeam {
+  return canAccessTeam(roles, 'bit') ? 'bit' : 'bs';
 }
