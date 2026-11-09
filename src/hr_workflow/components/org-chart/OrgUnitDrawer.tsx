@@ -7,6 +7,7 @@ import { useHrLanguage } from '../../context/HrLanguageContext';
 import { EmployeeAvatar } from '../EmployeeAvatar';
 import { employeesForNode, type OrgNode, type OrgTree } from './orgTree';
 import { orgIcon } from './orgIcons';
+import { unitStyle } from './orgColors';
 import type { HrEmployee } from '../../types/hrApi';
 
 interface Props {
@@ -68,12 +69,12 @@ export function OrgUnitDrawer({ node, activeEmployees, onClose, onSelect, tree }
         {shown && (
           <>
             <SheetHeader className="space-y-1 border-b px-6 pb-5 pt-6 text-start">
-              <div className="flex items-center gap-3 pe-6">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <div className="flex items-center gap-3 pe-6" style={unitStyle(shown)}>
+                <span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-lg", shown.kind === 'section' ? 'bg-unit/10 text-unit' : shown.kind === 'department' ? 'bg-unit text-primary-foreground' : 'bg-qbc-blue-deep text-primary-foreground')}>
                   <HeaderIcon className="h-5 w-5" aria-hidden="true" />
                 </span>
                 <div className="min-w-0 space-y-1">
-                  <span className="block w-fit rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-medium text-primary">{kindLabel}</span>
+                  <span className="block w-fit rounded-full bg-qbc-yellow/25 px-2.5 py-0.5 text-[11px] font-medium text-qbc-yellow-foreground dark:text-qbc-yellow">{kindLabel}</span>
                   <SheetTitle className="text-lg">{primary}</SheetTitle>
                 </div>
               </div>

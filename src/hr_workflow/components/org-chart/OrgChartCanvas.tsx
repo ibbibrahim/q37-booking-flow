@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import { useHrLanguage } from '../../context/HrLanguageContext';
 import { OrgNodeCard, type OrgMatchState } from './OrgNodeCard';
 import type { OrgNode, OrgTree } from './orgTree';
+import { unitStyle } from './orgColors';
 
 interface Props {
   tree: OrgTree;
@@ -22,7 +23,8 @@ const MIN_SCALE = 0.3;
 const MAX_SCALE = 2;
 const FIT_PADDING = 32;
 const DRAG_THRESHOLD = 4;
-const LINE = 'bg-primary/40';
+const LINE = 'bg-qbc-blue/35';
+const UNIT_LINE = 'bg-unit/40';
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
@@ -140,9 +142,9 @@ function SectionList({ node, onSelect, matchIds }: { node: OrgNode; onSelect: (n
           {/* each item draws the spine from the previous item (or the card) down to its own tick */}
           <span
             aria-hidden="true"
-            className={cn('absolute -start-3 w-0.5', LINE, i === 0 ? '-top-5 h-[calc(50%+1.25rem)]' : '-top-3 h-[calc(50%+0.75rem)]')}
+            className={cn('absolute -start-3 w-0.5', UNIT_LINE, i === 0 ? '-top-5 h-[calc(50%+1.25rem)]' : '-top-3 h-[calc(50%+0.75rem)]')}
           />
-          <span aria-hidden="true" className={cn('absolute -start-3 top-1/2 h-0.5 w-3', LINE)} />
+          <span aria-hidden="true" className={cn('absolute -start-3 top-1/2 h-0.5 w-3', UNIT_LINE)} />
           <OrgNodeCard node={sec} onSelect={onSelect} matchState={matchStateOf(sec.id, matchIds)} />
         </li>
       ))}
@@ -159,7 +161,7 @@ function DepartmentColumn({ node, expanded, onToggle, onSelect, matchIds }: {
 }) {
   const reduce = useReducedMotion();
   return (
-    <div className="flex w-60 flex-col">
+    <div className="flex w-60 flex-col" style={unitStyle(node)}>
       <OrgNodeCard node={node} expanded={expanded} onToggle={onToggle} onSelect={onSelect} matchState={matchStateOf(node.id, matchIds)} />
       <AnimatePresence initial={false}>
         {expanded && node.children.length > 0 && (

@@ -50,6 +50,13 @@ export default {
           DEFAULT: 'hsl(var(--warning))',
           foreground: 'hsl(var(--warning-foreground))',
         },
+        unit: 'hsl(var(--unit))',
+        'org-root': 'hsl(var(--org-root))',
+        qbc: {
+          blue: 'hsl(var(--qbc-blue))',
+          'blue-deep': 'hsl(var(--qbc-blue-deep))',
+          yellow: { DEFAULT: 'hsl(var(--qbc-yellow))', foreground: 'hsl(var(--qbc-yellow-foreground))' },
+        },
         info: {
           DEFAULT: 'hsl(var(--info))',
           foreground: 'hsl(var(--info-foreground))',

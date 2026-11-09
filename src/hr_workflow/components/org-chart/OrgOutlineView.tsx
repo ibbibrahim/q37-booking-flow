@@ -7,6 +7,7 @@ import { useHrLanguage } from '../../context/HrLanguageContext';
 import type { HrEmployee } from '../../types/hrApi';
 import type { OrgNode, OrgTree } from './orgTree';
 import { orgIcon } from './orgIcons';
+import { unitStyle } from './orgColors';
 import { EmployeeAvatar } from '../EmployeeAvatar';
 
 interface Props {
@@ -41,10 +42,10 @@ function Elbow({ level }: { level: number }) {
 
 function KindTile({ node, variant }: { node: OrgNode; variant: Variant }) {
   const config = {
-    root: { cls: 'bg-primary text-primary-foreground', Icon: Crown },
+    root: { cls: 'bg-qbc-blue-deep text-primary-foreground', Icon: Crown },
     unit: { cls: 'bg-warning/15 text-warning', Icon: orgIcon(node.icon, Briefcase) },
-    department: { cls: 'bg-primary/10 text-primary', Icon: orgIcon(node.icon, Building2) },
-    section: { cls: 'bg-primary/5 text-primary/80 ring-1 ring-inset ring-primary/10', Icon: orgIcon(node.icon, Layers) },
+    department: { cls: 'bg-unit text-primary-foreground', Icon: orgIcon(node.icon, Building2) },
+    section: { cls: 'bg-unit/5 text-unit/80 ring-1 ring-inset ring-unit/10', Icon: orgIcon(node.icon, Layers) },
   }[variant];
   return (
     <span className={cn('flex h-7 w-7 shrink-0 items-center justify-center rounded-full', config.cls)}>
@@ -110,7 +111,7 @@ function TreeRow({ node, level, variant, open, onToggle, onSelect, matchIds }: {
         isMatch && 'bg-primary/5',
         searching && !isMatch && 'opacity-40',
       )}
-      style={{ paddingInlineStart: 12 + level * INDENT }}
+      style={{ ...unitStyle(node), paddingInlineStart: 12 + level * INDENT }}
     >
       {level >= 1 && <Elbow level={level} />}
 

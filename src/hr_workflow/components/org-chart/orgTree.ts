@@ -18,6 +18,7 @@ export interface OrgNode {
   sectionId: number | null;
   headName: string | null; // departments only
   headcount: OrgHeadcount; // active employees only; dept total includes section-less staff
+  colorIndex: number; // 1-9 palette slot; sections inherit their department's; root 0
   children: OrgNode[]; // dept -> sections; root -> [] (layout uses OrgTree fields)
 }
 
@@ -74,12 +75,13 @@ export function buildOrgTree(
       freelance: activeEmployees.filter((e) => e.contractType === 'Freelance').length,
       total: activeEmployees.length,
     },
+    colorIndex: 0,
     children: [],
   };
 
   const deptNodes = [...departments]
     .sort((a, b) => a.sortOrder - b.sortOrder)
-    .map<OrgNode>((d) => ({
+    .map<OrgNode>((d, idx) => ({
       id: `dept-${d.id}`,
       kind: 'department',
       nameEn: d.nameEn,
@@ -89,6 +91,7 @@ export function buildOrgTree(
       sectionId: null,
       headName: heads.find((h) => h.departmentId === d.id)?.userDisplayName ?? null,
       headcount: byDept.get(d.id) ?? emptyHeadcount(),
+      colorIndex: (idx % 9) + 1,
       children: [...d.sections]
         .sort((a, b) => a.sortOrder - b.sortOrder)
         .map<OrgNode>((s) => ({
@@ -101,6 +104,7 @@ export function buildOrgTree(
           sectionId: s.id,
           headName: null,
           headcount: bySection.get(s.id) ?? emptyHeadcount(),
+          colorIndex: (idx % 9) + 1,
           children: [],
         })),
     }));

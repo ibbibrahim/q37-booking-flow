@@ -3,6 +3,7 @@ import { cn } from '@/lib/utils';
 import { useHrLanguage } from '../../context/HrLanguageContext';
 import type { OrgNode } from './orgTree';
 import { orgIcon } from './orgIcons';
+import { unitStyle } from './orgColors';
 
 export type OrgMatchState = 'match' | 'dim' | 'none';
 
@@ -23,18 +24,18 @@ export function OrgNodeCard({ node, expanded = false, onToggle, onSelect, matchS
   const secondary = language === 'ar' ? node.nameEn : node.nameAr;
   const stateClass = cn(
     matchState === 'dim' && 'opacity-40',
-    matchState === 'match' && 'ring-2 ring-primary ring-offset-2 ring-offset-background',
+    matchState === 'match' && 'ring-2 ring-qbc-blue ring-offset-2 ring-offset-background',
   );
 
   if (node.kind === 'root') {
     return (
-      <div className={cn('relative w-72 overflow-hidden rounded-xl bg-primary text-primary-foreground shadow-md', MOTION, stateClass)}>
+      <div className={cn('relative w-72 overflow-hidden rounded-xl bg-qbc-blue-deep text-primary-foreground shadow-md', MOTION, stateClass)}>
         <button
           type="button"
           onClick={() => onSelect(node)}
-          className={cn('flex w-full items-center gap-3 px-4 py-4 text-start hover:bg-primary-hover', MOTION, FOCUS)}
+          className={cn('flex w-full items-center gap-3 px-4 py-4 text-start hover:bg-primary-foreground/5', MOTION, FOCUS)}
         >
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary-foreground/15">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-qbc-yellow text-qbc-yellow-foreground">
             <Crown className="h-5 w-5" aria-hidden="true" />
           </span>
           <span className="min-w-0">
@@ -45,7 +46,7 @@ export function OrgNodeCard({ node, expanded = false, onToggle, onSelect, matchS
             </span>
           </span>
         </button>
-        <div className="h-1 bg-warning" aria-hidden="true" />
+        <div className="h-1.5 bg-qbc-yellow" aria-hidden="true" />
       </div>
     );
   }
@@ -56,15 +57,16 @@ export function OrgNodeCard({ node, expanded = false, onToggle, onSelect, matchS
       <button
           type="button"
           onClick={() => onSelect(node)}
+          style={unitStyle(node)}
           className={cn(
-            'flex w-full items-center justify-between gap-2 rounded-lg border border-border bg-card px-3 py-2.5 text-start text-card-foreground shadow-sm',
-            'hover:-translate-y-0.5 hover:border-primary hover:shadow-md',
+            'flex w-full items-center justify-between gap-2 rounded-lg border border-border bg-card px-3 py-2.5 text-start text-card-foreground shadow-sm border-s-2 border-s-unit/70',
+            'hover:-translate-y-0.5 hover:border-unit/60 hover:shadow-md',
             MOTION,
             FOCUS,
             stateClass,
           )}
         >
-          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/5 text-primary/80 ring-1 ring-inset ring-primary/10">
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-unit/10 text-unit ring-1 ring-inset ring-unit/15">
             <SectionIcon className="h-3.5 w-3.5" aria-hidden="true" />
           </span>
           <span className="min-w-0 flex-1">
@@ -81,7 +83,7 @@ export function OrgNodeCard({ node, expanded = false, onToggle, onSelect, matchS
   const hasSections = node.children.length > 0;
   const DeptIcon = orgIcon(node.icon, Building2);
   return (
-    <div className={cn('relative w-60', hasSections && 'pb-3')}>
+    <div className={cn('relative w-60', hasSections && 'pb-3')} style={unitStyle(node)}>
       <div
         className={cn(
           'overflow-hidden rounded-xl border border-border bg-card text-card-foreground shadow-sm',
@@ -91,7 +93,7 @@ export function OrgNodeCard({ node, expanded = false, onToggle, onSelect, matchS
         )}
       >
         <button type="button" onClick={() => onSelect(node)} className={cn('block w-full text-start', FOCUS)}>
-          <span className="flex h-[4.5rem] flex-col items-center justify-center bg-primary px-3 text-center text-primary-foreground">
+          <span className="relative flex h-[4.5rem] flex-col items-center justify-center border-b-[3px] border-qbc-yellow bg-unit px-3 text-center text-primary-foreground">
             <span className="flex max-w-full items-center gap-1.5">
               <DeptIcon className="h-4 w-4 shrink-0 text-primary-foreground/80" aria-hidden="true" />
               <span className="line-clamp-2 text-sm font-semibold leading-snug">{primary}</span>
@@ -108,7 +110,7 @@ export function OrgNodeCard({ node, expanded = false, onToggle, onSelect, matchS
               )}
             </span>
             <span className="flex items-center gap-2 text-[11px] tabular-nums">
-              <span className="rounded-full bg-muted px-2 py-0.5 font-semibold text-foreground">{node.headcount.total}</span>
+              <span className="rounded-full bg-unit/10 px-2 py-0.5 font-semibold text-unit dark:bg-unit/30 dark:text-primary-foreground">{node.headcount.total}</span>
               <span className="text-muted-foreground">{t('permanent')} {node.headcount.permanent}</span>
               <span className="text-violet-600 dark:text-violet-300">{t('freelance')} {node.headcount.freelance}</span>
             </span>
@@ -122,7 +124,7 @@ export function OrgNodeCard({ node, expanded = false, onToggle, onSelect, matchS
           aria-expanded={expanded}
           aria-label={`${t('sectionsCount')}: ${node.children.length}`}
           className={cn(
-            'absolute bottom-0 start-1/2 flex h-6 -translate-x-1/2 items-center gap-1 rounded-full border border-border bg-card px-2 text-[11px] font-medium tabular-nums text-muted-foreground shadow-sm hover:border-primary hover:text-foreground rtl:translate-x-1/2',
+            'absolute bottom-0 start-1/2 flex h-6 -translate-x-1/2 items-center gap-1 rounded-full border border-border bg-card px-2 text-[11px] font-medium tabular-nums text-muted-foreground shadow-sm hover:border-unit hover:text-unit rtl:translate-x-1/2',
             MOTION,
             FOCUS,
             matchState === 'dim' && 'opacity-40',
