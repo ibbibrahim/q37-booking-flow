@@ -153,6 +153,8 @@ export interface HrEmployee {
   cvUrl: string | null;
   employerNocLetterUrl: string | null;
   employerEstablishmentCardUrl: string | null;
+  residencyType: string | null;
+  sponsorQidUrl: string | null;
   emergencyContactName: string | null;
   emergencyContactRelationship: string | null;
   emergencyContactPhone: string | null;

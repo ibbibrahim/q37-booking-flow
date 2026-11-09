@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import * as RadioGroupPrimitive from '@radix-ui/react-radio-group';
 import { useSignalR } from '@/contexts/SignalRContext';
 import {
-  Briefcase, Building2, Calendar, CheckCircle2, ChevronRight, Clock, ClipboardList, Copy,
-  FileSignature, FileText, Landmark, Link as LinkIcon, Loader2, PenTool, Phone, Plus, Save, ScanLine, Search as SearchIcon, Tag,
+  AlertCircle, BadgeCheck, Briefcase, Building2, Calendar, CheckCircle2, ChevronRight, Clock, ClipboardList, Copy,
+  FileSignature, FileText, Home, Info, Landmark, Link as LinkIcon, Loader2, PenTool, Phone, Plus, Save, ScanLine, Search as SearchIcon, Tag,
   ShieldCheck, Upload, UserX, Users, UserCheck, X, XCircle,
   type LucideIcon,
 } from 'lucide-react';
@@ -44,6 +46,8 @@ import { freelanceProfileReviewApi, freelanceProfilePublicApi } from '../api/fre
 import { SignaturePad } from '../components/SignaturePad';
 import { stampEmployeeStartSignature } from '../utils/hiringFormsPdf';
 import { formatDate } from '../utils/hrUtils';
+import { isQatariNationality } from '../data/nameData';
+import { RESIDENCY_TYPES, type ResidencyDocKey, type ResidencyType } from '../types/freelanceProfile';
 import {
   HIRING_REQUEST_STATUS_LABELS,
   type HiringRequestDetail, type HiringRequestStatus, type InterviewRecommendation,
@@ -1383,15 +1387,23 @@ function CandidateProfileTab({ submissionId }: { submissionId: number | null }) 
 
       <div className="rounded-lg border border-border p-3.5">
         <SectionHeading icon={<FileText size={12} />}>Submitted Documents</SectionHeading>
+        {p.residencyType && (
+          <p className="text-xs text-muted-foreground mb-2">
+            Residency: {RESIDENCY_TYPES[p.residencyType]
+              ? `${RESIDENCY_TYPES[p.residencyType].labelEn} / ${RESIDENCY_TYPES[p.residencyType].labelAr}`
+              : p.residencyType}
+          </p>
+        )}
         <div className="flex flex-wrap gap-2">
           <FileChip label="QID Image" url={p.qidImageUrl} />
           <FileChip label="Photo" url={p.photoUrl} />
           <FileChip label="CV / Resume" url={p.cvUrl} />
-          <FileChip label="Employer NOC Letter" url={p.employerNocLetterUrl} />
+          <FileChip label={p.residencyType === 'Family' ? 'NOC Letter (Sponsor)' : 'Employer NOC Letter'} url={p.employerNocLetterUrl} />
           <FileChip label="Establishment Card" url={p.employerEstablishmentCardUrl} />
+          <FileChip label="Sponsor's QID" url={p.sponsorQidUrl} />
           <FileChip label="Bank Certificate" url={p.bankCertificateUrl} />
         </div>
-        {!p.qidImageUrl && !p.photoUrl && !p.cvUrl && !p.employerNocLetterUrl && !p.employerEstablishmentCardUrl && !p.bankCertificateUrl && (
+        {!p.qidImageUrl && !p.photoUrl && !p.cvUrl && !p.employerNocLetterUrl && !p.employerEstablishmentCardUrl && !p.sponsorQidUrl && !p.bankCertificateUrl && (
           <p className="text-xs text-muted-foreground">No documents on file.</p>
         )}
       </div>
@@ -1508,6 +1520,13 @@ function InterviewTab({ detail }: { detail: HiringRequestDetail }) {
   );
 }
 
+const RESIDENCY_ICONS: Record<ResidencyType, LucideIcon> = {
+  Company: Building2,
+  Housing: Home,
+  Family: Users,
+  QatariNational: BadgeCheck,
+};
+
 /** Starting Date summary — the signature chain (candidate confirming they
  * started, Department Head countersigning) lives only on the official PDF,
  * same pattern as the Interview tab, so this just surfaces the handful of
@@ -1530,7 +1549,10 @@ function StartingDateTab({ detail }: { detail: HiringRequestDetail }) {
 
   const [employerNocLetter, setEmployerNocLetter] = useState<File | null>(null);
   const [employerEstablishmentCard, setEmployerEstablishmentCard] = useState<File | null>(null);
+  const [sponsorQid, setSponsorQid] = useState<File | null>(null);
   const [bankCertificate, setBankCertificate] = useState<File | null>(null);
+  const [residencyType, setResidencyType] = useState<ResidencyType>('Company');
+  const reduce = useReducedMotion();
 
   const [paymentMethod, setPaymentMethod] = useState<'BankTransfer' | 'Cheque'>('BankTransfer');
   const [bankBeneficiaryName, setBankBeneficiaryName] = useState('');
@@ -1547,6 +1569,7 @@ function StartingDateTab({ detail }: { detail: HiringRequestDetail }) {
     if (seededRef.current || !submission) return;
     seededRef.current = true;
     setPaymentMethod(submission.paymentMethod ?? 'BankTransfer');
+    setResidencyType(submission.residencyType ?? (isQatariNationality(submission.nationality) ? 'QatariNational' : 'Company'));
     setBankBeneficiaryName(submission.bankBeneficiaryName ?? '');
     setBankName(submission.bankName ?? '');
     setBankBranch(submission.bankBranch ?? '');
@@ -1584,13 +1607,16 @@ function StartingDateTab({ detail }: { detail: HiringRequestDetail }) {
         {
           employerNocLetter: employerNocLetter ?? undefined,
           employerEstablishmentCard: employerEstablishmentCard ?? undefined,
+          sponsorQid: sponsorQid ?? undefined,
           bankCertificate: bankCertificate ?? undefined,
         },
         paymentMethod,
-        { bankBeneficiaryName, bankName, bankBranch, bankAccountNumber, bankIban }
+        { bankBeneficiaryName, bankName, bankBranch, bankAccountNumber, bankIban },
+        residencyType
       );
       setEmployerNocLetter(null);
       setEmployerEstablishmentCard(null);
+      setSponsorQid(null);
       setBankCertificate(null);
       queryClient.invalidateQueries({ queryKey: ['hr-freelance-profile-submission', submissionId] });
       showToast('Documents saved.', 'success');
@@ -1600,6 +1626,24 @@ function StartingDateTab({ detail }: { detail: HiringRequestDetail }) {
       setSaving(false);
     }
   };
+
+  // Non-blocking checklist — purely informational, never disables saving.
+  const docPresent: Record<ResidencyDocKey, boolean> = {
+    noc: !!(employerNocLetter || submission?.employerNocLetterUrl),
+    establishmentCard: !!(employerEstablishmentCard || submission?.employerEstablishmentCardUrl),
+    sponsorQid: !!(sponsorQid || submission?.sponsorQidUrl),
+  };
+  const docLabel: Record<ResidencyDocKey, string> = {
+    noc: residencyType === 'Family' ? 'Sponsor NOC' : 'NOC Letter',
+    establishmentCard: 'Establishment Card',
+    sponsorQid: "Sponsor's QID",
+  };
+  const checklist: { key: string; label: string; present: boolean }[] = RESIDENCY_TYPES[residencyType].docs.map((k) => ({
+    key: k, label: docLabel[k], present: docPresent[k],
+  }));
+  if (paymentMethod === 'BankTransfer') {
+    checklist.push({ key: 'bank', label: 'Bank Certificate', present: !!(bankCertificate || submission?.bankCertificateUrl) });
+  }
 
   if (!detail.startingDatePdfUrl && !detail.startingDate) {
     return <p className="text-sm text-muted-foreground py-8 text-center">No starting date set yet.</p>;
@@ -1641,27 +1685,117 @@ function StartingDateTab({ detail }: { detail: HiringRequestDetail }) {
             <PaymentMethodToggle value={paymentMethod} onChange={setPaymentMethod} />
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <DocumentSlot
-              label="NOC Letter"
-              file={employerNocLetter}
-              existingUrl={submission?.employerNocLetterUrl}
-              onSelect={setEmployerNocLetter}
-            />
-            <DocumentSlot
-              label="Establishment Card"
-              file={employerEstablishmentCard}
-              existingUrl={submission?.employerEstablishmentCardUrl}
-              onSelect={setEmployerEstablishmentCard}
-            />
-            {paymentMethod === 'BankTransfer' && (
-              <DocumentSlot
-                label="Bank Certificate"
-                file={bankCertificate}
-                existingUrl={submission?.bankCertificateUrl}
-                onSelect={setBankCertificate}
-              />
-            )}
+          <div className="space-y-2">
+            <p className="text-xs font-semibold text-foreground uppercase tracking-wide">Residency / Sponsorship</p>
+            <RadioGroupPrimitive.Root
+              value={residencyType}
+              onValueChange={(v) => {
+                // Drop not-yet-saved picks from the previous type so e.g. an
+                // employer NOC chosen under Company isn't saved as the
+                // sponsor's NOC under Family. Saved files are untouched.
+                setEmployerNocLetter(null);
+                setEmployerEstablishmentCard(null);
+                setSponsorQid(null);
+                setResidencyType(v as ResidencyType);
+              }}
+              className="grid grid-cols-2 lg:grid-cols-4 gap-2.5"
+            >
+              {(Object.keys(RESIDENCY_TYPES) as ResidencyType[]).map((type) => {
+                const meta = RESIDENCY_TYPES[type];
+                const Icon = RESIDENCY_ICONS[type];
+                const selected = residencyType === type;
+                return (
+                  <RadioGroupPrimitive.Item
+                    key={type}
+                    value={type}
+                    className={cn(
+                      'relative text-left rounded-lg border p-3 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                      selected
+                        ? 'border-primary bg-primary/5 ring-1 ring-primary/30'
+                        : 'border-border hover:border-primary/40 hover:bg-muted/40'
+                    )}
+                  >
+                    <div
+                      className={cn(
+                        'h-8 w-8 rounded-md flex items-center justify-center',
+                        selected ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'
+                      )}
+                    >
+                      <Icon size={16} />
+                    </div>
+                    <p className="mt-2 text-xs font-medium text-foreground">{meta.labelEn}</p>
+                    <span className="block text-[11px] text-muted-foreground" dir="rtl">{meta.labelAr}</span>
+                    <p className="mt-1 text-[11px] text-muted-foreground">{meta.hint}</p>
+                    {selected && <CheckCircle2 size={14} className="absolute top-2 right-2 text-primary" />}
+                  </RadioGroupPrimitive.Item>
+                );
+              })}
+            </RadioGroupPrimitive.Root>
+          </div>
+
+          <div className="space-y-2">
+            <p className="text-xs font-semibold text-foreground uppercase tracking-wide">Documents</p>
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={residencyType}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: reduce ? 0 : 0.15 }}
+                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
+              >
+                {residencyType === 'Company' && (
+                  <>
+                    <DocumentSlot
+                      label="NOC Letter / خطاب عدم ممانعة"
+                      file={employerNocLetter}
+                      existingUrl={submission?.employerNocLetterUrl}
+                      onSelect={setEmployerNocLetter}
+                    />
+                    <DocumentSlot
+                      label="Establishment Card / بطاقة قيد المنشأة"
+                      file={employerEstablishmentCard}
+                      existingUrl={submission?.employerEstablishmentCardUrl}
+                      onSelect={setEmployerEstablishmentCard}
+                    />
+                  </>
+                )}
+                {residencyType === 'Family' && (
+                  <>
+                    <DocumentSlot
+                      label="NOC Letter from the Sponsor / خطاب عدم ممانعة من الكفيل"
+                      file={employerNocLetter}
+                      existingUrl={submission?.employerNocLetterUrl}
+                      onSelect={setEmployerNocLetter}
+                    />
+                    <DocumentSlot
+                      label="Sponsor's QID / البطاقة الشخصية القطرية للكفيل"
+                      file={sponsorQid}
+                      existingUrl={submission?.sponsorQidUrl}
+                      onSelect={setSponsorQid}
+                    />
+                  </>
+                )}
+                {(residencyType === 'Housing' || residencyType === 'QatariNational') && (
+                  <div className="rounded-md bg-info/10 border border-info/20 px-3 py-2.5 flex items-center gap-2 sm:col-span-2 lg:col-span-2">
+                    <Info size={14} className="text-info shrink-0" />
+                    <p className="text-xs text-foreground">
+                      {residencyType === 'Housing'
+                        ? 'Housing Residence — no NOC required. / لا يلزم خطاب عدم ممانعة'
+                        : 'Qatari national — no residency documents required.'}
+                    </p>
+                  </div>
+                )}
+                {paymentMethod === 'BankTransfer' && (
+                  <DocumentSlot
+                    label="Bank Certificate"
+                    file={bankCertificate}
+                    existingUrl={submission?.bankCertificateUrl}
+                    onSelect={setBankCertificate}
+                  />
+                )}
+              </motion.div>
+            </AnimatePresence>
           </div>
 
           {paymentMethod === 'BankTransfer' ? (
@@ -1712,9 +1846,31 @@ function StartingDateTab({ detail }: { detail: HiringRequestDetail }) {
             </div>
           )}
 
-          <Button size="sm" className="gap-1.5" disabled={saving} onClick={handleSave}>
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save size={14} />} {saving ? 'Saving…' : 'Save Documents'}
-          </Button>
+          <div className="flex items-center justify-between flex-wrap gap-3 pt-3 border-t border-border">
+            {checklist.length > 0 ? (
+              <div className="flex flex-wrap gap-1.5">
+                {checklist.map((c) => (
+                  <span
+                    key={c.key}
+                    className={cn(
+                      'inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px]',
+                      c.present
+                        ? 'border-success/30 bg-success/10 text-success'
+                        : 'border-warning/30 bg-warning/10 text-warning'
+                    )}
+                  >
+                    {c.present ? <CheckCircle2 size={12} /> : <AlertCircle size={12} />}
+                    {c.present ? c.label : `${c.label} · Missing`}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <p className="text-[11px] text-muted-foreground">No documents required.</p>
+            )}
+            <Button size="sm" className="gap-1.5" disabled={saving} onClick={handleSave}>
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save size={14} />} {saving ? 'Saving…' : 'Save Documents'}
+            </Button>
+          </div>
         </div>
       )}
     </div>

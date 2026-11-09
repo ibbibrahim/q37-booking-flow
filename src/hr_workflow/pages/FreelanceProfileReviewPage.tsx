@@ -15,7 +15,7 @@ import { hrApi } from '../api/hrApi';
 import { freelanceProfileReviewApi } from '../api/freelanceProfileApi';
 import { formatDate } from '../utils/hrUtils';
 import { usePageHeader } from '@/contexts/PageHeaderContext';
-import type { FreelanceProfileStatus } from '../types/freelanceProfile';
+import { RESIDENCY_TYPES, type FreelanceProfileStatus } from '../types/freelanceProfile';
 
 const STATUS_TONE: Record<FreelanceProfileStatus, Tone> = {
   Pending: 'warning',
@@ -178,12 +178,19 @@ export function FreelanceProfileReviewPage() {
                     <p><span className="text-muted-foreground">Gender / Blood:</span> {detail.gender ?? '—'} / {detail.bloodType ?? '—'}</p>
                   </div>
 
+                  {detail.residencyType && (
+                    <p><span className="text-muted-foreground">Residency:</span> {RESIDENCY_TYPES[detail.residencyType]
+                      ? `${RESIDENCY_TYPES[detail.residencyType].labelEn} / ${RESIDENCY_TYPES[detail.residencyType].labelAr}`
+                      : detail.residencyType}</p>
+                  )}
+
                   <div className="flex flex-wrap gap-3 pt-1">
                     {fileLink('QID image', detail.qidImageUrl)}
                     {fileLink('Photo', detail.photoUrl)}
                     {fileLink('CV', detail.cvUrl)}
-                    {fileLink('NOC letter', detail.employerNocLetterUrl)}
+                    {fileLink(detail.residencyType === 'Family' ? 'NOC letter (sponsor)' : 'NOC letter', detail.employerNocLetterUrl)}
                     {fileLink('Establishment card', detail.employerEstablishmentCardUrl)}
+                    {fileLink("Sponsor's QID", detail.sponsorQidUrl)}
                     {fileLink('Bank certificate', detail.bankCertificateUrl)}
                   </div>
 

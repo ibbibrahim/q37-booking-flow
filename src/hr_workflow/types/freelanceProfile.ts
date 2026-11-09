@@ -37,6 +37,8 @@ export interface FreelanceProfileSubmission {
   employer: string | null;
   employerNocLetterUrl: string | null;
   employerEstablishmentCardUrl: string | null;
+  residencyType: ResidencyType | null;
+  sponsorQidUrl: string | null;
   gender: string | null;
   bloodType: string | null;
   maritalStatus: string | null;
@@ -149,3 +151,13 @@ export interface FreelanceProfileFormFiles {
   employerEstablishmentCard: File | null;
   bankCertificate: File | null;
 }
+
+export type ResidencyType = 'Company' | 'Housing' | 'Family' | 'QatariNational';
+export type ResidencyDocKey = 'noc' | 'establishmentCard' | 'sponsorQid';
+
+export const RESIDENCY_TYPES: Record<ResidencyType, { labelEn: string; labelAr: string; hint: string; docs: ResidencyDocKey[] }> = {
+  Company: { labelEn: 'Company Sponsorship', labelAr: 'إقامة على شركة', hint: 'NOC + Establishment Card', docs: ['noc', 'establishmentCard'] },
+  Housing: { labelEn: 'Housing Residence', labelAr: 'إقامة سكن', hint: 'No NOC required', docs: [] },
+  Family: { labelEn: 'Family Sponsorship', labelAr: 'إقامة عائلية', hint: 'Sponsor NOC + Sponsor QID', docs: ['noc', 'sponsorQid'] },
+  QatariNational: { labelEn: 'Qatari National', labelAr: 'مواطن قطري', hint: 'No documents required', docs: [] },
+};
