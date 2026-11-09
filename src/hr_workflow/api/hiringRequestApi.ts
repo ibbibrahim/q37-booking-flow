@@ -7,6 +7,7 @@ import type {
   InterviewCriteriaScore,
   InterviewRecommendation,
 } from '../types/hiringRequest';
+import type { ResidencyType } from '../types/freelanceProfile';
 
 const API_BASE = '/api/hr/hiring-requests';
 
@@ -142,7 +143,7 @@ export const hiringRequestApi = {
   // params optional; only whatever's passed gets saved.
   saveStartingDateDocuments: async (
     id: number,
-    documents?: { employerNocLetter?: File; employerEstablishmentCard?: File; bankCertificate?: File },
+    documents?: { employerNocLetter?: File; employerEstablishmentCard?: File; sponsorQid?: File; bankCertificate?: File },
     paymentMethod?: 'BankTransfer' | 'Cheque',
     bankDetails?: {
       bankBeneficiaryName?: string;
@@ -150,13 +151,16 @@ export const hiringRequestApi = {
       bankBranch?: string;
       bankAccountNumber?: string;
       bankIban?: string;
-    }
+    },
+    residencyType?: ResidencyType
   ): Promise<HiringRequestDetail> => {
     const formData = new FormData();
     if (documents?.employerNocLetter) formData.append('employerNocLetter', documents.employerNocLetter);
     if (documents?.employerEstablishmentCard) formData.append('employerEstablishmentCard', documents.employerEstablishmentCard);
+    if (documents?.sponsorQid) formData.append('sponsorQid', documents.sponsorQid);
     if (documents?.bankCertificate) formData.append('bankCertificate', documents.bankCertificate);
     if (paymentMethod) formData.append('paymentMethod', paymentMethod);
+    if (residencyType) formData.append('residencyType', residencyType);
     if (bankDetails?.bankBeneficiaryName) formData.append('bankBeneficiaryName', bankDetails.bankBeneficiaryName);
     if (bankDetails?.bankName) formData.append('bankName', bankDetails.bankName);
     if (bankDetails?.bankBranch) formData.append('bankBranch', bankDetails.bankBranch);

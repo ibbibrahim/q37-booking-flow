@@ -16,6 +16,7 @@ import { DetailSection, DetailFieldGrid, DetailField } from '../components/Detai
 import { EmployeeHistoryTimeline } from '../components/EmployeeHistoryTimeline';
 import { EmployeeAvatar } from '../components/EmployeeAvatar';
 import { hrApi } from '../api/hrApi';
+import { RESIDENCY_TYPES, type ResidencyType } from '../types/freelanceProfile';
 import { useHrLanguage, bilingual } from '../context/HrLanguageContext';
 import { formatDate, formatCurrencyQAR, hrEmployeeStatusBadgeClass } from '../utils/hrUtils';
 
@@ -360,8 +361,21 @@ export function EmployeeDetailPage() {
 
             <DetailSection icon={FileText} title={t('employerDocuments')}>
               <div className="space-y-2">
+                {employee.residencyType && (
+                  <dl><DetailField
+                    label={t('residencyType')}
+                    value={
+                      RESIDENCY_TYPES[employee.residencyType as ResidencyType]
+                        ? (language === 'ar'
+                          ? RESIDENCY_TYPES[employee.residencyType as ResidencyType].labelAr
+                          : RESIDENCY_TYPES[employee.residencyType as ResidencyType].labelEn)
+                        : employee.residencyType
+                    }
+                  /></dl>
+                )}
                 <FileRow label={t('employerNocLetter')} url={employee.employerNocLetterUrl} />
                 <FileRow label={t('employerEstablishmentCard')} url={employee.employerEstablishmentCardUrl} />
+                <FileRow label={t('sponsorQid')} url={employee.sponsorQidUrl} />
               </div>
             </DetailSection>
 

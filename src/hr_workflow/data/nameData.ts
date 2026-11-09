@@ -83,6 +83,12 @@ export function nationalityAr(value: string | null | undefined): string | null |
   return match?.ar ?? value;
 }
 
+/** True for a stored nationality that means Qatari — either the demonym
+ * ("Qatari") or the raw QID-scanned country name ("Qatar"). */
+export function isQatariNationality(value: string | null | undefined): boolean {
+  return !!value && value.trim().toLowerCase().startsWith('qatar');
+}
+
 export function weightedNationality(random: () => number): string {
   const total = nationalities.reduce((s, n) => s + n.weight, 0);
   let r = random() * total;
