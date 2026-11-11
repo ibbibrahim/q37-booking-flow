@@ -5,6 +5,8 @@ import { RequestList } from './RequestList';
 import { AdminDashboard } from './AdminDashboard';
 import { mockApi } from '../services/bookingApi';
 import { useSignalR } from '../../contexts/SignalRContext';
+import { useAuth } from '../../contexts/AuthContext';
+import { clearBookingDraft } from '../utils/bookingDraft';
 import type { UserRole, WorkflowRequest, WorkflowStatus } from '../types/workflow';
 
 interface RoleViewProps {
@@ -16,6 +18,7 @@ export const RoleView: React.FC<RoleViewProps> = ({ role }) => {
   const location = useLocation();
   const { id } = useParams();
   const { listen, isConnected } = useSignalR();
+  const { user } = useAuth();
   const [listRefreshSignal, setListRefreshSignal] = useState(0);
   const showForm = location.pathname.includes('/new') || location.pathname.includes('/edit');
   const isEditMode = location.pathname.includes('/edit') && !!id;
@@ -53,10 +56,19 @@ export const RoleView: React.FC<RoleViewProps> = ({ role }) => {
 
   const bumpListRefresh = () => setListRefreshSignal((n) => n + 1);
 
+  // Clear before navigating, and again right after: the form's unmount flush could
+  // otherwise re-write a pending autosave once the form has been removed.
+  const clearDraftAfterSuccess = () => {
+    const userId = user?.id ?? 'anon';
+    clearBookingDraft(userId);
+    setTimeout(() => clearBookingDraft(userId), 0);
+  };
+
   const handleCreateRequest = async (data: Partial<WorkflowRequest>, status: WorkflowStatus) => {
     try {
       await mockApi.createRequest(data, status);
       bumpListRefresh();
+      clearDraftAfterSuccess();
       navigate(`/${role.toLowerCase()}`);
     } catch (error) {
       console.error('Failed to create request:', error);
@@ -100,6 +112,7 @@ export const RoleView: React.FC<RoleViewProps> = ({ role }) => {
     <RequestList
       userRole={role}
       onCreateNew={() => navigate(`/${role.toLowerCase()}/new`)}
+      onContinueUnfinished={() => navigate(`/${role.toLowerCase()}/new`, { state: { resumeUnfinished: true } })}
       refreshSignal={listRefreshSignal}
     />
   );

@@ -16,6 +16,7 @@ import {
   Download,
   Camera,
   UserPlus,
+  History,
   type LucideIcon,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -33,6 +34,7 @@ import {
 } from '../types/workflow';
 import { mockApi } from '../services/bookingApi';
 import { useAuth } from '@/contexts/AuthContext';
+import { readBookingDraftSummary } from '../utils/bookingDraft';
 import { cn } from '@/lib/utils';
 import { UserAvatar } from '@/components/ui/user-avatar';
 import { StatusPill } from '@/components/ui/status-pill';
@@ -68,6 +70,8 @@ const FILTERS_STORAGE_KEY = 'booking-workflow:list:filters:v2';
 interface RequestListProps {
   userRole: UserRole;
   onCreateNew: () => void;
+  /** Opens the create form with the unfinished booking restored (no resume prompt). */
+  onContinueUnfinished?: () => void;
   /** Increment to refetch the current search (e.g. SignalR). */
   refreshSignal?: number;
 }
@@ -251,9 +255,11 @@ const PENDING_CONFIG: Partial<Record<UserRole, { statuses: WorkflowStatus[]; des
 export const RequestList: React.FC<RequestListProps> = ({
   userRole,
   onCreateNew,
+  onContinueUnfinished,
   refreshSignal = 0,
 }) => {
   const { user } = useAuth();
+  const [unfinishedBooking] = useState(() => readBookingDraftSummary(user?.id ?? 'anon'));
   const persisted = useMemo(() => loadPersistedFilters(), []);
   const [searchTerm, setSearchTerm] = useState(persisted.searchQuery);
   const [debouncedSearch, setDebouncedSearch] = useState(persisted.searchQuery);
@@ -497,6 +503,18 @@ export const RequestList: React.FC<RequestListProps> = ({
             )}
 
             <div className="flex-1" />
+
+            {userRole === 'Booking' && unfinishedBooking && (
+              <button
+                type="button"
+                onClick={onContinueUnfinished ?? onCreateNew}
+                title={`${unfinishedBooking.title} — last edited ${formatDistanceToNowStrict(unfinishedBooking.savedAt, { addSuffix: true })}`}
+                className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/5 px-2.5 py-1 text-xs font-medium text-primary hover:bg-primary/10 transition-colors"
+              >
+                <History className="h-3.5 w-3.5" />
+                1 unfinished booking · Continue
+              </button>
+            )}
 
             {userRole === 'Booking' && (
               <button

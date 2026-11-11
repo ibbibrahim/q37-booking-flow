@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, FileText, Calendar, User, Search, Filter, Grid3x3, List, Check, Mail, Minus } from 'lucide-react';
+import { Plus, FileText, Calendar, User, Search, Filter, Grid3x3, List, Check, Mail, Minus, History } from 'lucide-react';
 import { addDays, startOfToday, endOfToday, startOfTomorrow, endOfTomorrow, endOfDay, startOfMonth, endOfMonth, format, formatDistanceToNowStrict } from 'date-fns';
 import { DateRange } from 'react-day-picker';
 import { callSheetApi } from '../services/mockCallSheetApi';
@@ -17,6 +17,7 @@ import { StatusPill } from '@/components/ui/status-pill';
 import type { Tone } from '@/lib/tone';
 import type { CallSheetRequest, CallSheetStatus } from '../types/callsheet';
 import { formatQatarDateTime } from '../utils/timezone';
+import { readCallsheetDraftSummary } from '../utils/callsheetDraft';
 import { CallsheetWeeklyCalendar } from './CallsheetWeeklyCalendar';
 import { formatDateTime } from '@/studio_booking/utils/timeUtils';
 import { CallSheetPageLoader } from './CallSheetPageLoader';
@@ -42,6 +43,7 @@ type ViewMode = 'grid' | 'list';
 export const CallSheetDashboard: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const [unfinishedCallsheet] = useState(() => readCallsheetDraftSummary(user?.id ?? 'anon'));
   const { listen, isConnected } = useSignalR();
   const [callSheets, setCallSheets] = useState<CallSheetRequest[]>([]);
   const [calendarCallSheets, setCalendarCallSheets] = useState<CallSheetRequest[]>([]);
@@ -272,6 +274,17 @@ export const CallSheetDashboard: React.FC = () => {
           </button>
         </div>
         <div className="flex-1" />
+        {!isTechnicalStore && unfinishedCallsheet && (
+          <button
+            type="button"
+            onClick={() => navigate('/callsheet/new', { state: { resumeUnfinished: true } })}
+            title={`${unfinishedCallsheet.title} — last edited ${formatDistanceToNowStrict(unfinishedCallsheet.savedAt, { addSuffix: true })}`}
+            className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/5 px-2.5 py-1 text-xs font-medium text-primary hover:bg-primary/10 transition-colors"
+          >
+            <History className="h-3.5 w-3.5" />
+            1 unfinished call sheet · Continue
+          </button>
+        )}
         {!isTechnicalStore && (
           <Button
             onClick={() => navigate('/callsheet/new')}

@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { formatDistanceToNowStrict } from 'date-fns';
 import { motion, LayoutGroup, AnimatePresence } from 'motion/react';
-import { ArrowLeft, Plus, Trash2, Upload, X, MapPin, AlertCircle, Building2, Mail, Loader2, Info, ChevronLeft, ChevronRight, Newspaper, Tv, Palette, Wrench, ClipboardList, Monitor, Film, Building } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Upload, X, MapPin, AlertCircle, Building2, Mail, Loader2, Info, Check, ChevronLeft, ChevronRight, Newspaper, Tv, Palette, Wrench, ClipboardList, Monitor, Film, Building } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,6 +16,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import {
   AlertDialog,
   AlertDialogAction,
+  AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
@@ -26,13 +28,16 @@ import { EquipmentForm } from './EquipmentForm';
 import { TransportForm } from './TransportForm';
 import { CallSheetPreview } from './CallSheetPreview';
 import { CallSheetEmailModal } from './CallSheetEmailModal';
+import { ResumeDraftDialog } from '@/components/ui/resume-draft-dialog';
 import { useAuth } from '@/contexts/AuthContext';
+import { useFormDraft, type FormDraft } from '@/hooks/useFormDraft';
+import { callsheetDraftKey, countDraftEquipment, type CallsheetDraftData } from '../utils/callsheetDraft';
 import { useToast } from '@/contexts/ToastContext';
 import type { CallSheetRequest, CrewAssignment, Equipment, DepartmentAcknowledgement, TransportRequest, Notification, ShootType, IndoorFacility } from '../types/callsheet';
 import { DEPARTMENTS, DEFAULT_NOTIFICATIONS, DEPARTMENT_ACKNOWLEDGEMENTS, CALL_SHEET_ROLES, INDOOR_FACILITIES } from '../types/callsheet';
 import { getCurrentQatarDateTime } from '../utils/timezone';
 import type { EquipmentRow } from '../types/equipmentRow';
-import { createEmptyRow } from '../types/equipmentRow';
+import { createEmptyRow, generateTempId } from '../types/equipmentRow';
 
 const SELECTED_BTN = 'border-gray-900 text-white shadow-xl shadow-black/20 z-10';
 
@@ -168,6 +173,8 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
   const [notifications, setNotifications] = useState<Notification[]>(
     JSON.parse(JSON.stringify(DEFAULT_NOTIFICATIONS))
   );
+
+  const [initApplied, setInitApplied] = useState(false);
 
   // Initialize form with existing data if provided
   useEffect(() => {
@@ -384,7 +391,118 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
         setNotifications(initialCallSheet.notifications);
       }
     }
+    // Initial values (if any) are queued; the draft baseline is captured once this has rendered.
+    setInitApplied(true);
   }, [editData, duplicateData, initialCallSheet, isEditMode]);
+
+  // New call sheets autosave locally and offer to resume; edits only warn before discarding.
+  // Technical store and duplicate modes neither save nor confirm.
+  const draftsActive = mode === 'create' && !isDuplicateMode;
+  const draftKey = draftsActive ? callsheetDraftKey(user?.id ?? 'anon') : null;
+  const snapshot = {
+    formData,
+    shootType,
+    indoorFacility,
+    eventTypeDropdown,
+    customEventTypeInput,
+    equipmentNeeded,
+    crewAssignments,
+    departmentAcknowledgements,
+    // tempId and availability flags are transient (tempId is random), so keep them out of the snapshot.
+    equipmentRows: equipmentRows.map((r) => ({
+      categoryId: r.categoryId,
+      inventoryItemId: r.inventoryItemId,
+      quantity: r.quantity,
+      category: r.category,
+      item: r.item,
+    })),
+    departmentsToApprove,
+    departmentsToNotify,
+    transportRequest,
+    notifications,
+    attachmentCount: attachedFiles.length,
+  };
+  const snapshotJson = JSON.stringify(snapshot);
+  // Edit/duplicate data is applied in the effect above (after mount), so the baseline is only
+  // captured once initApplied is true, in the same commit as that data.
+  const baselineRef = useRef<string | null>(null);
+  const isDirty = baselineRef.current !== null && snapshotJson !== baselineRef.current;
+  const [resumeOffer, setResumeOffer] = useState<FormDraft<CallsheetDraftData> | null>(null);
+  const { initialDraft, savedAt, clear: clearDraft } = useFormDraft<CallsheetDraftData>(
+    draftKey,
+    snapshot as CallsheetDraftData,
+    {
+      enabled: isDirty && !resumeOffer,
+      warnBeforeUnload: isEditMode,
+    },
+  );
+  const offerCheckedRef = useRef(false);
+  const [showLeaveDialog, setShowLeaveDialog] = useState(false);
+
+  const applyDraft = useCallback((draft: CallsheetDraftData) => {
+    setFormData((prev) => ({ ...prev, ...draft.formData }));
+    setShootType((draft.shootType as ShootType) ?? 'Outdoor');
+    setIndoorFacility((draft.indoorFacility as IndoorFacility | null) ?? null);
+    setEventTypeDropdown(draft.eventTypeDropdown ?? '');
+    setCustomEventTypeInput(draft.customEventTypeInput ?? '');
+    setEquipmentNeeded(!!draft.equipmentNeeded);
+    setCrewAssignments((draft.crewAssignments ?? []) as CrewAssignment[]);
+    if (draft.departmentAcknowledgements) {
+      setDepartmentAcknowledgements(draft.departmentAcknowledgements as DepartmentAcknowledgement[]);
+    }
+    setEquipmentRows(
+      draft.equipmentRows && draft.equipmentRows.length > 0
+        ? draft.equipmentRows.map((r) => ({ ...r, tempId: generateTempId() }))
+        : [createEmptyRow()],
+    );
+    setDepartmentsToApprove(draft.departmentsToApprove ?? []);
+    setDepartmentsToNotify(draft.departmentsToNotify ?? []);
+    if (draft.transportRequest) {
+      setTransportRequest((prev) => ({ ...prev, ...(draft.transportRequest as Partial<TransportRequest>) }));
+    }
+    if (draft.notifications) setNotifications(draft.notifications as Notification[]);
+  }, []);
+
+  useEffect(() => {
+    if (!initApplied) return;
+    if (baselineRef.current === null) baselineRef.current = snapshotJson;
+    if (offerCheckedRef.current) return;
+    offerCheckedRef.current = true;
+    if (!initialDraft) return;
+    if (JSON.stringify(initialDraft.data) === baselineRef.current) {
+      clearDraft();
+      return;
+    }
+    // Came from the dashboard's "unfinished call sheet · Continue" shortcut: the user already chose, so restore directly.
+    if ((location.state as { resumeUnfinished?: boolean } | null)?.resumeUnfinished) {
+      applyDraft(initialDraft.data);
+      return;
+    }
+    setResumeOffer(initialDraft);
+  }, [initApplied, snapshotJson, initialDraft, clearDraft, applyDraft, location.state]);
+
+  const handleResume = () => {
+    if (!resumeOffer) return;
+    applyDraft(resumeOffer.data);
+    setResumeOffer(null);
+  };
+
+  const handleStartNew = () => {
+    clearDraft();
+    setResumeOffer(null);
+  };
+
+  // New call sheets autosave, so leaving is safe; edits confirm before discarding.
+  const requestLeave = () => {
+    if (isEditMode && isDirty) {
+      setShowLeaveDialog(true);
+    } else {
+      navigate('/callsheet');
+    }
+  };
+
+  const resumeEquipmentCount = countDraftEquipment(resumeOffer?.data.equipmentRows);
+  const resumeCrewCount = (resumeOffer?.data.crewAssignments ?? []).length;
 
   const validateStartDate = (value: string) => {
     if (!value) {
@@ -712,7 +830,7 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
           <Button
             variant="outline"
             size="icon"
-            onClick={() => navigate('/callsheet')}
+            onClick={requestLeave}
             disabled={isSubmitting}
             className="shrink-0"
           >
@@ -734,6 +852,14 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
                 ? 'Update driver assignment and equipment details'
                 : 'Create a new call sheet with equipment and transportation requests'}
             </p>
+            {draftsActive && isDirty && savedAt && (
+              <span
+                className="mt-0.5 inline-flex items-center gap-1 text-xs text-muted-foreground"
+                title={savedAt.toLocaleString()}
+              >
+                <Check className="h-3 w-3" /> Progress saved
+              </span>
+            )}
           </div>
         </div>
 
@@ -776,7 +902,7 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
           <Button
             variant="outline"
             size="sm"
-            onClick={() => navigate('/callsheet')}
+            onClick={requestLeave}
             disabled={isSubmitting}
           >
             Cancel
@@ -1459,6 +1585,62 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
           }}
         />
       )}
+
+      {/* Resume an unfinished new call sheet (forced choice: Escape / outside click do nothing) */}
+      <ResumeDraftDialog
+        open={!!resumeOffer}
+        title="Continue your unfinished call sheet?"
+        description="You started a call sheet earlier that wasn't submitted."
+        itemTitle={resumeOffer?.data.formData?.title?.trim() || 'Untitled call sheet'}
+        meta={
+          resumeOffer
+            ? [
+                resumeOffer.data.formData?.department ?? '',
+                resumeOffer.data.shootType ?? '',
+                resumeEquipmentCount > 0
+                  ? `${resumeEquipmentCount} equipment ${resumeEquipmentCount === 1 ? 'item' : 'items'}`
+                  : '',
+                resumeCrewCount > 0 ? `${resumeCrewCount} crew` : '',
+                `edited ${formatDistanceToNowStrict(new Date(resumeOffer.savedAt), { addSuffix: true })}`,
+              ]
+                .filter(Boolean)
+                .join(' · ')
+            : ''
+        }
+        hint="Starting new will clear this saved call sheet."
+        note={
+          resumeOffer && resumeOffer.data.attachmentCount > 0
+            ? "Attached files aren't saved — you'll need to add them again."
+            : undefined
+        }
+        onStartNew={handleStartNew}
+        onContinue={handleResume}
+      />
+
+      {/* Discard confirmation (edit mode only) */}
+      <AlertDialog open={showLeaveDialog} onOpenChange={setShowLeaveDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Discard your changes?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Your changes to this call sheet haven't been saved.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep editing</AlertDialogCancel>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={() => {
+                setShowLeaveDialog(false);
+                navigate('/callsheet');
+              }}
+            >
+              Discard changes
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={showOutdoorMaxDaysDialog} onOpenChange={(open) => { if (!open) handleOutdoorMaxDaysDialogClose(); }}>
         <AlertDialogContent className="text-center sm:text-center">

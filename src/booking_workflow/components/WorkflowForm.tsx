@@ -1,5 +1,7 @@
-import React, { useState, useMemo } from "react";
-import { Send, ArrowLeft, Calendar, Info, AlertCircle, Plus, X, Loader2 } from "lucide-react";
+import React, { useState, useMemo, useRef, useEffect } from "react";
+import { useLocation } from "react-router-dom";
+import { formatDistanceToNowStrict } from "date-fns";
+import { Send, ArrowLeft, Calendar, Info, AlertCircle, Plus, X, Loader2, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,6 +19,19 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { ResumeDraftDialog } from "@/components/ui/resume-draft-dialog";
+import { useAuth } from "@/contexts/AuthContext";
+import { useFormDraft, type FormDraft } from "@/hooks/useFormDraft";
+import { bookingDraftKey } from "../utils/bookingDraft";
 import { TimePickerInput } from "./TimePickerInput";
 import {
   getBookingTypeLabel,
@@ -201,6 +216,74 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
 
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [pendingSubmit, setPendingSubmit] = useState<WorkflowStatus | null>(null);
+
+  // New bookings autosave locally and offer to resume; edits only warn before discarding.
+  const { user } = useAuth();
+  const location = useLocation();
+  const draftKey = isEditMode ? null : bookingDraftKey(user?.id ?? 'anon');
+  const snapshot = { bookingMode, formData, downloadLinks, bulkOptions };
+  const snapshotJson = JSON.stringify(snapshot);
+  const baselineRef = useRef<string | null>(null);
+  if (baselineRef.current === null) {
+    baselineRef.current = snapshotJson;
+  }
+  const isDirty = snapshotJson !== baselineRef.current;
+  const [resumeOffer, setResumeOffer] = useState<FormDraft<typeof snapshot> | null>(null);
+  const { initialDraft, savedAt, clear: clearDraft } = useFormDraft(draftKey, snapshot, {
+    enabled: isDirty && !resumeOffer,
+    warnBeforeUnload: isEditMode,
+  });
+  const offerCheckedRef = useRef(false);
+  const [showLeaveDialog, setShowLeaveDialog] = useState(false);
+
+  useEffect(() => {
+    if (offerCheckedRef.current) return;
+    offerCheckedRef.current = true;
+    if (!initialDraft) return;
+    if (JSON.stringify(initialDraft.data) === baselineRef.current) {
+      clearDraft();
+      return;
+    }
+    // Came from the list's "unfinished booking · Continue" shortcut: the user already chose, so restore directly.
+    if ((location.state as { resumeUnfinished?: boolean } | null)?.resumeUnfinished) {
+      const draft = initialDraft.data;
+      setBookingMode(draft.bookingMode);
+      setFormData((prev) => ({ ...prev, ...draft.formData }));
+      setDownloadLinks(draft.downloadLinks);
+      setBulkOptions((prev) => ({ ...prev, ...draft.bulkOptions }));
+      return;
+    }
+    setResumeOffer(initialDraft);
+  }, [initialDraft, clearDraft, location.state]);
+
+  const resumeLinkCount =
+    resumeOffer?.data.formData?.bookingType === 'Download and Ingest'
+      ? (resumeOffer.data.downloadLinks ?? []).filter((l) => l.url?.trim()).length
+      : 0;
+
+  const handleResume = () => {
+    if (!resumeOffer) return;
+    const draft = resumeOffer.data;
+    setBookingMode(draft.bookingMode);
+    setFormData((prev) => ({ ...prev, ...draft.formData }));
+    setDownloadLinks(draft.downloadLinks);
+    setBulkOptions((prev) => ({ ...prev, ...draft.bulkOptions }));
+    setResumeOffer(null);
+  };
+
+  const handleStartNew = () => {
+    clearDraft();
+    setResumeOffer(null);
+  };
+
+  // New bookings autosave, so leaving is safe; edits confirm before discarding.
+  const requestLeave = () => {
+    if (isEditMode && isDirty) {
+      setShowLeaveDialog(true);
+    } else {
+      onCancel();
+    }
+  };
 
   const handleChange = (name: string, value: string) => {
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -754,7 +837,7 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
         <Button
           variant="ghost"
           size="icon"
-          onClick={onCancel}
+          onClick={requestLeave}
           disabled={isSubmitting}
           className="hover:bg-muted"
         >
@@ -765,6 +848,14 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
           <p className="text-sm text-muted-foreground mt-0.5">
             {isEditMode ? 'Update the booking request details' : 'Create a new booking request for NOC and Ingest teams'}
           </p>
+          {!isEditMode && isDirty && savedAt && (
+            <span
+              className="mt-0.5 inline-flex items-center gap-1 text-xs text-muted-foreground"
+              title={savedAt.toLocaleString()}
+            >
+              <Check className="h-3 w-3" /> Progress saved
+            </span>
+          )}
         </div>
       </div>
 
@@ -1257,7 +1348,7 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
           <Button
             type="button"
             variant="outline"
-            onClick={onCancel}
+            onClick={requestLeave}
             disabled={isSubmitting}
             className="w-full sm:w-auto"
           >
@@ -1300,6 +1391,55 @@ export const WorkflowForm: React.FC<WorkflowFormProps> = ({
           </Button>
         </div>
       </form>
+
+      {/* Resume an unfinished new booking (forced choice: Escape / outside click do nothing) */}
+      <ResumeDraftDialog
+        open={!!resumeOffer}
+        title="Continue your unfinished booking?"
+        description="You started a booking earlier that wasn't submitted."
+        itemTitle={resumeOffer?.data.formData?.title?.trim() || 'Untitled booking'}
+        meta={
+          resumeOffer
+            ? [
+                resumeOffer.data.formData?.bookingType
+                  ? getBookingTypeLabel(resumeOffer.data.formData.bookingType)
+                  : '',
+                resumeLinkCount > 0 ? `${resumeLinkCount} ${resumeLinkCount === 1 ? 'link' : 'links'}` : '',
+                `edited ${formatDistanceToNowStrict(new Date(resumeOffer.savedAt), { addSuffix: true })}`,
+              ]
+                .filter(Boolean)
+                .join(' · ')
+            : ''
+        }
+        hint="Starting new will clear this saved booking."
+        onStartNew={handleStartNew}
+        onContinue={handleResume}
+      />
+
+      {/* Discard confirmation (edit mode only) */}
+      <AlertDialog open={showLeaveDialog} onOpenChange={setShowLeaveDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Discard your changes?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Your changes to this booking haven't been saved.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep editing</AlertDialogCancel>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={() => {
+                setShowLeaveDialog(false);
+                onCancel();
+              }}
+            >
+              Discard changes
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Confirmation Modal */}
       <Dialog open={showConfirmModal} onOpenChange={setShowConfirmModal}>
