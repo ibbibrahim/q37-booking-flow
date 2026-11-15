@@ -181,12 +181,30 @@ export interface SocialMediaHeadlineData {
   driveLink?: string;
 }
 
+// How long a request's Vizrt Image Library images stay valid after the Air Date.
+export type ImageValidity = 'OneMonth' | 'TwoMonths' | 'ThreeMonths' | 'DoNotDelete';
+
+export const IMAGE_VALIDITY_LABEL: Record<ImageValidity, string> = {
+  OneMonth: '1 month',
+  TwoMonths: '2 months',
+  ThreeMonths: '3 months',
+  DoNotDelete: "Don't delete (will reuse later)",
+};
+
+export const IMAGE_VALIDITY_MONTHS: Record<ImageValidity, number | null> = {
+  OneMonth: 1,
+  TwoMonths: 2,
+  ThreeMonths: 3,
+  DoNotDelete: null,
+};
+
 export interface NewsHeadlineData {
   screen: string;
   headlineText: string;
   referenceImage?: UploadedFileRef;
   logos?: UploadedFileRef[];
   flags?: UploadedFileRef[];
+  imageValidity?: ImageValidity;
 }
 
 export interface ProgramVideoWallSlide {
@@ -197,12 +215,14 @@ export interface ProgramVideoWallSlide {
 export interface ProgramVideoWallData {
   screen: string;
   slides: ProgramVideoWallSlide[];
+  imageValidity?: ImageValidity;
 }
 
 export interface VideoWallPresentationData {
   screen: string;
   // Same Content/Image Reference shape as Program Video Wall's slides.
   slides: ProgramVideoWallSlide[];
+  imageValidity?: ImageValidity;
 }
 
 export interface FillerSection {
@@ -275,6 +295,20 @@ export interface CreativeImageLibraryName {
   createdAt: string;
 }
 
+// One image name whose validity has run out — a row in the Admin's Vizrt cleanup export.
+export interface VizrtCleanupItem {
+  imageName: string;
+  requestId: number;
+  requestTitle: string;
+  requestType: string;
+  identifier: string | null;
+  airDate: string;
+  validity: string;
+  deleteAfter: string;
+  generatedBy: string | null;
+  generatedAt: string;
+}
+
 export interface CreativeRequest extends CreativeRequestListItem {
   typeSpecificData: string | null;
   updatedAt: string;
@@ -325,5 +359,6 @@ export interface CreativeScreen {
   description: string | null;
   // Which request forms offer this screen (set per screen on the Reference Lists page).
   useForNewsHeadline: boolean;
-  useForVideoWall: boolean; // Program Video Wall + Video Wall Presentation
+  useForVideoWall: boolean; // Program Video Wall
+  useForPresentation: boolean; // Presentation
 }

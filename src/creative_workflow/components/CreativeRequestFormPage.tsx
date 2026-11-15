@@ -28,6 +28,8 @@ import {
   uploadCreativeFormFile,
 } from '../services/creativeApi';
 import {
+  IMAGE_VALIDITY_LABEL,
+  type ImageValidity,
   CREATIVE_LEAD_TIME_HOURS,
   CREATIVE_PRIORITY,
   CREATIVE_REQUEST_TYPE,
@@ -103,9 +105,9 @@ export function CreativeRequestFormPage() {
     sections: [],
     selectType: 'Headline',
   });
-  const [newsData, setNewsData] = useState<NewsHeadlineData>({ screen: '', headlineText: '' });
-  const [pvwData, setPvwData] = useState<ProgramVideoWallData>({ screen: '', slides: [] });
-  const [vwpData, setVwpData] = useState<VideoWallPresentationData>({ screen: '', slides: [] });
+  const [newsData, setNewsData] = useState<NewsHeadlineData>({ screen: '', headlineText: '', imageValidity: 'OneMonth' });
+  const [pvwData, setPvwData] = useState<ProgramVideoWallData>({ screen: '', slides: [], imageValidity: 'OneMonth' });
+  const [vwpData, setVwpData] = useState<VideoWallPresentationData>({ screen: '', slides: [], imageValidity: 'OneMonth' });
   const [fillerData, setFillerData] = useState<FillerData>({ sections: [] });
   const [lowerThirdData, setLowerThirdData] = useState<LowerThirdData>({ sections: [] });
   const [specialData, setSpecialData] = useState<SpecialRequestData>({ imageLinks: [], description: '' });
@@ -115,6 +117,7 @@ export function CreativeRequestFormPage() {
   // Each form only offers the screens an admin has marked for it on the Reference Lists page.
   const newsHeadlineScreens = useMemo(() => screens.filter((s) => s.useForNewsHeadline), [screens]);
   const videoWallScreens = useMemo(() => screens.filter((s) => s.useForVideoWall), [screens]);
+  const presentationScreens = useMemo(() => screens.filter((s) => s.useForPresentation), [screens]);
 
   const leadTimeHours = CREATIVE_LEAD_TIME_HOURS[requestType];
   const leadTimeWarning = useMemo(() => {
@@ -465,7 +468,7 @@ export function CreativeRequestFormPage() {
           program={program}
           onProgramChange={setProgram}
           programs={programs}
-          screens={videoWallScreens}
+          screens={presentationScreens}
           errors={errors}
         />
       )}
@@ -516,9 +519,7 @@ function SocialMediaHeadlineForm({
           <Select
             value={data.requestKind}
             onValueChange={(v) =>
-              // Platform's valid options differ per branch (the combined "QBC & QTV37" option
-              // only applies to Event Package) — reset it so a stale value can't carry over.
-              onChange({ ...data, requestKind: v as SocialMediaHeadlineData['requestKind'], platform: undefined })
+              onChange({ ...data, requestKind: v as SocialMediaHeadlineData['requestKind'] })
             }
           >
             <SelectTrigger id="sm-request-kind">
@@ -585,7 +586,6 @@ function SocialMediaHeadlineForm({
                   id="sm-platform-event"
                   value={data.platform}
                   onChange={(v) => onChange({ ...data, platform: v as SocialMediaHeadlineData['platform'] })}
-                  includeCombo
                   error={errors['sm.platform']}
                 />
               </div>
@@ -613,9 +613,8 @@ function SocialMediaHeadlineForm({
                     onChange({
                       ...data,
                       selectType: v as SocialMediaHeadlineData['selectType'],
-                      // Carrousel is pointless with zero slides — seed one so the editor
-                      // never opens on the empty state the user has to click past.
-                      sections: v === 'Carrousel' && (data.sections ?? []).length === 0 ? [{ content: '' }] : data.sections,
+                      // Carrousel: seed two slides so the editor opens ready to fill.
+                      sections: v === 'Carrousel' && (data.sections ?? []).length === 0 ? [{ content: '' }, { content: '' }] : data.sections,
                     })
                   }
                 >
@@ -644,7 +643,6 @@ function SocialMediaHeadlineForm({
                       id="sm-platform-carrousel"
                       value={data.platform}
                       onChange={(v) => onChange({ ...data, platform: v as SocialMediaHeadlineData['platform'] })}
-                      includeCombo={false}
                       error={errors['sm.platform']}
                     />
                   </div>
@@ -687,7 +685,6 @@ function SocialMediaHeadlineForm({
                       id="sm-platform-headline"
                       value={data.platform}
                       onChange={(v) => onChange({ ...data, platform: v as SocialMediaHeadlineData['platform'] })}
-                      includeCombo={false}
                       error={errors['sm.platform']}
                     />
                   </div>
@@ -701,20 +698,16 @@ function SocialMediaHeadlineForm({
   );
 }
 
-// Platform is asked in all three Social Media Headline branches, but the combined "QBC &
-// QTV37" option only makes sense — and is only offered — when the whole request is an Event
-// Package; Daily Request (Carrousel or Headline) only offers the two individual channels.
+// Platform is asked in all three Social Media Headline branches, with the same three options in each.
 function PlatformSelect({
   id,
   value,
   onChange,
-  includeCombo,
   error,
 }: {
   id: string;
   value?: string;
   onChange: (v: string) => void;
-  includeCombo: boolean;
   error?: string;
 }) {
   return (
@@ -729,10 +722,45 @@ function PlatformSelect({
         <SelectContent>
           <SelectItem value="QBC">QBC</SelectItem>
           <SelectItem value="QTV37">QTV37</SelectItem>
-          {includeCombo && <SelectItem value="QBC & QTV37">QBC & QTV37</SelectItem>}
+          <SelectItem value="QBC & QTV37">QBC & QTV37</SelectItem>
         </SelectContent>
       </Select>
       {error && <p className="text-sm text-red-500">{error}</p>}
+    </div>
+  );
+}
+
+// How long the images generated for this request stay in Vizrt's Image Library — asked on the
+// three Image-Library types only. After it passes (counted from Air Date) they're listed for removal.
+function ImageValiditySelect({
+  id,
+  value,
+  onChange,
+}: {
+  id: string;
+  value: ImageValidity;
+  onChange: (v: ImageValidity) => void;
+}) {
+  return (
+    <div className="border-t border-border/60 pt-5">
+      <div className="max-w-xs">
+        <div className="space-y-2">
+          <Label htmlFor={id}>Image Validity</Label>
+          <Select value={value} onValueChange={(v) => onChange(v as ImageValidity)}>
+            <SelectTrigger id={id}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {(Object.keys(IMAGE_VALIDITY_LABEL) as ImageValidity[]).map((k) => (
+                <SelectItem key={k} value={k}>{IMAGE_VALIDITY_LABEL[k]}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground">
+            After this period (counted from Air Date) the images are listed for removal from Vizrt.
+          </p>
+        </div>
+      </div>
     </div>
   );
 }
@@ -903,6 +931,12 @@ function NewsHeadlineForm({
             accept="image/*"
           />
         </div>
+
+        <ImageValiditySelect
+          id="news-validity"
+          value={data.imageValidity ?? 'OneMonth'}
+          onChange={(v) => onChange({ ...data, imageValidity: v })}
+        />
       </CardContent>
     </Card>
   );
@@ -1035,6 +1069,12 @@ function ProgramVideoWallForm({
             </div>
           ))}
         </div>
+
+        <ImageValiditySelect
+          id="pvw-validity"
+          value={data.imageValidity ?? 'OneMonth'}
+          onChange={(v) => onChange({ ...data, imageValidity: v })}
+        />
       </CardContent>
     </Card>
   );
@@ -1166,7 +1206,11 @@ function VideoWallPresentationForm({
           ))}
         </div>
 
-        <p className="text-xs text-muted-foreground">This request type normally needs at least 6 hours' notice.</p>
+        <ImageValiditySelect
+          id="vwp-validity"
+          value={data.imageValidity ?? 'OneMonth'}
+          onChange={(v) => onChange({ ...data, imageValidity: v })}
+        />
       </CardContent>
     </Card>
   );

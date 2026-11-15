@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, Search } from 'lucide-react';
+import { Download, Loader2, Plus, Search } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -22,7 +23,10 @@ import { UserAvatar } from '@/components/ui/user-avatar';
 import type { Tone } from '@/lib/tone';
 import { cn } from '@/lib/utils';
 import { useAuth } from '../../contexts/AuthContext';
-import { listCreativeRequests } from '../services/creativeApi';
+import { useToast } from '../../contexts/ToastContext';
+import { getApiErrorMessage } from '../../utils/apiError';
+import { getVizrtCleanupList, listCreativeRequests } from '../services/creativeApi';
+import { exportVizrtCleanupList } from '../utils/vizrtCleanupExport';
 import { useCreativeRequestChanged } from '../hooks/useCreativeRequestChanged';
 import {
   CREATIVE_REQUEST_STATUS,
@@ -63,6 +67,8 @@ export function CreativeRequestListPage() {
   const perms = creativePermissionsFor(user?.roles ?? []);
   const visibleTypes = visibleRequestTypesFor(user?.roles ?? []);
 
+  const { showToast } = useToast();
+  const [exporting, setExporting] = useState(false);
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('All');
@@ -98,11 +104,34 @@ export function CreativeRequestListPage() {
   const items = data?.items ?? [];
   const totalItems = data?.totalItems ?? 0;
   const canCreate = perms.canCreateSocialMediaHeadline || perms.canCreateProducerRequest;
+  const isAdmin = user?.roles?.includes('Admin') ?? false;
+
+  async function handleExportCleanup() {
+    setExporting(true);
+    try {
+      const list = await getVizrtCleanupList();
+      if (list.length === 0) {
+        showToast('Nothing to clean up — no expired images.', 'success');
+        return;
+      }
+      await exportVizrtCleanupList(list);
+    } catch (err) {
+      showToast(getApiErrorMessage(err, 'Could not export the Vizrt cleanup list'), 'error');
+    } finally {
+      setExporting(false);
+    }
+  }
 
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
         <div className="flex-1" />
+        {isAdmin && (
+          <Button type="button" variant="outline" onClick={handleExportCleanup} disabled={exporting}>
+            {exporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+            Export Vizrt Cleanup
+          </Button>
+        )}
         {canCreate && (
           <button
             type="button"

@@ -6,6 +6,7 @@ import type {
   CreativeRequestListItem,
   CreativeRequestTransition,
   CreativeScreen,
+  VizrtCleanupItem,
 } from '../types/creative';
 
 export interface CreativeListResult<T> {
@@ -49,6 +50,12 @@ export async function listCreativeRequests(opts: {
 
 export async function getCreativeRequest(id: number): Promise<CreativeRequest> {
   const { data } = await apiClient.get<CreativeRequest>(`/api/creative/requests/${id}`);
+  return data;
+}
+
+// Admin only — every image name whose validity has expired, to delete from Vizrt.
+export async function getVizrtCleanupList(): Promise<VizrtCleanupItem[]> {
+  const { data } = await apiClient.get<VizrtCleanupItem[]>('/api/creative/requests/image-library/cleanup');
   return data;
 }
 
@@ -212,6 +219,7 @@ export interface CreativeScreenInput {
   description?: string | null;
   useForNewsHeadline: boolean;
   useForVideoWall: boolean;
+  useForPresentation: boolean;
 }
 
 export async function createCreativeScreen(input: CreativeScreenInput): Promise<CreativeScreen> {

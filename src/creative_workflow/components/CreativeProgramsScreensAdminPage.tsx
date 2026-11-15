@@ -102,7 +102,7 @@ function ScreensCard() {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   // New screens default to Video Walls — that's where most studio screens are used.
-  const [usage, setUsage] = useState<ScreenUsage>({ useForNewsHeadline: false, useForVideoWall: true });
+  const [usage, setUsage] = useState<ScreenUsage>({ useForNewsHeadline: false, useForVideoWall: true, useForPresentation: false });
   const [newImageUrl, setNewImageUrl] = useState<string | null>(null);
   const [uploadingNew, setUploadingNew] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -133,7 +133,7 @@ function ScreensCard() {
       });
       setName('');
       setDescription('');
-      setUsage({ useForNewsHeadline: false, useForVideoWall: true });
+      setUsage({ useForNewsHeadline: false, useForVideoWall: true, useForPresentation: false });
       setNewImageUrl(null);
       queryClient.invalidateQueries({ queryKey: ['creative-screens'] });
     } catch {
@@ -239,6 +239,7 @@ function ScreenTile({ screen }: { screen: CreativeScreen }) {
       description: screen.description,
       useForNewsHeadline: screen.useForNewsHeadline,
       useForVideoWall: screen.useForVideoWall,
+      useForPresentation: screen.useForPresentation,
       ...patch,
     });
     queryClient.invalidateQueries({ queryKey: ['creative-screens'] });
@@ -386,11 +387,15 @@ function ScreenTile({ screen }: { screen: CreativeScreen }) {
       </div>
       <div className="space-y-1.5 border-t border-border px-3 py-2.5">
         <ScreenUsageToggles
-          value={{ useForNewsHeadline: screen.useForNewsHeadline, useForVideoWall: screen.useForVideoWall }}
+          value={{
+            useForNewsHeadline: screen.useForNewsHeadline,
+            useForVideoWall: screen.useForVideoWall,
+            useForPresentation: screen.useForPresentation,
+          }}
           onChange={handleUsageChange}
           disabled={busy}
         />
-        {!screen.useForNewsHeadline && !screen.useForVideoWall && (
+        {!screen.useForNewsHeadline && !screen.useForVideoWall && !screen.useForPresentation && (
           <p className="flex items-center gap-1 text-[11px] text-amber-600 dark:text-amber-400">
             <EyeOff className="h-3 w-3" /> Not shown on any request form
           </p>
@@ -400,15 +405,16 @@ function ScreenTile({ screen }: { screen: CreativeScreen }) {
   );
 }
 
-type ScreenUsage = Pick<CreativeScreen, 'useForNewsHeadline' | 'useForVideoWall'>;
+type ScreenUsage = Pick<CreativeScreen, 'useForNewsHeadline' | 'useForVideoWall' | 'useForPresentation'>;
 
 const USAGE_OPTIONS: { key: keyof ScreenUsage; label: string; title: string }[] = [
   { key: 'useForNewsHeadline', label: 'News Headline', title: 'Offered on News Headline requests' },
   {
     key: 'useForVideoWall',
-    label: 'Video Walls',
-    title: 'Offered on Program Video Wall and Video Wall Presentation requests',
+    label: 'Program Video Wall',
+    title: 'Offered on Program Video Wall requests',
   },
+  { key: 'useForPresentation', label: 'Presentation', title: 'Offered on Presentation requests' },
 ];
 
 // Pill toggles for which request forms offer a screen.

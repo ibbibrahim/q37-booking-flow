@@ -4,7 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Building2, Calendar, Check, Clock, Copy, FileText, Flag, FolderOpen, Image as ImageIcon, Info, Link2, User, UserCheck } from 'lucide-react';
 import type { ComponentType, ReactNode } from 'react';
-import { format } from 'date-fns';
+import { addMonths, format } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   AlertDialog,
@@ -44,6 +44,9 @@ import {
   CREATIVE_REQUEST_TYPE_LABEL,
   GRAPHICS_TEAM_REQUEST_TYPES,
   IMAGE_LIBRARY_REQUEST_TYPES,
+  IMAGE_VALIDITY_LABEL,
+  IMAGE_VALIDITY_MONTHS,
+  type ImageValidity,
   canFulfill,
   creativePermissionsFor,
   type CreativeScreen,
@@ -183,6 +186,12 @@ export function CreativeRequestDetailPage() {
   const isSocialMediaHeadline = request.requestType === CREATIVE_REQUEST_TYPE.SocialMediaHeadline;
   const needsResponsePath = RESPONSE_PATH_TYPES.includes(request.requestType);
   const isImageLibraryType = IMAGE_LIBRARY_REQUEST_TYPES.includes(request.requestType);
+  // Old requests have no imageValidity — they count as 1 month.
+  const imageValidity: ImageValidity =
+    typeData?.imageValidity && typeData.imageValidity in IMAGE_VALIDITY_MONTHS
+      ? typeData.imageValidity
+      : 'OneMonth';
+  const imageValidityMonths = IMAGE_VALIDITY_MONTHS[imageValidity];
   const isOpenForWork =
     request.status === CREATIVE_REQUEST_STATUS.Submitted || request.status === CREATIVE_REQUEST_STATUS.NeedsRevision;
   const isClaimedByMe = request.claimedBy != null && request.claimedBy === user?.id;
@@ -427,6 +436,14 @@ export function CreativeRequestDetailPage() {
                 </CardTitle>
                 <p className="text-sm text-muted-foreground">
                   One name per image produced for this request — search for each by its name in Vizrt.
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {imageValidityMonths === null
+                    ? "Validity: Don't delete — kept for reuse"
+                    : `Validity: ${IMAGE_VALIDITY_LABEL[imageValidity]} — delete from Vizrt after ${format(
+                        addMonths(new Date(request.airDate), imageValidityMonths),
+                        'yyyy-MM-dd',
+                      )}`}
                 </p>
               </CardHeader>
               <CardContent className="space-y-3">
