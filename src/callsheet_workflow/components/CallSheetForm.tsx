@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsContent, TabsList, TabsTrigger, type TabsAccent } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -81,29 +81,29 @@ const FORM_TABS: {
   icon: React.ElementType;
   /** Icon colour (always tinted, so the tabs are easy to tell apart). */
   iconClass: string;
-  /** Sliding active pill: gradient fill, ring and soft coloured shadow (the 3D lift). */
-  pill: string;
+  /** Colour of the shared tab bar's sliding active pill. */
+  accent: TabsAccent;
 }[] = [
   {
     value: 'request',
     label: 'Call Sheet',
     icon: ClipboardList,
     iconClass: 'text-blue-600',
-    pill: 'bg-gradient-to-b from-blue-400 to-blue-500 ring-1 ring-blue-500/30 shadow-md shadow-blue-500/30',
+    accent: 'blue',
   },
   {
     value: 'equipment',
     label: 'Equipment Request',
     icon: Package,
     iconClass: 'text-amber-600',
-    pill: 'bg-gradient-to-b from-amber-400 to-amber-500 ring-1 ring-amber-500/30 shadow-md shadow-amber-500/30',
+    accent: 'amber',
   },
   {
     value: 'preview',
     label: 'Transportation',
     icon: Car,
     iconClass: 'text-emerald-600',
-    pill: 'bg-gradient-to-b from-emerald-400 to-emerald-500 ring-1 ring-emerald-500/30 shadow-md shadow-emerald-500/30',
+    accent: 'emerald',
   },
 ];
 const SPRING = { type: 'spring', stiffness: 380, damping: 32 } as const;
@@ -1016,44 +1016,17 @@ export const CallSheetForm: React.FC<CallSheetFormProps> = ({ onSubmit, initialC
             </SelectContent>
           </Select>
         </div>
-        <LayoutGroup id="form-tabs">
-          <TabsList className="mb-6 hidden h-11 w-full shadow-inner ring-1 ring-inset ring-border/60 sm:grid sm:grid-cols-3">
-            {FORM_TABS.map((tab) => {
-              const Icon = tab.icon;
-              const isActive = activeTab === tab.value;
-              return (
-                <TabsTrigger key={tab.value} value={tab.value} disabled={isSubmitting} asChild>
-                  {/* Same interaction as the Department cards: tap scale + a spring pill that slides to the active tab. */}
-                  <motion.button
-                    type="button"
-                    whileTap={!isSubmitting ? { scale: 0.96 } : {}}
-                    transition={{ duration: 0.2, ease: TAP_EASE }}
-                    className={cn(
-                      'group relative gap-2 hover:text-foreground',
-                      'data-[state=active]:bg-transparent data-[state=active]:text-white data-[state=active]:shadow-none',
-                    )}
-                  >
-                    {isActive && (
-                      <motion.span
-                        layoutId="form-tab-pill"
-                        className={cn('absolute inset-0 rounded-sm', tab.pill)}
-                        transition={SPRING}
-                      />
-                    )}
-                    <Icon
-                      className={cn(
-                        'relative z-10 h-4 w-4 shrink-0',
-                        ICON_TRANSITION,
-                        isActive ? 'text-white' : tab.iconClass,
-                      )}
-                    />
-                    <span className="relative z-10">{tab.label}</span>
-                  </motion.button>
-                </TabsTrigger>
-              );
-            })}
-          </TabsList>
-        </LayoutGroup>
+        <TabsList className="mb-6 hidden h-11 w-full sm:grid sm:grid-cols-3">
+          {FORM_TABS.map((tab) => {
+            const Icon = tab.icon;
+            return (
+              <TabsTrigger key={tab.value} value={tab.value} disabled={isSubmitting} accent={tab.accent} className="group gap-2">
+                <Icon className={cn('h-4 w-4 shrink-0', ICON_TRANSITION, tab.iconClass, 'group-data-[state=active]:text-white')} />
+                {tab.label}
+              </TabsTrigger>
+            );
+          })}
+        </TabsList>
 
         <TabsContent value="request" forceMount className={activeTab !== 'request' ? 'hidden space-y-6' : `space-y-6 ${PANEL_REVEAL}`}>
           {isDuplicateMode && duplicateData && (
