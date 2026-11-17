@@ -11,7 +11,7 @@ import type {
   RotaAssignPayload,
 } from '../types/rota';
 import { formatDateForApi } from '../utils/dateUtils';
-import { getAssignmentForEmployeeDay, getAssignmentDisplay } from '../utils/rotaUtils';
+import { getAssignmentForEmployeeDay, getAssignmentDisplay, getAssignmentTiming } from '../utils/rotaUtils';
 import { dropHintVariants, dropRingVariants, swapOverlayVariants } from '../utils/rotaMotion';
 
 export interface EmployeeCellProps {
@@ -130,6 +130,11 @@ export const EmployeeCell = memo(function EmployeeCell({
             readOnly={readOnly}
             shiftTypes={shiftTypes}
           />
+          {getAssignmentTiming(assignment, shiftTypes) && (
+            <div className="text-[10px] font-medium text-foreground/70 tabular-nums truncate">
+              {getAssignmentTiming(assignment, shiftTypes)}
+            </div>
+          )}
           {assignment.programName &&
             getAssignmentDisplay(assignment, shiftTypes)?.label !== assignment.programName && (
               <div className="text-[10px] text-muted-foreground truncate">

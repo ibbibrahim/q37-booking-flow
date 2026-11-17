@@ -152,8 +152,9 @@ function SidebarSubItem({ icon: Icon, label, isActive, onClick, small, badge, ba
       className={cn(
         'group relative w-full flex items-center gap-2.5 rounded-md text-left transition-all duration-200',
         small ? 'py-1.5 px-2.5 text-xs' : 'py-[7px] px-2.5 text-[13px]',
+        // Same solid highlight as top-level items (SidebarItem) so the active page looks identical everywhere.
         isActive
-          ? 'bg-sidebar-background text-sidebar-accent-foreground font-semibold shadow-sm ring-1 ring-sidebar-border'
+          ? 'bg-sidebar-primary text-sidebar-primary-foreground font-semibold shadow-md shadow-sidebar-primary/25 ring-1 ring-inset ring-white/10'
           : 'text-sidebar-foreground/75 font-medium hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
       )}
     >
@@ -169,7 +170,7 @@ function SidebarSubItem({ icon: Icon, label, isActive, onClick, small, badge, ba
         size={small ? 14 : 16}
         className={cn(
           'shrink-0 transition-colors',
-          isActive ? 'text-sidebar-primary' : 'text-sidebar-foreground/50 group-hover:text-sidebar-accent-foreground'
+          isActive ? 'text-sidebar-primary-foreground' : 'text-sidebar-foreground/50 group-hover:text-sidebar-accent-foreground'
         )}
       />
       <span className="truncate flex-1 min-w-0">{label}</span>
@@ -177,7 +178,9 @@ function SidebarSubItem({ icon: Icon, label, isActive, onClick, small, badge, ba
         <span
           className={cn(
             'shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-semibold leading-none tabular-nums',
-            badgeTone === 'destructive' ? 'bg-destructive/15 text-destructive' : 'bg-primary/10 text-primary'
+            isActive
+              ? 'bg-white/20 text-sidebar-primary-foreground'
+              : badgeTone === 'destructive' ? 'bg-destructive/15 text-destructive' : 'bg-primary/10 text-primary'
           )}
         >
           {badge}
@@ -1014,7 +1017,8 @@ export const BookingDashboard: React.FC = () => {
           </div>
         </header>
 
-        <main className="flex-1 px-4 sm:px-6 lg:px-8 py-6 overflow-y-auto">
+        {/* scrollbar-gutter: reserve the scrollbar's width so centred pages don't shift sideways when content switches between scrolling and not scrolling */}
+        <main className="flex-1 px-4 sm:px-6 lg:px-8 py-6 overflow-y-auto [scrollbar-gutter:stable]">
           <Outlet />
         </main>
       </div>

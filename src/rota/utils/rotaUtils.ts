@@ -79,6 +79,25 @@ export const getAssignmentDisplay = (
   return null;
 };
 
+/**
+ * Shift time shown under the badge (grid, public link, PDF and Excel), e.g. "8am-2pm".
+ * Custom per-assignment times win over the shift type's times. Empty for OFF days and
+ * all-day LEAVE (its 12am-11:59pm range adds nothing).
+ */
+export const getAssignmentTiming = (
+  assignment: RotaAssignment,
+  shiftTypes?: RotaShiftType[]
+): string => {
+  if (assignment.isOffDay) return '';
+  if (assignment.shiftStartTime && assignment.shiftEndTime) {
+    return formatShiftTiming(assignment.shiftStartTime, assignment.shiftEndTime);
+  }
+  const st = resolveShiftType(assignment, shiftTypes);
+  if (!st) return '';
+  if (/leave/i.test(st.name) || /leave/i.test(st.label)) return '';
+  return formatShiftTiming(st.startTime, st.endTime);
+};
+
 export const getAssignmentForEmployeeDay = (
   assignments: RotaAssignment[],
   employeeId: number,

@@ -3,7 +3,7 @@ import html2canvas from 'html2canvas';
 import ExcelJS from 'exceljs';
 import type { RotaWeek, RotaDepartment, RotaEmployee, RotaAssignment, RotaShiftType } from '../types/rota';
 import { formatDateForApi, parseLocalDate, normalizeDateString } from './dateUtils';
-import { getAssignmentDisplay, formatShiftTiming } from './rotaUtils';
+import { getAssignmentDisplay, formatShiftTiming, getAssignmentTiming } from './rotaUtils';
 import qbcLightUrl from '../../assets/QBC-light.png';
 import qbcLightArUrl from '../../assets/QBC-light-ar.png';
 import q37LogoUrl from '../../assets/q37.png';
@@ -138,6 +138,10 @@ const getCellText = (assignment: RotaAssignment, shiftTypes?: RotaShiftType[]): 
   const display = getAssignmentDisplay(assignment, shiftTypes);
   if (!display) return '';
   let text = display.label;
+  const timing = getAssignmentTiming(assignment, shiftTypes);
+  if (timing) {
+    text += `\n${timing}`;
+  }
   if (assignment.programName && display.label !== assignment.programName) {
     text += `\n${assignment.programName}`;
   }
