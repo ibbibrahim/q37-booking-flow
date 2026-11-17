@@ -1,11 +1,14 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Grid3x3, List } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { ViewToggle } from '@/components/ui/view-toggle';
 import { ListPaginationBar, getInitialPage, getInitialPageSize } from '@/components/ui/list-pagination-bar';
 import { DateRangePicker } from '@/components/DateRangePicker';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { EditingRequestList } from '../components/EditingRequestList';
+import { EditingBoard, type EditingBoardFilters } from '../components/EditingBoard';
+import { filterOutManualBlocks } from '../utils/editingUtils';
 import { editingApi } from '../api/editingApi';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSignalR } from '@/contexts/SignalRContext';
@@ -34,6 +37,8 @@ export const EditorQueuePage: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(() => getInitialPage(PAGINATION_STORAGE_KEY, 1));
   const [pageSize, setPageSize] = useState(() => getInitialPageSize(PAGINATION_STORAGE_KEY, 50));
   const [total, setTotal] = useState(0);
+  // Bumped on SignalR events so the board's per-column queries refetch.
+  const [boardRefresh, setBoardRefresh] = useState(0);
   const skipSearchPageReset = useRef(true);
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
     const saved = localStorage.getItem('editing-view-mode');
@@ -53,23 +58,37 @@ export const EditorQueuePage: React.FC = () => {
     setCurrentPage(1);
   }, [debouncedSearch]);
 
+  // Non-status filters, shared with the board so the table and board can't drift.
+  const boardFilters = useMemo<EditingBoardFilters>(
+    () => ({
+      searchQuery: debouncedSearch.trim() || undefined,
+      editorId: activeTab === 'my-assignments' && user?.id != null ? user.id : undefined,
+      dateFrom: dateRange?.from,
+      dateTo: dateRange?.to,
+    }),
+    [debouncedSearch, activeTab, user?.id, dateRange?.from, dateRange?.to],
+  );
+
+  // Status tabs narrow the board to that single column; 'all' and 'my-assignments' show every column.
+  const boardStatuses = useMemo(
+    () => (activeTab === 'all' || activeTab === 'my-assignments' ? undefined : [activeTab]),
+    [activeTab],
+  );
+
   const loadQueue = useCallback(async () => {
+    // The board loads its own per-column data; skip the paginated table fetch.
+    if (viewMode === 'grid') return;
     setLoading(true);
     try {
       const statusFilter =
         activeTab === 'all' || activeTab === 'my-assignments' ? undefined : activeTab;
-      const editorId =
-        activeTab === 'my-assignments' && user?.id != null ? user.id : undefined;
       const result = await editingApi.search({
-        searchQuery: debouncedSearch.trim() || undefined,
+        ...boardFilters,
         status: statusFilter,
-        editorId,
-        dateFrom: dateRange?.from,
-        dateTo: dateRange?.to,
         page: currentPage,
         pageSize,
       });
-      const items = (result.items ?? []).filter((r) => !r.isManualBlock);
+      const items = filterOutManualBlocks(result.items ?? []);
       setRequests(items);
       setTotal(result.total ?? 0);
     } catch (error) {
@@ -79,7 +98,7 @@ export const EditorQueuePage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [activeTab, debouncedSearch, dateRange?.from, dateRange?.to, currentPage, pageSize, user?.id]);
+  }, [activeTab, boardFilters, currentPage, pageSize, viewMode]);
 
   useEffect(() => {
     loadQueue();
@@ -101,6 +120,7 @@ export const EditorQueuePage: React.FC = () => {
     if (!isConnected) return;
 
     const unsubscribeCreated = listen('EditingRequestCreated', (data: EditingRequest) => {
+      setBoardRefresh((n) => n + 1);
       setRequests((prev) => {
         const exists = prev.some((r) => r.id === data.id);
         if (exists) return prev;
@@ -114,10 +134,12 @@ export const EditorQueuePage: React.FC = () => {
     });
 
     const unsubscribeUpdated = listen('EditingRequestUpdated', (data: EditingRequest) => {
+      setBoardRefresh((n) => n + 1);
       setRequests((prev) => prev.map((r) => (r.id === data.id ? data : r)));
     });
 
     const unsubscribeCancelled = listen('EditingRequestCancelled', (data: EditingRequest) => {
+      setBoardRefresh((n) => n + 1);
       setRequests((prev) => prev.map((r) => (r.id === data.id ? data : r)));
     });
 
@@ -142,30 +164,7 @@ export const EditorQueuePage: React.FC = () => {
       {/* Top bar: view mode toggle – same layout as Edit Suite Booking */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 bg-muted p-1 rounded-lg">
-            <button
-              onClick={() => handleViewModeChange('grid')}
-              className={`p-2 rounded transition-colors ${
-                viewMode === 'grid'
-                  ? 'bg-primary text-primary-foreground'
-                  : 'text-muted-foreground hover:text-card-foreground'
-              }`}
-              title="Grid view"
-            >
-              <Grid3x3 size={18} />
-            </button>
-            <button
-              onClick={() => handleViewModeChange('list')}
-              className={`p-2 rounded transition-colors ${
-                viewMode === 'list'
-                  ? 'bg-primary text-primary-foreground'
-                  : 'text-muted-foreground hover:text-card-foreground'
-              }`}
-              title="List view"
-            >
-              <List size={18} />
-            </button>
-          </div>
+          <ViewToggle value={viewMode} onChange={handleViewModeChange} />
         </div>
       </div>
 
@@ -194,15 +193,17 @@ export const EditorQueuePage: React.FC = () => {
         </div>
       </div>
 
-      <ListPaginationBar
-        currentPage={currentPage}
-        totalItems={total}
-        pageSize={pageSize}
-        onPageChange={setCurrentPage}
-        onPageSizeChange={handlePageSizeChange}
-        storageKey={PAGINATION_STORAGE_KEY}
-        disabled={loading}
-      />
+      {viewMode === 'list' && (
+        <ListPaginationBar
+          currentPage={currentPage}
+          totalItems={total}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={handlePageSizeChange}
+          storageKey={PAGINATION_STORAGE_KEY}
+          disabled={loading}
+        />
+      )}
 
       {/* Filter tabs – same TabsList / TabsTrigger styling as existing segments */}
       <Tabs
@@ -220,7 +221,9 @@ export const EditorQueuePage: React.FC = () => {
           <TabsTrigger value="Cancelled">Cancelled</TabsTrigger>
         </TabsList>
         <TabsContent value={activeTab} className="mt-6">
-          {loading ? (
+          {viewMode === 'grid' ? (
+            <EditingBoard filters={boardFilters} onlyStatuses={boardStatuses} refreshKey={boardRefresh} />
+          ) : loading ? (
             <div className="flex items-center justify-center py-16">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
             </div>
@@ -232,7 +235,6 @@ export const EditorQueuePage: React.FC = () => {
             <EditingRequestList
               requests={requests}
               loading={loading}
-              viewMode={viewMode}
               showAssignButton
               onAssign={handleAssign}
             />

@@ -2,8 +2,6 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import {
   Search,
   Plus,
-  Grid3x3,
-  List,
   Edit,
   X,
   Calendar,
@@ -12,33 +10,34 @@ import {
   User,
   ListChecks,
   ArrowRight,
-  Radio,
-  Download,
-  Camera,
-  UserPlus,
   History,
-  type LucideIcon,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { endOfDay, formatDistanceToNowStrict, startOfDay } from 'date-fns';
+import { formatDistanceToNowStrict } from 'date-fns';
 import { DateRange } from 'react-day-picker';
 
-import { RequestCard } from './RequestCard';
+import { BookingBoard } from './BookingBoard';
 import {
   getBookingTypeLabel,
   type WorkflowRequest,
   type WorkflowStatus,
   type UserRole,
   type BookingType,
-  type Priority,
 } from '../types/workflow';
 import { mockApi } from '../services/bookingApi';
 import { useAuth } from '@/contexts/AuthContext';
 import { readBookingDraftSummary } from '../utils/bookingDraft';
+import { BookingTypePill } from '../utils/bookingDisplay';
+import {
+  PRIORITY_TONES,
+  ROLE_VISIBLE_STATUSES,
+  STATUS_TONES,
+  buildBookingSharedFilters,
+} from '../utils/bookingFilters';
 import { cn } from '@/lib/utils';
 import { UserAvatar } from '@/components/ui/user-avatar';
 import { StatusPill } from '@/components/ui/status-pill';
-import type { Tone } from '@/lib/tone';
+import { ViewToggle } from '@/components/ui/view-toggle';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 import { DateRangePicker } from '@/components/DateRangePicker';
@@ -137,75 +136,9 @@ function persistFilters(f: PersistedFilters) {
   }
 }
 
-function rangeToApi(range: DateRange | undefined): { from?: string; to?: string } {
-  if (!range?.from && !range?.to) return {};
-  return {
-    from: range.from ? startOfDay(range.from).toISOString() : undefined,
-    to: range.to ? endOfDay(range.to).toISOString() : undefined,
-  };
-}
-
 const headClass = 'h-10 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground';
 const GRID_CLASS =
   'min-w-[1280px] [&_th]:border-r [&_td]:border-r [&_th]:border-border/70 [&_td]:border-border/70 [&_th:last-child]:border-r-0 [&_td:last-child]:border-r-0';
-
-const STATUS_TONES: Record<WorkflowStatus, Tone> = {
-  Draft: 'muted',
-  Submitted: 'info',
-  'With NOC': 'warning',
-  'Clarification Requested': 'warning',
-  'Resources Added': 'primary',
-  'With Ingest': 'primary',
-  Completed: 'success',
-  'Not Done': 'destructive',
-  'Partially Completed': 'success',
-};
-
-const PRIORITY_TONES: Record<Priority, Tone> = {
-  Normal: 'muted',
-  High: 'warning',
-  Urgent: 'destructive',
-};
-
-/** Per-type hues kept from the original list; an icon (instead of the status-style dot) marks it as a booking type. */
-const BOOKING_TYPE_PILL: Record<BookingType, { pill: string; icon: LucideIcon }> = {
-  'Incoming Feed': {
-    pill: 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800',
-    icon: Radio,
-  },
-  'Invite Guest for News': {
-    pill: 'bg-teal-100 text-teal-700 border-teal-200 dark:bg-teal-900/30 dark:text-teal-400 dark:border-teal-800',
-    icon: UserPlus,
-  },
-  'Invite Guest for Program': {
-    pill: 'bg-cyan-100 text-cyan-700 border-cyan-200 dark:bg-cyan-900/30 dark:text-cyan-400 dark:border-cyan-800',
-    icon: UserPlus,
-  },
-  'Download and Ingest': {
-    pill: 'bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800',
-    icon: Download,
-  },
-  'Camera Card and Ingest': {
-    pill: 'bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800',
-    icon: Camera,
-  },
-};
-
-function BookingTypePill({ type }: { type: BookingType }) {
-  const style = BOOKING_TYPE_PILL[type] ?? { pill: 'bg-muted text-muted-foreground border-border', icon: Tag };
-  const Icon = style.icon;
-  return (
-    <span
-      className={cn(
-        'inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-medium whitespace-nowrap',
-        style.pill,
-      )}
-    >
-      <Icon className="h-3 w-3 shrink-0" aria-hidden />
-      {getBookingTypeLabel(type)}
-    </span>
-  );
-}
 
 const LIST_STATUSES: (WorkflowStatus | 'All')[] = [
   'All',
@@ -221,21 +154,6 @@ const BOOKING_TYPES: BookingType[] = [
   'Download and Ingest',
   'Camera Card and Ingest',
 ];
-
-/** Statuses each role sees when no explicit status filter is chosen ("All states"). Mirrors visibleForRole in bookingApi.ts. */
-const ROLE_VISIBLE_STATUSES: Partial<Record<UserRole, WorkflowStatus[]>> = {
-  NOC: [
-    'Submitted',
-    'With NOC',
-    'Clarification Requested',
-    'Resources Added',
-    'With Ingest',
-    'Completed',
-    'Partially Completed',
-    'Not Done',
-  ],
-  Ingest: ['With Ingest', 'Completed', 'Not Done', 'Partially Completed'],
-};
 
 /** How many pending rows the popup fetches/shows before pointing people at the full filtered list instead. */
 const PENDING_POPUP_LIMIT = 50;
@@ -327,27 +245,36 @@ export const RequestList: React.FC<RequestListProps> = ({
     });
   }, [searchTerm, statusFilter, bookingTypeFilter, createdDateRange, onlyMine]);
 
+  // Non-status filters, shared with the board so the table and board can't drift.
+  const sharedFilters = useMemo(
+    () =>
+      buildBookingSharedFilters({
+        userRole,
+        searchQuery: debouncedSearch,
+        bookingTypeFilter,
+        createdDateRange,
+        onlyMine,
+        userId: user?.id,
+      }),
+    [userRole, debouncedSearch, bookingTypeFilter, createdDateRange, onlyMine, user?.id],
+  );
+
   const buildBody = useCallback(() => {
-    const created = rangeToApi(createdDateRange);
     // When no explicit status is picked, scope the query server-side to what this role is allowed to see,
     // instead of fetching everything and filtering client-side after pagination (see ROLE_VISIBLE_STATUSES).
     const roleStatuses = statusFilter === 'All' ? ROLE_VISIBLE_STATUSES[userRole] : undefined;
     return {
       page: currentPage,
       pageSize,
-      searchQuery: debouncedSearch.trim() || undefined,
       status: statusFilter !== 'All' ? statusFilter : undefined,
       statuses: roleStatuses,
-      // NOC only deals with Incoming Feed requests — Download/Camera Card ingest bookings aren't theirs.
-      bookingType: userRole === 'NOC' ? 'Incoming Feed' : (bookingTypeFilter !== 'All' ? bookingTypeFilter : undefined),
-      createdAtFrom: created.from ?? null,
-      createdAtTo: created.to ?? null,
-      // Requester self-filter — Booking screen only.
-      createdBy: userRole === 'Booking' && onlyMine && user?.id ? user.id : undefined,
+      ...sharedFilters,
     };
-  }, [currentPage, pageSize, debouncedSearch, statusFilter, bookingTypeFilter, createdDateRange, userRole, onlyMine, user]);
+  }, [currentPage, pageSize, statusFilter, userRole, sharedFilters]);
 
   const runSearch = useCallback(async () => {
+    // The board loads its own per-column data; skip the paginated table fetch.
+    if (viewMode === 'grid') return;
     setLoading(true);
     try {
       const body = buildBody();
@@ -374,7 +301,7 @@ export const RequestList: React.FC<RequestListProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [buildBody, userRole]);
+  }, [buildBody, userRole, viewMode]);
 
   useEffect(() => {
     runSearch();
@@ -457,32 +384,7 @@ export const RequestList: React.FC<RequestListProps> = ({
     <div className="space-y-6">
       <>
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 bg-muted p-1 rounded-lg">
-              <button
-                type="button"
-                onClick={() => handleViewModeChange('grid')}
-                className={`p-2 rounded transition-colors ${
-                  viewMode === 'grid'
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-muted-foreground hover:text-card-foreground'
-                }`}
-                title="Grid view"
-              >
-                <Grid3x3 size={18} />
-              </button>
-              <button
-                type="button"
-                onClick={() => handleViewModeChange('list')}
-                className={`p-2 rounded transition-colors ${
-                  viewMode === 'list'
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-muted-foreground hover:text-card-foreground'
-                }`}
-                title="List view"
-              >
-                <List size={18} />
-              </button>
-            </div>
+            <ViewToggle value={viewMode} onChange={handleViewModeChange} />
 
             {pendingConfig && (
               <button
@@ -619,27 +521,29 @@ export const RequestList: React.FC<RequestListProps> = ({
                   className="pl-9"
                 />
               </div>
-              <Select
-                value={statusFilter}
-                onValueChange={(value) => {
-                  setCurrentPage(1);
-                  setStatusFilter(value as StatusFilter);
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="All states" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="All">All states</SelectItem>
-                  {statuses
-                    .filter((s) => s !== 'All')
-                    .map((status) => (
-                      <SelectItem key={status} value={status}>
-                        {status}
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
+              {viewMode === 'list' && (
+                <Select
+                  value={statusFilter}
+                  onValueChange={(value) => {
+                    setCurrentPage(1);
+                    setStatusFilter(value as StatusFilter);
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="All states" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="All">All states</SelectItem>
+                    {statuses
+                      .filter((s) => s !== 'All')
+                      .map((status) => (
+                        <SelectItem key={status} value={status}>
+                          {status}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              )}
               {userRole !== 'NOC' && (
                 <Select
                   value={bookingTypeFilter}
@@ -688,17 +592,26 @@ export const RequestList: React.FC<RequestListProps> = ({
             )}
           </ListFilterBar>
 
-          <ListPaginationBar
-            currentPage={currentPage}
-            totalItems={total}
-            pageSize={pageSize}
-            onPageChange={setCurrentPage}
-            onPageSizeChange={handlePageSizeChange}
-            storageKey={PAGINATION_STORAGE_KEY}
-            disabled={loading}
-          />
+          {viewMode === 'list' && (
+            <ListPaginationBar
+              currentPage={currentPage}
+              totalItems={total}
+              pageSize={pageSize}
+              onPageChange={setCurrentPage}
+              onPageSizeChange={handlePageSizeChange}
+              storageKey={PAGINATION_STORAGE_KEY}
+              disabled={loading}
+            />
+          )}
 
-          {loading ? (
+          {viewMode === 'grid' ? (
+            <BookingBoard
+              userRole={userRole}
+              filters={sharedFilters}
+              refreshSignal={refreshSignal}
+              onOpen={(request) => navigate(`/${userRole.toLowerCase()}/requests/${request.id}`)}
+            />
+          ) : loading ? (
             <div className="flex items-center justify-center py-16">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
             </div>
@@ -717,19 +630,7 @@ export const RequestList: React.FC<RequestListProps> = ({
             </div>
           ) : (
             <>
-              {viewMode === 'grid' ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {items.map((request) => (
-                    <RequestCard
-                      key={request.id}
-                      request={request}
-                      isNew={userRole === 'NOC' && request.__isNew}
-                      onClick={() => navigate(`/${userRole.toLowerCase()}/requests/${request.id}`)}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+              <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
                   <div className="overflow-x-auto">
                     <Table className={GRID_CLASS}>
                       <TableHeader>
@@ -738,7 +639,7 @@ export const RequestList: React.FC<RequestListProps> = ({
                           <TableHead className={headClass}>Title</TableHead>
                           <TableHead className={cn(headClass, 'w-[180px]')}>Program</TableHead>
                           <TableHead className={cn(headClass, 'w-[190px]')}>Booking type</TableHead>
-                          <TableHead className={cn(headClass, 'w-[190px]')}>State</TableHead>
+                          <TableHead className={cn(headClass, 'w-[190px]')}>Status</TableHead>
                           <TableHead className={cn(headClass, 'w-[110px]')}>Priority</TableHead>
                           <TableHead className={cn(headClass, 'w-[170px]')}>Created by</TableHead>
                           <TableHead className={cn(headClass, 'w-[130px]')}>Created</TableHead>
@@ -838,7 +739,6 @@ export const RequestList: React.FC<RequestListProps> = ({
                     </Table>
                   </div>
                 </div>
-              )}
             </>
           )}
       </>

@@ -1,7 +1,8 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, Grid3x3, List, Ban } from 'lucide-react';
+import { Plus, Search, Ban } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { ViewToggle } from '@/components/ui/view-toggle';
 import { ListPaginationBar, getInitialPage, getInitialPageSize } from '@/components/ui/list-pagination-bar';
 import {
   Select,
@@ -16,6 +17,8 @@ import {
 } from '@/components/ui/dialog';
 import { DateRangePicker } from '@/components/DateRangePicker';
 import { EditingRequestList } from '../components/EditingRequestList';
+import { EditingBoard, type EditingBoardFilters } from '../components/EditingBoard';
+import { filterOutManualBlocks } from '../utils/editingUtils';
 import { ManualBlockForm } from '../components/ManualBlockForm';
 import { RejectRequestDialog } from '../components/RejectRequestDialog';
 import { editingApi } from '../api/editingApi';
@@ -51,6 +54,8 @@ export const EditingRequestsPage: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(() => getInitialPage(PAGINATION_STORAGE_KEY, 1));
   const [pageSize, setPageSize] = useState(() => getInitialPageSize(PAGINATION_STORAGE_KEY, 50));
   const [total, setTotal] = useState(0);
+  // Bumped on SignalR events / reject so the board's per-column queries refetch.
+  const [boardRefresh, setBoardRefresh] = useState(0);
   const skipSearchPageReset = useRef(true);
   const [showManualBlockModal, setShowManualBlockModal] = useState(false);
   const [rejectTarget, setRejectTarget] = useState<EditingRequest | null>(null);
@@ -63,8 +68,15 @@ export const EditingRequestsPage: React.FC = () => {
     user?.roles?.includes('Admin') || user?.roles?.includes('SuperEditor') || false;
   const canRejectRequest = canManageManualBlock;
 
-  const filterManualBlocks = (items: EditingRequest[]) =>
-    items.filter((r) => !r.isManualBlock);
+  // Non-status filters, shared with the board so the table and board can't drift.
+  const boardFilters = useMemo<EditingBoardFilters>(
+    () => ({
+      searchQuery: debouncedSearch.trim() || undefined,
+      dateFrom: dateRange?.from,
+      dateTo: dateRange?.to,
+    }),
+    [debouncedSearch, dateRange?.from, dateRange?.to],
+  );
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(searchTerm), 500);
@@ -80,17 +92,17 @@ export const EditingRequestsPage: React.FC = () => {
   }, [debouncedSearch]);
 
   const loadRequests = useCallback(async () => {
+    // The board loads its own per-column data; skip the paginated table fetch.
+    if (viewMode === 'grid') return;
     setLoading(true);
     try {
       const result = await editingApi.search({
-        searchQuery: debouncedSearch.trim() || undefined,
+        ...boardFilters,
         status: statusFilter !== 'All States' ? statusFilter : undefined,
-        dateFrom: dateRange?.from,
-        dateTo: dateRange?.to,
         page: currentPage,
         pageSize,
       });
-      const items = filterManualBlocks(result.items ?? []);
+      const items = filterOutManualBlocks(result.items ?? []);
       setRequests(items);
       setTotal(result.total ?? 0);
     } catch (error) {
@@ -100,7 +112,7 @@ export const EditingRequestsPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [debouncedSearch, statusFilter, dateRange?.from, dateRange?.to, currentPage, pageSize]);
+  }, [boardFilters, statusFilter, currentPage, pageSize, viewMode]);
 
   useEffect(() => {
     loadRequests();
@@ -123,6 +135,7 @@ export const EditingRequestsPage: React.FC = () => {
 
     const unsubscribeCreated = listen('EditingRequestCreated', (data: EditingRequest) => {
       if (data.isManualBlock) return;
+      setBoardRefresh((n) => n + 1);
       setRequests((prev) => {
         const exists = prev.some((r) => r.id === data.id);
         if (exists) return prev;
@@ -131,6 +144,7 @@ export const EditingRequestsPage: React.FC = () => {
     });
 
     const unsubscribeUpdated = listen('EditingRequestUpdated', (data: EditingRequest) => {
+      setBoardRefresh((n) => n + 1);
       if (data.isManualBlock) {
         setRequests((prev) => prev.filter((r) => r.id !== data.id));
         return;
@@ -139,6 +153,7 @@ export const EditingRequestsPage: React.FC = () => {
     });
 
     const unsubscribeCancelled = listen('EditingRequestCancelled', (data: EditingRequest) => {
+      setBoardRefresh((n) => n + 1);
       setRequests((prev) => prev.map((r) => (r.id === data.id ? data : r)));
     });
 
@@ -159,6 +174,7 @@ export const EditingRequestsPage: React.FC = () => {
     try {
       const updated = await editingApi.rejectRequest(rejectTarget.id, { rejectionReason: reason });
       setRequests((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
+      setBoardRefresh((n) => n + 1);
       showToast('Request marked as cannot accommodate', 'success');
     } catch (error: unknown) {
       console.error('Failed to reject request:', error);
@@ -177,30 +193,7 @@ export const EditingRequestsPage: React.FC = () => {
     <div className="space-y-6">
       {/* Top bar: view mode toggle, + New Request */}
       <div className="flex items-center gap-3">
-        <div className="flex items-center gap-2 bg-muted p-1 rounded-lg">
-          <button
-            onClick={() => handleViewModeChange('grid')}
-            className={`p-2 rounded transition-colors ${
-              viewMode === 'grid'
-                ? 'bg-primary text-primary-foreground'
-                : 'text-muted-foreground hover:text-card-foreground'
-            }`}
-            title="Grid view"
-          >
-            <Grid3x3 size={18} />
-          </button>
-          <button
-            onClick={() => handleViewModeChange('list')}
-            className={`p-2 rounded transition-colors ${
-              viewMode === 'list'
-                ? 'bg-primary text-primary-foreground'
-                : 'text-muted-foreground hover:text-card-foreground'
-            }`}
-            title="List view"
-          >
-            <List size={18} />
-          </button>
-        </div>
+        <ViewToggle value={viewMode} onChange={handleViewModeChange} />
 
         <div className="flex-1" />
 
@@ -249,41 +242,53 @@ export const EditingRequestsPage: React.FC = () => {
             />
           </div>
 
-          {/* Status filter */}
-          <div className="md:col-span-3">
-            <Select
-              value={statusFilter}
-              onValueChange={(v) => {
-                setStatusFilter(v);
-                setCurrentPage(1);
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="All States" />
-              </SelectTrigger>
-              <SelectContent>
-                {STATUS_OPTIONS.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {/* Status filter (the board's columns are the statuses) */}
+          {viewMode === 'list' && (
+            <div className="md:col-span-3">
+              <Select
+                value={statusFilter}
+                onValueChange={(v) => {
+                  setStatusFilter(v);
+                  setCurrentPage(1);
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="All States" />
+                </SelectTrigger>
+                <SelectContent>
+                  {STATUS_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
         </div>
       </div>
 
-      <ListPaginationBar
-        currentPage={currentPage}
-        totalItems={total}
-        pageSize={pageSize}
-        onPageChange={setCurrentPage}
-        onPageSizeChange={handlePageSizeChange}
-        storageKey={PAGINATION_STORAGE_KEY}
-        disabled={loading}
-      />
+      {viewMode === 'list' && (
+        <ListPaginationBar
+          currentPage={currentPage}
+          totalItems={total}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={handlePageSizeChange}
+          storageKey={PAGINATION_STORAGE_KEY}
+          disabled={loading}
+        />
+      )}
 
-      {loading ? (
+      {viewMode === 'grid' ? (
+        <EditingBoard
+          filters={boardFilters}
+          refreshKey={boardRefresh}
+          canReject={canRejectRequest}
+          isRejectable={canReject}
+          onReject={(request) => setRejectTarget(request)}
+        />
+      ) : loading ? (
         <div className="flex items-center justify-center py-16">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
         </div>
@@ -301,7 +306,6 @@ export const EditingRequestsPage: React.FC = () => {
         <EditingRequestList
           requests={requests}
           loading={loading}
-          viewMode={viewMode}
           canReject={canRejectRequest}
           onReject={(request) => setRejectTarget(request)}
           isRejectable={canReject}
@@ -315,6 +319,7 @@ export const EditingRequestsPage: React.FC = () => {
             onSuccess={() => {
               setShowManualBlockModal(false);
               loadRequests();
+              setBoardRefresh((n) => n + 1);
             }}
             onCancel={() => setShowManualBlockModal(false)}
           />

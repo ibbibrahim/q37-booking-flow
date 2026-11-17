@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, FileText, Calendar, User, Search, Filter, Grid3x3, List, Check, Mail, Minus, History } from 'lucide-react';
-import { addDays, startOfToday, endOfToday, startOfTomorrow, endOfTomorrow, endOfDay, startOfMonth, endOfMonth, format, formatDistanceToNowStrict } from 'date-fns';
+import { Plus, FileText, Search, Filter, Mail, History } from 'lucide-react';
+import { addDays, startOfToday, endOfToday, startOfTomorrow, endOfTomorrow, endOfDay, startOfMonth, endOfMonth, formatDistanceToNowStrict } from 'date-fns';
 import { DateRange } from 'react-day-picker';
 import { callSheetApi } from '../services/mockCallSheetApi';
 import { useAuth } from '@/contexts/AuthContext';
@@ -14,11 +14,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { cn } from '@/lib/utils';
 import { UserAvatar } from '@/components/ui/user-avatar';
 import { StatusPill } from '@/components/ui/status-pill';
-import type { Tone } from '@/lib/tone';
-import type { CallSheetRequest, CallSheetStatus } from '../types/callsheet';
-import { formatQatarDateTime } from '../utils/timezone';
+import { ViewToggle } from '@/components/ui/view-toggle';
+import type { CallSheetRequest } from '../types/callsheet';
+import { STATUS_TONES, buildCallSheetSharedFilters } from '../utils/callsheetFilters';
 import { readCallsheetDraftSummary } from '../utils/callsheetDraft';
 import { CallsheetWeeklyCalendar } from './CallsheetWeeklyCalendar';
+import { CallSheetBoard } from './CallSheetBoard';
 import { formatDateTime } from '@/studio_booking/utils/timeUtils';
 import { CallSheetPageLoader } from './CallSheetPageLoader';
 import { ListPaginationBar, getInitialPage, getInitialPageSize } from '@/components/ui/list-pagination-bar';
@@ -28,14 +29,6 @@ const PAGINATION_STORAGE_KEY = 'callsheet-workflow:list';
 const headClass = 'h-10 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground';
 const GRID_CLASS =
   'min-w-[1320px] [&_th]:border-r [&_td]:border-r [&_th]:border-border/70 [&_td]:border-border/70 [&_th:last-child]:border-r-0 [&_td:last-child]:border-r-0';
-
-const STATUS_TONES: Record<CallSheetStatus, Tone> = {
-  Draft: 'muted',
-  'With Technical Store': 'warning',
-  Submitted: 'info',
-  Completed: 'success',
-  Cancelled: 'destructive',
-};
 
 
 type ViewMode = 'grid' | 'list';
@@ -49,6 +42,8 @@ export const CallSheetDashboard: React.FC = () => {
   const [calendarCallSheets, setCalendarCallSheets] = useState<CallSheetRequest[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  // Bumped on SignalR events so the board's per-column queries refetch.
+  const [boardRefresh, setBoardRefresh] = useState(0);
 
   const [currentPage, setCurrentPage] = useState(() => getInitialPage(PAGINATION_STORAGE_KEY, 1));
   const [pageSize, setPageSize] = useState(() => getInitialPageSize(PAGINATION_STORAGE_KEY, 20));
@@ -90,38 +85,38 @@ export const CallSheetDashboard: React.FC = () => {
     setCurrentPage(1);
   }, [debouncedSearchQuery]);
 
+  // Non-status filters, shared with the board so the table and board can't drift.
+  const sharedFilters = useMemo(
+    () =>
+      buildCallSheetSharedFilters({
+        searchQuery: debouncedSearchQuery,
+        driverFilter,
+        dateRange,
+      }),
+    [debouncedSearchQuery, driverFilter, dateRange]
+  );
+
   const buildFilterBody = useCallback(
     (page: number, size: number) => {
       const filters: Record<string, unknown> = {
         page,
         pageSize: size,
+        ...sharedFilters,
       };
 
-      if (debouncedSearchQuery.trim()) {
-        filters.searchQuery = debouncedSearchQuery.trim();
-      }
-
-      if (statusFilter && statusFilter !== 'All') {
+      // The status filter is hidden in board mode (columns are the statuses), so it must not apply there.
+      if (viewMode === 'list' && statusFilter && statusFilter !== 'All') {
         filters.status = statusFilter;
-      }
-
-      if (driverFilter !== 'All') {
-        filters.driverNeeded = driverFilter === 'Yes';
-      }
-
-      if (dateRange?.from) {
-        filters.dateFrom = format(dateRange.from, 'yyyy-MM-dd');
-      }
-      if (dateRange?.to) {
-        filters.dateTo = format(dateRange.to, 'yyyy-MM-dd');
       }
 
       return filters;
     },
-    [debouncedSearchQuery, statusFilter, driverFilter, dateRange]
+    [sharedFilters, statusFilter, viewMode]
   );
 
   const runSearch = useCallback(async () => {
+    // The board loads its own per-column data; skip the paginated table fetch.
+    if (viewMode === 'grid') return;
     setLoading(true);
     try {
       const body = buildFilterBody(currentPage, pageSize);
@@ -135,7 +130,7 @@ export const CallSheetDashboard: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [buildFilterBody, currentPage, pageSize]);
+  }, [buildFilterBody, currentPage, pageSize, viewMode]);
 
   const loadCalendarCallSheets = useCallback(async () => {
     try {
@@ -176,6 +171,7 @@ export const CallSheetDashboard: React.FC = () => {
 
     const unsubscribeCreated = listen('CallSheetCreated', (newCallSheet: CallSheetRequest) => {
       console.log('CallSheetCreated event received:', newCallSheet);
+      setBoardRefresh((n) => n + 1);
 
       const prependIfNew = (prev: CallSheetRequest[]) => {
         const exists = prev.some((cs) => cs.id === newCallSheet.id);
@@ -196,6 +192,7 @@ export const CallSheetDashboard: React.FC = () => {
 
     const unsubscribeUpdatedByTechnicalStore = listen('CallSheetUpdatedByTechnicalStore', (updatedCallSheet: CallSheetRequest) => {
       console.log('CallSheetUpdatedByTechnicalStore event received:', updatedCallSheet);
+      setBoardRefresh((n) => n + 1);
 
       const applyUpdate = (prev: CallSheetRequest[]) => {
         if (isTechnicalStore) {
@@ -238,41 +235,10 @@ export const CallSheetDashboard: React.FC = () => {
     }
   };
 
-  const statusColors: Record<string, string> = {
-    'Draft': 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300',
-    'With Technical Store': 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400',
-    'Submitted': 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400',
-    'Completed': 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400',
-    'Cancelled': 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
-  };
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2 bg-muted p-1 rounded-lg">
-          <button
-            onClick={() => handleViewModeChange('grid')}
-            className={`p-2 rounded transition-colors ${
-              viewMode === 'grid'
-                ? 'bg-primary text-primary-foreground'
-                : 'text-muted-foreground hover:text-card-foreground'
-            }`}
-            title="Grid view"
-          >
-            <Grid3x3 size={18} />
-          </button>
-          <button
-            onClick={() => handleViewModeChange('list')}
-            className={`p-2 rounded transition-colors ${
-              viewMode === 'list'
-                ? 'bg-primary text-primary-foreground'
-                : 'text-muted-foreground hover:text-card-foreground'
-            }`}
-            title="List view"
-          >
-            <List size={18} />
-          </button>
-        </div>
+        <ViewToggle value={viewMode} onChange={handleViewModeChange} />
         <div className="flex-1" />
         {!isTechnicalStore && unfinishedCallsheet && (
           <button
@@ -323,28 +289,30 @@ export const CallSheetDashboard: React.FC = () => {
             />
           </div>
 
-          {/* Status Filter */}
-          <div className="md:col-span-2">
-            <Select
-              value={statusFilter}
-              onValueChange={(value) => {
-                setCurrentPage(1);
-                setStatusFilter(value);
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="All Statuses" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="All">All Statuses</SelectItem>
-                <SelectItem value="Draft">Draft</SelectItem>
-                <SelectItem value="With Technical Store">With Technical Store</SelectItem>
-                <SelectItem value="Submitted">Submitted</SelectItem>
-                <SelectItem value="Completed">Completed</SelectItem>
-                <SelectItem value="Cancelled">Cancelled</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          {/* Status Filter (the board's columns are the statuses) */}
+          {viewMode === 'list' && (
+            <div className="md:col-span-2">
+              <Select
+                value={statusFilter}
+                onValueChange={(value) => {
+                  setCurrentPage(1);
+                  setStatusFilter(value);
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="All Statuses" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="All">All Statuses</SelectItem>
+                  <SelectItem value="Draft">Draft</SelectItem>
+                  <SelectItem value="With Technical Store">With Technical Store</SelectItem>
+                  <SelectItem value="Submitted">Submitted</SelectItem>
+                  <SelectItem value="Completed">Completed</SelectItem>
+                  <SelectItem value="Cancelled">Cancelled</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           {/* Driver Filter */}
           <div className="md:col-span-2">
@@ -402,17 +370,20 @@ export const CallSheetDashboard: React.FC = () => {
         </div> */}
       </div>
 
-      <ListPaginationBar
-        currentPage={currentPage}
-        totalItems={total}
-        pageSize={pageSize}
-        onPageChange={setCurrentPage}
-        onPageSizeChange={handlePageSizeChange}
-        storageKey={PAGINATION_STORAGE_KEY}
-        disabled={loading}
-      />
+      {viewMode === 'list' && (
+        <ListPaginationBar
+          currentPage={currentPage}
+          totalItems={total}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={handlePageSizeChange}
+          storageKey={PAGINATION_STORAGE_KEY}
+          disabled={loading}
+        />
+      )}
 
-      {loading ? (
+      {/* The board loads its own per-column data, so only the table waits on `loading`. */}
+      {loading && viewMode === 'list' ? (
         <CallSheetPageLoader message="Loading call sheets..." />
       ) : (
         <>
@@ -422,7 +393,13 @@ export const CallSheetDashboard: React.FC = () => {
         onOpenCallsheet={(id) => navigate(`/callsheet/${id}`)}
       />
 
-      {total === 0 ? (
+      {viewMode === 'grid' ? (
+        <CallSheetBoard
+          filters={sharedFilters}
+          refreshSignal={boardRefresh}
+          onOpen={(callSheet) => navigate(`/callsheet/${callSheet.id}`)}
+        />
+      ) : total === 0 ? (
         <div className="text-center py-16 bg-card rounded-lg border border-border">
           <FileText size={48} className="mx-auto text-muted-foreground mb-4" />
           <h3 className="text-lg font-semibold text-card-foreground mb-2">
@@ -442,78 +419,6 @@ export const CallSheetDashboard: React.FC = () => {
               Create Call Sheet
             </Button>
           )}
-        </div>
-      ) : viewMode === 'grid' ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {callSheets.map((callSheet) => {
-            const isCancelled = callSheet.status === 'Cancelled';
-            return (
-              <div
-                key={callSheet.id}
-                onClick={() => navigate(`/callsheet/${callSheet.id}`)}
-                className={`bg-card rounded-lg border border-border p-6 hover:shadow-lg transition-all cursor-pointer group ${
-                  isCancelled ? 'opacity-60' : ''
-                }`}
-              >
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex-1">
-                    <h3 className={`text-lg font-semibold text-card-foreground group-hover:text-primary transition-colors mb-1 ${
-                      isCancelled ? 'line-through' : ''
-                    }`}>
-                      {callSheet.title}
-                    </h3>
-                    <p className="text-sm text-muted-foreground">{callSheet.department}</p>
-                  </div>
-                  <div className="flex flex-col items-end gap-2">
-                    <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${statusColors[callSheet.status]}`}>
-                      {callSheet.status}
-                    </span>
-                    {callSheet.alreadyAnnouncedEmail ? (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
-                        <Check className="h-3 w-3" />
-                        Email Sent
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground">
-                        <Minus className="h-3 w-3" />
-                        Not Sent
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-              <div className="space-y-2 mb-4">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Calendar size={14} />
-                  <span>{formatQatarDateTime(callSheet.startDateTime)}</span>
-                </div>
-                {callSheet.location && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <FileText size={14} />
-                    <span className="truncate">{callSheet.location}</span>
-                  </div>
-                )}
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <User size={14} />
-                  <span>{callSheet.createdByUser?.displayName || callSheet.createdByUser?.username || callSheet.createdBy}</span>
-                </div>
-              </div>
-
-              <div className="pt-4 border-t border-border">
-                <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                  {callSheet.transportRequest && (
-                    <span>Transport requested</span>
-                  )}
-                  {callSheet.driverNeeded && (
-                    <span className="text-orange-600 dark:text-orange-400 font-medium">
-                      Driver needed
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-            );
-          })}
         </div>
       ) : (
         <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">

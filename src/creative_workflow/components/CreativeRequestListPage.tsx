@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Download, Loader2, Plus, Search } from 'lucide-react';
@@ -20,13 +20,15 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { StatusPill } from '@/components/ui/status-pill';
 import { UserAvatar } from '@/components/ui/user-avatar';
-import type { Tone } from '@/lib/tone';
+import { ViewToggle, type ViewToggleValue } from '@/components/ui/view-toggle';
 import { cn } from '@/lib/utils';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import { getApiErrorMessage } from '../../utils/apiError';
 import { getVizrtCleanupList, listCreativeRequests } from '../services/creativeApi';
 import { exportVizrtCleanupList } from '../utils/vizrtCleanupExport';
+import { PRIORITY_TONES, STATUS_TONES, buildCreativeListFilters } from '../utils/creativeList';
+import { CreativeBoard } from './CreativeBoard';
 import { useCreativeRequestChanged } from '../hooks/useCreativeRequestChanged';
 import {
   CREATIVE_REQUEST_STATUS,
@@ -48,17 +50,8 @@ const headClass = 'h-10 text-[11px] font-semibold uppercase tracking-wider text-
 const GRID_CLASS =
   'min-w-[1000px] [&_th]:border-r [&_td]:border-r [&_th]:border-border/70 [&_td]:border-border/70 [&_th:last-child]:border-r-0 [&_td:last-child]:border-r-0';
 
-const STATUS_TONES: Record<string, Tone> = {
-  Submitted: 'warning',
-  Completed: 'info',
-  NeedsRevision: 'destructive',
-  Approved: 'success',
-};
-
-const PRIORITY_TONES: Record<string, Tone> = {
-  Normal: 'muted',
-  Urgent: 'destructive',
-};
+const VIEW_MODE_STORAGE_KEY = 'creative-view-mode';
+type ViewMode = ViewToggleValue;
 
 export function CreativeRequestListPage() {
   const navigate = useNavigate();
@@ -76,6 +69,23 @@ export function CreativeRequestListPage() {
   const [page, setPage] = useState(() => getInitialPage(PAGINATION_STORAGE_KEY));
   const [pageSize, setPageSize] = useState(() => getInitialPageSize(PAGINATION_STORAGE_KEY, 10));
 
+  const [viewMode, setViewMode] = useState<ViewMode>(() => {
+    try {
+      return localStorage.getItem(VIEW_MODE_STORAGE_KEY) === 'grid' ? 'grid' : 'list';
+    } catch {
+      return 'list';
+    }
+  });
+
+  const handleViewModeChange = (mode: ViewMode) => {
+    setViewMode(mode);
+    try {
+      localStorage.setItem(VIEW_MODE_STORAGE_KEY, mode);
+    } catch {
+      // storage unavailable — the choice just won't persist
+    }
+  };
+
   useEffect(() => {
     const handle = setTimeout(() => {
       setPage(1);
@@ -84,21 +94,24 @@ export function CreativeRequestListPage() {
     return () => clearTimeout(handle);
   }, [searchInput]);
 
+  const sharedFilters = useMemo(() => buildCreativeListFilters({ search, requestType }), [search, requestType]);
+
   const { data, isLoading, isError } = useQuery({
     queryKey: ['creative-requests', page, pageSize, search, status, requestType],
     queryFn: () =>
       listCreativeRequests({
+        ...sharedFilters,
         page,
         perPage: pageSize,
-        search,
         status: status === 'All' ? undefined : status,
-        requestType: requestType === 'All' ? undefined : requestType,
       }),
     placeholderData: (prev) => prev,
+    enabled: viewMode === 'list',
   });
 
   useCreativeRequestChanged(() => {
     queryClient.invalidateQueries({ queryKey: ['creative-requests'] });
+    queryClient.invalidateQueries({ queryKey: ['creative', 'board'] });
   });
 
   const items = data?.items ?? [];
@@ -125,6 +138,7 @@ export function CreativeRequestListPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
+        <ViewToggle value={viewMode} onChange={handleViewModeChange} />
         <div className="flex-1" />
         {isAdmin && (
           <Button type="button" variant="outline" onClick={handleExportCleanup} disabled={exporting}>
@@ -155,24 +169,26 @@ export function CreativeRequestListPage() {
               className="pl-9"
             />
           </div>
-          <Select
-            value={status}
-            onValueChange={(v) => {
-              setPage(1);
-              setStatus(v);
-            }}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="All statuses" />
-            </SelectTrigger>
-            <SelectContent>
-              {STATUS_OPTIONS.map((s) => (
-                <SelectItem key={s} value={s}>
-                  {s === 'All' ? 'All statuses' : s}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {viewMode === 'list' && (
+            <Select
+              value={status}
+              onValueChange={(v) => {
+                setPage(1);
+                setStatus(v);
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="All statuses" />
+              </SelectTrigger>
+              <SelectContent>
+                {STATUS_OPTIONS.map((s) => (
+                  <SelectItem key={s} value={s}>
+                    {s === 'All' ? 'All statuses' : s}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
           <Select
             value={requestType}
             onValueChange={(v) => {
@@ -195,19 +211,24 @@ export function CreativeRequestListPage() {
         </div>
       </ListFilterBar>
 
-      <ListPaginationBar
-        currentPage={page}
-        totalItems={totalItems}
-        pageSize={pageSize}
-        onPageChange={setPage}
-        onPageSizeChange={(n) => {
-          setPage(1);
-          setPageSize(n);
-        }}
-        storageKey={PAGINATION_STORAGE_KEY}
-        disabled={isLoading}
-      />
+      {viewMode === 'list' && (
+        <ListPaginationBar
+          currentPage={page}
+          totalItems={totalItems}
+          pageSize={pageSize}
+          onPageChange={setPage}
+          onPageSizeChange={(n) => {
+            setPage(1);
+            setPageSize(n);
+          }}
+          storageKey={PAGINATION_STORAGE_KEY}
+          disabled={isLoading}
+        />
+      )}
 
+      {viewMode === 'grid' ? (
+        <CreativeBoard filters={sharedFilters} onOpen={(r) => navigate(`/creative-requests/${r.id}`)} />
+      ) : (
       <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
         <div className="overflow-x-auto">
           <Table className={GRID_CLASS}>
@@ -288,6 +309,7 @@ export function CreativeRequestListPage() {
           </Table>
         </div>
       </div>
+      )}
     </div>
   );
 }

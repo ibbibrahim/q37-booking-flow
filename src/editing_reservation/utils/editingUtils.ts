@@ -3,6 +3,22 @@ import { format, parseISO } from "date-fns";
 
 
 
+import type { Tone } from "@/lib/tone";
+import type { EditingRequest } from "../types/editing";
+
+// Tone per status, shared by the table and the board
+export const EDITING_STATUS_TONES: Record<string, Tone> = {
+  Pending: 'warning',
+  Acknowledged: 'info',
+  Completed: 'success',
+  Cancelled: 'muted',
+  Rejected: 'destructive',
+};
+
+// Manual blocks are schedule blocks, not requests; list views and the board hide them.
+export const filterOutManualBlocks = (items: EditingRequest[]): EditingRequest[] =>
+  items.filter((r) => !r.isManualBlock);
+
 // Display label for status (UI only; underlying value stays e.g. "Completed")
 export const getEditingStatusDisplayLabel = (status: string): string => {
   if (status === 'Completed') return 'Assignment Completed';
