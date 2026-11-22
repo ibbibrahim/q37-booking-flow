@@ -832,12 +832,6 @@ export const BookingDashboard: React.FC = () => {
                       onClick={() => goTo(ENG_PATHS.vendors)}
                     />
                     <SidebarSubItem
-                      icon={BarChart3}
-                      label="Ticket Reports"
-                      isActive={location.pathname === ENG_PATHS.ticketReports}
-                      onClick={() => goTo(ENG_PATHS.ticketReports)}
-                    />
-                    <SidebarSubItem
                       icon={FileBarChart}
                       label="Management Report"
                       isActive={location.pathname.startsWith(ENG_PATHS.managementReport)}

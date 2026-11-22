@@ -53,7 +53,6 @@ import { BITVendorDirectoryPage } from './bit_workflow/pages/BITVendorDirectoryP
 import { BITChecklistManagePage } from './bit_workflow/pages/BITChecklistManagePage';
 import { BITTicketsPage } from './bit_workflow/pages/BITTicketsPage';
 import { BITTicketDetailPage } from './bit_workflow/pages/BITTicketDetailPage';
-import { BITTicketReportsPage } from './bit_workflow/pages/BITTicketReportsPage';
 import { ManagementReportPage } from './bit_workflow/pages/ManagementReportPage';
 import { BITIncidentReportPage } from './bit_workflow/pages/BITIncidentReportPage';
 import { EngineeringHomeRedirect, LegacyBitRedirect } from './bit_workflow/components/EngineeringRedirects';
@@ -452,11 +451,7 @@ function App() {
         />
         <Route
           path="engineering/tickets/reports"
-          element={
-            <ProtectedRoute allowedRoles={ENGINEERING_ROLES}>
-              <BITTicketReportsPage />
-            </ProtectedRoute>
-          }
+          element={<Navigate to="/engineering/management-report" replace />}
         />
         <Route
           path="engineering/management-report"
