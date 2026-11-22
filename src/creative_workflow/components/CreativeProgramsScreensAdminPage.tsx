@@ -15,7 +15,7 @@ import {
   listCreativePrograms,
   listCreativeScreens,
   updateCreativeScreen,
-  uploadCreativeFormFile,
+  uploadCreativeScreenImage,
 } from '../services/creativeApi';
 import type { CreativeScreen } from '../types/creative';
 
@@ -113,7 +113,7 @@ function ScreensCard() {
   async function handleNewImageSelected(file: File) {
     setUploadingNew(true);
     try {
-      setNewImageUrl(await uploadCreativeFormFile(file));
+      setNewImageUrl(await uploadCreativeScreenImage(file));
     } catch {
       showToast('Image upload failed', 'error');
     } finally {
@@ -266,7 +266,7 @@ function ScreenTile({ screen }: { screen: CreativeScreen }) {
   async function handleImageSelected(file: File) {
     setBusy(true);
     try {
-      await saveImage(await uploadCreativeFormFile(file));
+      await saveImage(await uploadCreativeScreenImage(file));
     } catch {
       showToast('Could not update screen image', 'error');
     } finally {

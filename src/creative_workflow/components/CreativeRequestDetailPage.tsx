@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { isAxiosError } from 'axios';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Building2, Calendar, Check, Clock, Copy, FileText, Flag, FolderOpen, Image as ImageIcon, Info, Link2, User, UserCheck } from 'lucide-react';
+import { ArrowLeft, Building2, Calendar, Check, Clock, Copy, FileText, Flag, FolderOpen, Image as ImageIcon, Info, Link2, LibraryBig, User, UserCheck } from 'lucide-react';
 import type { ComponentType, ReactNode } from 'react';
 import { addMonths, format } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -100,6 +100,24 @@ function getApiErrorMessage(err: unknown, fallback: string): string {
     if (err.response?.status === 401) return 'Your session has expired. Please sign in again.';
   }
   return fallback;
+}
+
+const VIZRT_IMAGE_LIBRARY_URL: string =
+  import.meta.env.VITE_VIZRT_IMAGE_LIBRARY_URL ?? 'http://172.20.120.26:19390/imagelibrary/index.html#/';
+
+// Opens the Vizrt Image Library (office network only) in a side window docked to the right half
+// of the screen, so it sits beside the app. The named window is reused on repeat clicks. It can't
+// be embedded in the page: it's served over HTTP and this app is HTTPS (mixed content).
+function openVizrtImageLibrary() {
+  const width = Math.round(window.screen.availWidth / 2);
+  const height = window.screen.availHeight;
+  const left = window.screen.availWidth - width;
+  const win = window.open(
+    VIZRT_IMAGE_LIBRARY_URL,
+    'vizrt-image-library',
+    `popup,width=${width},height=${height},left=${left},top=0`,
+  );
+  win?.focus();
 }
 
 function formatRelativeTime(iso: string): string {
@@ -430,10 +448,16 @@ export function CreativeRequestDetailPage() {
           {isImageLibraryType && (
             <Card>
               <CardHeader>
-                <CardTitle className="text-base flex items-center gap-2">
-                  <ImageIcon className="h-4 w-4" />
-                  Vizrt Image Library Names
-                </CardTitle>
+                <div className="flex items-center justify-between gap-2">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <ImageIcon className="h-4 w-4" />
+                    Vizrt Image Library Names
+                  </CardTitle>
+                  <Button type="button" variant="outline" size="sm" onClick={openVizrtImageLibrary}>
+                    <LibraryBig className="mr-2 h-4 w-4" />
+                    Open Image Library
+                  </Button>
+                </div>
                 <p className="text-sm text-muted-foreground">
                   One name per image produced for this request — search for each by its name in Vizrt.
                 </p>
@@ -453,7 +477,7 @@ export function CreativeRequestDetailPage() {
                       <Label htmlFor="image-free-text">Free text for a new image</Label>
                       <Input
                         id="image-free-text"
-                        placeholder="e.g. Iran"
+                        placeholder="e.g. Weather"
                         value={imageFreeText}
                         onChange={(e) => setImageFreeText(e.target.value)}
                       />

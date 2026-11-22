@@ -145,6 +145,15 @@ export async function uploadCreativeFormFile(file: File): Promise<string> {
   return data.url;
 }
 
+export async function uploadCreativeScreenImage(file: File): Promise<string> {
+  const formData = new FormData();
+  formData.append('file', file);
+  const { data } = await apiClient.post<{ url: string }>('/api/creative/screens/upload', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return data.url;
+}
+
 export interface CreativeAttachmentUploadResult {
   id: number;
   url: string;

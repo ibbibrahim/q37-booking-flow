@@ -570,7 +570,7 @@ function App() {
         <Route
           path="creative-reference"
           element={
-            <ProtectedRoute allowedRoles={['Admin']}>
+            <ProtectedRoute allowedRoles={['Admin', 'BIT']}>
               <CreativeProgramsScreensAdminPage />
             </ProtectedRoute>
           }

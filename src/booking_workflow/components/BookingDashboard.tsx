@@ -503,7 +503,7 @@ export const BookingDashboard: React.FC = () => {
       label: 'Creative',
       items: [
         { key: 'creative-requests', icon: Palette, label: 'Booking', path: '/creative-requests', visible: !!hasCreativeAccess, isActive: currentSection === 'creative-requests' },
-        { key: 'creative-reference', icon: ListChecks, label: 'Reference Lists', path: '/creative-reference', visible: !!user?.roles?.includes('Admin'), isActive: currentSection === 'creative-reference' },
+        { key: 'creative-reference', icon: ListChecks, label: 'Reference Lists', path: '/creative-reference', visible: !!(user?.roles?.includes('Admin') || user?.roles?.includes('BIT')), isActive: currentSection === 'creative-reference' },
       ],
     },
   ]

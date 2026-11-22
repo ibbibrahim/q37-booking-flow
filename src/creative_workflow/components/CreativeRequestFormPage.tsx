@@ -105,9 +105,9 @@ export function CreativeRequestFormPage() {
     sections: [],
     selectType: 'Headline',
   });
-  const [newsData, setNewsData] = useState<NewsHeadlineData>({ screen: '', headlineText: '', imageValidity: 'OneMonth' });
-  const [pvwData, setPvwData] = useState<ProgramVideoWallData>({ screen: '', slides: [], imageValidity: 'OneMonth' });
-  const [vwpData, setVwpData] = useState<VideoWallPresentationData>({ screen: '', slides: [], imageValidity: 'OneMonth' });
+  const [newsData, setNewsData] = useState<NewsHeadlineData>({ screen: '', headlineText: '' });
+  const [pvwData, setPvwData] = useState<ProgramVideoWallData>({ screen: '', slides: [] });
+  const [vwpData, setVwpData] = useState<VideoWallPresentationData>({ screen: '', slides: [] });
   const [fillerData, setFillerData] = useState<FillerData>({ sections: [] });
   const [lowerThirdData, setLowerThirdData] = useState<LowerThirdData>({ sections: [] });
   const [specialData, setSpecialData] = useState<SpecialRequestData>({ imageLinks: [], description: '' });
@@ -215,10 +215,12 @@ export function CreativeRequestFormPage() {
     if (requestType === CREATIVE_REQUEST_TYPE.NewsHeadline) {
       if (!newsData.screen) next['news.screen'] = 'Screen is required.';
       if (!newsData.headlineText) next['news.headlineText'] = 'Headline Text is required.';
+      if (!newsData.imageValidity) next['news.imageValidity'] = 'Image Validity is required.';
     }
     if (requestType === CREATIVE_REQUEST_TYPE.ProgramVideoWall) {
       if (!program) next['pvw.program'] = 'Program is required.';
       if (!pvwData.screen) next['pvw.screen'] = 'Screen is required.';
+      if (!pvwData.imageValidity) next['pvw.imageValidity'] = 'Image Validity is required.';
       if (pvwData.slides.length === 0) {
         next['pvw.slides'] = 'Add at least one slide.';
       } else {
@@ -230,6 +232,7 @@ export function CreativeRequestFormPage() {
     if (requestType === CREATIVE_REQUEST_TYPE.VideoWallPresentation) {
       if (!program) next['vwp.program'] = 'Show Name is required.';
       if (!vwpData.screen) next['vwp.screen'] = 'Screen is required.';
+      if (!vwpData.imageValidity) next['vwp.imageValidity'] = 'Image Validity is required.';
       if (vwpData.slides.length === 0) {
         next['vwp.slides'] = 'Add at least one slide.';
       } else {
@@ -736,19 +739,23 @@ function ImageValiditySelect({
   id,
   value,
   onChange,
+  error,
 }: {
   id: string;
-  value: ImageValidity;
+  value?: ImageValidity;
   onChange: (v: ImageValidity) => void;
+  error?: string;
 }) {
   return (
     <div className="border-t border-border/60 pt-5">
       <div className="max-w-xs">
         <div className="space-y-2">
-          <Label htmlFor={id}>Image Validity</Label>
-          <Select value={value} onValueChange={(v) => onChange(v as ImageValidity)}>
-            <SelectTrigger id={id}>
-              <SelectValue />
+          <Label htmlFor={id}>
+            Image Validity <span className="text-red-500">*</span>
+          </Label>
+          <Select value={value ?? ''} onValueChange={(v) => onChange(v as ImageValidity)}>
+            <SelectTrigger id={id} className={error ? 'border-red-500' : ''}>
+              <SelectValue placeholder="Select validity" />
             </SelectTrigger>
             <SelectContent>
               {(Object.keys(IMAGE_VALIDITY_LABEL) as ImageValidity[]).map((k) => (
@@ -756,6 +763,7 @@ function ImageValiditySelect({
               ))}
             </SelectContent>
           </Select>
+          {error && <p className="text-sm text-red-500">{error}</p>}
           <p className="text-xs text-muted-foreground">
             After this period (counted from Air Date) the images are listed for removal from Vizrt.
           </p>
@@ -934,8 +942,9 @@ function NewsHeadlineForm({
 
         <ImageValiditySelect
           id="news-validity"
-          value={data.imageValidity ?? 'OneMonth'}
+          value={data.imageValidity}
           onChange={(v) => onChange({ ...data, imageValidity: v })}
+          error={errors['news.imageValidity']}
         />
       </CardContent>
     </Card>
@@ -1072,8 +1081,9 @@ function ProgramVideoWallForm({
 
         <ImageValiditySelect
           id="pvw-validity"
-          value={data.imageValidity ?? 'OneMonth'}
+          value={data.imageValidity}
           onChange={(v) => onChange({ ...data, imageValidity: v })}
+          error={errors['pvw.imageValidity']}
         />
       </CardContent>
     </Card>
@@ -1208,8 +1218,9 @@ function VideoWallPresentationForm({
 
         <ImageValiditySelect
           id="vwp-validity"
-          value={data.imageValidity ?? 'OneMonth'}
+          value={data.imageValidity}
           onChange={(v) => onChange({ ...data, imageValidity: v })}
+          error={errors['vwp.imageValidity']}
         />
       </CardContent>
     </Card>
