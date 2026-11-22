@@ -152,6 +152,9 @@ async function fetchDayFromApi(date: string): Promise<Programme[]> {
   return parseItems(Array.isArray(items) ? items : []);
 }
 
+/** Fetch + parse one day of the programme schedule (shared with the on-air ticket picker). */
+export const fetchEpgDay = fetchDayFromApi;
+
 async function fetchWeekFromApi(weekStart: string, weekEnd: string): Promise<Map<string, Programme[]>> {
   const url = buildUrl(weekStart, weekEnd);
   const res = await apiClient.get<BcmResponse>(url);

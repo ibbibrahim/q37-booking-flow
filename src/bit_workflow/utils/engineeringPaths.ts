@@ -8,6 +8,7 @@ export const ENG_PATHS = {
   ticketReports: `${ENG_BASE}/tickets/reports`,
   incidents: `${ENG_BASE}/incidents`,
   vendors: `${ENG_BASE}/vendors`,
+  managementReport: `${ENG_BASE}/management-report`,
 } as const;
 
 export const checklistHome = (team: ChecklistTeam) => `${ENG_BASE}/checklists/${team}`;

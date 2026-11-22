@@ -171,6 +171,7 @@ export function TicketSidePanel({
                   <span className={cn(due.overdue && 'font-medium text-destructive')}>{due.text}</span>
                 </Row>
               )}
+              <Row label="Programme">{ticket.onAirProgramme ?? '—'}</Row>
               <Row label="Downtime">{formatDowntime(downtimeMinutes)}</Row>
             </div>
             <div className="flex flex-wrap gap-2">

@@ -30,6 +30,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/contexts/ToastContext';
 import { cn } from '@/lib/utils';
 import { TONE_PILL } from '@/lib/tone';
+import { OnAirProgrammeSelect } from './OnAirProgrammeSelect';
 import {
   CATEGORIES,
   CATEGORY_LABELS,
@@ -66,10 +67,17 @@ interface FormErrors {
   description?: string;
   category?: string;
   priority?: string;
+  onAirProgramme?: string;
 }
 
 function FieldError({ message }: { message?: string }) {
   return message ? <p className="text-xs text-destructive">{message}</p> : null;
+}
+
+/** "yyyy-MM-ddTHH:mm" → minutes after midnight, or null. */
+function minuteOfLocalInput(value: string): number | null {
+  const match = /T(\d{2}):(\d{2})/.exec(value);
+  return match ? Number(match[1]) * 60 + Number(match[2]) : null;
 }
 
 export function TicketFormDialog({ open, onOpenChange, ticket, description: ticketDescription, onSaved }: TicketFormDialogProps) {
@@ -89,6 +97,7 @@ export function TicketFormDialog({ open, onOpenChange, ticket, description: tick
   const [attachments, setAttachments] = useState<UploadedFileRef[]>([]);
   const [onAir, setOnAir] = useState(false);
   const [incidentStart, setIncidentStart] = useState('');
+  const [onAirProgramme, setOnAirProgramme] = useState('');
   const [errors, setErrors] = useState<FormErrors>({});
   const [submitting, setSubmitting] = useState(false);
 
@@ -112,6 +121,7 @@ export function TicketFormDialog({ open, onOpenChange, ticket, description: tick
     setAttachments([]);
     setOnAir(false);
     setIncidentStart(toLocalInput(new Date().toISOString()));
+    setOnAirProgramme('');
     setErrors({});
     // eslint-disable-next-line react-hooks/exhaustive-deps -- reset only when the dialog opens
   }, [open, ticket?.id]);
@@ -124,6 +134,7 @@ export function TicketFormDialog({ open, onOpenChange, ticket, description: tick
     if (!description.trim()) next.description = 'Description is required';
     if (!category) next.category = 'Category is required';
     if (!priority) next.priority = 'Priority is required';
+    if (onAir && !onAirProgramme.trim()) next.onAirProgramme = 'Select the affected programme';
     setErrors(next);
     if (Object.keys(next).length > 0 || !category) return;
 
@@ -149,7 +160,7 @@ export function TicketFormDialog({ open, onOpenChange, ticket, description: tick
           ...common,
           assigneeUserId,
           attachments,
-          ...(onAir ? { onAirImpact: true, incidentStartedAt: fromLocalInput(incidentStart) ?? new Date().toISOString() } : {}),
+          ...(onAir ? { onAirImpact: true, incidentStartedAt: fromLocalInput(incidentStart) ?? new Date().toISOString(), onAirProgramme: onAirProgramme.trim() } : {}),
         });
       }
       await Promise.all([
@@ -217,21 +228,32 @@ export function TicketFormDialog({ open, onOpenChange, ticket, description: tick
                     if (checked) {
                       setPriority('critical');
                       setIncidentStart(toLocalInput(new Date().toISOString()));
+                      setOnAirProgramme('');
                     }
                   }}
                   className="data-[state=checked]:bg-destructive"
                 />
               </div>
               {onAir && (
-                <div className="mt-3 space-y-1.5 border-t border-destructive/20 pt-3 sm:max-w-xs">
-                  <Label htmlFor="ticket-incident-start">Incident started at</Label>
-                  <Input
-                    id="ticket-incident-start"
-                    type="datetime-local"
-                    value={incidentStart}
-                    max={toLocalInput(new Date().toISOString())}
-                    onChange={(e) => setIncidentStart(e.target.value)}
-                    className="tabular-nums"
+                <div className="mt-3 grid grid-cols-1 gap-3 border-t border-destructive/20 pt-3 sm:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="ticket-incident-start">Incident started at</Label>
+                    <Input
+                      id="ticket-incident-start"
+                      type="datetime-local"
+                      value={incidentStart}
+                      max={toLocalInput(new Date().toISOString())}
+                      onChange={(e) => setIncidentStart(e.target.value)}
+                      className="tabular-nums"
+                    />
+                  </div>
+                  <OnAirProgrammeSelect
+                    id="ticket-on-air-programme"
+                    date={incidentStart.slice(0, 10)}
+                    incidentMinute={minuteOfLocalInput(incidentStart)}
+                    value={onAirProgramme}
+                    onChange={setOnAirProgramme}
+                    error={errors.onAirProgramme}
                   />
                 </div>
               )}

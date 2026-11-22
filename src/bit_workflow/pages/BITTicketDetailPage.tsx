@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
 import { isAxiosError } from 'axios';
 import { motion } from 'motion/react';
-import { formatDistanceToNowStrict } from 'date-fns';
+import { format, formatDistanceToNowStrict } from 'date-fns';
 import {
   AlertCircle,
   ArrowLeft,
@@ -47,6 +47,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { usePageHeader } from '@/contexts/PageHeaderContext';
 import { useToast } from '@/contexts/ToastContext';
 import { IncidentBanner } from '../components/IncidentBanner';
+import { OnAirProgrammeSelect } from '../components/OnAirProgrammeSelect';
 import { TicketActivity } from '../components/TicketActivity';
 import { TicketAttachmentGallery } from '../components/TicketAttachmentGallery';
 import { TicketFormDialog } from '../components/TicketFormDialog';
@@ -97,6 +98,7 @@ export function BITTicketDetailPage() {
   const [resolveOpen, setResolveOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [onAirDialog, setOnAirDialog] = useState<'mark' | 'remove' | null>(null);
+  const [markProgramme, setMarkProgramme] = useState('');
   const [downloading, setDownloading] = useState(false);
 
   const {
@@ -185,7 +187,7 @@ export function BITTicketDetailPage() {
   function setOnAir(on: boolean) {
     action.mutate(
       {
-        fn: () => bitTicketApi.setOnAir(id, { onAirImpact: on, incidentStartedAt: on ? new Date().toISOString() : null }),
+        fn: () => bitTicketApi.setOnAir(id, { onAirImpact: on, incidentStartedAt: on ? new Date().toISOString() : null, onAirProgramme: on ? markProgramme.trim() : null }),
         success: on ? 'Marked as an on-air incident. Management was notified.' : 'On-air flag removed',
         failure: 'Could not update on-air flag',
       },
@@ -385,7 +387,7 @@ export function BITTicketDetailPage() {
                           Remove on-air flag
                         </DropdownMenuItem>
                       ) : (
-                        <DropdownMenuItem onSelect={() => setOnAirDialog('mark')}>
+                        <DropdownMenuItem onSelect={() => { setMarkProgramme(''); setOnAirDialog('mark'); }}>
                           <Radio />
                           Mark as on-air incident
                         </DropdownMenuItem>
@@ -493,11 +495,20 @@ export function BITTicketDetailPage() {
                 : 'Management will be emailed immediately and an incident report will be required before this ticket can be closed.'}
             </AlertDialogDescription>
           </AlertDialogHeader>
+          {onAirDialog === 'mark' && (
+            <OnAirProgrammeSelect
+              id="mark-on-air-programme"
+              date={format(new Date(), 'yyyy-MM-dd')}
+              incidentMinute={new Date().getHours() * 60 + new Date().getMinutes()}
+              value={markProgramme}
+              onChange={setMarkProgramme}
+            />
+          )}
           <AlertDialogFooter>
             <AlertDialogCancel disabled={busy}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               className={onAirDialog === 'remove' ? undefined : 'bg-destructive text-destructive-foreground hover:bg-destructive/90'}
-              disabled={busy}
+              disabled={busy || (onAirDialog === 'mark' && !markProgramme.trim())}
               onClick={(e) => {
                 e.preventDefault();
                 setOnAir(onAirDialog === 'mark');

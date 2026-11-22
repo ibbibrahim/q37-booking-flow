@@ -60,7 +60,9 @@ export function IncidentBanner({ ticket, now, downloading, onOpenReport, onDownl
       detail = ticket.escalatedAt ? `Management notified ${at(ticket.escalatedAt)}` : 'Management email pending';
   }
 
-  const styles = BANNER_TONE[tone] ?? BANNER_TONE.destructive!;
+  if (ticket.onAirProgramme) detail = `${ticket.onAirProgramme} · ${detail}`;
+
+  const styles =BANNER_TONE[tone] ?? BANNER_TONE.destructive!;
   const submitted = ticket.reportState === 'submitted';
 
   return (

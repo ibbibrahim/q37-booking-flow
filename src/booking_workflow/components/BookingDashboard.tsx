@@ -8,7 +8,7 @@ import {
   LayoutDashboard, ClipboardList, FileBarChart, Search, CalendarCheck,
   Handshake, ChevronDown, UserCheck, UserRoundCog, FileSignature, ShieldCheck,
   Phone, Contact, Mic, CalendarRange, ScrollText, Clapperboard, MonitorPlay, CalendarClock,
-  PanelLeftClose, PanelLeftOpen, Workflow, Palette, ListChecks, Network, Building2, Ticket, Siren, Wrench,
+  PanelLeftClose, PanelLeftOpen, Workflow, Palette, ListChecks, Network, Building2, Ticket, Wrench,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { bitTicketApi } from '@/api/bitTicketApi';
@@ -826,14 +826,6 @@ export const BookingDashboard: React.FC = () => {
                       badge={bitSummary?.open}
                     />
                     <SidebarSubItem
-                      icon={Siren}
-                      label="Incidents"
-                      isActive={location.pathname === ENG_PATHS.incidents}
-                      onClick={() => goTo(ENG_PATHS.incidents)}
-                      badge={(bitSummary?.reportsDue ?? 0) + (bitSummary?.reportsOverdue ?? 0)}
-                      badgeTone={(bitSummary?.reportsOverdue ?? 0) > 0 ? 'destructive' : 'default'}
-                    />
-                    <SidebarSubItem
                       icon={Building2}
                       label="Vendor Directory"
                       isActive={location.pathname.startsWith(ENG_PATHS.vendors)}
@@ -844,6 +836,12 @@ export const BookingDashboard: React.FC = () => {
                       label="Ticket Reports"
                       isActive={location.pathname === ENG_PATHS.ticketReports}
                       onClick={() => goTo(ENG_PATHS.ticketReports)}
+                    />
+                    <SidebarSubItem
+                      icon={FileBarChart}
+                      label="Management Report"
+                      isActive={location.pathname.startsWith(ENG_PATHS.managementReport)}
+                      onClick={() => goTo(ENG_PATHS.managementReport)}
                     />
                   </SidebarGroup>
                 )}

@@ -53,6 +53,7 @@ export interface BitTicketListItem {
   isFollowing: boolean;
   onAirImpact: boolean;
   incidentStartedAt: string | null;
+  onAirProgramme: string | null;
   onAirRestoredAt: string | null;
   escalatedAt: string | null;
   reportDueAt: string | null;
@@ -127,11 +128,13 @@ export interface CreateBitTicket {
   attachments: AttachmentRef[];
   onAirImpact?: boolean;
   incidentStartedAt?: string | null;
+  onAirProgramme?: string | null;
 }
 
 export interface SetOnAirBody {
   onAirImpact: boolean;
   incidentStartedAt?: string | null;
+  onAirProgramme?: string | null;
 }
 
 export interface UpdateBitTicket {

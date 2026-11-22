@@ -54,9 +54,9 @@ import { BITChecklistManagePage } from './bit_workflow/pages/BITChecklistManageP
 import { BITTicketsPage } from './bit_workflow/pages/BITTicketsPage';
 import { BITTicketDetailPage } from './bit_workflow/pages/BITTicketDetailPage';
 import { BITTicketReportsPage } from './bit_workflow/pages/BITTicketReportsPage';
+import { ManagementReportPage } from './bit_workflow/pages/ManagementReportPage';
 import { BITIncidentReportPage } from './bit_workflow/pages/BITIncidentReportPage';
 import { EngineeringHomeRedirect, LegacyBitRedirect } from './bit_workflow/components/EngineeringRedirects';
-import { BITIncidentRegisterPage } from './bit_workflow/pages/BITIncidentRegisterPage';
 import { DtlBookingListPage } from './dtl_workflow/components/DtlBookingListPage';
 import { DtlBookingDetailPage } from './dtl_workflow/components/DtlBookingDetailPage';
 import { DtlGuestListPage } from './dtl_workflow/components/DtlGuestListPage';
@@ -459,12 +459,16 @@ function App() {
           }
         />
         <Route
-          path="engineering/incidents"
+          path="engineering/management-report"
           element={
             <ProtectedRoute allowedRoles={ENGINEERING_ROLES}>
-              <BITIncidentRegisterPage />
+              <ManagementReportPage />
             </ProtectedRoute>
           }
+        />
+        <Route
+          path="engineering/incidents"
+          element={<Navigate to="/engineering/tickets" replace />}
         />
         <Route
           path="engineering/tickets/:id/report"
