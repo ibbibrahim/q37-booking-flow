@@ -28,7 +28,7 @@ const PAGINATION_STORAGE_KEY = 'callsheet-workflow:list';
 
 const headClass = 'h-10 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground';
 const GRID_CLASS =
-  'min-w-[1320px] [&_th]:border-r [&_td]:border-r [&_th]:border-border/70 [&_td]:border-border/70 [&_th:last-child]:border-r-0 [&_td:last-child]:border-r-0';
+  'min-w-[1160px] [&_th]:border-r [&_td]:border-r [&_th]:border-border/70 [&_td]:border-border/70 [&_th:last-child]:border-r-0 [&_td:last-child]:border-r-0';
 
 
 type ViewMode = 'grid' | 'list';
@@ -428,7 +428,6 @@ export const CallSheetDashboard: React.FC = () => {
                 <TableRow className="bg-muted/50 hover:bg-muted/50">
                   <TableHead className={cn(headClass, 'w-[80px]')}>ID</TableHead>
                   <TableHead className={headClass}>Title</TableHead>
-                  <TableHead className={cn(headClass, 'w-[140px]')}>Department</TableHead>
                   <TableHead className={cn(headClass, 'w-[170px]')}>Location</TableHead>
                   <TableHead className={cn(headClass, 'w-[110px]')}>Shoot type</TableHead>
                   <TableHead className={cn(headClass, 'w-[170px]')}>Status</TableHead>
@@ -465,14 +464,11 @@ export const CallSheetDashboard: React.FC = () => {
                         >
                           {callSheet.title}
                         </p>
-                      </TableCell>
-                      <TableCell className="py-3">
-                        {callSheet.department ? (
-                          <StatusPill tone="muted" ping={false}>
+                        {/* Department as a tag under the title (no separate column, so the table fits without horizontal scroll). */}
+                        {callSheet.department && (
+                          <StatusPill tone="muted" ping={false} className="mt-1 px-1.5 text-[11px]">
                             {callSheet.department}
                           </StatusPill>
-                        ) : (
-                          <span className="text-muted-foreground/50">—</span>
                         )}
                       </TableCell>
                       <TableCell className="py-3 text-sm">
