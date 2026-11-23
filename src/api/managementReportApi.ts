@@ -10,12 +10,12 @@ export const managementReportApi = {
   },
 
   /** Fetched through apiClient so the Bearer header is sent. */
-  downloadPdf: async (month: string): Promise<void> => {
-    const response = await apiClient.get<Blob>(`${BASE}/pdf`, { params: { month }, responseType: 'blob' });
+  downloadPdf: async (month: string, section: 'availability' | 'operations'): Promise<void> => {
+    const response = await apiClient.get<Blob>(`${BASE}/pdf`, { params: { month, section }, responseType: 'blob' });
     const url = URL.createObjectURL(response.data);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `QBC-Management-Report-${month}.pdf`;
+    a.download = `QBC-${section === 'availability' ? 'Channel-Availability' : 'Channel-Operations'}-Report-${month}.pdf`;
     document.body.appendChild(a);
     a.click();
     a.remove();

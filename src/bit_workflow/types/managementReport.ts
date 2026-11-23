@@ -21,6 +21,10 @@ export interface AvailabilityBlock {
   downtimePercent: number;
   availabilityPercent: number;
   incidentCount: number;
+  cancelledMinutes: number;
+  cancelledCount: number;
+  cancelledPercent: number;
+  cancelledIsPlaceholder: boolean;
 }
 
 export interface ManagementReport {
