@@ -148,6 +148,13 @@ export function visibleRequestTypesFor(roles: string[]): CreativeRequestType[] {
   return Array.from(visible);
 }
 
+// Social Media posts are published, not aired — every other type is on-air graphics.
+export function scheduleLabelsFor(requestType?: string): { date: string; time: string } {
+  return requestType === CREATIVE_REQUEST_TYPE.SocialMediaHeadline
+    ? { date: 'Publish Date', time: 'Publish Time' }
+    : { date: 'Air Date', time: 'Air Time' };
+}
+
 // --- Per-request-type dynamic field shapes (serialized to/from TypeSpecificData JSON) ---
 
 // Image/file fields carry the uploaded file's name and size alongside its URL (captured

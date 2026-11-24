@@ -2,13 +2,14 @@ import { useMemo, useState } from 'react';
 import { isAxiosError } from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, Calendar, Loader2, Palette, Plus, Send, X } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { AlertTriangle, Archive, ArrowLeft, CalendarClock, Check, FileText, Loader2, Plus, Send, X } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { TimePicker } from '@/components/ui/time-picker';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import {
   Select,
   SelectContent,
@@ -18,6 +19,17 @@ import {
 } from '@/components/ui/select';
 import { CreativeDocumentUploadField } from './CreativeDocumentUploadField';
 import { CreativeScreenPicker } from './CreativeScreenPicker';
+import {
+  Field,
+  FormSection,
+  OptionCards,
+  REQUEST_TYPE_ICON,
+  RepeaterEmpty,
+  RepeaterItem,
+  SegmentedControl,
+  TypeTiles,
+  type SegmentedOption,
+} from './CreativeFormParts';
 import { MultiFileUploadField } from '@/components/ui/multi-file-upload-field';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
@@ -35,6 +47,7 @@ import {
   CREATIVE_REQUEST_TYPE,
   CREATIVE_REQUEST_TYPE_LABEL,
   canCreateRequestType,
+  scheduleLabelsFor,
   type CreativeRequestType,
   type CreativeScreen,
   type CreativeSection,
@@ -119,6 +132,7 @@ export function CreativeRequestFormPage() {
   const videoWallScreens = useMemo(() => screens.filter((s) => s.useForVideoWall), [screens]);
   const presentationScreens = useMemo(() => screens.filter((s) => s.useForPresentation), [screens]);
 
+  const labels = scheduleLabelsFor(requestType);
   const leadTimeHours = CREATIVE_LEAD_TIME_HOURS[requestType];
   const leadTimeWarning = useMemo(() => {
     if (!leadTimeHours || !airDate || !airTime) return null;
@@ -126,10 +140,10 @@ export function CreativeRequestFormPage() {
     const hoursUntil = (airAt.getTime() - Date.now()) / 3_600_000;
     if (hoursUntil < leadTimeHours) {
       const label = leadTimeHours < 1 ? `${Math.round(leadTimeHours * 60)} minutes` : `${leadTimeHours} hour${leadTimeHours > 1 ? 's' : ''}`;
-      return `This request type normally needs at least ${label}' notice — Air Time is sooner than that.`;
+      return `This request type normally needs at least ${label}' notice — ${labels.time} is sooner than that.`;
     }
     return null;
-  }, [leadTimeHours, airDate, airTime]);
+  }, [leadTimeHours, airDate, airTime, labels.time]);
 
   function buildTypeSpecificData(): Record<string, unknown> {
     switch (requestType) {
@@ -173,16 +187,16 @@ export function CreativeRequestFormPage() {
   function validate(): Record<string, string> {
     const next: Record<string, string> = {};
     if (!title.trim()) next.title = 'Request Title is required.';
-    if (!airDate) next.airDate = 'Air Date is required.';
-    if (!airTime) next.airTime = 'Air Time is required.';
+    if (!airDate) next.airDate = `${labels.date} is required.`;
+    if (!airTime) next.airTime = `${labels.time} is required.`;
     // Air Date/Time combined must be in the future. Attribute the error to whichever field
     // is actually responsible: a past date is an Air Date problem even if the time looks
     // fine in isolation; today's date with an already-passed time is an Air Time problem.
     if (airDate && airTime && new Date(`${airDate}T${airTime}`).getTime() < Date.now()) {
       if (airDate < todayLocalDateString()) {
-        next.airDate = 'Air Date must be in the future.';
+        next.airDate = `${labels.date} must be in the future.`;
       } else {
-        next.airTime = 'Air Time must be in the future.';
+        next.airTime = `${labels.time} must be in the future.`;
       }
     }
 
@@ -277,6 +291,11 @@ export function CreativeRequestFormPage() {
     const validationErrors = validate();
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
+      requestAnimationFrame(() => {
+        const el = document.querySelector<HTMLElement>('[aria-invalid="true"], [role="alert"]');
+        el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        if (el && el.getAttribute('aria-invalid') === 'true') el.focus({ preventScroll: true });
+      });
       showToast('Please fix the highlighted fields', 'error');
       return;
     }
@@ -356,96 +375,79 @@ export function CreativeRequestFormPage() {
         </div>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5" />
-            Request Details
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <Label htmlFor="request-title">
-                Request Title <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="request-title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="A short, useful handoff title"
-                className={errors.title ? 'border-red-500' : ''}
-              />
-              {errors.title && <p className="text-sm text-red-500">{errors.title}</p>}
-            </div>
-            {/* Only one type is available to most roles (e.g. Social Media can only submit
-                Social Media Headline) — showing a single-option dropdown would be pointless,
-                so it's hidden and the type is set automatically in that case. */}
-            {availableTypes.length > 1 && (
-              <div className="space-y-2">
-                <Label htmlFor="request-type">
-                  Request Type <span className="text-red-500">*</span>
-                </Label>
-                <Select value={requestType} onValueChange={(v) => setRequestType(v as CreativeRequestType)}>
-                  <SelectTrigger id="request-type">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableTypes.map((t) => (
-                      <SelectItem key={t} value={t}>
-                        {CREATIVE_REQUEST_TYPE_LABEL[t]}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-            <div className="space-y-2">
-              <Label htmlFor="priority">
-                Priority <span className="text-red-500">*</span>
-              </Label>
-              <Select value={priority} onValueChange={setPriority}>
-                <SelectTrigger id="priority">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={CREATIVE_PRIORITY.Normal}>Normal</SelectItem>
-                  <SelectItem value={CREATIVE_PRIORITY.Urgent}>Urgent</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="air-date">
-                Air Date <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="air-date"
-                type="date"
-                value={airDate}
-                onChange={(e) => setAirDate(e.target.value)}
-                className={errors.airDate ? 'border-red-500' : ''}
-              />
-              {errors.airDate && <p className="text-sm text-red-500">{errors.airDate}</p>}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="air-time">
-                Air Time <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="air-time"
-                type="time"
-                value={airTime}
-                onChange={(e) => setAirTime(e.target.value)}
-                className={errors.airTime ? 'border-red-500' : ''}
-              />
-              {errors.airTime && <p className="text-sm text-red-500">{errors.airTime}</p>}
-            </div>
+      <FormSection
+        step={1}
+        icon={FileText}
+        title="Request"
+        description="Choose what you need and give it a clear title."
+      >
+        {/* Only one type is available to most roles (e.g. Social Media can only submit
+            Social Media Headline) — showing a single-option picker would be pointless,
+            so it's hidden and the type is set automatically in that case. */}
+        {availableTypes.length > 1 && (
+          <Field id="request-type" label="Request Type" required bare>
+            <TypeTiles
+              value={requestType}
+              types={availableTypes}
+              labels={CREATIVE_REQUEST_TYPE_LABEL}
+              onChange={setRequestType}
+            />
+          </Field>
+        )}
+        <Field id="request-title" label="Request Title" required error={errors.title}>
+          <Input
+            id="request-title"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="A short, useful handoff title"
+            className={errors.title ? 'border-destructive' : ''}
+          />
+        </Field>
+      </FormSection>
+
+      <FormSection step={2} icon={CalendarClock} title="Schedule" description="When it goes live and how urgent it is.">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <Field id="air-date" label={labels.date} required error={errors.airDate}>
+            <Input
+              id="air-date"
+              type="date"
+              value={airDate}
+              onChange={(e) => setAirDate(e.target.value)}
+              className={errors.airDate ? 'border-destructive' : ''}
+            />
+          </Field>
+          <Field id="air-time" label={labels.time} required error={errors.airTime} bare>
+            <TimePicker
+              id="air-time"
+              value={airTime}
+              onChange={setAirTime}
+              label={labels.time}
+              invalid={!!errors.airTime}
+            />
+          </Field>
+          <Field id="priority" label="Priority" required bare>
+            <SegmentedControl
+              id="priority"
+              ariaLabel="Priority"
+              value={priority}
+              onChange={setPriority}
+              options={[
+                { value: CREATIVE_PRIORITY.Normal, label: 'Normal' },
+                { value: CREATIVE_PRIORITY.Urgent, label: 'Urgent', tone: 'destructive' },
+              ]}
+            />
+          </Field>
+        </div>
+        {leadTimeWarning && (
+          <div
+            role="status"
+            className="flex items-start gap-2 rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-sm text-foreground"
+          >
+            <AlertTriangle className="h-4 w-4 mt-0.5 text-warning shrink-0" aria-hidden="true" />
+            <span>{leadTimeWarning}</span>
           </div>
-          {leadTimeWarning && (
-            <p className="text-sm text-amber-600 dark:text-amber-400">{leadTimeWarning}</p>
-          )}
-        </CardContent>
-      </Card>
+        )}
+      </FormSection>
 
       {requestType === CREATIVE_REQUEST_TYPE.SocialMediaHeadline && (
         <SocialMediaHeadlineForm data={smData} onChange={setSmData} errors={errors} />
@@ -491,11 +493,146 @@ export function CreativeRequestFormPage() {
       {requestType === CREATIVE_REQUEST_TYPE.SpecialRequest && (
         <SpecialRequestForm data={specialData} onChange={setSpecialData} errors={errors} />
       )}
+
+      <Card>
+        <CardContent className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3 p-4">
+          <p className="text-sm text-muted-foreground">Fields marked * are required.</p>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => navigate('/creative-requests')} disabled={submitting}>
+              Cancel
+            </Button>
+            <Button size="sm" className="gap-1.5" onClick={handleSubmit} disabled={submitting}>
+              {submitting ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  Submitting...
+                </>
+              ) : (
+                <>
+                  <Send className="h-4 w-4" />
+                  Submit Request
+                </>
+              )}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
 
+// --- Shared local pieces ---
+
+function RepeaterHeader({
+  label,
+  required,
+  optional,
+  hint,
+  actionLabel,
+  onAdd,
+}: {
+  label: string;
+  required?: boolean;
+  optional?: boolean;
+  hint?: string;
+  actionLabel: string;
+  onAdd: () => void;
+}) {
+  return (
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <Label>
+          {label}
+          {required && (
+            <span className="text-destructive ml-0.5" aria-hidden="true">
+              *
+            </span>
+          )}
+          {optional && <span className="ml-1 font-normal text-muted-foreground">(optional)</span>}
+        </Label>
+        {hint && <p className="text-xs text-muted-foreground mt-0.5">{hint}</p>}
+      </div>
+      <Button type="button" size="sm" variant="outline" onClick={onAdd}>
+        <Plus className="h-4 w-4 mr-1" /> {actionLabel}
+      </Button>
+    </div>
+  );
+}
+
+function ListError({ id, message }: { id: string; message?: string }) {
+  if (!message) return null;
+  return (
+    <p id={id} role="alert" className="text-sm text-destructive">
+      {message}
+    </p>
+  );
+}
+
+function ProgramSelectField({
+  id,
+  label,
+  placeholder,
+  value,
+  onChange,
+  programs,
+  error,
+}: {
+  id: string;
+  label: string;
+  placeholder: string;
+  value: string;
+  onChange: (p: string) => void;
+  programs: { id: number; name: string }[];
+  error?: string;
+}) {
+  return (
+    <Field id={id} label={label} required error={error} bare>
+      <Select value={value} onValueChange={onChange}>
+        <SelectTrigger
+          id={id}
+          className={error ? 'border-destructive' : ''}
+          aria-invalid={!!error || undefined}
+          aria-describedby={error ? `${id}-error` : undefined}
+        >
+          <SelectValue placeholder={placeholder} />
+        </SelectTrigger>
+        <SelectContent>
+          {programs.map((p) => (
+            <SelectItem key={p.id} value={p.name}>{p.name}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </Field>
+  );
+}
+
+function ScreenField({
+  id,
+  screens,
+  value,
+  onChange,
+  error,
+}: {
+  id: string;
+  screens: CreativeScreen[];
+  value: string;
+  onChange: (v: string) => void;
+  error?: string;
+}) {
+  return (
+    <Field id={id} label="Select Screen" required error={error} bare>
+      <CreativeScreenPicker id={id} value={value} onChange={onChange} screens={screens} invalid={!!error} />
+    </Field>
+  );
+}
+
 // --- Social Media Headline ---
+
+const SOCIAL_SUBTYPE_OPTIONS: SegmentedOption<NonNullable<SocialMediaHeadlineData['selectType']>>[] = [
+  { value: 'Headline', label: 'Headline' },
+  { value: 'Carrousel', label: 'Carrousel' },
+  { value: 'Reel Cover', label: 'Reel Cover' },
+];
 
 function SocialMediaHeadlineForm({
   data,
@@ -507,235 +644,216 @@ function SocialMediaHeadlineForm({
   errors: Record<string, string>;
 }) {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Palette className="h-5 w-5" />
-          Social Package
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="space-y-2">
-          <Label htmlFor="sm-request-kind">
-            Request Kind <span className="text-red-500">*</span>
-          </Label>
-          <Select
-            value={data.requestKind}
-            onValueChange={(v) =>
-              onChange({ ...data, requestKind: v as SocialMediaHeadlineData['requestKind'] })
-            }
-          >
-            <SelectTrigger id="sm-request-kind">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="EventPackage">Event Package</SelectItem>
-              <SelectItem value="DailyRequest">Daily Request</SelectItem>
-            </SelectContent>
-          </Select>
+    <FormSection
+      step={3}
+      icon={REQUEST_TYPE_ICON[CREATIVE_REQUEST_TYPE.SocialMediaHeadline]}
+      title="Social Package"
+      description="A daily post or a full event package for the social channels."
+    >
+      <Field id="sm-request-kind" label="Request Kind" required bare>
+        <SegmentedControl
+          id="sm-request-kind"
+          ariaLabel="Request Kind"
+          value={data.requestKind}
+          onChange={(v) => onChange({ ...data, requestKind: v as SocialMediaHeadlineData['requestKind'] })}
+          options={[
+            { value: 'DailyRequest', label: 'Daily Request' },
+            { value: 'EventPackage', label: 'Event Package' },
+          ]}
+        />
+      </Field>
+
+      {data.requestKind === 'EventPackage' && (
+        <div className="space-y-6">
+          <div className="space-y-2">
+            <Label id="pkg-label">Package Request</Label>
+            <div role="group" aria-labelledby="pkg-label" className="flex flex-wrap gap-2">
+              {PACKAGE_ITEMS!.map((item) => {
+                const selected = (data.packageItems ?? []).includes(item);
+                return (
+                  <button
+                    key={item}
+                    id={`pkg-${item}`}
+                    type="button"
+                    aria-pressed={selected}
+                    onClick={() => {
+                      const current = data.packageItems ?? [];
+                      onChange({
+                        ...data,
+                        packageItems: selected ? current.filter((i) => i !== item) : [...current, item],
+                      });
+                    }}
+                    className={cn(
+                      'inline-flex min-h-9 items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition-colors duration-150',
+                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                      selected
+                        ? 'bg-primary text-primary-foreground border-primary'
+                        : 'border-border text-foreground hover:bg-muted/50',
+                    )}
+                  >
+                    {selected && <Check className="h-3.5 w-3.5" aria-hidden="true" />}
+                    {item}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <Field id="event-name" label="Event Name" required error={errors['sm.eventName']}>
+              <Input
+                id="event-name"
+                value={data.eventName ?? ''}
+                onChange={(e) => onChange({ ...data, eventName: e.target.value })}
+                className={errors['sm.eventName'] ? 'border-destructive' : ''}
+              />
+            </Field>
+            <Field id="event-logo" error={errors['sm.eventLogos']} bare>
+              <MultiFileUploadField
+                id="event-logo"
+                label="Event Logo(s)"
+                value={data.eventLogos ?? []}
+                onChange={(eventLogos) => onChange({ ...data, eventLogos })}
+                onUpload={uploadSingle}
+                accept="image/*"
+              />
+            </Field>
+          </div>
+          <PlatformField
+            id="sm-platform-event"
+            value={data.platform}
+            onChange={(v) => onChange({ ...data, platform: v })}
+            error={errors['sm.platform']}
+          />
         </div>
+      )}
 
-        {data.requestKind === 'EventPackage' && (
-          <div className="space-y-6 rounded-lg border border-border bg-muted/30 p-4">
-            <div className="space-y-2">
-              <Label>Package Request</Label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {PACKAGE_ITEMS!.map((item) => (
-                  <div key={item} className="flex items-center gap-2">
-                    <Checkbox
-                      id={`pkg-${item}`}
-                      checked={(data.packageItems ?? []).includes(item)}
-                      onCheckedChange={(checked) => {
-                        const current = data.packageItems ?? [];
-                        onChange({
-                          ...data,
-                          packageItems: checked ? [...current, item] : current.filter((i) => i !== item),
-                        });
-                      }}
-                    />
-                    <Label htmlFor={`pkg-${item}`} className="font-normal cursor-pointer">{item}</Label>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label htmlFor="event-name">
-                  Event Name <span className="text-red-500">*</span>
-                </Label>
-                <Input
-                  id="event-name"
-                  value={data.eventName ?? ''}
-                  onChange={(e) => onChange({ ...data, eventName: e.target.value })}
-                  className={errors['sm.eventName'] ? 'border-red-500' : ''}
-                />
-                {errors['sm.eventName'] && <p className="text-sm text-red-500">{errors['sm.eventName']}</p>}
-              </div>
-              <div className="space-y-1">
-                <MultiFileUploadField
-                  id="event-logo"
-                  label="Event Logo(s)"
-                  value={data.eventLogos ?? []}
-                  onChange={(eventLogos) => onChange({ ...data, eventLogos })}
-                  onUpload={uploadSingle}
-                  accept="image/*"
-                />
-                {errors['sm.eventLogos'] && <p className="text-sm text-red-500">{errors['sm.eventLogos']}</p>}
-              </div>
-            </div>
-            <div className="border-t border-border/60 pt-5">
-              <div className="max-w-xs">
-                <PlatformSelect
-                  id="sm-platform-event"
-                  value={data.platform}
-                  onChange={(v) => onChange({ ...data, platform: v as SocialMediaHeadlineData['platform'] })}
-                  error={errors['sm.platform']}
-                />
-              </div>
-            </div>
+      {data.requestKind === 'DailyRequest' && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <Field id="daily-event-name" label="Event Name" optional>
+              <Input
+                id="daily-event-name"
+                value={data.dailyEventName ?? ''}
+                onChange={(e) => onChange({ ...data, dailyEventName: e.target.value })}
+                placeholder="Event or topic name"
+              />
+            </Field>
+            <Field id="sm-select-type" label="Social Subtype" bare>
+              <SegmentedControl
+                id="sm-select-type"
+                ariaLabel="Social Subtype"
+                value={data.selectType ?? 'Headline'}
+                options={SOCIAL_SUBTYPE_OPTIONS}
+                onChange={(v) =>
+                  onChange({
+                    ...data,
+                    selectType: v as SocialMediaHeadlineData['selectType'],
+                    // Carrousel: seed two slides so the editor opens ready to fill.
+                    sections: v === 'Carrousel' && (data.sections ?? []).length === 0 ? [{ content: '' }, { content: '' }] : data.sections,
+                  })
+                }
+              />
+            </Field>
           </div>
-        )}
 
-        {data.requestKind === 'DailyRequest' && (
-          <div className="space-y-6 rounded-lg border border-border bg-muted/30 p-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label htmlFor="daily-event-name">Event Name (optional)</Label>
-                <Input
-                  id="daily-event-name"
-                  value={data.dailyEventName ?? ''}
-                  onChange={(e) => onChange({ ...data, dailyEventName: e.target.value })}
-                  placeholder="Event or topic name"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="sm-select-type">Social Subtype</Label>
-                <Select
-                  value={data.selectType ?? 'Headline'}
-                  onValueChange={(v) =>
-                    onChange({
-                      ...data,
-                      selectType: v as SocialMediaHeadlineData['selectType'],
-                      // Carrousel: seed two slides so the editor opens ready to fill.
-                      sections: v === 'Carrousel' && (data.sections ?? []).length === 0 ? [{ content: '' }, { content: '' }] : data.sections,
-                    })
-                  }
-                >
-                  <SelectTrigger id="sm-select-type">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Carrousel">Carrousel</SelectItem>
-                    <SelectItem value="Headline">Headline</SelectItem>
-                    <SelectItem value="Reel Cover">Reel Cover</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+          {data.selectType === 'Carrousel' && (
+            <div className="space-y-6">
+              <SectionListEditor
+                sections={data.sections ?? []}
+                onChange={(sections) => onChange({ ...data, sections })}
+                errors={errors}
+              />
+              <PlatformField
+                id="sm-platform-carrousel"
+                value={data.platform}
+                onChange={(v) => onChange({ ...data, platform: v })}
+                error={errors['sm.platform']}
+              />
             </div>
+          )}
 
-            {data.selectType === 'Carrousel' && (
-              <div className="space-y-6">
-                <SectionListEditor
-                  sections={data.sections ?? []}
-                  onChange={(sections) => onChange({ ...data, sections })}
-                  errors={errors}
-                />
-                <div className="border-t border-border/60 pt-5">
-                  <div className="max-w-xs">
-                    <PlatformSelect
-                      id="sm-platform-carrousel"
-                      value={data.platform}
-                      onChange={(v) => onChange({ ...data, platform: v as SocialMediaHeadlineData['platform'] })}
-                      error={errors['sm.platform']}
-                    />
-                  </div>
-                </div>
+          {(data.selectType === 'Headline' || data.selectType === 'Reel Cover') && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <Field id="sm-content" label="Content" required error={errors['sm.content']}>
+                  <Textarea
+                    id="sm-content"
+                    value={data.content ?? ''}
+                    onChange={(e) => onChange({ ...data, content: e.target.value })}
+                    placeholder={data.selectType === 'Reel Cover' ? 'Reel cover text' : 'Headline text'}
+                    rows={4}
+                    className={errors['sm.content'] ? 'border-destructive' : ''}
+                  />
+                </Field>
+                <Field id="sm-bg-image" error={errors['sm.backgroundImage']} bare>
+                  <CreativeDocumentUploadField
+                    id="sm-bg-image"
+                    label="Background Image"
+                    required
+                    value={data.backgroundImage}
+                    onChange={(ref) => onChange({ ...data, backgroundImage: ref ?? undefined })}
+                    accept="image/*"
+                  />
+                </Field>
               </div>
-            )}
-
-            {(data.selectType === 'Headline' || data.selectType === 'Reel Cover') && (
-              <div className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="sm-content">
-                      Content <span className="text-red-500">*</span>
-                    </Label>
-                    <Textarea
-                      id="sm-content"
-                      value={data.content ?? ''}
-                      onChange={(e) => onChange({ ...data, content: e.target.value })}
-                      placeholder={data.selectType === 'Reel Cover' ? 'Reel cover text' : 'Headline text'}
-                      rows={4}
-                      className={errors['sm.content'] ? 'border-red-500' : ''}
-                    />
-                    {errors['sm.content'] && <p className="text-sm text-red-500">{errors['sm.content']}</p>}
-                  </div>
-                  <div className="space-y-1">
-                    <CreativeDocumentUploadField
-                      id="sm-bg-image"
-                      label="Background Image"
-                      required
-                      value={data.backgroundImage}
-                      onChange={(ref) => onChange({ ...data, backgroundImage: ref ?? undefined })}
-                      accept="image/*"
-                    />
-                    {errors['sm.backgroundImage'] && <p className="text-sm text-red-500">{errors['sm.backgroundImage']}</p>}
-                  </div>
-                </div>
-                <div className="border-t border-border/60 pt-5">
-                  <div className="max-w-xs">
-                    <PlatformSelect
-                      id="sm-platform-headline"
-                      value={data.platform}
-                      onChange={(v) => onChange({ ...data, platform: v as SocialMediaHeadlineData['platform'] })}
-                      error={errors['sm.platform']}
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-      </CardContent>
-    </Card>
+              <PlatformField
+                id="sm-platform-headline"
+                value={data.platform}
+                onChange={(v) => onChange({ ...data, platform: v })}
+                error={errors['sm.platform']}
+              />
+            </div>
+          )}
+        </div>
+      )}
+    </FormSection>
   );
 }
 
 // Platform is asked in all three Social Media Headline branches, with the same three options in each.
-function PlatformSelect({
+function PlatformField({
   id,
   value,
   onChange,
   error,
 }: {
   id: string;
-  value?: string;
-  onChange: (v: string) => void;
+  value?: SocialMediaHeadlineData['platform'];
+  onChange: (v: NonNullable<SocialMediaHeadlineData['platform']>) => void;
   error?: string;
 }) {
   return (
-    <div className="space-y-2">
-      <Label htmlFor={id}>
-        Select Platform <span className="text-red-500">*</span>
-      </Label>
-      <Select value={value ?? ''} onValueChange={onChange}>
-        <SelectTrigger id={id} className={error ? 'border-red-500' : ''}>
-          <SelectValue placeholder="Select a platform" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="QBC">QBC</SelectItem>
-          <SelectItem value="QTV37">QTV37</SelectItem>
-          <SelectItem value="QBC & QTV37">QBC & QTV37</SelectItem>
-        </SelectContent>
-      </Select>
-      {error && <p className="text-sm text-red-500">{error}</p>}
+    <div className="border-t border-border/60 pt-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <Field id={id} label="Publish to" required error={error} bare>
+          <SegmentedControl
+            id={id}
+            ariaLabel="Publish to"
+            value={value}
+            invalid={!!error}
+            onChange={onChange}
+            options={[
+              { value: 'QBC', label: 'QBC' },
+              { value: 'QTV37', label: 'QTV37' },
+              { value: 'QBC & QTV37', label: 'QBC & QTV37' },
+            ]}
+          />
+        </Field>
+      </div>
     </div>
   );
 }
 
+const IMAGE_VALIDITY_HINT: Record<ImageValidity, string> = {
+  OneMonth: 'Removed 1 month after air',
+  TwoMonths: 'Removed 2 months after air',
+  ThreeMonths: 'Removed 3 months after air',
+  DoNotDelete: 'Kept for reuse',
+};
+
 // How long the images generated for this request stay in Vizrt's Image Library — asked on the
 // three Image-Library types only. After it passes (counted from Air Date) they're listed for removal.
-function ImageValiditySelect({
+function ImageRetentionSection({
   id,
   value,
   onChange,
@@ -747,29 +865,28 @@ function ImageValiditySelect({
   error?: string;
 }) {
   return (
-    <div className="border-t border-border/60 pt-5">
-      <div className="max-w-xs">
-        <div className="space-y-2">
-          <Label htmlFor={id}>
-            Image Validity <span className="text-red-500">*</span>
-          </Label>
-          <Select value={value ?? ''} onValueChange={(v) => onChange(v as ImageValidity)}>
-            <SelectTrigger id={id} className={error ? 'border-red-500' : ''}>
-              <SelectValue placeholder="Select validity" />
-            </SelectTrigger>
-            <SelectContent>
-              {(Object.keys(IMAGE_VALIDITY_LABEL) as ImageValidity[]).map((k) => (
-                <SelectItem key={k} value={k}>{IMAGE_VALIDITY_LABEL[k]}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {error && <p className="text-sm text-red-500">{error}</p>}
-          <p className="text-xs text-muted-foreground">
-            After this period (counted from Air Date) the images are listed for removal from Vizrt.
-          </p>
-        </div>
-      </div>
-    </div>
+    <FormSection
+      step={4}
+      icon={Archive}
+      title="Image Library retention"
+      description="How long the generated images stay in Vizrt, counted from the Air Date."
+    >
+      <Field id={id} label="Image Validity" required error={error} bare>
+        <OptionCards<ImageValidity>
+          id={id}
+          ariaLabel="Image Validity"
+          value={value}
+          invalid={!!error}
+          onChange={onChange}
+          className="grid-cols-2 md:grid-cols-4"
+          options={(Object.keys(IMAGE_VALIDITY_LABEL) as ImageValidity[]).map((k) => ({
+            value: k,
+            title: k === 'DoNotDelete' ? "Don't delete" : IMAGE_VALIDITY_LABEL[k],
+            description: IMAGE_VALIDITY_HINT[k],
+          }))}
+        />
+      </Field>
+    </FormSection>
   );
 }
 
@@ -788,56 +905,40 @@ function SectionListEditor({
   function removeAt(i: number) {
     onChange(sections.filter((_, idx) => idx !== i));
   }
+  function add() {
+    onChange([...sections, { content: '' }]);
+  }
 
   return (
     <div className="space-y-3">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <Label>
-            Slides <span className="text-red-500">*</span>
-          </Label>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Each slide needs its own content, background image, and optional icons.
-          </p>
-        </div>
-        <Button type="button" size="sm" variant="outline" onClick={() => onChange([...sections, { content: '' }])}>
-          <Plus className="h-4 w-4 mr-1" /> Add Slide
-        </Button>
-      </div>
-      {errors['sm.sections'] && <p className="text-sm text-red-500">{errors['sm.sections']}</p>}
+      <RepeaterHeader
+        label="Slides"
+        required
+        hint="Each slide needs its own content, background image, and optional icons."
+        actionLabel="Add Slide"
+        onAdd={add}
+      />
+      <ListError id="sm-sections-error" message={errors['sm.sections']} />
       {sections.length === 0 && (
-        <div className="rounded-lg border border-dashed border-border py-8 text-center text-sm text-muted-foreground">
-          No slides yet — click "Add Slide" to start building the carrousel.
-        </div>
+        <RepeaterEmpty text="No slides yet — start building the carrousel." actionLabel="Add Slide" onAdd={add} />
       )}
       {sections.map((s, i) => (
-        <div key={i} className="space-y-4 rounded-lg border border-border bg-card p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[11px] font-semibold text-primary">
-                {i + 1}
-              </span>
-              <span className="text-sm font-medium text-card-foreground">Slide {i + 1}</span>
-            </div>
-            <button type="button" onClick={() => removeAt(i)} className="text-muted-foreground hover:text-destructive">
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-          <div className="space-y-2">
-            <Label>
-              Content <span className="text-red-500">*</span>
-            </Label>
+        <RepeaterItem key={i} index={i} title="Slide" onRemove={() => removeAt(i)}>
+          <Field
+            id={`section-content-${i}`}
+            label="Content"
+            required
+            error={errors[`sm.sections.${i}.content`]}
+          >
             <Textarea
+              id={`section-content-${i}`}
               value={s.content}
               onChange={(e) => updateAt(i, { content: e.target.value })}
-              className={errors[`sm.sections.${i}.content`] ? 'border-red-500' : ''}
+              className={errors[`sm.sections.${i}.content`] ? 'border-destructive' : ''}
             />
-            {errors[`sm.sections.${i}.content`] && (
-              <p className="text-sm text-red-500">{errors[`sm.sections.${i}.content`]}</p>
-            )}
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-1">
+          </Field>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <Field id={`section-bg-${i}`} error={errors[`sm.sections.${i}.backgroundImage`]} bare>
               <CreativeDocumentUploadField
                 id={`section-bg-${i}`}
                 label="Background Image"
@@ -846,10 +947,7 @@ function SectionListEditor({
                 onChange={(ref) => updateAt(i, { backgroundImage: ref ?? undefined })}
                 accept="image/*"
               />
-              {errors[`sm.sections.${i}.backgroundImage`] && (
-                <p className="text-sm text-red-500">{errors[`sm.sections.${i}.backgroundImage`]}</p>
-              )}
-            </div>
+            </Field>
             <MultiFileUploadField
               id={`section-icons-${i}`}
               label="Icons"
@@ -859,7 +957,7 @@ function SectionListEditor({
               accept="image/*"
             />
           </div>
-        </div>
+        </RepeaterItem>
       ))}
     </div>
   );
@@ -879,75 +977,73 @@ function NewsHeadlineForm({
   errors: Record<string, string>;
 }) {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Palette className="h-5 w-5" />
-          News Headline
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="space-y-3">
-          <Label id="news-screen-label">
-            Select Screen <span className="text-red-500">*</span>
-          </Label>
-          <CreativeScreenPicker
-            id="news-screen"
-            value={data.screen}
-            onChange={(v) => onChange({ ...data, screen: v })}
-            screens={screens}
-            invalid={!!errors['news.screen']}
-          />
-          {errors['news.screen'] && <p className="text-sm text-red-500">{errors['news.screen']}</p>}
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="news-headline-text">
-            Headline Text <span className="text-red-500">*</span>
-          </Label>
+    <>
+      <FormSection
+        step={3}
+        icon={REQUEST_TYPE_ICON[CREATIVE_REQUEST_TYPE.NewsHeadline]}
+        title="News Headline"
+        description="The on-air headline graphic and any reference material."
+      >
+        <ScreenField
+          id="news-screen"
+          value={data.screen}
+          onChange={(v) => onChange({ ...data, screen: v })}
+          screens={screens}
+          error={errors['news.screen']}
+        />
+        <Field
+          id="news-headline-text"
+          label="Headline Text"
+          required
+          error={errors['news.headlineText']}
+          hint="This could be the same story headline — it will not go on air."
+        >
           <Textarea
             id="news-headline-text"
             value={data.headlineText}
             onChange={(e) => onChange({ ...data, headlineText: e.target.value })}
             rows={2}
-            className={errors['news.headlineText'] ? 'border-red-500' : ''}
+            className={errors['news.headlineText'] ? 'border-destructive' : ''}
           />
-          {errors['news.headlineText'] && <p className="text-sm text-red-500">{errors['news.headlineText']}</p>}
-          <p className="text-xs text-muted-foreground">This could be the same story headline — it will not go on air.</p>
+        </Field>
+        <div className="space-y-3">
+          <Label>
+            Reference assets <span className="font-normal text-muted-foreground">(optional)</span>
+          </Label>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            <CreativeDocumentUploadField
+              id="news-reference-image"
+              label="Reference Image (optional)"
+              value={data.referenceImage}
+              onChange={(ref) => onChange({ ...data, referenceImage: ref ?? undefined })}
+              accept="image/*"
+            />
+            <MultiFileUploadField
+              id="news-logos"
+              label="Logos (optional)"
+              value={data.logos ?? []}
+              onChange={(logos) => onChange({ ...data, logos })}
+              onUpload={uploadSingle}
+              accept="image/*"
+            />
+            <MultiFileUploadField
+              id="news-flags"
+              label="Flags (optional)"
+              value={data.flags ?? []}
+              onChange={(flags) => onChange({ ...data, flags })}
+              onUpload={uploadSingle}
+              accept="image/*"
+            />
+          </div>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <CreativeDocumentUploadField
-            id="news-reference-image"
-            label="Reference Image (optional)"
-            value={data.referenceImage}
-            onChange={(ref) => onChange({ ...data, referenceImage: ref ?? undefined })}
-            accept="image/*"
-          />
-          <MultiFileUploadField
-            id="news-logos"
-            label="Logos (optional)"
-            value={data.logos ?? []}
-            onChange={(logos) => onChange({ ...data, logos })}
-            onUpload={uploadSingle}
-            accept="image/*"
-          />
-          <MultiFileUploadField
-            id="news-flags"
-            label="Flags (optional)"
-            value={data.flags ?? []}
-            onChange={(flags) => onChange({ ...data, flags })}
-            onUpload={uploadSingle}
-            accept="image/*"
-          />
-        </div>
-
-        <ImageValiditySelect
-          id="news-validity"
-          value={data.imageValidity}
-          onChange={(v) => onChange({ ...data, imageValidity: v })}
-          error={errors['news.imageValidity']}
-        />
-      </CardContent>
-    </Card>
+      </FormSection>
+      <ImageRetentionSection
+        id="news-validity"
+        value={data.imageValidity}
+        onChange={(v) => onChange({ ...data, imageValidity: v })}
+        error={errors['news.imageValidity']}
+      />
+    </>
   );
 }
 
@@ -981,92 +1077,61 @@ function ProgramVideoWallForm({
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Palette className="h-5 w-5" />
-          Program Video Wall
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-2">
-            <Label htmlFor="pvw-program">
-              Select Program <span className="text-red-500">*</span>
-            </Label>
-            <Select value={program} onValueChange={onProgramChange}>
-              <SelectTrigger id="pvw-program" className={errors['pvw.program'] ? 'border-red-500' : ''}>
-                <SelectValue placeholder="Select a program" />
-              </SelectTrigger>
-              <SelectContent>
-                {programs.map((p) => (
-                  <SelectItem key={p.id} value={p.name}>{p.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {errors['pvw.program'] && <p className="text-sm text-red-500">{errors['pvw.program']}</p>}
-          </div>
-        </div>
-        <div className="space-y-3">
-          <Label id="pvw-screen-label">
-            Select Screen <span className="text-red-500">*</span>
-          </Label>
-          <CreativeScreenPicker
-            id="pvw-screen"
-            value={data.screen}
-            onChange={(v) => onChange({ ...data, screen: v })}
-            screens={screens}
-            invalid={!!errors['pvw.screen']}
+    <>
+      <FormSection
+        step={3}
+        icon={REQUEST_TYPE_ICON[CREATIVE_REQUEST_TYPE.ProgramVideoWall]}
+        title="Program Video Wall"
+        description="Pick the program and screen, then describe each slide."
+      >
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <ProgramSelectField
+            id="pvw-program"
+            label="Select Program"
+            placeholder="Select a program"
+            value={program}
+            onChange={onProgramChange}
+            programs={programs}
+            error={errors['pvw.program']}
           />
-          {errors['pvw.screen'] && <p className="text-sm text-red-500">{errors['pvw.screen']}</p>}
         </div>
+        <ScreenField
+          id="pvw-screen"
+          value={data.screen}
+          onChange={(v) => onChange({ ...data, screen: v })}
+          screens={screens}
+          error={errors['pvw.screen']}
+        />
 
         <div className="space-y-3">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <Label>
-                Slides <span className="text-red-500">*</span>
-              </Label>
-              <p className="text-xs text-muted-foreground mt-0.5">Each slide needs a description and an optional image.</p>
-            </div>
-            <Button type="button" size="sm" variant="outline" onClick={addSlide}>
-              <Plus className="h-4 w-4 mr-1" /> Add Slides
-            </Button>
-          </div>
-          {errors['pvw.slides'] && <p className="text-sm text-red-500">{errors['pvw.slides']}</p>}
+          <RepeaterHeader
+            label="Slides"
+            required
+            hint="Each slide needs a description and an optional image."
+            actionLabel="Add Slides"
+            onAdd={addSlide}
+          />
+          <ListError id="pvw-slides-error" message={errors['pvw.slides']} />
           {data.slides.length === 0 && (
-            <div className="rounded-lg border border-dashed border-border py-8 text-center text-sm text-muted-foreground">
-              No slides yet — click "Add Slides" to start.
-            </div>
+            <RepeaterEmpty text="No slides yet — add one to start." actionLabel="Add Slides" onAdd={addSlide} />
           )}
           {data.slides.map((s, i) => (
-            <div key={i} className="space-y-4 rounded-lg border border-border bg-card p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[11px] font-semibold text-primary">
-                    {i + 1}
-                  </span>
-                  <span className="text-sm font-medium text-card-foreground">Slide {i + 1}</span>
-                </div>
-                <button type="button" onClick={() => removeSlide(i)} className="text-muted-foreground hover:text-destructive">
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label>
-                    Description <span className="text-red-500">*</span>
-                  </Label>
+            <RepeaterItem key={i} index={i} title="Slide" onRemove={() => removeSlide(i)}>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <Field
+                  id={`pvw-slide-content-${i}`}
+                  label="Description"
+                  required
+                  error={errors[`pvw.slides.${i}.content`]}
+                >
                   <Textarea
+                    id={`pvw-slide-content-${i}`}
                     value={s.content}
                     onChange={(e) => updateSlide(i, { content: e.target.value })}
                     rows={3}
-                    className={errors[`pvw.slides.${i}.content`] ? 'border-red-500' : ''}
+                    className={errors[`pvw.slides.${i}.content`] ? 'border-destructive' : ''}
                   />
-                  {errors[`pvw.slides.${i}.content`] && (
-                    <p className="text-sm text-red-500">{errors[`pvw.slides.${i}.content`]}</p>
-                  )}
-                </div>
+                </Field>
                 <CreativeDocumentUploadField
                   id={`slide-image-${i}`}
                   label="Image (optional)"
@@ -1075,18 +1140,17 @@ function ProgramVideoWallForm({
                   accept="image/*"
                 />
               </div>
-            </div>
+            </RepeaterItem>
           ))}
         </div>
-
-        <ImageValiditySelect
-          id="pvw-validity"
-          value={data.imageValidity}
-          onChange={(v) => onChange({ ...data, imageValidity: v })}
-          error={errors['pvw.imageValidity']}
-        />
-      </CardContent>
-    </Card>
+      </FormSection>
+      <ImageRetentionSection
+        id="pvw-validity"
+        value={data.imageValidity}
+        onChange={(v) => onChange({ ...data, imageValidity: v })}
+        error={errors['pvw.imageValidity']}
+      />
+    </>
   );
 }
 
@@ -1120,90 +1184,61 @@ function VideoWallPresentationForm({
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Palette className="h-5 w-5" />
-          Presentation
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="space-y-2">
-          <Label htmlFor="vwp-show-name">
-            Show Name <span className="text-red-500">*</span>
-          </Label>
-          <Select value={program} onValueChange={onProgramChange}>
-            <SelectTrigger id="vwp-show-name" className={errors['vwp.program'] ? 'border-red-500' : ''}>
-              <SelectValue placeholder="Select a show" />
-            </SelectTrigger>
-            <SelectContent>
-              {programs.map((p) => (
-                <SelectItem key={p.id} value={p.name}>{p.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {errors['vwp.program'] && <p className="text-sm text-red-500">{errors['vwp.program']}</p>}
-        </div>
-        <div className="space-y-3">
-          <Label id="vwp-screen-label">
-            Select Screen <span className="text-red-500">*</span>
-          </Label>
-          <CreativeScreenPicker
-            id="vwp-screen"
-            value={data.screen}
-            onChange={(v) => onChange({ ...data, screen: v })}
-            screens={screens}
-            invalid={!!errors['vwp.screen']}
+    <>
+      <FormSection
+        step={3}
+        icon={REQUEST_TYPE_ICON[CREATIVE_REQUEST_TYPE.VideoWallPresentation]}
+        title="Presentation"
+        description="Pick the show and screen, then add the content for each slide."
+      >
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <ProgramSelectField
+            id="vwp-show-name"
+            label="Show Name"
+            placeholder="Select a show"
+            value={program}
+            onChange={onProgramChange}
+            programs={programs}
+            error={errors['vwp.program']}
           />
-          {errors['vwp.screen'] && <p className="text-sm text-red-500">{errors['vwp.screen']}</p>}
         </div>
+        <ScreenField
+          id="vwp-screen"
+          value={data.screen}
+          onChange={(v) => onChange({ ...data, screen: v })}
+          screens={screens}
+          error={errors['vwp.screen']}
+        />
 
         <div className="space-y-3">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <Label>
-                Slides <span className="text-red-500">*</span>
-              </Label>
-              <p className="text-xs text-muted-foreground mt-0.5">Each slide needs content and an optional image reference.</p>
-            </div>
-            <Button type="button" size="sm" variant="outline" onClick={addSlide}>
-              <Plus className="h-4 w-4 mr-1" /> Add Slides
-            </Button>
-          </div>
-          {errors['vwp.slides'] && <p className="text-sm text-red-500">{errors['vwp.slides']}</p>}
+          <RepeaterHeader
+            label="Slides"
+            required
+            hint="Each slide needs content and an optional image reference."
+            actionLabel="Add Slides"
+            onAdd={addSlide}
+          />
+          <ListError id="vwp-slides-error" message={errors['vwp.slides']} />
           {data.slides.length === 0 && (
-            <div className="rounded-lg border border-dashed border-border py-8 text-center text-sm text-muted-foreground">
-              No slides yet — click "Add Slides" to start.
-            </div>
+            <RepeaterEmpty text="No slides yet — add one to start." actionLabel="Add Slides" onAdd={addSlide} />
           )}
           {data.slides.map((s, i) => (
-            <div key={i} className="space-y-4 rounded-lg border border-border bg-card p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[11px] font-semibold text-primary">
-                    {i + 1}
-                  </span>
-                  <span className="text-sm font-medium text-card-foreground">Slide {i + 1}</span>
-                </div>
-                <button type="button" onClick={() => removeSlide(i)} className="text-muted-foreground hover:text-destructive">
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label>
-                    Content <span className="text-red-500">*</span>
-                  </Label>
+            <RepeaterItem key={i} index={i} title="Slide" onRemove={() => removeSlide(i)}>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <Field
+                  id={`vwp-slide-content-${i}`}
+                  label="Content"
+                  required
+                  error={errors[`vwp.slides.${i}.content`]}
+                >
                   <Textarea
+                    id={`vwp-slide-content-${i}`}
                     value={s.content}
                     onChange={(e) => updateSlide(i, { content: e.target.value })}
                     rows={3}
-                    className={errors[`vwp.slides.${i}.content`] ? 'border-red-500' : ''}
+                    className={errors[`vwp.slides.${i}.content`] ? 'border-destructive' : ''}
                   />
-                  {errors[`vwp.slides.${i}.content`] && (
-                    <p className="text-sm text-red-500">{errors[`vwp.slides.${i}.content`]}</p>
-                  )}
-                </div>
+                </Field>
                 <CreativeDocumentUploadField
                   id={`vwp-slide-image-${i}`}
                   label="Image Reference (optional)"
@@ -1212,18 +1247,17 @@ function VideoWallPresentationForm({
                   accept="image/*"
                 />
               </div>
-            </div>
+            </RepeaterItem>
           ))}
         </div>
-
-        <ImageValiditySelect
-          id="vwp-validity"
-          value={data.imageValidity}
-          onChange={(v) => onChange({ ...data, imageValidity: v })}
-          error={errors['vwp.imageValidity']}
-        />
-      </CardContent>
-    </Card>
+      </FormSection>
+      <ImageRetentionSection
+        id="vwp-validity"
+        value={data.imageValidity}
+        onChange={(v) => onChange({ ...data, imageValidity: v })}
+        error={errors['vwp.imageValidity']}
+      />
+    </>
   );
 }
 
@@ -1249,60 +1283,46 @@ function FillerForm({
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Palette className="h-5 w-5" />
-          Filler
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        <div className="flex items-center justify-between">
-          <Label>Sections</Label>
-          <Button type="button" size="sm" variant="outline" onClick={addSection}>
-            <Plus className="h-4 w-4 mr-1" /> Add Section
-          </Button>
-        </div>
-        {errors['filler.sections'] && <p className="text-sm text-red-500">{errors['filler.sections']}</p>}
+    <FormSection
+      step={3}
+      icon={REQUEST_TYPE_ICON[CREATIVE_REQUEST_TYPE.Filler]}
+      title="Filler"
+      description="Add a section for each filler graphic you need."
+    >
+      <div className="space-y-3">
+        <RepeaterHeader label="Sections" required actionLabel="Add Section" onAdd={addSection} />
+        <ListError id="filler-sections-error" message={errors['filler.sections']} />
+        {data.sections.length === 0 && (
+          <RepeaterEmpty text="No sections yet — add one to start." actionLabel="Add Section" onAdd={addSection} />
+        )}
         {data.sections.map((s, i) => (
-          <div key={i} className="space-y-4 rounded-lg border border-border bg-card p-4">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-muted-foreground">Section {i + 1}</span>
-              <button type="button" onClick={() => removeAt(i)} className="text-muted-foreground hover:text-destructive">
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-            <div className="space-y-2">
-              <Label>
-                Title <span className="text-red-500">*</span>
-              </Label>
+          <RepeaterItem key={i} index={i} title="Section" onRemove={() => removeAt(i)}>
+            <Field id={`filler-title-${i}`} label="Title" required error={errors[`filler.sections.${i}.title`]}>
               <Input
+                id={`filler-title-${i}`}
                 value={s.title}
                 onChange={(e) => updateAt(i, { title: e.target.value })}
-                className={errors[`filler.sections.${i}.title`] ? 'border-red-500' : ''}
+                className={errors[`filler.sections.${i}.title`] ? 'border-destructive' : ''}
               />
-              {errors[`filler.sections.${i}.title`] && (
-                <p className="text-sm text-red-500">{errors[`filler.sections.${i}.title`]}</p>
-              )}
-            </div>
-            <div className="space-y-2">
-              <Label>
-                Description <span className="text-red-500">*</span>
-              </Label>
+            </Field>
+            <Field
+              id={`filler-description-${i}`}
+              label="Description"
+              required
+              error={errors[`filler.sections.${i}.description`]}
+            >
               <Textarea
+                id={`filler-description-${i}`}
                 value={s.description}
                 onChange={(e) => updateAt(i, { description: e.target.value })}
                 rows={2}
-                className={errors[`filler.sections.${i}.description`] ? 'border-red-500' : ''}
+                className={errors[`filler.sections.${i}.description`] ? 'border-destructive' : ''}
               />
-              {errors[`filler.sections.${i}.description`] && (
-                <p className="text-sm text-red-500">{errors[`filler.sections.${i}.description`]}</p>
-              )}
-            </div>
-          </div>
+            </Field>
+          </RepeaterItem>
         ))}
-      </CardContent>
-    </Card>
+      </div>
+    </FormSection>
   );
 }
 
@@ -1334,77 +1354,63 @@ function LowerThirdForm({
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Palette className="h-5 w-5" />
-          Lower Third
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="space-y-2 max-w-sm">
-          <Label htmlFor="lt-program">
-            Select Program <span className="text-red-500">*</span>
-          </Label>
-          <Select value={program} onValueChange={onProgramChange}>
-            <SelectTrigger id="lt-program" className={errors['lt.program'] ? 'border-red-500' : ''}>
-              <SelectValue placeholder="Select a program" />
-            </SelectTrigger>
-            <SelectContent>
-              {programs.map((p) => (
-                <SelectItem key={p.id} value={p.name}>{p.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {errors['lt.program'] && <p className="text-sm text-red-500">{errors['lt.program']}</p>}
-        </div>
-        <div className="flex items-center justify-between">
-          <Label>Sections</Label>
-          <Button type="button" size="sm" variant="outline" onClick={addSection}>
-            <Plus className="h-4 w-4 mr-1" /> Add Section
-          </Button>
-        </div>
-        {errors['lt.sections'] && <p className="text-sm text-red-500">{errors['lt.sections']}</p>}
+    <FormSection
+      step={3}
+      icon={REQUEST_TYPE_ICON[CREATIVE_REQUEST_TYPE.LowerThird]}
+      title="Lower Third"
+      description="Name and title straps for the people appearing on screen."
+    >
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <ProgramSelectField
+          id="lt-program"
+          label="Select Program"
+          placeholder="Select a program"
+          value={program}
+          onChange={onProgramChange}
+          programs={programs}
+          error={errors['lt.program']}
+        />
+      </div>
+      <div className="space-y-3">
+        <RepeaterHeader label="Sections" required actionLabel="Add Section" onAdd={addSection} />
+        <ListError id="lt-sections-error" message={errors['lt.sections']} />
+        {data.sections.length === 0 && (
+          <RepeaterEmpty text="No sections yet — add one to start." actionLabel="Add Section" onAdd={addSection} />
+        )}
         {data.sections.map((s, i) => (
-          <div key={i} className="space-y-4 rounded-lg border border-border bg-card p-4">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-muted-foreground">Section {i + 1}</span>
-              <button type="button" onClick={() => removeAt(i)} className="text-muted-foreground hover:text-destructive">
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label>
-                  Person Name <span className="text-red-500">*</span>
-                </Label>
+          <RepeaterItem key={i} index={i} title="Section" onRemove={() => removeAt(i)}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <Field
+                id={`lt-person-name-${i}`}
+                label="Person Name"
+                required
+                error={errors[`lt.sections.${i}.personName`]}
+              >
                 <Input
+                  id={`lt-person-name-${i}`}
                   value={s.personName}
                   onChange={(e) => updateAt(i, { personName: e.target.value })}
-                  className={errors[`lt.sections.${i}.personName`] ? 'border-red-500' : ''}
+                  className={errors[`lt.sections.${i}.personName`] ? 'border-destructive' : ''}
                 />
-                {errors[`lt.sections.${i}.personName`] && (
-                  <p className="text-sm text-red-500">{errors[`lt.sections.${i}.personName`]}</p>
-                )}
-              </div>
-              <div className="space-y-2">
-                <Label>
-                  Person Job Title <span className="text-red-500">*</span>
-                </Label>
+              </Field>
+              <Field
+                id={`lt-person-title-${i}`}
+                label="Person Job Title"
+                required
+                error={errors[`lt.sections.${i}.personJobTitle`]}
+              >
                 <Input
+                  id={`lt-person-title-${i}`}
                   value={s.personJobTitle}
                   onChange={(e) => updateAt(i, { personJobTitle: e.target.value })}
-                  className={errors[`lt.sections.${i}.personJobTitle`] ? 'border-red-500' : ''}
+                  className={errors[`lt.sections.${i}.personJobTitle`] ? 'border-destructive' : ''}
                 />
-                {errors[`lt.sections.${i}.personJobTitle`] && (
-                  <p className="text-sm text-red-500">{errors[`lt.sections.${i}.personJobTitle`]}</p>
-                )}
-              </div>
+              </Field>
             </div>
-          </div>
+          </RepeaterItem>
         ))}
-      </CardContent>
-    </Card>
+      </div>
+    </FormSection>
   );
 }
 
@@ -1419,31 +1425,29 @@ function SpecialRequestForm({
   onChange: (d: SpecialRequestData) => void;
   errors: Record<string, string>;
 }) {
+  function addLink() {
+    onChange({ ...data, imageLinks: [...data.imageLinks, ''] });
+  }
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Palette className="h-5 w-5" />
-          Special Request
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <Label>Image Links (optional)</Label>
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              onClick={() => onChange({ ...data, imageLinks: [...data.imageLinks, ''] })}
-            >
-              <Plus className="h-4 w-4 mr-1" /> Add Image Link
-            </Button>
-          </div>
-          {data.imageLinks.map((link, i) => (
+    <FormSection
+      step={3}
+      icon={REQUEST_TYPE_ICON[CREATIVE_REQUEST_TYPE.SpecialRequest]}
+      title="Special Request"
+      description="Describe what you need and link any reference images."
+    >
+      <div className="space-y-3">
+        <RepeaterHeader label="Image Links" optional actionLabel="Add Image Link" onAdd={addLink} />
+        {data.imageLinks.length === 0 && (
+          <RepeaterEmpty text="No image links added." actionLabel="Add Image Link" onAdd={addLink} />
+        )}
+        {data.imageLinks.map((link, i) => {
+          const error = errors[`special.imageLinks.${i}`];
+          return (
             <div key={i} className="space-y-1">
               <div className="flex items-center gap-2">
                 <Input
+                  id={`special-link-${i}`}
+                  aria-label={`Image link ${i + 1}`}
                   value={link}
                   onChange={(e) =>
                     onChange({
@@ -1452,36 +1456,39 @@ function SpecialRequestForm({
                     })
                   }
                   placeholder="https://..."
-                  className={errors[`special.imageLinks.${i}`] ? 'border-red-500' : ''}
+                  aria-invalid={!!error || undefined}
+                  aria-describedby={error ? `special-link-${i}-error` : undefined}
+                  className={error ? 'border-destructive' : ''}
                 />
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
+                  size="icon"
+                  aria-label={`Remove image link ${i + 1}`}
                   onClick={() => onChange({ ...data, imageLinks: data.imageLinks.filter((_, idx) => idx !== i) })}
-                  className="shrink-0 text-muted-foreground hover:text-destructive"
+                  className="h-9 w-9 shrink-0 text-muted-foreground hover:text-destructive"
                 >
                   <X className="h-4 w-4" />
-                </button>
+                </Button>
               </div>
-              {errors[`special.imageLinks.${i}`] && (
-                <p className="text-sm text-red-500">{errors[`special.imageLinks.${i}`]}</p>
+              {error && (
+                <p id={`special-link-${i}-error`} role="alert" className="text-sm text-destructive">
+                  {error}
+                </p>
               )}
             </div>
-          ))}
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="special-description">
-            Description <span className="text-red-500">*</span>
-          </Label>
-          <Textarea
-            id="special-description"
-            value={data.description}
-            onChange={(e) => onChange({ ...data, description: e.target.value })}
-            rows={4}
-            className={errors['special.description'] ? 'border-red-500' : ''}
-          />
-          {errors['special.description'] && <p className="text-sm text-red-500">{errors['special.description']}</p>}
-        </div>
-      </CardContent>
-    </Card>
+          );
+        })}
+      </div>
+      <Field id="special-description" label="Description" required error={errors['special.description']}>
+        <Textarea
+          id="special-description"
+          value={data.description}
+          onChange={(e) => onChange({ ...data, description: e.target.value })}
+          rows={4}
+          className={errors['special.description'] ? 'border-destructive' : ''}
+        />
+      </Field>
+    </FormSection>
   );
 }

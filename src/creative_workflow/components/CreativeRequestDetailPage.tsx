@@ -58,6 +58,7 @@ import {
   type SpecialRequestData,
   type UploadedFileRef,
   type VideoWallPresentationData,
+  scheduleLabelsFor,
 } from '../types/creative';
 
 const statusColors: Record<string, string> = {
@@ -397,8 +398,8 @@ export function CreativeRequestDetailPage() {
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                <StatTile icon={Calendar} label="Air Date" value={format(new Date(request.airDate), 'yyyy-MM-dd')} />
-                <StatTile icon={Clock} label="Air Time" value={request.airTime?.slice(0, 5)} />
+                <StatTile icon={Calendar} label={scheduleLabelsFor(request.requestType).date} value={format(new Date(request.airDate), 'yyyy-MM-dd')} />
+                <StatTile icon={Clock} label={scheduleLabelsFor(request.requestType).time} value={request.airTime?.slice(0, 5)} />
                 <StatTile icon={Flag} label="Priority" value={request.priority} />
                 <StatTile icon={User} label="Requester" value={request.createdByName || '—'} />
                 <StatTile icon={Building2} label="Department" value={departmentLabel} />
