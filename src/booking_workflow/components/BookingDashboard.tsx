@@ -26,6 +26,7 @@ import qbcDarkAr from '../../assets/QBC-dark-ar.png';
 import qbcLight from '../../assets/QBC-light.png';
 import qbcLightAr from '../../assets/QBC-light-ar.png';
 import { ChangePasswordModal } from './ChangePasswordModal';
+import { ProfileModal } from './ProfileModal';
 import { usePageHeaderValue } from '../../contexts/PageHeaderContext';
 
 function ScheduleNewBadge({ compact = false }: { compact?: boolean }) {
@@ -323,6 +324,7 @@ export const BookingDashboard: React.FC = () => {
   });
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const [hrOpen, setHrOpen] = useState(() => location.pathname.startsWith('/hr'));
   const [hrReportsOpen, setHrReportsOpen] = useState(() => location.pathname.startsWith('/hr/reports'));
   const [hrEmployeesOpen, setHrEmployeesOpen] = useState(() => location.pathname.startsWith('/hr/employees'));
@@ -986,6 +988,13 @@ export const BookingDashboard: React.FC = () => {
                           <p className="text-xs text-muted-foreground">{user?.roles?.join(', ')}</p>
                         </div>
                         <button
+                          onClick={() => { setProfileOpen(true); setUserMenuOpen(false); }}
+                          className="w-full flex items-center gap-2 px-3 py-2 text-left text-sm text-card-foreground hover:bg-muted transition-colors"
+                        >
+                          <User size={16} />
+                          My Profile
+                        </button>
+                        <button
                           onClick={() => { setChangePasswordOpen(true); setUserMenuOpen(false); }}
                           className="w-full flex items-center gap-2 px-3 py-2 text-left text-sm text-card-foreground hover:bg-muted transition-colors"
                         >
@@ -1016,6 +1025,12 @@ export const BookingDashboard: React.FC = () => {
       </div>
 
       <NotificationPermissionBanner />
+
+      <ProfileModal
+        open={profileOpen}
+        onOpenChange={setProfileOpen}
+        onChangePassword={() => { setProfileOpen(false); setChangePasswordOpen(true); }}
+      />
 
       {user && (
         <ChangePasswordModal

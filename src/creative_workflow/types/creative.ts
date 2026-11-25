@@ -235,10 +235,12 @@ export interface VideoWallPresentationData {
 export interface FillerSection {
   title: string;
   description: string;
+  image?: UploadedFileRef;
 }
 
 export interface FillerData {
   sections: FillerSection[];
+  generalNote?: string;
   responsePath?: string;
 }
 

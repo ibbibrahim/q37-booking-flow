@@ -15,19 +15,25 @@ export const NotificationSettings: React.FC = () => {
   const [permission, setPermission] = useState<'default' | 'granted' | 'denied'>('default');
   const [supported, setSupported] = useState(false);
 
-  const isIngestUser = user?.roles?.includes('Ingest') || false;
+  // Same roles as NotificationPermissionBanner — those whose workflow pushes native browser notifications.
+  const CREATIVE_ROLES = ['SocialMedia', 'Booking', 'GraphicsTeam', 'MotionGraphicsTeam'];
+  const canUseDesktopNotifications =
+    user?.roles?.includes('Ingest') ||
+    user?.roles?.includes('NOC') ||
+    user?.roles?.some((r) => CREATIVE_ROLES.includes(r)) ||
+    false;
 
   useEffect(() => {
-    if (!isIngestUser) return;
+    if (!canUseDesktopNotifications) return;
     const isSupported = isNotificationSupported();
     setSupported(isSupported);
     if (isSupported) {
       setPermission(getNotificationPermission());
       setEnabled(isNotificationEnabled());
     }
-  }, [isIngestUser]);
+  }, [canUseDesktopNotifications]);
 
-  if (!isIngestUser || !supported || permission !== 'granted') return null;
+  if (!canUseDesktopNotifications || !supported || permission !== 'granted') return null;
 
   return (
     <div className="flex items-center justify-between gap-2 px-3 py-2 border-t border-border">

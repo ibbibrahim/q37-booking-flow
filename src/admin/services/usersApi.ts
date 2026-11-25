@@ -31,6 +31,11 @@ export const usersApi = {
     return response.data;
   },
 
+  async getMe(): Promise<UserDto> {
+    const response = await apiClient.get<UserDto>('/api/users/me');
+    return response.data;
+  },
+
   async getUser(id: number): Promise<UserDto> {
     const response = await apiClient.get<UserDto>(`/api/users/${id}`);
     return response.data;

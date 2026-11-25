@@ -858,14 +858,25 @@ function TypeSpecificDetails({
       const d = data as unknown as FillerData;
       return (
         <div className="space-y-3">
+          {program && (
+            <div className="space-y-1.5">
+              <SpecRow label="Program" value={program} />
+            </div>
+          )}
           {d.sections && d.sections.length > 0 && (
             <SubsectionList>
               {d.sections.map((s, i) => (
                 <Subsection key={i} index={i} title={s.title}>
                   <p className="text-sm text-muted-foreground">{s.description}</p>
+                  {s.image && <ImageThumb label="Image" file={s.image} />}
                 </Subsection>
               ))}
             </SubsectionList>
+          )}
+          {d.generalNote && (
+            <div className="space-y-1.5">
+              <SpecRow label="General Note" value={d.generalNote} />
+            </div>
           )}
         </div>
       );

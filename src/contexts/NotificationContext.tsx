@@ -231,6 +231,31 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
           }
         });
       }
+
+      // Browser notification (with sound) for the fulfilling Creative team when a new request
+      // arrives. The backend only sends "RequestCreated" to the team that handles that request
+      // type (Graphics or Motion), plus the requester's department; the role check keeps the
+      // pop-up off the requester's own screen.
+      const isCreativeTeamUser =
+        user?.roles?.some((r) => r === 'GraphicsTeam' || r === 'MotionGraphicsTeam') || false;
+      if (
+        isCreativeTeamUser &&
+        data.entityType === 'CreativeRequest' &&
+        data.type === 'RequestCreated' &&
+        shouldShowBrowserNotification()
+      ) {
+        showBrowserNotification({
+          title: data.title,
+          body: data.body || 'A new creative request has arrived',
+          icon: '/Qbusiness_Logo_NEG_POS-02.png',
+          tag: `creative-new-${data.entityId}`,
+          playSound: true,
+          onClick: () => {
+            window.focus();
+            if (data.url) navigate(data.url);
+          }
+        });
+      }
     });
 
     const unsubscribeCreated = listen('RequestCreated', (data: WorkflowRequest) => {

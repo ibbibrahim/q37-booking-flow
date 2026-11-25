@@ -239,7 +239,7 @@ function buildSegments(block: AvailabilityBlock): DonutSegment[] {
     },
     {
       key: 'delay',
-      label: 'Delay',
+      label: 'Delay/Cancelled',
       percent: block.downtimePercent,
       minutes: block.downtimeMinutes,
       countLabel: `${block.incidentCount.toLocaleString()} ${block.incidentCount === 1 ? 'incident' : 'incidents'}`,
@@ -250,10 +250,10 @@ function buildSegments(block: AvailabilityBlock): DonutSegment[] {
     },
     {
       key: 'cancelled',
-      label: 'Cancelled',
+      label: 'On Air Black / No Audio',
       percent: block.cancelledPercent,
       minutes: block.cancelledMinutes,
-      countLabel: `${block.cancelledCount.toLocaleString()} ${block.cancelledCount === 1 ? 'programme' : 'programmes'}`,
+      countLabel: `${block.cancelledCount.toLocaleString()} ${block.cancelledCount === 1 ? 'incident' : 'incidents'}`,
       strokeClass: 'stroke-destructive',
       dotClass: 'bg-destructive',
       textClass: 'text-destructive',
@@ -445,8 +445,8 @@ function AvailabilityPanel({
       </div>
       <div className="grid grid-cols-2 divide-x divide-y divide-border [&>*:nth-child(-n+2)]:border-t-0 [&>*:nth-child(odd)]:border-l-0">
         <PanelMetric label={durationLabel} value={`${Math.floor(block.liveMinutes / 60).toLocaleString()} h`} />
-        <PanelMetric label="Delay" value={formatMinutes(block.downtimeMinutes)} />
-        <PanelMetric label="Cancelled" value={formatMinutes(block.cancelledMinutes)} />
+        <PanelMetric label="Delay/Cancelled" value={formatMinutes(block.downtimeMinutes)} />
+        <PanelMetric label="On Air Black / No Audio" value={formatMinutes(block.cancelledMinutes)} />
         <PanelMetric label="Incidents" value={block.incidentCount.toLocaleString()} />
       </div>
     </div>
@@ -814,7 +814,7 @@ function ReportContent({ data, tab }: { data: ManagementReport; tab: ReportTab }
               Result: <strong className="font-semibold">{av.live.availabilityPercent.toFixed(4)}%</strong>
               {` live availability over ${av.days} days, with ${
                 av.live.downtimeMinutes > 0 ? formatMinutes(av.live.downtimeMinutes) : 'no'
-              } live delay and ${formatMinutes(av.live.cancelledMinutes)} cancelled.`}
+              } live delay/cancelled and ${formatMinutes(av.live.cancelledMinutes)} on air black / no audio.`}
             </p>
             <p className="text-muted-foreground">
               {`Overall 24 h availability ${pct.toFixed(4)}% · ${av.incidentCount.toLocaleString()} on-air incidents`}

@@ -1,8 +1,9 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { isAxiosError } from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { AlertTriangle, Archive, ArrowLeft, CalendarClock, Check, FileText, Loader2, Plus, Send, X } from 'lucide-react';
+import { AlertTriangle, Archive, ArrowLeft, CalendarClock, Check, ChevronDown, FileText, Loader2, Plus, Search, Send, X } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { Label } from '@/components/ui/label';
@@ -10,13 +11,6 @@ import { Input } from '@/components/ui/input';
 import { TimePicker } from '@/components/ui/time-picker';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { CreativeDocumentUploadField } from './CreativeDocumentUploadField';
 import { CreativeScreenPicker } from './CreativeScreenPicker';
 import {
@@ -256,6 +250,7 @@ export function CreativeRequestFormPage() {
       }
     }
     if (requestType === CREATIVE_REQUEST_TYPE.Filler) {
+      if (!program) next['filler.program'] = 'Program is required.';
       if (fillerData.sections.length === 0) {
         next['filler.sections'] = 'Add at least one section.';
       } else {
@@ -478,7 +473,14 @@ export function CreativeRequestFormPage() {
         />
       )}
       {requestType === CREATIVE_REQUEST_TYPE.Filler && (
-        <FillerForm data={fillerData} onChange={setFillerData} errors={errors} />
+        <FillerForm
+          data={fillerData}
+          onChange={setFillerData}
+          program={program}
+          onProgramChange={setProgram}
+          programs={programs}
+          errors={errors}
+        />
       )}
       {requestType === CREATIVE_REQUEST_TYPE.LowerThird && (
         <LowerThirdForm
@@ -585,23 +587,114 @@ function ProgramSelectField({
   programs: { id: number; name: string }[];
   error?: string;
 }) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const [active, setActive] = useState(0);
+  const listRef = useRef<HTMLDivElement>(null);
+
+  const q = search.trim().toLowerCase();
+  const filtered = programs.filter((p) => !q || p.name.toLowerCase().includes(q));
+
+  // Reset the search each time the list opens, and land on the current pick.
+  useEffect(() => {
+    if (!open) return;
+    setSearch('');
+    setActive(Math.max(0, programs.findIndex((p) => p.name === value)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only when the popover opens
+  }, [open]);
+
+  useEffect(() => {
+    listRef.current?.querySelector<HTMLElement>(`[data-index="${active}"]`)?.scrollIntoView({ block: 'nearest' });
+  }, [active, open]);
+
+  function choose(name: string) {
+    onChange(name);
+    setOpen(false);
+  }
+
+  function onSearchKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setActive((i) => Math.min(filtered.length - 1, i + 1));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setActive((i) => Math.max(0, i - 1));
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      const p = filtered[active];
+      if (p) choose(p.name);
+    }
+  }
+
   return (
     <Field id={id} label={label} required error={error} bare>
-      <Select value={value} onValueChange={onChange}>
-        <SelectTrigger
-          id={id}
-          className={error ? 'border-destructive' : ''}
-          aria-invalid={!!error || undefined}
-          aria-describedby={error ? `${id}-error` : undefined}
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            role="combobox"
+            id={id}
+            aria-expanded={open}
+            aria-invalid={!!error || undefined}
+            aria-describedby={error ? `${id}-error` : undefined}
+            className={cn(
+              'flex h-10 w-full items-center justify-between gap-2 rounded-md border border-input bg-background px-3 py-2 text-left text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 aria-[invalid=true]:border-destructive',
+              !value && 'text-muted-foreground'
+            )}
+          >
+            <span className="truncate">{value || placeholder}</span>
+            <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
+          </button>
+        </PopoverTrigger>
+        <PopoverContent
+          align="start"
+          className="w-[--radix-popover-trigger-width] min-w-[16rem] p-0"
+          // Inside a Dialog the body scroll lock would otherwise swallow wheel/touch scrolling here.
+          onWheel={(e) => e.stopPropagation()}
+          onTouchMove={(e) => e.stopPropagation()}
         >
-          <SelectValue placeholder={placeholder} />
-        </SelectTrigger>
-        <SelectContent>
-          {programs.map((p) => (
-            <SelectItem key={p.id} value={p.name}>{p.name}</SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+          <div className="flex items-center gap-2 border-b border-border px-3">
+            <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
+            <input
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setActive(0);
+              }}
+              onKeyDown={onSearchKeyDown}
+              placeholder="Search program…"
+              aria-label="Search programs"
+              className="h-10 w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+              autoFocus
+            />
+          </div>
+          <div ref={listRef} role="listbox" className="max-h-72 overflow-y-auto p-1">
+            {filtered.length === 0 && (
+              <p className="px-2 py-3 text-center text-xs text-muted-foreground">No programs match “{search.trim()}”</p>
+            )}
+            {filtered.map((p, index) => {
+              const selected = p.name === value;
+              return (
+                <div
+                  key={p.id}
+                  role="option"
+                  aria-selected={selected}
+                  data-index={index}
+                  onMouseMove={() => setActive(index)}
+                  onClick={() => choose(p.name)}
+                  className={cn(
+                    'relative flex cursor-pointer items-center gap-2 rounded-sm py-1.5 pl-8 pr-2 text-sm',
+                    index === active && 'bg-accent text-accent-foreground'
+                  )}
+                >
+                  {selected && <Check className="absolute left-2 h-4 w-4" />}
+                  <span className="min-w-0 truncate">{p.name}</span>
+                </div>
+              );
+            })}
+          </div>
+        </PopoverContent>
+      </Popover>
     </Field>
   );
 }
@@ -1266,10 +1359,16 @@ function VideoWallPresentationForm({
 function FillerForm({
   data,
   onChange,
+  program,
+  onProgramChange,
+  programs,
   errors,
 }: {
   data: FillerData;
   onChange: (d: FillerData) => void;
+  program: string;
+  onProgramChange: (p: string) => void;
+  programs: { id: number; name: string }[];
   errors: Record<string, string>;
 }) {
   function addSection() {
@@ -1287,8 +1386,19 @@ function FillerForm({
       step={3}
       icon={REQUEST_TYPE_ICON[CREATIVE_REQUEST_TYPE.Filler]}
       title="Filler"
-      description="Add a section for each filler graphic you need."
+      description="Pick the program, then add a section for each filler graphic."
     >
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <ProgramSelectField
+          id="filler-program"
+          label="Select Program"
+          placeholder="Select a program"
+          value={program}
+          onChange={onProgramChange}
+          programs={programs}
+          error={errors['filler.program']}
+        />
+      </div>
       <div className="space-y-3">
         <RepeaterHeader label="Sections" required actionLabel="Add Section" onAdd={addSection} />
         <ListError id="filler-sections-error" message={errors['filler.sections']} />
@@ -1305,23 +1415,40 @@ function FillerForm({
                 className={errors[`filler.sections.${i}.title`] ? 'border-destructive' : ''}
               />
             </Field>
-            <Field
-              id={`filler-description-${i}`}
-              label="Description"
-              required
-              error={errors[`filler.sections.${i}.description`]}
-            >
-              <Textarea
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <Field
                 id={`filler-description-${i}`}
-                value={s.description}
-                onChange={(e) => updateAt(i, { description: e.target.value })}
-                rows={2}
-                className={errors[`filler.sections.${i}.description`] ? 'border-destructive' : ''}
+                label="Description"
+                required
+                error={errors[`filler.sections.${i}.description`]}
+              >
+                <Textarea
+                  id={`filler-description-${i}`}
+                  value={s.description}
+                  onChange={(e) => updateAt(i, { description: e.target.value })}
+                  rows={3}
+                  className={errors[`filler.sections.${i}.description`] ? 'border-destructive' : ''}
+                />
+              </Field>
+              <CreativeDocumentUploadField
+                id={`filler-image-${i}`}
+                label="Image (optional)"
+                value={s.image}
+                onChange={(ref) => updateAt(i, { image: ref ?? undefined })}
+                accept="image/*"
               />
-            </Field>
+            </div>
           </RepeaterItem>
         ))}
       </div>
+      <Field id="filler-general-note" label="General Note" hint="Anything that applies to the whole request (optional)">
+        <Textarea
+          id="filler-general-note"
+          value={data.generalNote ?? ''}
+          onChange={(e) => onChange({ ...data, generalNote: e.target.value })}
+          rows={3}
+        />
+      </Field>
     </FormSection>
   );
 }
